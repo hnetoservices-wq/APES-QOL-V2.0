@@ -1,0 +1,71 @@
+{
+  "manifest_version": 3,
+  "name": "APES TK QoL",
+  "version": "1.4.15",
+  "description": "Quality of Life improvements for TK.",
+  "permissions": [
+    "storage",
+    "unlimitedStorage"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.kingdoms.com/*"
+      ],
+      "js": [
+        "js/features/oasisNetworkBridge.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN"
+    },
+    {
+      "matches": [
+        "*://*.kingdoms.com/*"
+      ],
+      "js": [
+        "js/keys/mapKeys.js",
+        "js/keys/navigationKeys.js",
+        "js/keys/mapHover.js",
+        "js/ui/menu.js",
+        "js/features/oasisScanner.js",
+        "js/features/rallyPointEnhancer.js",
+        "js/features/igmEnhancer.js",
+        "js/features/sendButtonsEnhancer.js",
+        "js/features/chatSilencer.js",
+        "js/features/incomingResources.js",
+        "js/features/watchlist.js",
+        "js/features/reportArchive.js",
+        "js/features/checklists.js",
+        "js/features/npcCalculator.js",
+        "js/features/auctionHouseScanner.js",
+        "js/features/cpManager.js",
+        "js/features/resourceCapacityTimer.js",
+        "js/features/visualTribeSkins.js",
+        "js/features/secretSocietyScanner.js",
+        "js/features/rallyPointScanner.js",
+        "js/features/buildingAlarm.js",
+        "js/content.js"
+
+      ],
+      "css": [
+        "css/style.css",
+        "css/oasisScannerUI.css"
+      ],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/icon16.png",
+    "32": "icons/icon32.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "32": "icons/icon32.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  }
+}

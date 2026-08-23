@@ -1,0 +1,17 @@
+#qol-oasis-container #qol-oasis-resource-filter {
+  display: none !important;
+}
+
+#qol-oasis-container .qol-oasis-controls {
+  grid-template-columns:
+    minmax(105px, 1fr)
+    minmax(150px, 1.5fr)
+    minmax(100px, 1fr)
+    auto
+    auto
+    auto
+    auto
+    auto
+    auto
+    !important;
+}
