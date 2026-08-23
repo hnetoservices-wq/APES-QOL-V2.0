@@ -138,11 +138,8 @@ const KEYBINDS = [
     { keys: ['Q', '←'], label: 'Previous Village', id: 'qol-chk-previous-village', key: 'keybind_previousVillage' },
     { keys: ['E', '→'], label: 'Next Village', id: 'qol-chk-next-village', key: 'keybind_nextVillage' },
     { keys: ['T'], label: 'Rally Point', id: 'qol-chk-rally', key: 'keybind_rallyPoint' },
-    { keys: ['G'], label: 'Hero Inventory', id: 'qol-chk-hero', key: 'keybind_heroInventory' },
     { keys: ['R'], label: 'Send Troops to Hovered Tile', fixed: true },
     { keys: ['Z'], label: 'Open Chat Window', id: 'qol-chk-convos', key: 'keybind_conversations' },
-    { keys: ['X'], label: 'Statistics', id: 'qol-chk-stats', key: 'keybind_statistics' },
-    { keys: ['C'], label: 'Quest Book', id: 'qol-chk-quests', key: 'keybind_questBook' },
     { keys: ['F'], label: 'Reports', id: 'qol-chk-reports', key: 'keybind_reports' },
     { keys: ['V'], label: 'Villages Overview', id: 'qol-chk-overview', key: 'keybind_villagesOverview' }
 ];
