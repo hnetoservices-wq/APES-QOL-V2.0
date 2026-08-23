@@ -509,43 +509,12 @@ function handleNavigation(code) {
             }
             break;
 
-        case 'KeyG':
-            if (isKeybindEnabled('heroInventory')) {
-                const inventoryIsOpen =
-                    currentHash.includes('window:hero') &&
-                    currentHash.includes('herotab:Inventory');
-
-                if (inventoryIsOpen) removeRouteParam('hero');
-                else openVillageWindow('hero', [], ['herotab:Inventory']);
-            }
-            break;
-
         case 'KeyZ':
             if (isKeybindEnabled('conversations')) {
                 if (currentHash.includes('window:igm')) removeRouteParam('igm');
                 else {
                     navigateToRoute('window:igm');
                     clickSidebarElement('jsQuestButtonIgm');
-                }
-            }
-            break;
-
-        case 'KeyX':
-            if (isKeybindEnabled('statistics')) {
-                if (currentHash.includes('window:statistics')) removeRouteParam('statistics');
-                else {
-                    navigateToRoute('window:statistics');
-                    clickSidebarElement('jsQuestButtonStatistics');
-                }
-            }
-            break;
-
-        case 'KeyC':
-            if (isKeybindEnabled('questBook')) {
-                if (currentHash.includes('window:questBook')) removeRouteParam('questBook');
-                else {
-                    navigateToRoute('window:questBook');
-                    clickSidebarElement('jsQuestButtonQuestbook');
                 }
             }
             break;
