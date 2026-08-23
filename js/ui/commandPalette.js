@@ -1,6 +1,8 @@
 /**
- * APES QoL v2 Command Palette.
- * Press Y outside typing fields to open it.
+ * APES QoL v2 radial command menu.
+ *
+ * Hold Y outside typing fields to show every eligible enabled feature.
+ * Release Y or press Escape to close. Click an icon to launch its feature.
  */
 
 (() => {
@@ -13,98 +15,215 @@
     }
 
     const OVERLAY_ID = 'apes-v2-command-overlay';
-    const INPUT_ID = 'apes-v2-command-input';
-    let selectedIndex = 0;
-    let visibleActions = [];
+    const HOLD_DELAY = 180;
+    const ITEMS_PER_RING = 10;
+    const FIRST_RING_RADIUS = 150;
+    const RING_GAP = 72;
 
-    function featureEnabled(key) {
+    let holdTimer = null;
+    let yHeld = false;
+
+    const ICONS = {
+        auction: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 20h16M7 17l8-8m-6-2 8 8M5 9l4-4 2 2-4 4zm8 8 4-4 2 2-4 4z"/>
+            </svg>
+        `,
+        checklist: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="3" width="14" height="18" rx="2"/>
+                <path d="M8 8l1.5 1.5L12 7M8 14l1.5 1.5L12 13M14 9h2M14 15h2"/>
+            </svg>
+        `,
+        alarm: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="13" r="7"/>
+                <path d="M12 9v4l3 2M7 3 4 6m13-3 3 3M9 21h6"/>
+            </svg>
+        `,
+        chat: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 5h16v11H9l-5 4z"/>
+                <path d="M8 9h8M8 12h6"/>
+            </svg>
+        `,
+        rally: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 4l7 7M13 13l7 7M14 4h6v6M20 4l-8 8M4 20l5-5"/>
+            </svg>
+        `,
+        calculator: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="5" y="2" width="14" height="20" rx="2"/>
+                <path d="M8 6h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h2M14 19h2"/>
+            </svg>
+        `,
+        cp: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 18V8l8-5 8 5v10"/>
+                <path d="M2 18h20M8 18v-6h8v6"/>
+                <text x="12" y="10" text-anchor="middle">CP</text>
+            </svg>
+        `,
+        oasis: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="12" r="8"/>
+                <path d="M12 2v4M12 18v4M2 12h4M18 12h4M8 16c2-5 5-7 8-8-1 4-3 7-8 8z"/>
+            </svg>
+        `,
+        archive: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 7h16v14H4zM3 3h18v4H3zM9 11h6"/>
+            </svg>
+        `,
+        watchlist: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 6h16v15H4zM8 3h8v5H8zM8 12h8M8 16h6"/>
+            </svg>
+        `
+    };
+
+    /*
+     * Add future radial commands here. An entry appears only when its
+     * feature setting is enabled. Keybind-only and passive features are
+     * intentionally not registered.
+     */
+    const RADIAL_FEATURES = [
+        {
+            id: 'auction.open',
+            featureKey: 'auctionHouseScanner',
+            label: 'Auction House Scanner',
+            icon: ICONS.auction,
+            run: () => navigateTo('/herotab:Auctions/window:hero/cp:1')
+        },
+        {
+            id: 'checklists.open',
+            featureKey: 'checklists',
+            label: 'Checklists',
+            icon: ICONS.checklist,
+            controlId: 'qol-checklist-toggle-btn'
+        },
+        {
+            id: 'buildingAlarms.open',
+            featureKey: 'buildingAlarm',
+            label: 'Building Alarms',
+            icon: ICONS.alarm,
+            run: () => APES.ui.showById(
+                'qol-building-alarm-panel',
+                'block'
+            )
+        },
+        {
+            id: 'igm.open',
+            featureKey: 'igmEnhanced',
+            label: 'IGM Enhancer',
+            icon: ICONS.chat,
+            run: () => navigateTo('/window:igm')
+        },
+        {
+            id: 'rallyPoint.open',
+            featureKey: 'rallyPointParser',
+            label: 'Rally Point Scanner',
+            icon: ICONS.rally,
+            controlId: 'qol-rally-point-toggle-btn'
+        },
+        {
+            id: 'npc.open',
+            featureKey: 'npcCalculator',
+            label: 'NPC Calculator',
+            icon: ICONS.calculator,
+            controlId: 'qol-npc-calc-toggle-btn'
+        },
+        {
+            id: 'cp.open',
+            featureKey: 'cpManager',
+            label: 'CP Manager',
+            icon: ICONS.cp,
+            controlId: 'qol-cp-toggle-btn'
+        },
+        {
+            id: 'oasis.open',
+            featureKey: 'oasisScanner',
+            label: 'Oasis Scanner',
+            icon: ICONS.oasis,
+            controlId: 'qol-oasis-toggle-btn'
+        },
+        {
+            id: 'reports.open',
+            featureKey: 'reportArchive',
+            label: 'Report Archive',
+            icon: ICONS.archive,
+            controlId: 'qol-report-archive-toggle'
+        },
+        {
+            id: 'watchlist.open',
+            featureKey: 'watchlist',
+            label: 'Watchlists',
+            icon: ICONS.watchlist,
+            controlId: 'qol-watchlist-toggle'
+        }
+    ];
+
+    function featureEnabled(featureKey) {
         return typeof window.isQolEnabled !== 'function' ||
-            window.isQolEnabled(key) === true;
+            window.isQolEnabled(featureKey) === true;
     }
 
-    function registerLauncher({
-        id,
-        label,
-        description,
-        keywords,
-        group,
-        elementId,
-        featureKey
-    }) {
+    function navigateTo(suffix) {
+        const currentPath = String(window.location.hash || '')
+            .replace(/^#\/?/, '');
+        const basePath = currentPath
+            .replace(/\/(?:window|herotab):.*$/i, '')
+            .replace(/\/$/, '') ||
+            'page:village';
+
+        closeRadial();
+        window.location.hash = `#/${basePath}${suffix}`;
+    }
+
+    function activateControl(controlId) {
+        closeRadial();
+        APES.ui.activateById(controlId);
+    }
+
+    RADIAL_FEATURES.forEach(feature => {
         APES.actions.register({
-            id,
-            label,
-            description,
-            keywords,
-            group,
-            enabled: () => {
-                return featureEnabled(featureKey) &&
-                    Boolean(document.getElementById(elementId));
-            },
-            run: () => {
-                closePalette();
-                APES.ui.activateById(elementId);
-            }
+            id: feature.id,
+            label: feature.label,
+            description: `Open ${feature.label}.`,
+            keywords: [feature.label, feature.featureKey],
+            group: 'Radial menu',
+            enabled: () => featureEnabled(feature.featureKey),
+            run: feature.run || (() => activateControl(feature.controlId))
+        });
+    });
+
+    function getEnabledFeatures() {
+        return RADIAL_FEATURES.filter(feature => {
+            return featureEnabled(feature.featureKey);
         });
     }
 
-    registerLauncher({
-        id: 'settings.open',
-        label: 'Open APES Settings',
-        description: 'Manage features and keybinds.',
-        keywords: ['menu', 'options', 'cog'],
-        group: 'APES',
-        elementId: 'qol-cog-btn',
-        featureKey: 'menu'
-    });
+    function getPosition(index, features) {
+        const ringIndex = Math.floor(index / ITEMS_PER_RING);
+        const ringStart = ringIndex * ITEMS_PER_RING;
+        const ringItems = features.slice(
+            ringStart,
+            ringStart + ITEMS_PER_RING
+        );
+        const positionInRing = index - ringStart;
+        const angle = -Math.PI / 2 +
+            (Math.PI * 2 * positionInRing) / ringItems.length;
+        const radius = FIRST_RING_RADIUS + ringIndex * RING_GAP;
 
-    registerLauncher({
-        id: 'rallyPoint.open',
-        label: 'Open Rally Point Scanner',
-        description: 'Scan incoming, outgoing, and resource movements.',
-        keywords: ['attack', 'incoming', 'outgoing', 'resources'],
-        group: 'Scanners',
-        elementId: 'qol-rally-point-toggle-btn',
-        featureKey: 'rallyPointParser'
-    });
+        return {
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+            ringIndex
+        };
+    }
 
-    registerLauncher({
-        id: 'watchlist.open',
-        label: 'Open Watchlists',
-        description: 'View saved players and watchlist groups.',
-        keywords: ['players', 'tracking', 'profiles'],
-        group: 'Players',
-        elementId: 'qol-watchlist-toggle',
-        featureKey: 'watchlist'
-    });
-
-    registerLauncher({
-        id: 'npc.open',
-        label: 'Open NPC Calculator',
-        description: 'Plan troop resources and NPC distribution.',
-        keywords: ['resources', 'troops', 'gold'],
-        group: 'Calculators',
-        elementId: 'qol-npc-calc-toggle-btn',
-        featureKey: 'npcCalculator'
-    });
-
-    APES.actions.register({
-        id: 'buildingAlarms.open',
-        label: 'Open Building Alarms',
-        description: 'View upcoming and instant-finish alarms.',
-        keywords: ['building', 'clock', 'ding', 'instant finish'],
-        group: 'Alarms',
-        enabled: () => {
-            return featureEnabled('buildingAlarm') &&
-                Boolean(document.getElementById('qol-building-alarm-panel'));
-        },
-        run: () => {
-            closePalette();
-            APES.ui.showById('qol-building-alarm-panel', 'block');
-        }
-    });
-
-    function mountPalette() {
+    function mountRadial() {
         let overlay = document.getElementById(OVERLAY_ID);
 
         if (overlay) {
@@ -115,79 +234,107 @@
         overlay.id = OVERLAY_ID;
         overlay.setAttribute('aria-hidden', 'true');
         overlay.innerHTML = `
-            <div class="apes-v2-command-dialog" role="dialog" aria-modal="true" aria-label="APES Command Palette">
-                <div class="apes-v2-command-search">
-                    <span class="apes-v2-command-mark">Y</span>
-                    <input id="${INPUT_ID}" type="text" autocomplete="off" spellcheck="false" placeholder="Search APES commands…" aria-label="Search APES commands">
-                    <span class="apes-v2-command-key">Esc</span>
+            <div class="apes-v2-radial" role="dialog" aria-modal="true" aria-label="APES feature wheel">
+                <div class="apes-v2-radial-center">
+                    <span class="apes-v2-radial-logo">APES</span>
+                    <strong>Command Wheel</strong>
+                    <span class="apes-v2-radial-hint">Hold Y · Click a feature</span>
                 </div>
-                <div class="apes-v2-command-results" role="listbox"></div>
-                <div class="apes-v2-command-footer">
-                    <span><b>↑↓</b> Select</span>
-                    <span><b>Enter</b> Open</span>
-                    <span><b>Y</b> Toggle palette</span>
-                </div>
+                <div class="apes-v2-radial-items"></div>
             </div>
         `;
         document.body.appendChild(overlay);
 
-        const input = overlay.querySelector(`#${INPUT_ID}`);
-        input.addEventListener('input', () => {
-            selectedIndex = 0;
-            renderResults(input.value);
-        });
-
         overlay.addEventListener('click', event => {
             if (event.target === overlay) {
-                closePalette();
+                closeRadial();
                 return;
             }
 
-            const result = event.target.closest('[data-apes-action-id]');
-            if (result) {
-                void runAction(result.dataset.apesActionId);
+            const item = event.target.closest('[data-apes-action-id]');
+
+            if (item) {
+                void runFeature(item.dataset.apesActionId);
+            }
+        });
+
+        overlay.addEventListener('pointerover', event => {
+            const item = event.target.closest('[data-apes-action-id]');
+            const center = overlay.querySelector(
+                '.apes-v2-radial-center strong'
+            );
+
+            if (item && center) {
+                center.textContent = item.dataset.label;
+            }
+        });
+
+        overlay.addEventListener('pointerout', event => {
+            const item = event.target.closest('[data-apes-action-id]');
+
+            if (
+                item &&
+                !item.contains(event.relatedTarget)
+            ) {
+                const center = overlay.querySelector(
+                    '.apes-v2-radial-center strong'
+                );
+
+                if (center) {
+                    center.textContent = 'Command Wheel';
+                }
             }
         });
 
         return overlay;
     }
 
-    function renderResults(query = '') {
-        const overlay = mountPalette();
-        const results = overlay.querySelector('.apes-v2-command-results');
-        visibleActions = APES.actions.search(query);
-        selectedIndex = Math.max(
-            0,
-            Math.min(selectedIndex, visibleActions.length - 1)
+    function renderRadial() {
+        const overlay = mountRadial();
+        const radial = overlay.querySelector('.apes-v2-radial');
+        const items = overlay.querySelector('.apes-v2-radial-items');
+        const features = getEnabledFeatures();
+        const rings = Math.max(
+            1,
+            Math.ceil(features.length / ITEMS_PER_RING)
         );
+        const furthestRadius =
+            FIRST_RING_RADIUS + (rings - 1) * RING_GAP;
+        const size = furthestRadius * 2 + 130;
 
-        if (!visibleActions.length) {
-            results.innerHTML = `
-                <div class="apes-v2-command-empty">
-                    No matching APES commands.
+        radial.style.setProperty('--apes-radial-size', `${size}px`);
+
+        if (!features.length) {
+            items.innerHTML = `
+                <div class="apes-v2-radial-empty">
+                    No eligible APES features are enabled.
                 </div>
             `;
             return;
         }
 
-        results.innerHTML = visibleActions.map((action, index) => `
-            <div
-                class="apes-v2-command-result${index === selectedIndex ? ' selected' : ''}"
-                data-apes-action-id="${escapeHtml(action.id)}"
-                role="option"
-                aria-selected="${index === selectedIndex}"
-            >
-                <div class="apes-v2-command-copy">
-                    <strong>${escapeHtml(action.label)}</strong>
-                    <span>${escapeHtml(action.description)}</span>
-                </div>
-                <span class="apes-v2-command-group">${escapeHtml(action.group)}</span>
-            </div>
-        `).join('');
+        items.innerHTML = features.map((feature, index) => {
+            const position = getPosition(index, features);
 
-        results.querySelector('.selected')?.scrollIntoView({
-            block: 'nearest'
-        });
+            return `
+                <div
+                    class="apes-v2-radial-item"
+                    data-apes-action-id="${escapeHtml(feature.id)}"
+                    data-label="${escapeHtml(feature.label)}"
+                    role="button"
+                    tabindex="0"
+                    title="${escapeHtml(feature.label)}"
+                    style="--apes-x:${position.x.toFixed(2)}px;--apes-y:${position.y.toFixed(2)}px;"
+                >
+                    <span class="apes-v2-radial-icon">
+                        ${feature.icon}
+                    </span>
+                    <span class="apes-v2-radial-label">
+                        ${escapeHtml(feature.label)}
+                    </span>
+                </div>
+            `;
+        }).join('');
     }
 
     function escapeHtml(value) {
@@ -199,89 +346,97 @@
             .replace(/'/g, '&#039;');
     }
 
-    async function runAction(actionId) {
+    async function runFeature(actionId) {
         try {
-            await APES.actions.run(actionId, APES.context?.snapshot());
+            await APES.actions.run(
+                actionId,
+                APES.context?.snapshot()
+            );
         } catch (error) {
-            console.error('[APES Command Palette]', error);
+            console.error('[APES radial menu]', error);
         }
     }
 
-    function openPalette() {
-        const overlay = mountPalette();
+    function openRadial() {
+        const overlay = mountRadial();
+        renderRadial();
         APES.ui.closeOtherTools('commandPalette');
         overlay.classList.add('open');
         overlay.setAttribute('aria-hidden', 'false');
-        selectedIndex = 0;
-        const input = overlay.querySelector(`#${INPUT_ID}`);
-        input.value = '';
-        renderResults('');
-        window.setTimeout(() => input.focus(), 0);
     }
 
-    function closePalette() {
+    function closeRadial() {
         const overlay = document.getElementById(OVERLAY_ID);
         overlay?.classList.remove('open');
         overlay?.setAttribute('aria-hidden', 'true');
     }
 
-    function isOpen() {
-        return document.getElementById(OVERLAY_ID)
-            ?.classList.contains('open') === true;
+    function clearHoldTimer() {
+        if (holdTimer !== null) {
+            window.clearTimeout(holdTimer);
+            holdTimer = null;
+        }
     }
 
     document.addEventListener('keydown', event => {
-        const typing = APES.ui.isTypingTarget(event.target);
-
         if (
-            event.code === 'KeyY' &&
-            !event.ctrlKey &&
-            !event.altKey &&
-            !event.metaKey &&
-            !event.shiftKey &&
-            !typing
+            event.code !== 'KeyY' ||
+            event.ctrlKey ||
+            event.altKey ||
+            event.metaKey ||
+            event.shiftKey ||
+            APES.ui.isTypingTarget(event.target)
         ) {
-            event.preventDefault();
-            event.stopPropagation();
-            isOpen() ? closePalette() : openPalette();
             return;
         }
 
-        if (!isOpen()) {
+        event.preventDefault();
+        event.stopPropagation();
+
+        if (event.repeat || yHeld) {
             return;
         }
 
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            closePalette();
-            return;
-        }
+        yHeld = true;
+        clearHoldTimer();
+        holdTimer = window.setTimeout(() => {
+            holdTimer = null;
 
-        if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-            event.preventDefault();
-            const direction = event.key === 'ArrowDown' ? 1 : -1;
-            const count = visibleActions.length;
-
-            if (count) {
-                selectedIndex = (selectedIndex + direction + count) % count;
-                renderResults(
-                    document.getElementById(INPUT_ID)?.value || ''
-                );
+            if (yHeld) {
+                openRadial();
             }
+        }, HOLD_DELAY);
+    }, true);
+
+    document.addEventListener('keyup', event => {
+        if (event.code !== 'KeyY') {
             return;
         }
 
-        if (event.key === 'Enter' && visibleActions[selectedIndex]) {
-            event.preventDefault();
-            void runAction(visibleActions[selectedIndex].id);
+        yHeld = false;
+        clearHoldTimer();
+        closeRadial();
+    }, true);
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape') {
+            yHeld = false;
+            clearHoldTimer();
+            closeRadial();
         }
     }, true);
 
+    window.addEventListener('blur', () => {
+        yHeld = false;
+        clearHoldTimer();
+        closeRadial();
+    });
+
     window.addEventListener('qol_close_others', event => {
         if (event.detail?.source !== 'commandPalette') {
-            closePalette();
+            closeRadial();
         }
     });
 
-    mountPalette();
+    mountRadial();
 })();
