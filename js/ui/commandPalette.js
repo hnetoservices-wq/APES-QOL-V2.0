@@ -1,8 +1,8 @@
 /**
  * APES QoL v2 radial command menu.
  *
- * Hold Y outside typing fields to show every eligible enabled feature.
- * Release Y or press Escape to close. Click an icon to launch its feature.
+ * Hold G outside typing fields to show every eligible enabled feature.
+ * Release G or press Escape to close. Click an icon to launch its feature.
  */
 
 (() => {
@@ -16,12 +16,13 @@
 
     const OVERLAY_ID = 'apes-v2-command-overlay';
     const HOLD_DELAY = 180;
-    const ITEMS_PER_RING = 10;
+    const ITEMS_PER_RING = 8;
     const FIRST_RING_RADIUS = 150;
-    const RING_GAP = 72;
+    const MIN_ITEM_DISTANCE = 126;
+    const RING_GAP = 120;
 
     let holdTimer = null;
-    let yHeld = false;
+    let commandKecommandKeyHeld = false;
 
     const ICONS = {
         auction: `
@@ -204,6 +205,17 @@
         });
     }
 
+    function getRingRadius(itemCount, ringIndex) {
+        const minimumRadius = itemCount > 1
+            ? MIN_ITEM_DISTANCE / (2 * Math.sin(Math.PI / itemCount))
+            : 0;
+
+        return Math.max(
+            FIRST_RING_RADIUS + ringIndex * RING_GAP,
+            minimumRadius
+        );
+    }
+
     function getPosition(index, features) {
         const ringIndex = Math.floor(index / ITEMS_PER_RING);
         const ringStart = ringIndex * ITEMS_PER_RING;
@@ -214,7 +226,7 @@
         const positionInRing = index - ringStart;
         const angle = -Math.PI / 2 +
             (Math.PI * 2 * positionInRing) / ringItems.length;
-        const radius = FIRST_RING_RADIUS + ringIndex * RING_GAP;
+        const radius = getRingRadius(ringItems.length, ringIndex);
 
         return {
             x: Math.cos(angle) * radius,
@@ -238,7 +250,7 @@
                 <div class="apes-v2-radial-center">
                     <span class="apes-v2-radial-logo">APES</span>
                     <strong>Command Wheel</strong>
-                    <span class="apes-v2-radial-hint">Hold Y · Click a feature</span>
+                    <span class="apes-v2-radial-hint">Hold G · Click a feature</span>
                 </div>
                 <div class="apes-v2-radial-items"></div>
             </div>
@@ -298,8 +310,15 @@
             1,
             Math.ceil(features.length / ITEMS_PER_RING)
         );
-        const furthestRadius =
-            FIRST_RING_RADIUS + (rings - 1) * RING_GAP;
+        const lastRingStart = (rings - 1) * ITEMS_PER_RING;
+        const lastRingCount = Math.min(
+            ITEMS_PER_RING,
+            Math.max(1, features.length - lastRingStart)
+        );
+        const furthestRadius = getRingRadius(
+            lastRingCount,
+            rings - 1
+        );
         const size = furthestRadius * 2 + 130;
 
         radial.style.setProperty('--apes-radial-size', `${size}px`);
@@ -380,7 +399,7 @@
 
     document.addEventListener('keydown', event => {
         if (
-            event.code !== 'KeyY' ||
+            event.code !== 'KeyG' ||
             event.ctrlKey ||
             event.altKey ||
             event.metaKey ||
@@ -393,41 +412,41 @@
         event.preventDefault();
         event.stopPropagation();
 
-        if (event.repeat || yHeld) {
+        if (event.repeat || commandKeyHeld) {
             return;
         }
 
-        yHeld = true;
+        commandKeyHeld = true;
         clearHoldTimer();
         holdTimer = window.setTimeout(() => {
             holdTimer = null;
 
-            if (yHeld) {
+            if (commandKeyHeld) {
                 openRadial();
             }
         }, HOLD_DELAY);
     }, true);
 
     document.addEventListener('keyup', event => {
-        if (event.code !== 'KeyY') {
+        if (event.code !== 'KeyG') {
             return;
         }
 
-        yHeld = false;
+        commandKeyHeld = false;
         clearHoldTimer();
         closeRadial();
     }, true);
 
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
-            yHeld = false;
+            commandKeyHeld = false;
             clearHoldTimer();
             closeRadial();
         }
     }, true);
 
     window.addEventListener('blur', () => {
-        yHeld = false;
+        commandKeyHeld = false;
         clearHoldTimer();
         closeRadial();
     });
