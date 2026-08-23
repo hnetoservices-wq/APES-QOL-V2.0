@@ -1,0 +1,170 @@
+/* APES QoL v2 shared UI */
+
+#apes-v2-command-overlay,
+#apes-v2-command-overlay * {
+    box-sizing: border-box !important;
+    font-family: Arial, sans-serif !important;
+    text-shadow: none !important;
+}
+
+#apes-v2-command-overlay {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 2147483645 !important;
+    display: none !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    padding: min(16vh, 130px) 16px 16px !important;
+    background: rgba(28, 21, 14, .56) !important;
+    backdrop-filter: blur(2px) !important;
+}
+
+#apes-v2-command-overlay.open {
+    display: flex !important;
+}
+
+.apes-v2-command-dialog {
+    display: flex !important;
+    flex-direction: column !important;
+    width: min(620px, calc(100vw - 32px)) !important;
+    max-height: min(520px, calc(100vh - 64px)) !important;
+    overflow: hidden !important;
+    border: 3px solid #634d31 !important;
+    border-radius: 6px !important;
+    background: #f7f5f0 !important;
+    box-shadow: 0 18px 55px rgba(0, 0, 0, .58) !important;
+    color: #3f3020 !important;
+}
+
+.apes-v2-command-search {
+    display: grid !important;
+    grid-template-columns: 30px minmax(0, 1fr) auto !important;
+    align-items: center !important;
+    gap: 9px !important;
+    padding: 10px 11px !important;
+    border-bottom: 1px solid #cdbda4 !important;
+    background: linear-gradient(to bottom, #fffdf8, #eee5d7) !important;
+}
+
+.apes-v2-command-mark {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 27px !important;
+    height: 27px !important;
+    border-radius: 4px !important;
+    background: linear-gradient(to bottom, #765b39, #513b24) !important;
+    color: #fffaf0 !important;
+    font-size: 12px !important;
+    font-weight: bold !important;
+}
+
+#apes-v2-command-input {
+    width: 100% !important;
+    height: 30px !important;
+    margin: 0 !important;
+    padding: 4px 6px !important;
+    border: 0 !important;
+    outline: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #392918 !important;
+    font-size: 14px !important;
+}
+
+#apes-v2-command-input::placeholder {
+    color: #8f7b60 !important;
+}
+
+.apes-v2-command-key,
+.apes-v2-command-footer b {
+    padding: 2px 6px !important;
+    border: 1px solid #bfae93 !important;
+    border-radius: 3px !important;
+    background: #fffdf8 !important;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, .08) !important;
+    color: #6c573d !important;
+    font-size: 9px !important;
+    font-weight: bold !important;
+}
+
+.apes-v2-command-results {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    padding: 6px !important;
+    overflow-y: auto !important;
+}
+
+.apes-v2-command-result {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    gap: 16px !important;
+    min-height: 52px !important;
+    padding: 8px 10px !important;
+    border: 1px solid transparent !important;
+    border-radius: 4px !important;
+    cursor: pointer !important;
+}
+
+.apes-v2-command-result:hover,
+.apes-v2-command-result.selected {
+    border-color: #c5ae89 !important;
+    background: #eadfce !important;
+}
+
+.apes-v2-command-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    min-width: 0 !important;
+    gap: 3px !important;
+}
+
+.apes-v2-command-copy strong {
+    color: #49351f !important;
+    font-size: 12px !important;
+}
+
+.apes-v2-command-copy span {
+    overflow: hidden !important;
+    color: #806e57 !important;
+    font-size: 10px !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.apes-v2-command-group {
+    flex: 0 0 auto !important;
+    color: #8a7457 !important;
+    font-size: 9px !important;
+    font-weight: bold !important;
+    text-transform: uppercase !important;
+}
+
+.apes-v2-command-empty {
+    padding: 30px 15px !important;
+    color: #806e57 !important;
+    font-size: 11px !important;
+    text-align: center !important;
+}
+
+.apes-v2-command-footer {
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 14px !important;
+    padding: 7px 10px !important;
+    border-top: 1px solid #d5c8b4 !important;
+    background: #eee7dc !important;
+    color: #7a674e !important;
+    font-size: 9px !important;
+}
+
+@media (max-width: 560px) {
+    #apes-v2-command-overlay {
+        padding-top: 50px !important;
+    }
+
+    .apes-v2-command-footer {
+        display: none !important;
+    }
+}
