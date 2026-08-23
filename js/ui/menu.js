@@ -139,7 +139,7 @@ const KEYBINDS = [
     { keys: ['E', '→'], label: 'Next Village', id: 'qol-chk-next-village', key: 'keybind_nextVillage' },
     { keys: ['T'], label: 'Rally Point', id: 'qol-chk-rally', key: 'keybind_rallyPoint' },
     { keys: ['R'], label: 'Send Troops to Hovered Tile', fixed: true },
-    { keys: ['Z'], label: 'Open Chat Window', id: 'qol-chk-convos', key: 'keybind_conversations' },
+    { keys: ['C'], label: 'Open Chat Window', id: 'qol-chk-convos', key: 'keybind_conversations' },
     { keys: ['F'], label: 'Reports', id: 'qol-chk-reports', key: 'keybind_reports' },
     { keys: ['V'], label: 'Villages Overview', id: 'qol-chk-overview', key: 'keybind_villagesOverview' }
 ];
