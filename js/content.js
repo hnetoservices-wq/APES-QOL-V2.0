@@ -73,7 +73,6 @@ function initializeKeybinds() {
             'KeyB',
             'KeyT',
             'KeyC',
-            'KeyZ',
             'KeyF',
             'KeyV'
         ];
