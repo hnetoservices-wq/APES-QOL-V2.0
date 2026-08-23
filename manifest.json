@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "APES TK QoL",
-  "version": "1.4.15",
-  "description": "Quality of Life improvements for TK.",
+  "name": "APES QoL v2 Alpha",
+  "version": "2.0.0.0",
+  "description": "APES QoL v2 alpha for Travian Kingdoms.",
   "permissions": [
     "storage",
     "unlimitedStorage"
@@ -23,6 +23,10 @@
         "*://*.kingdoms.com/*"
       ],
       "js": [
+        "js/core/bootstrap.js",
+        "js/core/context.js",
+        "js/core/storage.js",
+        "js/core/actions.js",
         "js/keys/mapKeys.js",
         "js/keys/navigationKeys.js",
         "js/keys/mapHover.js",
@@ -45,7 +49,6 @@
         "js/features/rallyPointScanner.js",
         "js/features/buildingAlarm.js",
         "js/content.js"
-
       ],
       "css": [
         "css/style.css",
@@ -67,5 +70,6 @@
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
     }
-  }
+  },
+  "version_name": "2.0.0-alpha.1"
 }
