@@ -72,6 +72,7 @@ function initializeKeybinds() {
             'ArrowRight',
             'KeyB',
             'KeyT',
+            'KeyC',
             'KeyZ',
             'KeyF',
             'KeyV'
