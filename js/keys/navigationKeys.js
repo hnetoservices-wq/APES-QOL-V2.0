@@ -509,7 +509,7 @@ function handleNavigation(code) {
             }
             break;
 
-        case 'KeyZ':
+        case 'KeyC':
             if (isKeybindEnabled('conversations')) {
                 if (currentHash.includes('window:igm')) removeRouteParam('igm');
                 else {
