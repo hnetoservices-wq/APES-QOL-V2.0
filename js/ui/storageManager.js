@@ -8,7 +8,7 @@
 
     const OVERLAY_ID = 'apes-storage-manager-overlay';
     const STYLE_ID = 'apes-storage-manager-styles';
-    const PREFIXES = ['qol_', 'apes_', 'restos_qol_'];
+    const PREFIXES = ['qol_', 'apes_', 'apes:', 'restos_qol_'];
     const CONFIRM_MS = 5000;
 
     const CATEGORIES = [
@@ -355,6 +355,18 @@
 
     function init() {
         document.addEventListener('click', event => {
+            if (!event.target.closest('#qol-modal .qol-clear-cache-btn')) return;
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            void openManager();
+        }, true);
+        document.addEventListener('keydown', event => {
+            if (
+                event.key !== 'Enter' &&
+                event.key !== ' '
+            ) {
+                return;
+            }
             if (!event.target.closest('#qol-modal .qol-clear-cache-btn')) return;
             event.preventDefault();
             event.stopImmediatePropagation();
