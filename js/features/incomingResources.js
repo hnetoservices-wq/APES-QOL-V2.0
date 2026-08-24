@@ -1102,6 +1102,10 @@ function initIncomingResourceEnhancer() {
                 ) ||
                 element.closest(
                     '.navigation'
+                ) ||
+                element.closest(
+                    '.tg-pagination .disabled, ' +
+                    '.tg-pagination .inactive'
                 )
             ) {
                 continue;
