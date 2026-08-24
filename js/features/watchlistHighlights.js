@@ -11,6 +11,7 @@
 
     const STYLE_ID = 'apes-watchlist-highlight-styles';
     const HIGHLIGHT_CLASS = 'apes-watched-player';
+    const TEXT_HIGHLIGHT_NAME = 'apes-watched-player-text';
     const STORAGE_PREFIX = 'qol_watchlist_';
     const SCAN_DELAY = 90;
     const INDEX_CHECK_INTERVAL = 1000;
@@ -283,6 +284,114 @@
         }
     }
 
+    function isExcludedTextNode(node) {
+        const parent = node.parentElement;
+
+        return !parent ||
+            isApesInterface(parent) ||
+            Boolean(parent.closest(
+                'script, style, noscript, input, textarea, select, option, ' +
+                '[contenteditable="true"], [aria-hidden="true"]'
+            ));
+    }
+
+    function isNameBoundary(character) {
+        const separators =
+            ' \\t\\r\\n.,:;!?()[]{}<>"\'|/\\+=_*&^%$#@~–—-';
+
+        return !character || separators.includes(character);
+    }
+
+    function clearTextHighlights() {
+        if (window.CSS?.highlights) {
+            window.CSS.highlights.delete(TEXT_HIGHLIGHT_NAME);
+        }
+    }
+
+    function refreshTextHighlights() {
+        clearTextHighlights();
+
+        const watchedNames = Array.from(byPlayerName.keys())
+            .filter(Boolean)
+            .sort((a, b) => b.length - a.length);
+
+        if (!watchedNames.length || !document.body) {
+            return;
+        }
+
+        const supportsTextHighlights =
+            typeof window.Highlight === 'function' &&
+            Boolean(window.CSS?.highlights);
+        const ranges = [];
+        const walker = document.createTreeWalker(
+            document.body,
+            NodeFilter.SHOW_TEXT
+        );
+
+        let node = walker.nextNode();
+
+        while (node) {
+            if (!isExcludedTextNode(node)) {
+                const parent = node.parentElement;
+                const nodeName = normalizeName(node.nodeValue);
+                const parentName = normalizeName(parent.textContent);
+                const exactInfo = byPlayerName.get(nodeName);
+
+                if (
+                    exactInfo &&
+                    nodeName === parentName &&
+                    !parent.classList.contains(HIGHLIGHT_CLASS)
+                ) {
+                    applyHighlight(parent, exactInfo);
+                } else if (
+                    supportsTextHighlights &&
+                    !parent.closest('.' + HIGHLIGHT_CLASS)
+                ) {
+                    const rawText = String(node.nodeValue || '');
+                    const lowerText = rawText.toLocaleLowerCase();
+                    const occupied = [];
+
+                    watchedNames.forEach(name => {
+                        let start = 0;
+                        let index = lowerText.indexOf(name, start);
+
+                        while (index !== -1) {
+                            const end = index + name.length;
+                            const overlaps = occupied.some(range => {
+                                return index < range.end &&
+                                    end > range.start;
+                            });
+
+                            if (
+                                !overlaps &&
+                                isNameBoundary(lowerText[index - 1]) &&
+                                isNameBoundary(lowerText[end])
+                            ) {
+                                const range = document.createRange();
+                                range.setStart(node, index);
+                                range.setEnd(node, end);
+                                ranges.push(range);
+                                occupied.push({ start: index, end });
+                            }
+
+                            start = Math.max(end, index + 1);
+                            index = lowerText.indexOf(name, start);
+                        }
+                    });
+                }
+            }
+
+            node = walker.nextNode();
+        }
+
+        if (supportsTextHighlights && ranges.length) {
+            window.CSS.highlights.set(
+                TEXT_HIGHLIGHT_NAME,
+                new window.Highlight(...ranges)
+            );
+        }
+    }
+
     function scanRoot(root = document) {
         if (!enabled()) {
             clearHighlights();
@@ -295,6 +404,8 @@
 
         root.querySelectorAll?.(CANDIDATE_SELECTOR)
             .forEach(inspectCandidate);
+
+        refreshTextHighlights();
     }
 
     function scheduleScan(root = document) {
@@ -309,6 +420,7 @@
     }
 
     function clearHighlights() {
+        clearTextHighlights();
         document.querySelectorAll('.' + HIGHLIGHT_CLASS)
             .forEach(removeHighlight);
     }
@@ -337,8 +449,9 @@
                 box-shadow:
                     inset 0 0 0 1px rgba(229, 185, 91, .18),
                     0 1px 2px rgba(35, 19, 12, .26) !important;
-                color: #6f2018 !important;
+                color: #f2c85b !important;
                 font-weight: 700 !important;
+                text-shadow: 0 1px 1px rgba(35, 18, 8, .72) !important;
                 text-decoration: none !important;
             }
 
@@ -352,6 +465,12 @@
                 line-height: 1 !important;
                 text-shadow: 0 0 2px rgba(255, 235, 163, .85) !important;
                 transform: translateY(-50%) !important;
+            }
+
+            ::highlight(${TEXT_HIGHLIGHT_NAME}) {
+                color: #f2c85b;
+                background-color: rgba(102, 39, 27, .78);
+                text-decoration: underline #d29c36 1px;
             }
 
             .${HIGHLIGHT_CLASS}:hover {
@@ -382,11 +501,11 @@
 
         if (!observer) {
             observer = new MutationObserver(mutations => {
-                const addedRoot = mutations
-                    .flatMap(mutation => Array.from(mutation.addedNodes))
-                    .find(node => node instanceof Element);
-
-                scheduleScan(addedRoot || document);
+                if (mutations.some(mutation => {
+                    return mutation.addedNodes.length > 0;
+                })) {
+                    scheduleScan(document);
+                }
             });
             observer.observe(document.body, {
                 childList: true,
