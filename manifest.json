@@ -28,6 +28,7 @@
         "js/core/storage.js",
         "js/core/actions.js",
         "js/core/ui.js",
+        "js/core/scanners.js",
         "js/keys/mapKeys.js",
         "js/keys/navigationKeys.js",
         "js/keys/mapHover.js",

@@ -21,6 +21,12 @@
     const SNAPSHOT_TIMEOUT = 7000;
     const SETTLE_DELAY = 650;
     const CACHE_KEY = `qol_village_dashboard_${window.location.hostname}`;
+    const MODE_KEY = 'qol_village_dashboard_scan_mode';
+    const RALLY_SCANNERS = Object.freeze([
+        'rally.incomings',
+        'rally.outgoings',
+        'rally.resources'
+    ]);
 
     const RESOURCES = Object.freeze([
         { key: 'wood', label: 'Wood', short: 'W' },
@@ -33,6 +39,9 @@
     let toggleButton = null;
     let isScanning = false;
     let scanData = null;
+    let selectedMode = localStorage.getItem(MODE_KEY) === 'full'
+        ? 'full'
+        : 'quick';
 
     const sleep = milliseconds => new Promise(resolve => {
         window.setTimeout(resolve, milliseconds);
@@ -102,6 +111,36 @@
         return `${sign}${formatNumber(value)}/h`;
     }
 
+    function formatCompactDuration(totalSeconds) {
+        if (!Number.isFinite(totalSeconds) || totalSeconds < 0) return '-';
+        if (totalSeconds < 60) return '<1m';
+        const minutes = Math.ceil(totalSeconds / 60);
+        const days = Math.floor(minutes / 1440);
+        const hours = Math.floor((minutes % 1440) / 60);
+        const remainder = minutes % 60;
+        if (days) return hours ? `${days}d ${hours}h` : `${days}d`;
+        if (hours) return remainder ? `${hours}h ${remainder}m` : `${hours}h`;
+        return `${remainder}m`;
+    }
+
+    function getCapacityState(value) {
+        if (value.production > 0) {
+            if (value.current >= value.capacity) return { label: 'Full', tone: 'danger' };
+            return {
+                label: `Full ${formatCompactDuration((value.capacity - value.current) / value.production * 3600)}`,
+                tone: 'warning'
+            };
+        }
+        if (value.production < 0) {
+            if (value.current <= 0) return { label: 'Empty', tone: 'danger' };
+            return {
+                label: `Empty ${formatCompactDuration(value.current / Math.abs(value.production) * 3600)}`,
+                tone: 'danger'
+            };
+        }
+        return { label: 'Stable', tone: 'neutral' };
+    }
+
     function getVillageId() {
         return (window.location.hash || '')
             .match(/(?:^|\/)villId:([^/]+)/)?.[1] || null;
@@ -162,14 +201,27 @@
         };
     }
 
-    function readVillageSnapshot() {
-        const resources = {};
+    async function readSharedResources() {
+        const provider = window.APES?.scanners?.get('resources.capacity');
+        if (provider?.enabled()) {
+            const result = await window.APES.scanners.run('resources.capacity', {
+                source: 'villageDashboard'
+            });
+            if (result?.resources) return result.resources;
+        }
 
+        const resources = {};
         for (const resource of RESOURCES) {
             const data = readResource(resource);
             if (!data) return null;
             resources[resource.key] = data;
         }
+        return resources;
+    }
+
+    async function readVillageSnapshot() {
+        const resources = await readSharedResources();
+        if (!resources) return null;
 
         return {
             identity: getVillageIdentity(),
@@ -205,7 +257,12 @@
             if (identityChangedAt === null) identityChangedAt = performance.now();
             if (performance.now() - identityChangedAt < SETTLE_DELAY) continue;
 
-            const snapshot = readVillageSnapshot();
+            let snapshot = null;
+            try {
+                snapshot = await readVillageSnapshot();
+            } catch (_) {
+                snapshot = null;
+            }
             if (!snapshot || snapshot.identity !== identity) {
                 stableSamples = 0;
                 lastSignature = '';
@@ -284,16 +341,16 @@
         return true;
     }
 
-    function showScanOverlay() {
+    function showScanOverlay(mode = 'quick') {
         removeScanOverlay();
         const overlay = document.createElement('div');
         overlay.id = OVERLAY_ID;
         overlay.setAttribute('role', 'status');
         overlay.setAttribute('aria-live', 'polite');
         overlay.innerHTML = `
-            <div class="qol-vd-overlay-title">Scanning Villages</div>
+            <div class="qol-vd-overlay-title">${mode === 'full' ? 'Full' : 'Quick'} Village Scan</div>
             <div class="qol-vd-overlay-status">Preparing the first village...</div>
-            <div class="qol-vd-overlay-note">Please wait while APES changes villages and verifies each resource bar.</div>
+            <div class="qol-vd-overlay-note">${mode === 'full' ? 'This can take several minutes because every enabled Rally Point page is verified.' : 'Please wait while APES verifies village resources and Culture Points.'}</div>
         `;
         document.body.appendChild(overlay);
     }
@@ -315,6 +372,8 @@
         button.classList.toggle('is-disabled', disabled);
         button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
         button.textContent = disabled ? 'Scanning...' : 'Scan Now';
+        panel?.querySelector('.qol-vd-mode-picker')
+            ?.classList.toggle('is-disabled', disabled);
     }
 
     function saveSnapshot(data) {
@@ -329,7 +388,7 @@
     function loadSnapshot() {
         try {
             const parsed = JSON.parse(localStorage.getItem(CACHE_KEY) || 'null');
-            if (parsed?.schema === 1 && Array.isArray(parsed.villages)) {
+            if ([1, 2].includes(parsed?.schema) && Array.isArray(parsed.villages)) {
                 scanData = parsed;
             }
         } catch (error) {
@@ -376,12 +435,110 @@
 
     function resourceCell(value) {
         const tone = value.production < 0 ? 'negative' : 'positive';
+        const capacityState = getCapacityState(value);
         return `
             <td title="Capacity: ${formatNumber(value.capacity)}">
                 <strong>${formatNumber(value.current)}</strong>
                 <span class="qol-vd-cell-production ${tone}">${formatProduction(value.production)}</span>
+                <span class="qol-vd-cell-eta ${capacityState.tone}">${escapeHtml(capacityState.label)}</span>
             </td>
         `;
+    }
+
+    function scannerAvailable(id) {
+        const provider = window.APES?.scanners?.get(id);
+        return Boolean(provider && provider.enabled());
+    }
+
+    function rallyTotals(data) {
+        return data.villages.reduce((totals, village) => {
+            const rally = village.rally || {};
+            totals.incomings += rally.incomings?.length || 0;
+            totals.outgoings += rally.outgoings?.length || 0;
+            totals.shipments += rally.resources?.length || 0;
+            (rally.resources || []).forEach(shipment => {
+                RESOURCES.forEach(resource => {
+                    totals.resources[resource.key] += Number(shipment[resource.key] || 0);
+                });
+            });
+            totals.errors += rally.errors?.length || 0;
+            return totals;
+        }, {
+            incomings: 0,
+            outgoings: 0,
+            shipments: 0,
+            errors: 0,
+            resources: { wood: 0, clay: 0, iron: 0, crop: 0 }
+        });
+    }
+
+    function renderIntelligence(data) {
+        const sections = [];
+
+        if (data.cp) {
+            const remaining = Math.max(0, Number(data.cp.target || 0) - Number(data.cp.current || 0));
+            sections.push(`
+                <div class="qol-vd-intelligence-card cp">
+                    <div class="qol-vd-intelligence-title"><span>Culture Points</span><span>${formatNumber(data.cp.cpPerDay)} / day</span></div>
+                    <strong>${formatNumber(data.cp.current)} / ${formatNumber(data.cp.target)} CP</strong>
+                    <span>${formatNumber(remaining)} remaining · ${escapeHtml(data.cp.prediction?.text || 'Prediction unavailable')}</span>
+                </div>
+            `);
+        } else if (data.modules?.cp && data.modules.cp !== 'not-requested') {
+            sections.push(`
+                <div class="qol-vd-intelligence-card muted">
+                    <div class="qol-vd-intelligence-title"><span>Culture Points</span></div>
+                    <strong>${data.modules.cp === 'disabled' ? 'CP Manager disabled' : 'CP scan unavailable'}</strong>
+                    <span>Enable CP Manager to include its account scan.</span>
+                </div>
+            `);
+        }
+
+        if (data.scanMode === 'full') {
+            if (data.modules?.rally === 'disabled') {
+                sections.push(`
+                    <div class="qol-vd-intelligence-card muted">
+                        <div class="qol-vd-intelligence-title"><span>Rally Point</span></div>
+                        <strong>Rally Point Scanner disabled</strong>
+                        <span>Enable it to include per-village movements and deliveries.</span>
+                    </div>
+                `);
+            } else {
+                const rally = rallyTotals(data);
+                sections.push(`
+                    <div class="qol-vd-intelligence-card rally">
+                        <div class="qol-vd-intelligence-title"><span>Rally Point</span><span>${rally.errors ? `${rally.errors} scan issue${rally.errors === 1 ? '' : 's'}` : 'All enabled scans completed'}</span></div>
+                        <strong>${rally.incomings} incoming · ${rally.outgoings} outgoing · ${rally.shipments} deliveries</strong>
+                        <span>Incoming resources: W ${formatNumber(rally.resources.wood)} · C ${formatNumber(rally.resources.clay)} · I ${formatNumber(rally.resources.iron)} · Cr ${formatNumber(rally.resources.crop)}</span>
+                    </div>
+                `);
+            }
+        }
+
+        return sections.length
+            ? `<div class="qol-vd-intelligence">${sections.join('')}</div>`
+            : '';
+    }
+
+    function activityCell(village) {
+        if (!village.rally) {
+            return '<td class="qol-vd-activity"><span class="qol-vd-badge muted">Not scanned</span></td>';
+        }
+        const rally = village.rally;
+        const incomings = rally.incomings || [];
+        const hostile = incomings.filter(movement => /attack|siege|raid/i.test(movement.type || ''));
+        const reinforcements = incomings.filter(movement => /reinforcement|support/i.test(movement.type || ''));
+        const outgoings = rally.outgoings || [];
+        const shipments = rally.resources || [];
+        const badges = [];
+
+        if (hostile.length) badges.push(`<span class="qol-vd-badge danger">${hostile.length} hostile</span>`);
+        if (reinforcements.length) badges.push(`<span class="qol-vd-badge support">${reinforcements.length} support</span>`);
+        if (outgoings.length) badges.push(`<span class="qol-vd-badge outgoing">${outgoings.length} outgoing</span>`);
+        if (shipments.length) badges.push(`<span class="qol-vd-badge merchant">${shipments.length} deliver${shipments.length === 1 ? 'y' : 'ies'}</span>`);
+        if (rally.errors?.length) badges.push(`<span class="qol-vd-badge error">Scan issue</span>`);
+
+        return `<td class="qol-vd-activity">${badges.join('') || '<span class="qol-vd-badge clear">Clear</span>'}</td>`;
     }
 
     function renderSnapshot() {
@@ -417,32 +574,37 @@
                 ${RESOURCES.map(resource =>
                     resourceCell(village.resources[resource.key])
                 ).join('')}
+                ${activityCell(village)}
             </tr>
         `).join('');
 
         const scannedAt = new Date(scanData.scannedAt);
         content.innerHTML = `
             <div class="qol-vd-summary">${cards}</div>
+            ${renderIntelligence(scanData)}
             <div class="qol-vd-table-wrap">
                 <table class="qol-vd-table">
                     <thead>
                         <tr>
                             <th>Village</th>
                             ${RESOURCES.map(resource => `<th>${escapeHtml(resource.label)}</th>`).join('')}
+                            <th>Activity</th>
                         </tr>
                     </thead>
                     <tbody>${rows}</tbody>
                 </table>
             </div>
             <div class="qol-vd-snapshot-meta">
-                Snapshot taken ${escapeHtml(scannedAt.toLocaleString())}. Resource cells show stored amount and hourly production; hover for capacity.
+                ${escapeHtml(scanData.scanMode === 'full' ? 'Full' : 'Quick')} snapshot taken ${escapeHtml(scannedAt.toLocaleString())}. Resource cells show stored amount, production and capacity timing; hover for capacity.
             </div>
         `;
 
-        status.textContent = scanData.complete
-            ? `Scan complete. ${scanData.villages.length} ${scanData.villages.length === 1 ? 'village' : 'villages'} recorded.`
+        const moduleFailures = Object.values(scanData.modules || {})
+            .filter(value => value === 'failed' || value === 'partial').length;
+        status.textContent = scanData.complete && moduleFailures === 0
+            ? `${scanData.scanMode === 'full' ? 'Full' : 'Quick'} scan complete. ${scanData.villages.length} ${scanData.villages.length === 1 ? 'village' : 'villages'} recorded.`
             : `Saved ${scanData.villages.length} villages, but the scan may be incomplete.`;
-        status.dataset.tone = scanData.complete ? 'success' : 'error';
+        status.dataset.tone = scanData.complete && moduleFailures === 0 ? 'success' : 'error';
 
         content.querySelectorAll('.qol-vd-village-link').forEach(link => {
             const openVillage = event => {
@@ -457,10 +619,126 @@
         });
     }
 
+    function updateModeControls() {
+        panel?.querySelectorAll('[data-qol-vd-mode]').forEach(control => {
+            const active = control.dataset.qolVdMode === selectedMode;
+            control.classList.toggle('active', active);
+            control.setAttribute('aria-pressed', active ? 'true' : 'false');
+        });
+        const explanation = panel?.querySelector('.qol-vd-mode-explanation');
+        if (explanation) {
+            explanation.textContent = selectedMode === 'full'
+                ? 'Full: resources, capacity timing, CP, and every enabled Rally Point scanner for every village.'
+                : 'Quick: resources, capacity timing, and the enabled CP account scan.';
+        }
+    }
+
+    function setScanMode(mode) {
+        selectedMode = mode === 'full' ? 'full' : 'quick';
+        try { localStorage.setItem(MODE_KEY, selectedMode); } catch (_) {}
+        updateModeControls();
+    }
+
+    async function navigateToVillage(village) {
+        if (!village?.villageId) throw new Error(`No village ID was recorded for ${village?.villageName || 'this village'}.`);
+        window.location.hash = `#/page:village/villId:${village.villageId}`;
+
+        const started = performance.now();
+        while (performance.now() - started < 7000) {
+            if (getVillageIdentity() === village.identity) {
+                const snapshot = await waitForSettledSnapshot();
+                if (snapshot?.identity === village.identity) return snapshot;
+            }
+            await sleep(120);
+        }
+        throw new Error(`${village.villageName} did not finish loading.`);
+    }
+
+    async function scanCpModule(data) {
+        if (!scannerAvailable('cp.account')) {
+            data.modules.cp = 'disabled';
+            return;
+        }
+
+        updateScanStatus('CP phase: preparing the account Culture Point scan...');
+        try {
+            data.cp = await window.APES.scanners.run('cp.account', {
+                source: 'villageDashboard',
+                onProgress: message => updateScanStatus(`CP phase: ${message}`)
+            });
+            if (!data.cp) {
+                throw new Error('The Culture Point scanner was already busy or returned no result.');
+            }
+            data.modules.cp = 'complete';
+        } catch (error) {
+            console.error('[APES Village Dashboard] CP module failed.', error);
+            data.modules.cp = 'failed';
+            data.moduleErrors.push(`Culture Points: ${error?.message || 'scan failed'}`);
+        }
+    }
+
+    async function scanRallyModules(data) {
+        const providers = RALLY_SCANNERS
+            .map(id => window.APES?.scanners?.get(id))
+            .filter(provider => provider?.enabled());
+
+        if (!providers.length) {
+            data.modules.rally = 'disabled';
+            return;
+        }
+
+        let failedScans = 0;
+        for (let villageIndex = 0; villageIndex < data.villages.length; villageIndex += 1) {
+            const village = data.villages[villageIndex];
+            village.rally = {
+                incomings: [],
+                outgoings: [],
+                resources: [],
+                errors: []
+            };
+
+            updateScanStatus(`Rally Point phase: opening ${village.villageName} (${villageIndex + 1}/${data.villages.length})...`);
+            try {
+                await navigateToVillage(village);
+            } catch (error) {
+                failedScans += providers.length;
+                village.rally.errors.push(error?.message || 'Village could not be opened.');
+                continue;
+            }
+
+            for (const provider of providers) {
+                const label = `${village.villageName}: ${provider.label}`;
+                updateScanStatus(`Rally Point phase: ${label}...`);
+                try {
+                    const result = await window.APES.scanners.run(provider.id, {
+                        source: 'villageDashboard',
+                        village,
+                        onProgress: message => updateScanStatus(`${label} — ${message}`)
+                    });
+                    const resultKey = provider.id === 'rally.incomings'
+                        ? 'incomings'
+                        : provider.id === 'rally.outgoings'
+                            ? 'outgoings'
+                            : 'resources';
+                    village.rally[resultKey] = Array.isArray(result) ? result : [];
+                } catch (error) {
+                    failedScans += 1;
+                    const message = `${provider.label}: ${error?.message || 'scan failed'}`;
+                    village.rally.errors.push(message);
+                    data.moduleErrors.push(`${village.villageName} — ${message}`);
+                    console.error(`[APES Village Dashboard] ${label} failed.`, error);
+                }
+            }
+        }
+
+        data.modules.rally = failedScans === 0 ? 'complete' : 'partial';
+    }
+
     async function scanVillages() {
         if (isScanning || !isEnabled()) return;
 
         isScanning = true;
+        const scanMode = selectedMode;
         const originalHash = window.location.hash || '';
         const villages = [];
         const visited = new Set();
@@ -468,7 +746,7 @@
         let startingIdentity = null;
 
         setScanButtonState(true);
-        showScanOverlay();
+        showScanOverlay(scanMode);
         updateScanStatus('Waiting for the current village resource bar...');
 
         try {
@@ -511,12 +789,23 @@
             }
 
             const data = {
-                schema: 1,
+                schema: 2,
                 host: window.location.hostname,
                 scannedAt: Date.now(),
+                scanMode,
                 complete,
-                villages
+                villages,
+                cp: null,
+                modules: {
+                    resources: complete ? 'complete' : 'partial',
+                    cp: 'not-requested',
+                    rally: 'not-requested'
+                },
+                moduleErrors: []
             };
+
+            await scanCpModule(data);
+            if (scanMode === 'full') await scanRallyModules(data);
 
             saveSnapshot(data);
             renderSnapshot();
@@ -640,6 +929,12 @@
             #${PANEL_ID} .qol-vd-close:hover{background:rgba(255,255,255,.15)!important}
             #${PANEL_ID} .qol-vd-body{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;padding:10px!important;gap:8px!important;overflow:hidden!important}
             #${PANEL_ID} .qol-vd-intro{flex:0 0 auto!important;padding:8px 10px!important;border:1px solid #dec9a7!important;border-radius:4px!important;background:#fff8eb!important;color:#5a4328!important;font-size:10px!important;line-height:15px!important}
+            #${PANEL_ID} .qol-vd-scan-config{display:flex!important;align-items:center!important;gap:9px!important;flex:0 0 auto!important}
+            #${PANEL_ID} .qol-vd-mode-picker{display:inline-flex!important;padding:2px!important;border:1px solid #9e8767!important;border-radius:5px!important;background:#e8dece!important}
+            #${PANEL_ID} .qol-vd-mode-picker.is-disabled{opacity:.6!important;pointer-events:none!important}
+            #${PANEL_ID} .qol-vd-mode{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:58px!important;height:24px!important;padding:0 9px!important;border-radius:3px!important;color:#6e5a40!important;font-size:9px!important;font-weight:bold!important;cursor:pointer!important;user-select:none!important}
+            #${PANEL_ID} .qol-vd-mode.active{background:#634d31!important;color:#fff!important;box-shadow:0 1px 2px rgba(0,0,0,.24)!important}
+            #${PANEL_ID} .qol-vd-mode-explanation{min-width:0!important;color:#7b6a55!important;font-size:9px!important;line-height:13px!important}
             #${PANEL_ID} .qol-vd-controls{display:flex!important;align-items:center!important;gap:8px!important;flex:0 0 auto!important}
             #${PANEL_ID} .qol-vd-action{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:138px!important;height:30px!important;padding:0 14px!important;border:1px solid #4a351f!important;border-radius:4px!important;background:linear-gradient(to bottom,#765b39,#513a22)!important;color:#fff!important;font-size:10px!important;font-weight:bold!important;cursor:pointer!important;user-select:none!important;box-shadow:0 1px 2px rgba(0,0,0,.25)!important}
             #${PANEL_ID} .qol-vd-action:hover{filter:brightness(1.1)!important}
@@ -664,11 +959,19 @@
             #${PANEL_ID} .qol-vd-production.negative{color:#b12d26!important}
             #${PANEL_ID} .qol-vd-meter{grid-column:1/3!important;height:3px!important;border-radius:2px!important;background:#eee5d8!important;overflow:hidden!important}
             #${PANEL_ID} .qol-vd-meter span{display:block!important;height:100%!important;background:#a58656!important}
+            #${PANEL_ID} .qol-vd-intelligence{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important;flex:0 0 auto!important}
+            #${PANEL_ID} .qol-vd-intelligence-card{display:flex!important;flex-direction:column!important;gap:3px!important;padding:7px 9px!important;border:1px solid #d4c2a5!important;border-left:4px solid #957344!important;border-radius:4px!important;background:#fffaf0!important;min-width:0!important}
+            #${PANEL_ID} .qol-vd-intelligence-card.rally{border-left-color:#9b4b3c!important}
+            #${PANEL_ID} .qol-vd-intelligence-card.muted{border-left-color:#a89b88!important;background:#f2eee7!important;color:#827563!important}
+            #${PANEL_ID} .qol-vd-intelligence-title{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;color:#705638!important;font-size:8px!important;font-weight:bold!important;text-transform:uppercase!important}
+            #${PANEL_ID} .qol-vd-intelligence-card strong{color:#3d2b19!important;font-size:11px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+            #${PANEL_ID} .qol-vd-intelligence-card>span{color:#756651!important;font-size:8px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
             #${PANEL_ID} .qol-vd-table-wrap{flex:1 1 auto!important;min-height:0!important;border:1px solid #cdbda6!important;background:white!important;overflow:auto!important}
             #${PANEL_ID} .qol-vd-table{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:10px!important}
             #${PANEL_ID} .qol-vd-table th{position:sticky!important;top:0!important;z-index:2!important;height:31px!important;padding:6px 8px!important;border-bottom:1px solid #b9a68b!important;background:#e9dfcc!important;color:#503b23!important;font-size:9px!important;text-align:right!important;text-transform:uppercase!important;letter-spacing:.2px!important}
-            #${PANEL_ID} .qol-vd-table th:first-child{width:24%!important;text-align:left!important}
-            #${PANEL_ID} .qol-vd-table td{height:42px!important;padding:6px 8px!important;border-bottom:1px solid #e2d9cc!important;color:#332719!important;text-align:right!important;vertical-align:middle!important}
+            #${PANEL_ID} .qol-vd-table th:first-child{width:18%!important;text-align:left!important}
+            #${PANEL_ID} .qol-vd-table th:last-child{width:22%!important;text-align:left!important}
+            #${PANEL_ID} .qol-vd-table td{height:48px!important;padding:6px 8px!important;border-bottom:1px solid #e2d9cc!important;color:#332719!important;text-align:right!important;vertical-align:middle!important}
             #${PANEL_ID} .qol-vd-table tbody tr:nth-child(even) td{background:#faf8f4!important}
             #${PANEL_ID} .qol-vd-table tbody tr:hover td{background:#fff4df!important}
             #${PANEL_ID} .qol-vd-table td:first-child{text-align:left!important}
@@ -676,6 +979,16 @@
             #${PANEL_ID} .qol-vd-cell-production{display:block!important;margin-top:2px!important;font-size:8px!important;font-weight:bold!important}
             #${PANEL_ID} .qol-vd-cell-production.positive{color:#4c7b2b!important}
             #${PANEL_ID} .qol-vd-cell-production.negative{color:#b12d26!important}
+            #${PANEL_ID} .qol-vd-cell-eta{display:block!important;margin-top:2px!important;color:#8b7251!important;font-size:8px!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-vd-cell-eta.danger{color:#b12d26!important;font-weight:bold!important}
+            #${PANEL_ID} .qol-vd-activity{text-align:left!important}
+            #${PANEL_ID} .qol-vd-badge{display:inline-flex!important;align-items:center!important;margin:1px 2px 1px 0!important;padding:2px 5px!important;border:1px solid #c7b79f!important;border-radius:9px!important;background:#f3eee6!important;color:#705d45!important;font-size:8px!important;font-weight:bold!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-vd-badge.danger,#${PANEL_ID} .qol-vd-badge.error{border-color:#d28d87!important;background:#fee9e7!important;color:#a12821!important}
+            #${PANEL_ID} .qol-vd-badge.support{border-color:#9dc691!important;background:#edf8e9!important;color:#3d732e!important}
+            #${PANEL_ID} .qol-vd-badge.outgoing{border-color:#9bb6d1!important;background:#ebf4fc!important;color:#36668f!important}
+            #${PANEL_ID} .qol-vd-badge.merchant{border-color:#d3b56b!important;background:#fff6d9!important;color:#83621b!important}
+            #${PANEL_ID} .qol-vd-badge.clear{border-color:#adc5a4!important;background:#f0f7ed!important;color:#56764c!important}
+            #${PANEL_ID} .qol-vd-badge.muted{color:#8c8173!important;font-weight:normal!important}
             #${PANEL_ID} .qol-vd-village-link{display:inline-block!important;max-width:100%!important;color:#76511d!important;font-weight:bold!important;text-decoration:underline!important;text-decoration-color:#c6a46c!important;text-underline-offset:2px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;cursor:pointer!important}
             #${PANEL_ID} .qol-vd-village-link:hover{color:#a76d12!important}
             #${PANEL_ID} .qol-vd-snapshot-meta{flex:0 0 auto!important;color:#81715c!important;font-size:9px!important;font-style:italic!important}
@@ -685,7 +998,7 @@
             #${OVERLAY_ID} .qol-vd-overlay-status{max-width:min(560px,84vw)!important;color:#f0e5d4!important;font-size:12px!important;line-height:17px!important}
             #${OVERLAY_ID} .qol-vd-overlay-note{color:#bbb!important;font-size:10px!important}
 
-            @media(max-width:700px){#${PANEL_ID}{min-width:0!important;width:94vw!important}#${PANEL_ID} .qol-vd-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+            @media(max-width:700px){#${PANEL_ID}{min-width:0!important;width:94vw!important}#${PANEL_ID} .qol-vd-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}#${PANEL_ID} .qol-vd-intelligence{grid-template-columns:1fr!important}}
         `;
         document.head.appendChild(style);
     }
@@ -704,7 +1017,14 @@
                 <span class="qol-vd-close" role="button" tabindex="0" aria-label="Close">&times;</span>
             </div>
             <div class="qol-vd-body">
-                <div class="qol-vd-intro">Create an on-demand snapshot of every village. APES will temporarily move through your village list, verify each resource bar, and return you to the exact place where the scan began.</div>
+                <div class="qol-vd-intro">Create one coordinated account snapshot. APES uses the same resource, CP and Rally Point collectors as their standalone features, then returns you to the exact place where the scan began.</div>
+                <div class="qol-vd-scan-config">
+                    <div class="qol-vd-mode-picker" aria-label="Scan depth">
+                        <div class="qol-vd-mode" data-qol-vd-mode="quick" role="button" tabindex="0">Quick</div>
+                        <div class="qol-vd-mode" data-qol-vd-mode="full" role="button" tabindex="0">Full</div>
+                    </div>
+                    <span class="qol-vd-mode-explanation"></span>
+                </div>
                 <div class="qol-vd-controls">
                     <div class="qol-vd-action qol-vd-scan-btn" role="button" tabindex="0">Scan Now</div>
                     <div class="qol-vd-status" data-tone="neutral">Ready to scan.</div>
@@ -716,6 +1036,15 @@
 
         makeDraggable(panel, panel.querySelector('.qol-vd-header'));
         panel.querySelector('.qol-vd-close').addEventListener('click', closePanel);
+        panel.querySelectorAll('[data-qol-vd-mode]').forEach(control => {
+            const chooseMode = event => {
+                if (event.type === 'keydown' && event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                if (!isScanning) setScanMode(control.dataset.qolVdMode);
+            };
+            control.addEventListener('click', chooseMode);
+            control.addEventListener('keydown', chooseMode);
+        });
         panel.querySelector('.qol-vd-scan-btn').addEventListener('click', () => {
             if (!isScanning) void scanVillages();
         });
@@ -725,6 +1054,7 @@
                 void scanVillages();
             }
         });
+        updateModeControls();
         renderSnapshot();
         return panel;
     }

@@ -106,7 +106,7 @@ const ADVANCED_FEATURES = [
         key: 'villageDashboard',
         name: 'Village Overview Dashboard',
         icon: '⌂',
-        description: 'Scans every village on demand and builds a single overview of stored resources, capacities and production.'
+        description: 'Coordinates resource, capacity, CP and Rally Point scans into one account-wide village overview.'
     },
     {
         id: 'qol-chk-cp-manager',

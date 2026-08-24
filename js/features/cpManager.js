@@ -112,6 +112,7 @@
 
     let isScanning = false;
     let lastScanResult = null;
+    let externalScanProgress = null;
 
     function isEnabled() {
         return typeof window.isQolEnabled === 'function'
@@ -564,6 +565,7 @@
             element.dataset.tone = tone;
         }
         if (isScanning) updateScanOverlay(message);
+        externalScanProgress?.(message, tone);
     }
 
     function setScanButtonState(disabled, text) {
@@ -1513,14 +1515,20 @@
         document.getElementById(PLANNER_ID)?.style.setProperty('display', 'none', 'important');
     }
 
-    async function scanCulturePoints() {
+    async function scanCulturePoints(options = {}) {
         if (isScanning || !isEnabled()) return;
+        const external = options.external === true;
+        externalScanProgress = typeof options.onProgress === 'function'
+            ? options.onProgress
+            : null;
         isScanning = true;
         const originalHash = window.location.hash || '';
 
-        resetResults();
-        setScanButtonState(true, 'Scanning...');
-        showScanOverlay();
+        if (!external) {
+            resetResults();
+            setScanButtonState(true, 'Scanning...');
+            showScanOverlay();
+        }
         setStatus('Opening Main Building and reading city-founding CP...', 'working');
 
         try {
@@ -1558,7 +1566,7 @@
             }
 
             lastScanResult = result;
-            renderResult(result);
+            if (!external) renderResult(result);
 
             const hallCount = townHalls.villages.filter(village => village.hasTownHall).length;
             const nextSlot = getNextExpansionSlot(result);
@@ -1568,15 +1576,21 @@
                     : `CP scan complete, but village scan may be incomplete (${townHalls.scannedCount} scanned).`,
                 townHalls.complete ? 'success' : 'error'
             );
+            return result;
         } catch (error) {
             console.error('[APES CP Manager] Scan failed.', error);
             if (window.location.hash !== originalHash) window.location.hash = originalHash;
             setStatus(error?.message || 'Could not scan culture point information.', 'error');
+            if (external) throw error;
+            return null;
         } finally {
-            removeScanOverlay();
+            if (!external) removeScanOverlay();
             isScanning = false;
-            setScanButtonState(false, 'Scan CP');
-            requestAnimationFrame(positionToggleButton);
+            externalScanProgress = null;
+            if (!external) {
+                setScanButtonState(false, 'Scan CP');
+                requestAnimationFrame(positionToggleButton);
+            }
         }
     }
 
@@ -1798,6 +1812,19 @@
         mountToggleButton();
         positionToggleButton();
     }
+
+    window.APES?.scanners?.register({
+        id: 'cp.account',
+        label: 'Culture Points',
+        description: 'Scans account CP, CP per day, Town Halls, and celebrations.',
+        scope: 'account',
+        modes: ['quick', 'full'],
+        enabled: isEnabled,
+        scan: context => scanCulturePoints({
+            external: true,
+            onProgress: context?.onProgress
+        })
+    });
 
     window.addEventListener('qol_setting_changed', event => {
         if (event.detail?.key === FEATURE_KEY) ensureUI();
