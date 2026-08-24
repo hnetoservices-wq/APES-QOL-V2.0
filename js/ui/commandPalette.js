@@ -22,7 +22,7 @@
     const RING_GAP = 120;
 
     let holdTimer = null;
-    let commandKecommandKeyHeld = false;
+    let commandKeyHeld = false;
 
     const ICONS = {
         auction: `
