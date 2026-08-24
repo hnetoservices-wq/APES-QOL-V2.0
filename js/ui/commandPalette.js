@@ -249,8 +249,9 @@
             <div class="apes-v2-radial" role="dialog" aria-modal="true" aria-label="APES feature wheel">
                 <div class="apes-v2-radial-center">
                     <span class="apes-v2-radial-logo">APES</span>
-                    <strong>Command Wheel</strong>
-                    <span class="apes-v2-radial-hint">Hold G · Click a feature</span>
+                    <span class="apes-v2-radial-feature">
+                        <strong class="apes-v2-radial-feature-name">Command Wheel</strong>
+                    </span>
                 </div>
                 <div class="apes-v2-radial-items"></div>
             </div>
@@ -273,7 +274,7 @@
         overlay.addEventListener('pointerover', event => {
             const item = event.target.closest('[data-apes-action-id]');
             const center = overlay.querySelector(
-                '.apes-v2-radial-center strong'
+                '.apes-v2-radial-feature-name'
             );
 
             if (item && center) {
@@ -289,7 +290,7 @@
                 !item.contains(event.relatedTarget)
             ) {
                 const center = overlay.querySelector(
-                    '.apes-v2-radial-center strong'
+                    '.apes-v2-radial-feature-name'
                 );
 
                 if (center) {

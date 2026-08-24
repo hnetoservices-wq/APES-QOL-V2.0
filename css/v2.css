@@ -72,13 +72,13 @@
     z-index: 2 !important;
     top: 50% !important;
     left: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    flex-direction: column !important;
+    display: grid !important;
+    grid-template-rows: 36px 72px !important;
+    align-items: stretch !important;
     width: 108px !important;
     height: 108px !important;
-    padding: 12px !important;
+    padding: 0 !important;
+    overflow: hidden !important;
     border-radius: 50% !important;
     background: rgba(24, 18, 11, .82) !important;
     box-shadow: inset 0 0 24px rgba(0, 0, 0, .48) !important;
@@ -89,24 +89,33 @@
 }
 
 .apes-v2-radial-logo {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: stretch !important;
+    padding-top: 8px !important;
     color: #e8c54b !important;
     font-size: 11px !important;
     font-weight: 800 !important;
     letter-spacing: 2px !important;
 }
 
-.apes-v2-radial-center strong {
-    margin-top: 4px !important;
+.apes-v2-radial-feature {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    align-self: stretch !important;
+    min-height: 0 !important;
+    padding: 2px 10px 10px !important;
+}
+
+.apes-v2-radial-feature-name {
+    display: block !important;
+    margin: 0 !important;
     color: #fffaf0 !important;
     font-size: 12px !important;
     line-height: 1.15 !important;
-}
-
-.apes-v2-radial-hint {
-    margin-top: 6px !important;
-    color: #d9cba7 !important;
-    font-size: 8px !important;
-    line-height: 1.2 !important;
+    text-align: center !important;
 }
 
 .apes-v2-radial-items {
