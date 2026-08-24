@@ -32,6 +32,7 @@ const QOL_MENU_STYLE_ID = 'qol-menu-styles';
 const QOL_TOOLBAR_DROPDOWN_ID = 'qol-toolbar-dropdown';
 const QOL_BUTTON_SIZE = 30;
 const QOL_BUTTON_GAP = 6;
+const QOL_MAX_EXPANDED_TOOLBAR_ITEMS = 5;
 
 const BASIC_FEATURES = [
     {
@@ -559,6 +560,8 @@ function setToolbarCollapsed(collapsed) {
 }
 
 function shouldCollapseToolbar(villageRect, enabledCount) {
+    if (enabledCount > QOL_MAX_EXPANDED_TOOLBAR_ITEMS) return true;
+
     const start = villageRect.right + 20;
     const requiredWidth = QOL_BUTTON_SIZE + enabledCount * (QOL_BUTTON_SIZE + QOL_BUTTON_GAP);
 
