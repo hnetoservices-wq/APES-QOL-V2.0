@@ -439,56 +439,11 @@
         style.id = STYLE_ID;
         style.textContent = `
             .${HIGHLIGHT_CLASS} {
-                position: relative !important;
-                display: inline-block !important;
-                margin: 0 1px !important;
-                padding: 1px 17px 1px 4px !important;
-                border: 1px solid rgba(145, 53, 35, .72) !important;
-                border-radius: 4px !important;
-                background:
-                    linear-gradient(
-                        to bottom,
-                        rgba(126, 54, 34, .2),
-                        rgba(90, 34, 25, .32)
-                    ) !important;
-                box-shadow:
-                    inset 0 0 0 1px rgba(229, 185, 91, .18),
-                    0 1px 2px rgba(35, 19, 12, .26) !important;
-                color: #f2c85b !important;
-                font-weight: 700 !important;
-                text-shadow: 0 1px 1px rgba(35, 18, 8, .72) !important;
-                text-decoration: none !important;
-            }
-
-            .${HIGHLIGHT_CLASS}::after {
-                content: "●" !important;
-                position: absolute !important;
-                top: 50% !important;
-                right: 5px !important;
-                color: #c38b2d !important;
-                font-size: 8px !important;
-                line-height: 1 !important;
-                text-shadow: 0 0 2px rgba(255, 235, 163, .85) !important;
-                transform: translateY(-50%) !important;
+                color: #d28a16 !important;
             }
 
             ::highlight(${TEXT_HIGHLIGHT_NAME}) {
-                color: #f2c85b;
-                background-color: rgba(102, 39, 27, .78);
-                text-decoration: underline #d29c36 1px;
-            }
-
-            .${HIGHLIGHT_CLASS}:hover {
-                border-color: #b77c27 !important;
-                background:
-                    linear-gradient(
-                        to bottom,
-                        rgba(151, 73, 38, .28),
-                        rgba(101, 40, 27, .4)
-                    ) !important;
-                box-shadow:
-                    inset 0 0 0 1px rgba(239, 202, 112, .28),
-                    0 0 5px rgba(172, 94, 36, .42) !important;
+                color: #d28a16;
             }
         `;
         document.head.appendChild(style);
