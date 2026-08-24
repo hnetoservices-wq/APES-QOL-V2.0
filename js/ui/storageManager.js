@@ -347,10 +347,27 @@
     }
 
     function labelLauncher() {
-        const button = document.querySelector('#qol-modal .qol-clear-cache-btn');
-        if (!button) return;
-        button.textContent = 'Manage Storage';
-        button.title = 'Review and selectively remove APES saved data';
+        const button = document.querySelector(
+            '#qol-modal .qol-clear-cache-btn'
+        );
+
+        if (!button) {
+            return false;
+        }
+
+        if (button.textContent.trim() !== 'Manage Storage') {
+            button.textContent = 'Manage Storage';
+        }
+
+        if (
+            button.title !==
+            'Review and selectively remove APES saved data'
+        ) {
+            button.title =
+                'Review and selectively remove APES saved data';
+        }
+
+        return true;
     }
 
     function init() {
@@ -372,8 +389,18 @@
             event.stopImmediatePropagation();
             void openManager();
         }, true);
-        new MutationObserver(labelLauncher).observe(document.body, { childList: true, subtree: true });
-        labelLauncher();
+        if (!labelLauncher()) {
+            const launcherObserver = new MutationObserver(() => {
+                if (labelLauncher()) {
+                    launcherObserver.disconnect();
+                }
+            });
+
+            launcherObserver.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        }
     }
 
     document.addEventListener('keydown', event => {
