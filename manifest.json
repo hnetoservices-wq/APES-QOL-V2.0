@@ -38,7 +38,7 @@
         "js/features/sendButtonsEnhancer.js",
         "js/features/chatSilencer.js",
         "js/features/incomingResources.js",
-        "js/features/watchlist.js",
+        "js/features/watchlist.js",\n        "js/features/watchlistHighlights.js",
         "js/features/reportArchive.js",
         "js/features/checklists.js",
         "js/features/npcCalculator.js",
@@ -74,5 +74,5 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-alpha.4"
+  "version_name": "2.0.0-alpha.5"
 }
