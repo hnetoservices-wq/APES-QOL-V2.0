@@ -409,8 +409,13 @@
     }
 
     function scheduleScan(root = document) {
+        /*
+         * Throttle rather than debounce. Travian can mutate the DOM
+         * continuously while rendering; restarting this timer on every
+         * mutation could postpone highlights indefinitely.
+         */
         if (scanTimer !== null) {
-            window.clearTimeout(scanTimer);
+            return;
         }
 
         scanTimer = window.setTimeout(() => {
