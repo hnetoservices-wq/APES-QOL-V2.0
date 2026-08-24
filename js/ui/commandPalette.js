@@ -390,6 +390,21 @@
         overlay?.setAttribute('aria-hidden', 'true');
     }
 
+    function commandPaletteEnabled() {
+        try {
+            return localStorage.getItem(
+                'qol_keybind_commandPalette'
+            ) !== 'false';
+        } catch (_error) {
+            return true;
+        }
+    }
+
+    function isCommandKey(event) {
+        return event.code === 'KeyG' ||
+            String(event.key || '').toLowerCase() === 'g';
+    }
+
     function clearHoldTimer() {
         if (holdTimer !== null) {
             window.clearTimeout(holdTimer);
@@ -397,9 +412,10 @@
         }
     }
 
-    document.addEventListener('keydown', event => {
+    window.addEventListener('keydown', event => {
         if (
-            event.code !== 'KeyG' ||
+            !isCommandKey(event) ||
+            !commandPaletteEnabled() ||
             event.ctrlKey ||
             event.altKey ||
             event.metaKey ||
@@ -410,7 +426,7 @@
         }
 
         event.preventDefault();
-        event.stopPropagation();
+        event.stopImmediatePropagation();
 
         if (event.repeat || commandKeyHeld) {
             return;
@@ -427,17 +443,19 @@
         }, HOLD_DELAY);
     }, true);
 
-    document.addEventListener('keyup', event => {
-        if (event.code !== 'KeyG') {
+    window.addEventListener('keyup', event => {
+        if (!isCommandKey(event)) {
             return;
         }
 
+        event.preventDefault();
+        event.stopImmediatePropagation();
         commandKeyHeld = false;
         clearHoldTimer();
         closeRadial();
     }, true);
 
-    document.addEventListener('keydown', event => {
+    window.addEventListener('keydown', event => {
         if (event.key === 'Escape') {
             commandKeyHeld = false;
             clearHoldTimer();
