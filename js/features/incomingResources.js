@@ -1007,11 +1007,41 @@ function initIncomingResourceEnhancer() {
     }
 
     function getIncomingDataContainer(container) {
-        return document.querySelector(
-            '.tabIncoming.currentTab, .tabIncoming.activeTab'
-        ) || container?.querySelector(
-            '.tabIncoming.currentTab, .tabIncoming.activeTab'
-        ) || null;
+        const selector =
+            '.tabIncoming.currentTab, ' +
+            '.tabIncoming.activeTab';
+        const candidates = [
+            ...Array.from(
+                container?.querySelectorAll(
+                    selector
+                ) || []
+            ),
+            ...Array.from(
+                document.querySelectorAll(
+                    selector
+                )
+            )
+        ];
+
+        return candidates.find(element => {
+            if (!element?.isConnected) {
+                return false;
+            }
+
+            const style =
+                window.getComputedStyle(
+                    element
+                );
+
+            return (
+                style.display !== 'none' &&
+                style.visibility !== 'hidden' &&
+                (
+                    element.offsetWidth > 0 ||
+                    element.offsetHeight > 0
+                )
+            );
+        }) || candidates[0] || null;
     }
 
     function findPaginationButton(
@@ -1020,6 +1050,28 @@ function initIncomingResourceEnhancer() {
     ) {
         if (!container) {
             return null;
+        }
+
+        const exactClass =
+            type === 'next'
+                ? 'nextPage'
+                : 'firstPage';
+        const exactControl =
+            container.querySelector(
+                `.tg-pagination > ul > li.${exactClass}`
+            );
+
+        if (
+            exactControl &&
+            !exactControl.classList.contains(
+                'disabled'
+            ) &&
+            (
+                exactControl.offsetWidth > 0 ||
+                exactControl.offsetHeight > 0
+            )
+        ) {
+            return exactControl;
         }
 
         const candidates =
@@ -1209,35 +1261,155 @@ function initIncomingResourceEnhancer() {
 
     function triggerClick(element) {
         if (!element) {
-            return;
+            return false;
         }
 
         try {
             element.click();
-        } catch (error) {
-            // Fall back to dispatched mouse events.
+            return true;
+        } catch (_error) {
+            element.dispatchEvent(
+                new MouseEvent(
+                    'click',
+                    {
+                        bubbles: true,
+                        cancelable: true,
+                        view: window
+                    }
+                )
+            );
+            return true;
+        }
+    }
+
+    function getCurrentPage(container) {
+        const activeControl =
+            container?.querySelector(
+                '.tg-pagination li.number.disabled a, ' +
+                '.tg-pagination li.number.disabled, ' +
+                '.tg-pagination li.number.active a, ' +
+                '.tg-pagination li.number.active'
+            );
+        const controlPage =
+            Number.parseInt(
+                String(
+                    activeControl
+                        ?.textContent || ''
+                ).replace(
+                    /[^0-9]/g,
+                    ''
+                ),
+                10
+            );
+
+        if (
+            Number.isFinite(
+                controlPage
+            )
+        ) {
+            return controlPage;
         }
 
-        [
-            'pointerdown',
-            'mousedown',
-            'pointerup',
-            'mouseup',
-            'click'
-        ].forEach(
-            eventType => {
-                element.dispatchEvent(
-                    new MouseEvent(
-                        eventType,
-                        {
-                            bubbles: true,
-                            cancelable: true,
-                            view: window
-                        }
-                    )
+        const hashMatch =
+            String(
+                window.location.hash || ''
+            ).match(
+                /(?:^|\/)cp:(\d+)/i
+            );
+
+        return hashMatch
+            ? Number.parseInt(
+                hashMatch[1],
+                10
+            )
+            : 1;
+    }
+
+    async function waitForNextPage(
+        previousPage,
+        timeout = 7000
+    ) {
+        const startedAt =
+            Date.now();
+        let pageSeenAt = 0;
+        let stableSignature = '';
+        let stableChecks = 0;
+
+        while (
+            Date.now() - startedAt <
+                timeout &&
+            isScanning &&
+            isEnabled()
+        ) {
+            await new Promise(
+                resolve => {
+                    setTimeout(
+                        resolve,
+                        200
+                    );
+                }
+            );
+
+            const container =
+                getRallyPointContainer();
+            const page =
+                getCurrentPage(
+                    container
                 );
+
+            if (
+                page <=
+                    previousPage
+            ) {
+                continue;
             }
-        );
+
+            if (
+                pageSeenAt === 0
+            ) {
+                pageSeenAt =
+                    Date.now();
+            }
+
+            const signature =
+                getPageSignature(
+                    container
+                );
+
+            if (
+                signature &&
+                signature ===
+                    stableSignature
+            ) {
+                stableChecks += 1;
+            } else {
+                stableSignature =
+                    signature;
+                stableChecks =
+                    signature
+                        ? 1
+                        : 0;
+            }
+
+            if (
+                Date.now() - pageSeenAt >=
+                    700 &&
+                stableChecks >= 2
+            ) {
+                await new Promise(
+                    resolve => {
+                        setTimeout(
+                            resolve,
+                            350
+                        );
+                    }
+                );
+
+                return page;
+            }
+        }
+
+        return null;
     }
 
     function getPageSignature(
@@ -1699,14 +1871,10 @@ function initIncomingResourceEnhancer() {
         onComplete
     ) {
         compiledShipments = [];
-
-        let pageCount = 1;
-
         isScanning = true;
 
         const contextData =
             getContextData();
-
         const initialContainer =
             getRallyPointContainer();
 
@@ -1716,11 +1884,8 @@ function initIncomingResourceEnhancer() {
             updateScanLock(
                 'Rally Point container could not be found.'
             );
-
             isScanning = false;
-
             onComplete();
-
             return;
         }
 
@@ -1738,27 +1903,51 @@ function initIncomingResourceEnhancer() {
                 firstButton
             );
 
+            const firstPageStartedAt =
+                Date.now();
+
+            while (
+                Date.now() -
+                    firstPageStartedAt <
+                    5000 &&
+                getCurrentPage(
+                    getRallyPointContainer()
+                ) > 1 &&
+                isScanning &&
+                isEnabled()
+            ) {
+                await new Promise(
+                    resolve => {
+                        setTimeout(
+                            resolve,
+                            200
+                        );
+                    }
+                );
+            }
+
             await new Promise(
                 resolve => {
                     setTimeout(
                         resolve,
-                        800
+                        500
                     );
                 }
             );
         }
 
+        const visitedPages =
+            new Set();
+        let page =
+            getCurrentPage(
+                getRallyPointContainer()
+            );
+
         while (
-            pageCount <= 50 &&
+            page <= 50 &&
             isScanning &&
             isEnabled()
         ) {
-            statusBox.textContent =
-                `Scanning page ${pageCount}...`;
-            updateScanLock(
-                `Scanning resource page ${pageCount}...`
-            );
-
             const currentContainer =
                 getRallyPointContainer();
 
@@ -1766,15 +1955,31 @@ function initIncomingResourceEnhancer() {
                 break;
             }
 
-            await triggerVirtualScrollSweep(
-                currentContainer
-            );
-
-            const currentSignature =
-                getPageSignature(
+            page =
+                getCurrentPage(
                     currentContainer
                 );
 
+            if (
+                visitedPages.has(
+                    page
+                )
+            ) {
+                break;
+            }
+
+            visitedPages.add(
+                page
+            );
+            statusBox.textContent =
+                `Scanning page ${page}...`;
+            updateScanLock(
+                `Scanning resource page ${page}...`
+            );
+
+            await triggerVirtualScrollSweep(
+                currentContainer
+            );
             scrapePageData(
                 currentContainer,
                 contextData
@@ -1786,57 +1991,36 @@ function initIncomingResourceEnhancer() {
                     currentContainer
                 );
 
-            if (nextButton) {
-                triggerClick(
-                    nextButton
-                );
-
-                let waited = 0;
-                let pageChanged = false;
-
-                while (
-                    waited < 3500 &&
-                    isScanning &&
-                    isEnabled()
-                ) {
-                    await new Promise(
-                        resolve => {
-                            setTimeout(
-                                resolve,
-                                200
-                            );
-                        }
-                    );
-
-                    waited += 200;
-
-                    const newContainer =
-                        getRallyPointContainer();
-
-                    const newSignature =
-                        getPageSignature(
-                            newContainer
-                        );
-
-                    if (
-                        newSignature !==
-                            currentSignature &&
-                        newSignature.length >
-                            0
-                    ) {
-                        pageChanged = true;
-                        break;
-                    }
-                }
-
-                if (!pageChanged) {
-                    break;
-                }
-
-                pageCount += 1;
-            } else {
+            if (!nextButton) {
                 break;
             }
+
+            const previousPage =
+                getCurrentPage(
+                    currentContainer
+                );
+
+            triggerClick(
+                nextButton
+            );
+
+            const nextPage =
+                await waitForNextPage(
+                    previousPage
+                );
+
+            if (
+                !Number.isFinite(
+                    nextPage
+                ) ||
+                nextPage <=
+                    previousPage
+            ) {
+                break;
+            }
+
+            page =
+                nextPage;
         }
 
         if (
@@ -1847,13 +2031,11 @@ function initIncomingResourceEnhancer() {
         }
 
         isScanning = false;
-
         statusBox.textContent =
-            `Done! Processed ${compiledShipments.length} shipments.`;
+            `Done! Processed ${compiledShipments.length} shipments across ${visitedPages.size} pages.`;
         updateScanLock(
             `Finishing scan with ${compiledShipments.length} resource shipments...`
         );
-
         onComplete();
     }
 
