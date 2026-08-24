@@ -131,6 +131,16 @@ const ADVANCED_FEATURES = [
     }
 ];
 
+const COSMETIC_FEATURES = [
+    {
+        id: 'qol-chk-visual-tribe-skins',
+        key: 'visualTribeSkins',
+        name: 'Visual Tribe Skin',
+        icon: '♜',
+        description: 'Changes village building artwork to the selected Roman, Teuton or Gaul style without affecting gameplay.'
+    }
+];
+
 const KEYBINDS = [
     { keys: ['W', 'A', 'S', 'D'], label: 'Map Navigation (2x Speed)', fixed: true },
     { keys: ['1'], label: 'Village View', id: 'qol-chk-village', key: 'keybind_village' },
@@ -154,12 +164,14 @@ const TOOLBAR_ITEMS = [
     { id: 'qol-npc-calc-toggle-btn', label: 'NPC Calculator', key: 'npcCalculator' },
     { id: 'qol-oasis-toggle-btn', label: 'Oasis Scanner', key: 'oasisScanner' },
     { id: 'qol-report-archive-toggle', label: 'Report Archive', key: 'reportArchive' },
-    { id: 'qol-cp-toggle-btn', label: 'CP Manager', key: 'cpManager' }
+    { id: 'qol-cp-toggle-btn', label: 'CP Manager', key: 'cpManager' },
+    { id: 'qol-tribe-skins-toggle-btn', label: 'Visual Tribe Skin', key: 'visualTribeSkins' }
 ];
 
 const menuConfigMap = Object.fromEntries([
     ...BASIC_FEATURES.map(feature => [feature.id, feature.key]),
     ...ADVANCED_FEATURES.map(feature => [feature.id, feature.key]),
+    ...COSMETIC_FEATURES.map(feature => [feature.id, feature.key]),
     ...KEYBINDS.filter(item => !item.fixed).map(item => [item.id, item.key])
 ]);
 
@@ -241,7 +253,8 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-npc-calc-toggle-btn,
         body.qol-toolbar-collapsed #qol-oasis-toggle-btn,
         body.qol-toolbar-collapsed #qol-report-archive-toggle,
-        body.qol-toolbar-collapsed #qol-cp-toggle-btn{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+        body.qol-toolbar-collapsed #qol-cp-toggle-btn,
+        body.qol-toolbar-collapsed #qol-tribe-skins-toggle-btn{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
         #${QOL_TOOLBAR_DROPDOWN_ID}{position:fixed!important;display:none!important;flex-direction:column!important;min-width:220px!important;max-width:min(300px,88vw)!important;max-height:min(520px,80vh)!important;overflow-y:auto!important;padding:5px!important;border:2px solid #634d31!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 26px rgba(0,0,0,.38)!important;z-index:1000001!important;font-family:Arial,Helvetica,sans-serif!important;box-sizing:border-box!important}
         #${QOL_TOOLBAR_DROPDOWN_ID}.qol-open{display:flex!important}
@@ -271,6 +284,8 @@ function injectQolMenuStyles() {
         #qol-modal #qol-basic-feature-grid{order:4!important}
         #qol-modal .qol-advanced-heading{order:5!important}
         #qol-modal #qol-advanced-feature-grid{order:6!important}
+        #qol-modal .qol-cosmetic-heading{order:7!important}
+        #qol-modal #qol-cosmetic-feature-grid{order:8!important}
         #qol-modal .qol-section-heading{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:14px!important;margin:0 0 9px!important}
         #qol-modal .qol-section-heading:not(:first-child){margin-top:20px!important}
         #qol-modal .qol-section-title-group{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
@@ -679,6 +694,15 @@ function buildSettingsMarkup() {
                     <span class="qol-section-count">${BASIC_FEATURES.length} tools</span>
                 </div>
                 <div class="qol-feature-grid" id="qol-basic-feature-grid">${BASIC_FEATURES.map(featureCardHtml).join('')}</div>
+
+                <div class="qol-section-heading qol-cosmetic-heading">
+                    <div class="qol-section-title-group">
+                        <h2 class="qol-section-title">Cosmetic Features</h2>
+                        <span class="qol-section-caption">Optional visual changes that alter presentation without changing gameplay.</span>
+                    </div>
+                    <span class="qol-section-count">${COSMETIC_FEATURES.length} ${COSMETIC_FEATURES.length === 1 ? 'tool' : 'tools'}</span>
+                </div>
+                <div class="qol-feature-grid" id="qol-cosmetic-feature-grid">${COSMETIC_FEATURES.map(featureCardHtml).join('')}</div>
             </div>
 
             <div class="qol-modal-footer">
