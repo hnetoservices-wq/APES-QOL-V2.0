@@ -68,6 +68,7 @@
     function saveWatchlist() {
         try {
             localStorage.setItem(getStorageKey(), JSON.stringify(watchlistTabs));
+            window.dispatchEvent(new CustomEvent('qol_watchlist_changed'));
         } catch (e) {
             console.error('QoL Watchlist: Failed to save data', e);
         }
