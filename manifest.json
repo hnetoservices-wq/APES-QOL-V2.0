@@ -32,6 +32,7 @@
         "js/keys/navigationKeys.js",
         "js/keys/mapHover.js",
         "js/ui/menu.js",
+        "js/ui/storageManager.js",
         "js/features/oasisScanner.js",
         "js/features/rallyPointEnhancer.js",
         "js/features/igmEnhancer.js",
@@ -75,5 +76,5 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-alpha.5"
+  "version_name": "2.0.0-alpha.6"
 }
