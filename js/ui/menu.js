@@ -306,8 +306,8 @@ function injectQolMenuStyles() {
         #qol-modal .qol-save-note{display:inline-flex!important;align-items:center!important;gap:6px!important}
         #qol-modal .qol-save-dot{width:7px!important;height:7px!important;border-radius:50%!important;background:#6f9b34!important}
         #qol-modal .qol-footer-hint{color:#8b7a62!important}
-        #qol-modal .qol-clear-cache-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:24px!important;padding:3px 9px!important;border:1px solid #b97856!important;border-radius:4px!important;background:#fff8f2!important;color:#8f3f2f!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important}
-        #qol-modal .qol-clear-cache-btn:hover{border-color:#9c5438!important;background:#f9e9de!important}
+        #qol-modal .qol-clear-cache-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:24px!important;padding:3px 9px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#5b472f!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important}
+        #qol-modal .qol-clear-cache-btn:hover{border-color:#765b39!important;background:#eee4d4!important}
 
         #qol-modal-overlay .qol-cache-dialog-layer{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(18,16,13,.62)!important;z-index:1000002!important}
         #qol-modal-overlay .qol-cache-dialog-layer.qol-open{display:flex!important}
@@ -681,7 +681,7 @@ function buildSettingsMarkup() {
             <div class="qol-modal-footer">
                 <div class="qol-footer-left">
                     <span class="qol-save-note"><span class="qol-save-dot" aria-hidden="true"></span>Changes are saved automatically</span>
-                    <div class="qol-clear-cache-btn" role="button" tabindex="0">Clear Cache</div>
+                    <div class="qol-clear-cache-btn" role="button" tabindex="0">Manage Storage</div>
                 </div>
                 <span class="qol-footer-hint">Press Esc or click outside to close</span>
             </div>
