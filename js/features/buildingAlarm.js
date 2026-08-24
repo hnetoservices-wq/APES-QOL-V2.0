@@ -179,6 +179,76 @@ function initBuildingAlarm() {
         }).join(':');
     }
 
+    function formatCountdown(seconds) {
+        const total = Math.max(
+            0,
+            Math.ceil(Number(seconds) || 0)
+        );
+        const hours = Math.floor(total / 3600);
+        const minutes = Math.floor(
+            (total % 3600) / 60
+        );
+        const remainingSeconds = total % 60;
+
+        return [
+            hours,
+            minutes,
+            remainingSeconds
+        ].map(value => {
+            return String(value).padStart(2, '0');
+        }).join(':');
+    }
+
+    function getLevelTransition(alarm) {
+        const buildingName = String(
+            alarm.buildingName ||
+            'Construction'
+        ).trim();
+        const levels = String(
+            alarm.levelText ||
+            ''
+        ).match(/\d+/g) || [];
+
+        if (levels.length >= 2) {
+            return {
+                from: `${buildingName} ${levels[0]}`,
+                to: `${buildingName} ${levels.at(-1)}`
+            };
+        }
+
+        if (levels.length === 1) {
+            return {
+                from: buildingName,
+                to: `${buildingName} ${levels[0]}`
+            };
+        }
+
+        return {
+            from: buildingName,
+            to: 'Complete'
+        };
+    }
+
+    function getAlarmProgress(alarm, now) {
+        const start = Number(alarm.createdAt);
+        const end = Number(alarm.alarmAt);
+
+        if (!Number.isFinite(start) ||
+            !Number.isFinite(end) ||
+            end <= start) {
+            return now >= end ? 100 : 0;
+        }
+
+        return Math.min(
+            100,
+            Math.max(
+                0,
+                (now - start) /
+                    (end - start) * 100
+            )
+        );
+    }
+
     function playDing() {
         try {
             const AudioContextClass =
@@ -374,7 +444,7 @@ function initBuildingAlarm() {
                 top: 120px !important;
                 z-index: 1000000 !important;
                 display: none;
-                width: 310px !important;
+                width: 600px !important;
                 max-width: calc(100vw - 24px) !important;
                 border: 2px solid #634d31 !important;
                 border-radius: 5px !important;
@@ -399,6 +469,27 @@ function initBuildingAlarm() {
                 touch-action: none !important;
             }
 
+            .qol-building-alarm-heading {
+                display: flex !important;
+                align-items: baseline !important;
+                min-width: 0 !important;
+                gap: 8px !important;
+            }
+
+            .qol-building-alarm-heading > strong {
+                color: #fffaf0 !important;
+                font-size: 12px !important;
+            }
+
+            .qol-building-alarm-summary {
+                overflow: hidden !important;
+                color: #d9c9ad !important;
+                font-size: 9px !important;
+                font-weight: normal !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
+            }
+
             .qol-building-alarm-close {
                 display: inline-flex !important;
                 align-items: center !important;
@@ -415,70 +506,122 @@ function initBuildingAlarm() {
             .qol-building-alarm-list {
                 display: flex !important;
                 flex-direction: column !important;
-                max-height: 310px !important;
-                padding: 6px !important;
-                gap: 5px !important;
+                max-height: min(430px, calc(100vh - 190px)) !important;
+                padding: 10px !important;
+                gap: 12px !important;
                 overflow-y: auto !important;
             }
 
             .qol-building-alarm-section {
                 display: flex !important;
                 flex-direction: column !important;
-                gap: 5px !important;
+                overflow: hidden !important;
+                border: 1px solid #d5c8b5 !important;
+                border-radius: 4px !important;
+                background: #fff !important;
             }
 
             .qol-building-alarm-section +
             .qol-building-alarm-section {
-                margin-top: 5px !important;
-                padding-top: 7px !important;
-                border-top: 1px solid #d8ccba !important;
+                margin-top: 0 !important;
             }
 
             .qol-building-alarm-section-title {
-                padding: 3px 4px !important;
-                color: #796850 !important;
-                font-size: 9px !important;
+                display: flex !important;
+                align-items: center !important;
+                justify-content: space-between !important;
+                min-height: 29px !important;
+                padding: 6px 9px !important;
+                border-bottom: 1px solid #d5c8b5 !important;
+                background: #eee6da !important;
+                color: #5e4a31 !important;
+                font-size: 10px !important;
                 font-weight: bold !important;
                 text-transform: uppercase !important;
-                letter-spacing: .25px !important;
+                letter-spacing: .3px !important;
             }
 
             .qol-building-alarm-section.ready
             .qol-building-alarm-section-title {
+                background: #eaf2df !important;
                 color: #416923 !important;
             }
 
+            .qol-building-alarm-count {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 18px !important;
+                height: 18px !important;
+                padding: 0 5px !important;
+                border-radius: 9px !important;
+                background: rgba(90, 66, 39, .12) !important;
+                color: inherit !important;
+                font-size: 9px !important;
+            }
+
+            .qol-building-alarm-columns,
             .qol-building-alarm-row {
                 display: grid !important;
-                grid-template-columns: minmax(0,1fr) auto 22px !important;
+                grid-template-columns:
+                    minmax(92px, 1.05fr)
+                    minmax(82px, 1fr)
+                    22px
+                    minmax(82px, 1fr)
+                    minmax(112px, .9fr)
+                    26px !important;
                 align-items: center !important;
-                gap: 7px !important;
-                min-height: 43px !important;
-                padding: 6px 7px !important;
-                border: 1px solid #d3c5b0 !important;
-                border-radius: 3px !important;
+                column-gap: 7px !important;
+            }
+
+            .qol-building-alarm-columns {
+                min-height: 28px !important;
+                padding: 5px 8px !important;
+                border-bottom: 1px solid #e0d7ca !important;
+                background: #faf7f2 !important;
+                color: #786751 !important;
+                font-size: 9px !important;
+                font-weight: bold !important;
+            }
+
+            .qol-building-alarm-columns-building {
+                grid-column: 2 / 5 !important;
+                text-align: center !important;
+            }
+
+            .qol-building-alarm-columns-time {
+                grid-column: 5 !important;
+                text-align: center !important;
+            }
+
+            .qol-building-alarm-row {
+                position: relative !important;
+                min-height: 49px !important;
+                padding: 7px 8px 10px !important;
+                border-bottom: 1px solid #e4ddd2 !important;
                 background: #fff !important;
             }
 
+            .qol-building-alarm-row:last-child {
+                border-bottom: 0 !important;
+            }
+
             .qol-building-alarm-row.ready {
-                border-color: #9db382 !important;
                 background: #f5faef !important;
             }
 
-            .qol-building-alarm-copy {
-                display: flex !important;
-                flex-direction: column !important;
+            .qol-building-alarm-village,
+            .qol-building-alarm-level {
                 min-width: 0 !important;
-                gap: 2px !important;
+                overflow: hidden !important;
+                text-overflow: ellipsis !important;
+                white-space: nowrap !important;
             }
 
             .qol-building-alarm-village {
-                overflow: hidden !important;
                 color: #5a4227 !important;
                 font-size: 11px !important;
                 font-weight: bold !important;
-                text-overflow: ellipsis !important;
-                white-space: nowrap !important;
                 cursor: pointer !important;
             }
 
@@ -487,19 +630,41 @@ function initBuildingAlarm() {
                 text-decoration: underline !important;
             }
 
-            .qol-building-alarm-building {
-                overflow: hidden !important;
-                color: #7a6a55 !important;
-                font-size: 9px !important;
-                text-overflow: ellipsis !important;
-                white-space: nowrap !important;
+            .qol-building-alarm-level {
+                color: #4a3b2a !important;
+                font-size: 10px !important;
+                text-align: center !important;
+            }
+
+            .qol-building-alarm-arrow {
+                color: #8a6b3e !important;
+                font-size: 17px !important;
+                line-height: 1 !important;
+                text-align: center !important;
+            }
+
+            .qol-building-alarm-timing {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                flex-direction: column !important;
+                min-width: 0 !important;
+                gap: 2px !important;
+                text-align: center !important;
             }
 
             .qol-building-alarm-time {
-                color: #4f6f28 !important;
+                color: #4c3a24 !important;
                 font-family: Consolas, monospace !important;
                 font-size: 10px !important;
                 font-weight: bold !important;
+                white-space: nowrap !important;
+            }
+
+            .qol-building-alarm-relative {
+                color: #87745c !important;
+                font-family: Consolas, monospace !important;
+                font-size: 8px !important;
                 white-space: nowrap !important;
             }
 
@@ -515,6 +680,11 @@ function initBuildingAlarm() {
                 font-family: Arial, sans-serif !important;
                 font-size: 8px !important;
                 text-transform: uppercase !important;
+            }
+
+            .qol-building-alarm-row.ready
+            .qol-building-alarm-relative {
+                color: #58723b !important;
             }
 
             .qol-building-alarm-remove {
@@ -533,11 +703,61 @@ function initBuildingAlarm() {
                 background: #f5dfdc !important;
             }
 
+            .qol-building-alarm-progress {
+                position: absolute !important;
+                right: 0 !important;
+                bottom: 0 !important;
+                left: 0 !important;
+                height: 4px !important;
+                overflow: hidden !important;
+                background: #e8e2d9 !important;
+            }
+
+            .qol-building-alarm-progress > span {
+                display: block !important;
+                width: 0;
+                height: 100% !important;
+                background: linear-gradient(to right, #6eaa35, #8fc64e) !important;
+                transition: width .45s linear !important;
+            }
+
+            .qol-building-alarm-row.ready
+            .qol-building-alarm-progress > span {
+                background: #4f8b2d !important;
+            }
+
             .qol-building-alarm-empty {
-                padding: 18px 12px !important;
+                padding: 20px 12px !important;
                 color: #83725d !important;
                 font-size: 10px !important;
                 text-align: center !important;
+            }
+
+            @media (max-width: 540px) {
+                #${PANEL_ID} {
+                    right: 8px !important;
+                    width: calc(100vw - 16px) !important;
+                    max-width: none !important;
+                }
+
+                .qol-building-alarm-columns {
+                    display: none !important;
+                }
+
+                .qol-building-alarm-row {
+                    grid-template-columns:
+                        minmax(0, 1fr)
+                        20px
+                        minmax(0, 1fr)
+                        minmax(84px, auto)
+                        24px !important;
+                    row-gap: 5px !important;
+                }
+
+                .qol-building-alarm-village {
+                    grid-column: 1 / -1 !important;
+                }
+
             }
         `;
         document.head.appendChild(style);
@@ -648,8 +868,11 @@ function initBuildingAlarm() {
         panel.id = PANEL_ID;
         panel.innerHTML = `
             <div class="qol-building-alarm-header">
-                <span>Building Alarms</span>
-                <span class="qol-building-alarm-close" role="button" tabindex="0">&times;</span>
+                <span class="qol-building-alarm-heading">
+                    <strong>Building Alarms</strong>
+                    <span class="qol-building-alarm-summary">No alarms set</span>
+                </span>
+                <span class="qol-building-alarm-close" role="button" tabindex="0" aria-label="Close Building Alarms">&times;</span>
             </div>
             <div class="qol-building-alarm-list"></div>
         `;
@@ -664,12 +887,20 @@ function initBuildingAlarm() {
 
         makePanelDraggable(panel, header);
 
-        close.addEventListener('click', () => {
+        const closePanel = () => {
             panel.style.setProperty(
                 'display',
                 'none',
                 'important'
             );
+        };
+
+        close.addEventListener('click', closePanel);
+        close.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                closePanel();
+            }
         });
 
         return panel;
@@ -679,6 +910,9 @@ function initBuildingAlarm() {
         const panel = mountPanel();
         const list = panel.querySelector(
             '.qol-building-alarm-list'
+        );
+        const summary = panel.querySelector(
+            '.qol-building-alarm-summary'
         );
         const alarms = readAlarms()
             .sort((first, second) => {
@@ -694,28 +928,72 @@ function initBuildingAlarm() {
         const upcomingAlarms = alarms.filter(alarm => {
             return !readyAlarms.includes(alarm);
         });
+
+        if (summary) {
+            summary.textContent = alarms.length === 0
+                ? 'No alarms set'
+                : `${alarms.length} active · ${readyAlarms.length} ready`;
+        }
+
+        const columnHeadingsHtml = `
+            <div class="qol-building-alarm-columns" aria-hidden="true">
+                <span>Village</span>
+                <span class="qol-building-alarm-columns-building">Building Upgrade</span>
+                <span class="qol-building-alarm-columns-time">Instant Finish Available</span>
+            </div>
+        `;
         const alarmRowsHtml = (
             sectionAlarms,
             ready = false
         ) => {
-            return sectionAlarms.map(alarm => `
-                <div class="qol-building-alarm-row${ready ? ' ready' : ''}" data-alarm-id="${escapeHtml(alarm.id)}">
-                    <div class="qol-building-alarm-copy">
+            return sectionAlarms.map(alarm => {
+                const transition =
+                    getLevelTransition(alarm);
+                const progress = ready
+                    ? 100
+                    : getAlarmProgress(
+                        alarm,
+                        now
+                    );
+                const relative = ready
+                    ? `Finishes in ${formatCountdown(Number(alarm.finishAt) - now)}`
+                    : `in ${formatCountdown(Number(alarm.alarmAt) - now)}`;
+
+                return `
+                    <div
+                        class="qol-building-alarm-row${ready ? ' ready' : ''}"
+                        data-alarm-id="${escapeHtml(alarm.id)}"
+                        data-alarm-at="${escapeHtml(alarm.alarmAt)}"
+                        data-finish-at="${escapeHtml(alarm.finishAt)}"
+                        data-created-at="${escapeHtml(alarm.createdAt)}"
+                    >
                         <span
                             class="qol-building-alarm-village"
                             data-village-id="${escapeHtml(alarm.villageId)}"
+                            role="button"
+                            tabindex="0"
                             title="Open ${escapeHtml(alarm.villageName)}"
                         >${escapeHtml(alarm.villageName)}</span>
-                        <span class="qol-building-alarm-building">
-                            ${escapeHtml(alarm.buildingName)} ${escapeHtml(alarm.levelText)}
+                        <span class="qol-building-alarm-level" title="${escapeHtml(transition.from)}">
+                            ${escapeHtml(transition.from)}
+                        </span>
+                        <span class="qol-building-alarm-arrow" aria-hidden="true">→</span>
+                        <span class="qol-building-alarm-level" title="${escapeHtml(transition.to)}">
+                            ${escapeHtml(transition.to)}
+                        </span>
+                        <span class="qol-building-alarm-timing" title="${ready ? 'Available for free instant finish' : 'Free instant finish begins'}">
+                            <strong class="qol-building-alarm-time">
+                                ${ready ? 'Ready' : escapeHtml(formatServerTime(alarm.alarmAt))}
+                            </strong>
+                            <small class="qol-building-alarm-relative">${escapeHtml(relative)}</small>
+                        </span>
+                        <span class="qol-building-alarm-remove" role="button" tabindex="0" aria-label="Remove alarm" title="Remove alarm">&times;</span>
+                        <span class="qol-building-alarm-progress" aria-hidden="true">
+                            <span style="width:${progress.toFixed(1)}%"></span>
                         </span>
                     </div>
-                    <span class="qol-building-alarm-time" title="${ready ? 'Available for free instant finish' : 'Free instant finish begins'}">
-                        ${ready ? 'Ready' : escapeHtml(formatServerTime(alarm.alarmAt))}
-                    </span>
-                    <span class="qol-building-alarm-remove" role="button" tabindex="0" title="Remove alarm">&times;</span>
-                </div>
-            `).join('');
+                `;
+            }).join('');
         };
 
         if (alarms.length === 0) {
@@ -728,8 +1006,10 @@ function initBuildingAlarm() {
             list.innerHTML = `
                 <section class="qol-building-alarm-section ready">
                     <div class="qol-building-alarm-section-title">
-                        Available for Instant Finish
+                        <span>Available for Instant Finish</span>
+                        <span class="qol-building-alarm-count">${readyAlarms.length}</span>
                     </div>
+                    ${columnHeadingsHtml}
                     ${
                         readyAlarms.length > 0
                             ? alarmRowsHtml(
@@ -743,40 +1023,62 @@ function initBuildingAlarm() {
                             `
                     }
                 </section>
-                ${
-                    upcomingAlarms.length > 0
-                        ? `
-                            <section class="qol-building-alarm-section">
-                                <div class="qol-building-alarm-section-title">
-                                    Upcoming Alarms
+                <section class="qol-building-alarm-section">
+                    <div class="qol-building-alarm-section-title">
+                        <span>Upcoming Alarms</span>
+                        <span class="qol-building-alarm-count">${upcomingAlarms.length}</span>
+                    </div>
+                    ${columnHeadingsHtml}
+                    ${
+                        upcomingAlarms.length > 0
+                            ? alarmRowsHtml(upcomingAlarms)
+                            : `
+                                <div class="qol-building-alarm-empty">
+                                    No upcoming alarms.
                                 </div>
-                                ${alarmRowsHtml(upcomingAlarms)}
-                            </section>
-                        `
-                        : ''
-                }
+                            `
+                    }
+                </section>
             `;
         }
+
+        panel.dataset.qolAlarmRendered = 'true';
 
         list.querySelectorAll(
             '.qol-building-alarm-village'
         ).forEach(element => {
-            element.addEventListener('click', () => {
+            const open = () => {
                 openVillage(
                     element.dataset.villageId
                 );
+            };
+
+            element.addEventListener('click', open);
+            element.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    open();
+                }
             });
         });
 
         list.querySelectorAll(
             '.qol-building-alarm-remove'
         ).forEach(element => {
-            element.addEventListener('click', () => {
+            const remove = () => {
                 removeAlarm(
                     element.closest(
                         '[data-alarm-id]'
                     )?.dataset.alarmId
                 );
+            };
+
+            element.addEventListener('click', remove);
+            element.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    remove();
+                }
             });
         });
 
@@ -787,6 +1089,73 @@ function initBuildingAlarm() {
                 'important'
             );
         }
+    }
+
+    function updatePanelLiveState() {
+        const panel = document.getElementById(
+            PANEL_ID
+        );
+
+        if (!panel) {
+            return;
+        }
+
+        const now = getServerTimestamp();
+
+        panel.querySelectorAll(
+            '.qol-building-alarm-row'
+        ).forEach(row => {
+            const alarmAt = Number(
+                row.dataset.alarmAt
+            );
+            const finishAt = Number(
+                row.dataset.finishAt
+            );
+            const createdAt = row.dataset.createdAt
+                ? Number(row.dataset.createdAt)
+                : Number.NaN;
+            const ready =
+                row.classList.contains('ready') ||
+                now >= alarmAt;
+            const time = row.querySelector(
+                '.qol-building-alarm-time'
+            );
+            const relative = row.querySelector(
+                '.qol-building-alarm-relative'
+            );
+            const progress = row.querySelector(
+                '.qol-building-alarm-progress > span'
+            );
+
+            if (time) {
+                time.textContent = ready
+                    ? 'Ready'
+                    : formatServerTime(alarmAt);
+            }
+
+            if (relative) {
+                relative.textContent = ready
+                    ? `Finishes in ${formatCountdown(finishAt - now)}`
+                    : `in ${formatCountdown(alarmAt - now)}`;
+            }
+
+            if (progress) {
+                const percent = ready
+                    ? 100
+                    : getAlarmProgress(
+                        {
+                            createdAt,
+                            alarmAt
+                        },
+                        now
+                    );
+
+                progress.style.setProperty(
+                    'width',
+                    `${percent.toFixed(1)}%`
+                );
+            }
+        });
     }
 
     function setAlarm(contentRow, button) {
@@ -1176,9 +1545,15 @@ function initBuildingAlarm() {
             'qol-building-alarm-enabled'
         );
 
-        mountPanel();
+        const panel = mountPanel();
+
+        if (panel.dataset.qolAlarmRendered !== 'true') {
+            renderPanel();
+        }
+
         injectClockButtons();
         processAlarms();
+        updatePanelLiveState();
     }
 
     window.addEventListener(
