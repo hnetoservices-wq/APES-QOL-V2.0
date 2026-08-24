@@ -1843,12 +1843,7 @@ function initIncomingResourceEnhancer() {
                         container
                     );
 
-                const hasLoadedIncomingState = hasTrade ||
-                    /Inbound troops|Incoming troops|No troop/i.test(
-                        container.textContent || ''
-                    );
-
-                if (hasLoadedIncomingState) {
+                if (hasTrade) {
                     await new Promise(
                         resolve => {
                             setTimeout(
@@ -2046,41 +2041,6 @@ function initIncomingResourceEnhancer() {
             `Finishing scan with ${compiledShipments.length} resource shipments...`
         );
         onComplete();
-    }
-
-    function buildDashboardResourceHash() {
-        const villageMatch = String(window.location.hash || '')
-            .match(/(?:^|\/)villId:([^/]+)/i);
-        const villagePart = villageMatch ? `villId:${villageMatch[1]}/` : '';
-        return `#/page:village/${villagePart}location:32/window:building/cp:1/subtab:Incoming`;
-    }
-
-    async function scanIncomingResourcesForDashboard(context = {}) {
-        if (isScanning) throw new Error('The incoming resource scanner is already running.');
-
-        const onProgress = typeof context.onProgress === 'function'
-            ? context.onProgress
-            : () => {};
-        const progressTarget = {};
-        Object.defineProperty(progressTarget, 'textContent', {
-            set(value) { onProgress(String(value || 'Scanning incoming resources...')); }
-        });
-
-        isScanning = true;
-        compiledShipments = [];
-
-        try {
-            onProgress('Opening incoming resource page 1...');
-            window.location.hash = buildDashboardResourceHash();
-            if (!await awaitRallyPointRender(10000)) {
-                throw new Error('The incoming resource Rally Point did not render.');
-            }
-
-            await collectAllPages(progressTarget, () => {});
-            return compiledShipments.map(shipment => ({ ...shipment }));
-        } finally {
-            isScanning = false;
-        }
     }
 
     function getTotals() {
@@ -2859,16 +2819,6 @@ function initIncomingResourceEnhancer() {
             window.qolRepositionAllButtons();
         }
     }
-
-    window.APES?.scanners?.register({
-        id: 'rally.resources',
-        label: 'Incoming Resources',
-        description: 'Scans incoming Rally Point pages for active merchant deliveries.',
-        scope: 'village',
-        modes: ['full'],
-        enabled: isEnabled,
-        scan: scanIncomingResourcesForDashboard
-    });
 
     window.addEventListener(
         'resize',

@@ -28,8 +28,6 @@
             key => key.startsWith('apes_secret_society_scans')],
         ['visual', 'Visual Asset Cache', 'Cached tribe-skin asset catalogue.',
             key => key.startsWith('apes_visual_tribe_skin_assets')],
-        ['villageDashboard', 'Village Dashboard', 'Latest per-village resource overview snapshot.',
-            key => key.startsWith('qol_village_dashboard_')],
         ['preferences', 'Preferences', 'Feature toggles, keybinds and interface choices.',
             key => key.startsWith('qol_') || key.includes('skin_selection') || key.includes(':global:'), true],
         ['other', 'Other APES Data', 'Other APES-owned data and legacy caches.',

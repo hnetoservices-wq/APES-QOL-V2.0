@@ -266,36 +266,6 @@
         });
     }
 
-    function readResourceSnapshot() {
-        const resources = {};
-
-        for (const resource of RESOURCES) {
-            const data = readResource(resource);
-            if (!data) return null;
-            resources[resource.key] = {
-                current: data.current,
-                capacity: data.capacity,
-                production: data.production
-            };
-        }
-
-        return { resources, readAt: Date.now() };
-    }
-
-    window.APES?.scanners?.register({
-        id: 'resources.capacity',
-        label: 'Resources and Capacity',
-        description: 'Reads current storage, capacity, production, and capacity timing inputs.',
-        scope: 'village',
-        modes: ['quick', 'full'],
-        enabled: () => true,
-        scan: () => {
-            const snapshot = readResourceSnapshot();
-            if (!snapshot) throw new Error('The current village resource bar is not ready.');
-            return snapshot;
-        }
-    });
-
     function start() {
         refresh();
         if (intervalId === null) intervalId = window.setInterval(refresh, REFRESH_MS);

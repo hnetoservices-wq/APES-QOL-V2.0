@@ -7,8 +7,7 @@ const QOL_DEFAULT_DISABLED_FEATURES = new Set([
     'cpManager',
     'oasisScanner',
     'reportArchive',
-    'watchlist',
-    'villageDashboard'
+    'watchlist'
 ]);
 
 window.isQolEnabled = function(key) {
@@ -102,13 +101,6 @@ const BASIC_FEATURES = [
 
 const ADVANCED_FEATURES = [
     {
-        id: 'qol-chk-village-dashboard',
-        key: 'villageDashboard',
-        name: 'Village Overview Dashboard',
-        icon: '⌂',
-        description: 'Coordinates resource, capacity, CP and Rally Point scans into one account-wide village overview.'
-    },
-    {
         id: 'qol-chk-cp-manager',
         key: 'cpManager',
         name: 'CP Manager',
@@ -155,7 +147,6 @@ const KEYBINDS = [
 
 const TOOLBAR_ITEMS = [
     { id: 'qol-help-toggle-btn', label: 'Help', key: 'help' },
-    { id: 'qol-village-dashboard-toggle-btn', label: 'Village Overview Dashboard', key: 'villageDashboard' },
     { id: 'qol-rally-point-toggle-btn', label: 'Rally Point Scanner', key: 'rallyPointParser' },
     { id: 'qol-watchlist-toggle', label: 'Watchlists', key: 'watchlist' },
     { id: 'qol-checklist-toggle-btn', label: 'Checklists', key: 'checklists' },
@@ -243,7 +234,6 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-cog-btn::after{content:'▾'!important;position:absolute!important;right:-3px!important;bottom:-4px!important;display:flex!important;align-items:center!important;justify-content:center!important;width:12px!important;height:12px!important;border:1px solid #7d6342!important;border-radius:50%!important;background:#f7f5f0!important;color:#6a5034!important;font-size:8px!important;line-height:1!important}
 
         body.qol-toolbar-collapsed #qol-help-toggle-btn,
-        body.qol-toolbar-collapsed #qol-village-dashboard-toggle-btn,
         body.qol-toolbar-collapsed #qol-rally-point-toggle-btn,
         body.qol-toolbar-collapsed #qol-watchlist-toggle,
         body.qol-toolbar-collapsed #qol-checklist-toggle-btn,

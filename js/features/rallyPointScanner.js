@@ -1292,52 +1292,44 @@ function initUnifiedRallyPointScanner() {
         return selectedTypes;
     }
 
-    async function scanOutgoings(view, options = {}) {
+    async function scanOutgoings(view) {
         if (outgoingScanning) {
-            if (options.external) throw new Error('The outgoing Rally Point scanner is already running.');
-            return null;
+            return;
         }
 
-        const external = options.external === true;
-        const onProgress = typeof options.onProgress === 'function'
-            ? options.onProgress
-            : () => {};
-        const selectedTypes = external
-            ? {
-                attack: true,
-                siege: true,
-                reinforcement: true,
-                merchant: true,
-                ...(options.selectedTypes || {})
-            }
-            : updateOutgoingPicker(view);
+        const selectedTypes =
+            updateOutgoingPicker(view);
+
         if (!Object.values(selectedTypes).some(Boolean)) {
-            if (external) throw new Error('Select at least one outgoing movement type.');
             setOutgoingStatus(
                 view,
                 'Select at least one outgoing movement type.',
                 'error'
             );
-            return null;
+            return;
         }
 
         outgoingScanning = true;
         outgoingResults = [];
 
-        const scanButton = view?.querySelector(
+        const scanButton = view.querySelector(
             '#qol-outgoing-scan'
         );
 
-        if (!external) {
-            scanButton.textContent = 'Opening Rally Point...';
-            scanButton.classList.add('qol-action-disabled');
-            setOutgoingStatus(view, 'Opening Outgoing Rally Point...', 'working');
-            showScanLock({
-                title: 'Scanning Outgoings...',
-                message: 'Opening outgoing Rally Point page 1...'
-            });
-        }
-        onProgress('Opening outgoing Rally Point page 1...');
+        scanButton.textContent =
+            'Opening Rally Point...';
+        scanButton.classList.add(
+            'qol-action-disabled'
+        );
+        setOutgoingStatus(
+            view,
+            'Opening Outgoing Rally Point...',
+            'working'
+        );
+        showScanLock({
+            title: 'Scanning Outgoings...',
+            message: 'Opening outgoing Rally Point page 1...'
+        });
 
         try {
             window.location.hash = buildOutgoingHash(1);
@@ -1359,8 +1351,9 @@ function initUnifiedRallyPointScanner() {
             );
 
             if (firstButton) {
-                if (!external) updateScanLock('Returning to the first outgoing page...');
-                onProgress('Returning to the first outgoing page...');
+                updateScanLock(
+                    'Returning to the first outgoing page...'
+                );
                 triggerOutgoingPagination(firstButton);
                 await new Promise(resolve => {
                     window.setTimeout(resolve, 800);
@@ -1377,11 +1370,14 @@ function initUnifiedRallyPointScanner() {
                 outgoingScanning &&
                 isEnabled()
             ) {
-                if (!external) {
-                    updateScanLock(`Scanning outgoing page ${page}...`);
-                    setOutgoingStatus(view, `Scanning page ${page}...`, 'working');
-                }
-                onProgress(`Scanning outgoing page ${page}...`);
+                updateScanLock(
+                    `Scanning outgoing page ${page}...`
+                );
+                setOutgoingStatus(
+                    view,
+                    `Scanning page ${page}...`,
+                    'working'
+                );
 
                 container = getOutgoingContainer();
 
@@ -1491,36 +1487,36 @@ function initUnifiedRallyPointScanner() {
                 page = renderedPage;
             }
 
-            if (!external) {
-                renderOutgoingResults(view);
-                setOutgoingStatus(
-                    view,
-                    outgoingResults.length > 0
-                        ? `Scan complete. Found ${outgoingResults.length} outgoing movements.`
-                        : 'Scan complete. No matching outgoings found.',
-                    'success'
-                );
-            }
-            return outgoingResults.map(movement => ({ ...movement }));
+            renderOutgoingResults(view);
+            setOutgoingStatus(
+                view,
+                outgoingResults.length > 0
+                    ? `Scan complete. Found ${outgoingResults.length} outgoing movements.`
+                    : 'Scan complete. No matching outgoings found.',
+                'success'
+            );
         } catch (error) {
             console.error(
                 '[RallyPointScanner] Outgoing scan failed:',
                 error
             );
-            if (external) throw error;
             renderOutgoingResults(view);
-            setOutgoingStatus(view, 'The outgoing scan stopped unexpectedly.', 'error');
-            return null;
+            setOutgoingStatus(
+                view,
+                'The outgoing scan stopped unexpectedly.',
+                'error'
+            );
         } finally {
             outgoingScanning = false;
-            if (!external) {
-                hideScanLock();
-                scanButton.textContent = outgoingResults.length > 0
+            hideScanLock();
+            scanButton.textContent =
+                outgoingResults.length > 0
                     ? 'Scan Again'
                     : 'Scan Outgoings';
-                scanButton.classList.remove('qol-action-disabled');
-                updateOutgoingPicker(view);
-            }
+            scanButton.classList.remove(
+                'qol-action-disabled'
+            );
+            updateOutgoingPicker(view);
         }
     }
 
@@ -2506,20 +2502,6 @@ function initUnifiedRallyPointScanner() {
             window.qolRepositionAllButtons();
         }
     }
-
-    window.APES?.scanners?.register({
-        id: 'rally.outgoings',
-        label: 'Outgoing Movements',
-        description: 'Scans all outgoing Rally Point pages and movement types.',
-        scope: 'village',
-        modes: ['full'],
-        enabled: isEnabled,
-        scan: context => scanOutgoings(null, {
-            external: true,
-            onProgress: context?.onProgress,
-            selectedTypes: context?.selectedTypes
-        })
-    });
 
     window.addEventListener(
         'qol_close_others',

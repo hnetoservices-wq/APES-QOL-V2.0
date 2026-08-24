@@ -1776,48 +1776,6 @@ function initRallyPointEnhancer() {
         onComplete();
     }
 
-    function buildDashboardIncomingHash() {
-        const villageMatch = String(window.location.hash || '')
-            .match(/(?:^|\/)villId:([^/]+)/i);
-        const villagePart = villageMatch ? `villId:${villageMatch[1]}/` : '';
-        return `#/page:village/${villagePart}location:32/window:building/cp:1/subtab:Incoming`;
-    }
-
-    async function scanIncomingsForDashboard(context = {}) {
-        if (isScanning) throw new Error('The incoming Rally Point scanner is already running.');
-
-        const onProgress = typeof context.onProgress === 'function'
-            ? context.onProgress
-            : () => {};
-        const progressTarget = {};
-        Object.defineProperty(progressTarget, 'textContent', {
-            set(value) { onProgress(String(value || 'Scanning incoming movements...')); }
-        });
-
-        isScanning = true;
-        compiledWaves = [];
-        activeMovementTypes = {
-            attack: true,
-            siege: true,
-            raid: true,
-            reinforcement: true
-        };
-
-        try {
-            onProgress('Opening incoming Rally Point page 1...');
-            window.location.hash = buildDashboardIncomingHash();
-            if (!await awaitRallyPointRender(10000)) {
-                throw new Error('The incoming Rally Point did not render.');
-            }
-
-            await collectAllPages(progressTarget, () => {});
-            return compiledWaves.map(movement => ({ ...movement }));
-        } finally {
-            isScanning = false;
-            activeMovementTypes = null;
-        }
-    }
-
     function renderScrollableUI(container) {
         if (!container) {
             return;
@@ -2648,16 +2606,6 @@ function initRallyPointEnhancer() {
             window.qolRepositionAllButtons();
         }
     }
-
-    window.APES?.scanners?.register({
-        id: 'rally.incomings',
-        label: 'Incoming Movements',
-        description: 'Scans all incoming Rally Point pages and movement types.',
-        scope: 'village',
-        modes: ['full'],
-        enabled: isEnabled,
-        scan: scanIncomingsForDashboard
-    });
 
     window.addEventListener(
         'resize',
