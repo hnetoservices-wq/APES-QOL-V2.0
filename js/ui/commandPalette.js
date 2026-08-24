@@ -81,6 +81,11 @@
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 6h16v15H4zM8 3h8v5H8zM8 12h8M8 16h6"/>
             </svg>
+        `,
+        dashboard: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 20V9l8-6 8 6v11M2 20h20M8 20v-6h8v6M7 9h10"/>
+            </svg>
         `
     };
 
@@ -90,6 +95,13 @@
      * intentionally not registered.
      */
     const RADIAL_FEATURES = [
+        {
+            id: 'villageDashboard.open',
+            featureKey: 'villageDashboard',
+            label: 'Village Overview',
+            icon: ICONS.dashboard,
+            controlId: 'qol-village-dashboard-toggle-btn'
+        },
         {
             id: 'auction.open',
             featureKey: 'auctionHouseScanner',
