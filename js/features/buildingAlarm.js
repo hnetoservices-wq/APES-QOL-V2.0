@@ -445,7 +445,11 @@ function initBuildingAlarm() {
                 z-index: 1000000 !important;
                 display: none;
                 width: 600px !important;
+                height: min(390px, calc(100vh - 140px)) !important;
+                min-width: 420px !important;
+                min-height: 220px !important;
                 max-width: calc(100vw - 24px) !important;
+                max-height: calc(100vh - 16px) !important;
                 border: 2px solid #634d31 !important;
                 border-radius: 5px !important;
                 background: #f7f5f0 !important;
@@ -506,10 +510,51 @@ function initBuildingAlarm() {
             .qol-building-alarm-list {
                 display: flex !important;
                 flex-direction: column !important;
-                max-height: min(430px, calc(100vh - 190px)) !important;
+                width: 100% !important;
+                height: calc(100% - 36px) !important;
+                min-height: 0 !important;
+                max-height: none !important;
                 padding: 10px !important;
                 gap: 12px !important;
+                overscroll-behavior: contain !important;
                 overflow-y: auto !important;
+                scrollbar-color: #8a6a42 #e7ded1 !important;
+                scrollbar-width: thin !important;
+            }
+
+            .qol-building-alarm-list::-webkit-scrollbar {
+                width: 8px !important;
+            }
+
+            .qol-building-alarm-list::-webkit-scrollbar-track {
+                background: #e7ded1 !important;
+            }
+
+            .qol-building-alarm-list::-webkit-scrollbar-thumb {
+                border: 2px solid #e7ded1 !important;
+                border-radius: 5px !important;
+                background: #8a6a42 !important;
+            }
+
+            .qol-building-alarm-resize-handle {
+                position: absolute !important;
+                z-index: 5 !important;
+                right: 1px !important;
+                bottom: 1px !important;
+                width: 18px !important;
+                height: 18px !important;
+                border-radius: 0 0 3px 0 !important;
+                background:
+                    linear-gradient(
+                        135deg,
+                        transparent 0 48%,
+                        #9a7a50 49% 56%,
+                        transparent 57% 66%,
+                        #6f5332 67% 74%,
+                        transparent 75%
+                    ) !important;
+                cursor: nwse-resize !important;
+                touch-action: none !important;
             }
 
             .qol-building-alarm-section {
@@ -737,7 +782,8 @@ function initBuildingAlarm() {
                 #${PANEL_ID} {
                     right: 8px !important;
                     width: calc(100vw - 16px) !important;
-                    max-width: none !important;
+                    min-width: 280px !important;
+                    max-width: calc(100vw - 16px) !important;
                 }
 
                 .qol-building-alarm-columns {
@@ -857,6 +903,144 @@ function initBuildingAlarm() {
         );
     }
 
+    function makePanelResizable(panel, handle) {
+        if (!handle ||
+            handle.dataset.qolResizeBound === 'true') {
+            return;
+        }
+
+        handle.dataset.qolResizeBound = 'true';
+        handle.addEventListener(
+            'pointerdown',
+            event => {
+                if (event.button !== 0) {
+                    return;
+                }
+
+                event.preventDefault();
+                event.stopPropagation();
+
+                const rectangle =
+                    panel.getBoundingClientRect();
+                const startX = event.clientX;
+                const startY = event.clientY;
+                const startWidth = rectangle.width;
+                const startHeight = rectangle.height;
+
+                panel.style.setProperty(
+                    'left',
+                    `${rectangle.left}px`,
+                    'important'
+                );
+                panel.style.setProperty(
+                    'right',
+                    'auto',
+                    'important'
+                );
+                panel.style.setProperty(
+                    'width',
+                    `${startWidth}px`,
+                    'important'
+                );
+                panel.style.setProperty(
+                    'height',
+                    `${startHeight}px`,
+                    'important'
+                );
+
+                const move = moveEvent => {
+                    moveEvent.preventDefault();
+
+                    const preferredMinimumWidth =
+                        window.innerWidth <= 540
+                            ? 280
+                            : 420;
+                    const minimumWidth = Math.min(
+                        preferredMinimumWidth,
+                        window.innerWidth - 16
+                    );
+                    const maximumWidth = Math.max(
+                        minimumWidth,
+                        window.innerWidth -
+                            rectangle.left - 8
+                    );
+                    const minimumHeight = Math.min(
+                        220,
+                        window.innerHeight - 16
+                    );
+                    const maximumHeight = Math.max(
+                        minimumHeight,
+                        window.innerHeight -
+                            rectangle.top - 8
+                    );
+                    const width = Math.max(
+                        minimumWidth,
+                        Math.min(
+                            startWidth +
+                                moveEvent.clientX -
+                                startX,
+                            maximumWidth
+                        )
+                    );
+                    const height = Math.max(
+                        minimumHeight,
+                        Math.min(
+                            startHeight +
+                                moveEvent.clientY -
+                                startY,
+                            maximumHeight
+                        )
+                    );
+
+                    panel.style.setProperty(
+                        'width',
+                        `${width}px`,
+                        'important'
+                    );
+                    panel.style.setProperty(
+                        'height',
+                        `${height}px`,
+                        'important'
+                    );
+                };
+
+                const stop = () => {
+                    window.removeEventListener(
+                        'pointermove',
+                        move,
+                        true
+                    );
+                    window.removeEventListener(
+                        'pointerup',
+                        stop,
+                        true
+                    );
+                    window.removeEventListener(
+                        'pointercancel',
+                        stop,
+                        true
+                    );
+                };
+
+                window.addEventListener(
+                    'pointermove',
+                    move,
+                    true
+                );
+                window.addEventListener(
+                    'pointerup',
+                    stop,
+                    true
+                );
+                window.addEventListener(
+                    'pointercancel',
+                    stop,
+                    true
+                );
+            }
+        );
+    }
+
     function mountPanel() {
         let panel = document.getElementById(PANEL_ID);
 
@@ -875,6 +1059,7 @@ function initBuildingAlarm() {
                 <span class="qol-building-alarm-close" role="button" tabindex="0" aria-label="Close Building Alarms">&times;</span>
             </div>
             <div class="qol-building-alarm-list"></div>
+            <div class="qol-building-alarm-resize-handle" aria-hidden="true" title="Resize Building Alarms"></div>
         `;
         document.body.appendChild(panel);
 
@@ -884,8 +1069,12 @@ function initBuildingAlarm() {
         const header = panel.querySelector(
             '.qol-building-alarm-header'
         );
+        const resizeHandle = panel.querySelector(
+            '.qol-building-alarm-resize-handle'
+        );
 
         makePanelDraggable(panel, header);
+        makePanelResizable(panel, resizeHandle);
 
         const closePanel = () => {
             panel.style.setProperty(
