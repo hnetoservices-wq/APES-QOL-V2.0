@@ -141,7 +141,8 @@ const KEYBINDS = [
     { keys: ['R'], label: 'Send Troops to Hovered Tile', fixed: true },
     { keys: ['C'], label: 'Open Chat Window', id: 'qol-chk-convos', key: 'keybind_conversations' },
     { keys: ['F'], label: 'Reports', id: 'qol-chk-reports', key: 'keybind_reports' },
-    { keys: ['V'], label: 'Villages Overview', id: 'qol-chk-overview', key: 'keybind_villagesOverview' }
+    { keys: ['V'], label: 'Villages Overview', id: 'qol-chk-overview', key: 'keybind_villagesOverview' },
+    { keys: ['G'], label: 'Command Palette', id: 'qol-chk-command-palette', key: 'keybind_commandPalette' }
 ];
 
 const TOOLBAR_ITEMS = [
