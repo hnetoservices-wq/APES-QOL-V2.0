@@ -1,6 +1,10 @@
 /**
- * APES QoL — Secret Society Scanner
- * Collects the paginated Secret Society member list into one local APES view.
+ * APES QoL — Secret Society Scanner & Manager
+ *
+ * - Scans every page of the active Secret Society member table.
+ * - Stores independent lists for each society on each game server.
+ * - Lets users classify members as Off, Def and/or OP.
+ * - Sends one message at a time through Travian's native IGM composer.
  */
 (() => {
     'use strict';
@@ -9,38 +13,64 @@
     const STORAGE_KEY = 'apes_secret_society_scans_v1';
     const BUTTON_ID = 'qol-ss-scanner-toggle-btn';
     const PANEL_ID = 'qol-ss-scanner-panel';
+    const NATIVE_ACTION_ID = 'qol-ss-native-actions';
     const NATIVE_SCAN_ID = 'qol-ss-native-scan';
     const DIALOG_ID = 'qol-ss-dialog';
+    const LOCK_ID = 'qol-ss-interaction-lock';
+    const STYLE_ID = 'qol-ss-scanner-styles';
+    const COMPOSER_ID = 'igmSystemNewConversation';
     const MAX_PAGES = 100;
+    const PAGE_TIMEOUT = 9000;
+    const COMPOSER_TIMEOUT = 11000;
+    const MESSAGE_GAP = 850;
+    const ROLE_KEYS = ['off', 'def', 'op'];
+
     let scanInProgress = false;
+    let messageInProgress = false;
+    let cancelMessageRun = false;
     let memberSort = { key: 'rank', direction: 'asc' };
     let observer = null;
+    let nativeScanRefreshQueued = false;
+    const composerDrafts = new Map();
 
     function enabled() {
-        return typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE_KEY);
+        return typeof window.isQolEnabled !== 'function' ||
+            window.isQolEnabled(FEATURE_KEY) === true;
+    }
+
+    function delay(milliseconds) {
+        return new Promise(resolve => window.setTimeout(resolve, milliseconds));
+    }
+
+    function waitUntil(predicate, timeout, interval = 100) {
+        return new Promise(resolve => {
+            const startedAt = Date.now();
+            const timer = window.setInterval(() => {
+                let result = null;
+                try {
+                    result = predicate();
+                } catch (_) {
+                    result = null;
+                }
+
+                if (result || Date.now() - startedAt >= timeout) {
+                    window.clearInterval(timer);
+                    resolve(result || null);
+                }
+            }, interval);
+        });
     }
 
     function serverKey() {
         return location.hostname.replace(/[^a-z0-9]+/gi, '_').toLowerCase();
     }
 
-    function loadScans() {
-        try {
-            const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-            return Array.isArray(all[serverKey()]) ? all[serverKey()] : [];
-        } catch (_) {
-            return [];
-        }
+    function cleanText(value) {
+        return String(value || '').replace(/\s+/g, ' ').trim();
     }
 
-    function saveScans(scans) {
-        try {
-            const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
-            all[serverKey()] = scans;
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
-        } catch (_) {
-            // The scanner remains usable for the current page if storage is unavailable.
-        }
+    function normalizedText(value) {
+        return cleanText(value).toLocaleLowerCase();
     }
 
     function escapeHtml(value) {
@@ -52,161 +82,266 @@
             .replace(/'/g, '&#039;');
     }
 
-    function cleanText(value) {
-        return String(value || '').replace(/\s+/g, ' ').trim();
+    function memberKey(member) {
+        return String(member?.playerId || normalizedText(member?.name));
+    }
+
+    function normalizeMember(member) {
+        return {
+            rank: cleanText(member?.rank),
+            name: cleanText(member?.name),
+            playerId: cleanText(member?.playerId),
+            villages: cleanText(member?.villages),
+            population: cleanText(member?.population),
+            resourcesSent: cleanText(member?.resourcesSent),
+            troopsLostInDefense: cleanText(member?.troopsLostInDefense),
+            troopsCurrentlyProvided: cleanText(member?.troopsCurrentlyProvided),
+            off: Boolean(member?.off),
+            def: Boolean(member?.def),
+            op: Boolean(member?.op)
+        };
+    }
+
+    function loadScans() {
+        try {
+            const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            const scans = Array.isArray(all[serverKey()]) ? all[serverKey()] : [];
+            return scans.map(scan => ({
+                ...scan,
+                members: Array.isArray(scan.members)
+                    ? scan.members.map(normalizeMember).filter(member => member.name)
+                    : []
+            }));
+        } catch (_) {
+            return [];
+        }
+    }
+
+    function saveScans(scans) {
+        try {
+            const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+            all[serverKey()] = scans;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+        } catch (error) {
+            console.warn('[APES Secret Society] Storage write failed:', error);
+        }
     }
 
     function injectStyles() {
-        if (document.getElementById('qol-ss-scanner-styles')) return;
+        if (document.getElementById(STYLE_ID)) return;
+
         const style = document.createElement('style');
-        style.id = 'qol-ss-scanner-styles';
-        style.textContent = [
-            '#' + BUTTON_ID + '{position:fixed!important;display:none;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;margin:0!important;padding:0!important;box-sizing:border-box!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;box-shadow:0 2px 4px rgba(0,0,0,.2)!important;cursor:pointer!important;user-select:none!important;transition:transform .2s ease,background-color .2s ease!important}',
-            '#' + BUTTON_ID + ':hover{transform:scale(1.1)!important;background:#f7f5f0!important}',
-            '#' + BUTTON_ID + ' svg{width:16px!important;height:16px!important;fill:none!important;stroke:var(--qol-accent)!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important;pointer-events:none!important}',
-            '#' + PANEL_ID + '{position:fixed!important;right:18px!important;top:76px!important;z-index:1000002!important;display:none!important;width:680px!important;max-width:calc(100vw - 36px)!important;max-height:calc(100vh - 100px)!important;overflow:hidden!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;box-shadow:0 16px 42px rgba(0,0,0,.5)!important;color:#432f1d!important;font-family:Arial,Helvetica,sans-serif!important}',
-            '#' + PANEL_ID + '.qol-ss-open{display:flex!important;flex-direction:column!important}',
-            '#' + PANEL_ID + ' *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}',
-            '.qol-ss-head{display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:43px!important;padding:0 12px!important;background:linear-gradient(var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important;font-size:14px!important;font-weight:700!important}',
-            '.qol-ss-close{width:24px!important;height:24px!important;display:flex!important;align-items:center!important;justify-content:center!important;border-radius:4px!important;background:rgba(0,0,0,.2)!important;cursor:pointer!important;font-size:19px!important}',
-            '.qol-ss-body{padding:12px!important;overflow:auto!important}',
-            '.qol-ss-tabs{display:flex!important;gap:5px!important;overflow-x:auto!important;margin:0 0 10px!important;padding-bottom:2px!important}',
-            '.qol-ss-tab,.qol-ss-action{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:28px!important;padding:5px 10px!important;border:1px solid #a9906d!important;border-radius:4px!important;background:linear-gradient(#fffaf0,#e8d6b6)!important;color:#4d351d!important;font-size:10px!important;font-weight:700!important;cursor:pointer!important;white-space:nowrap!important}',
-            '.qol-ss-tab.qol-active,.qol-ss-action{border-color:#564021!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;color:#fff8e9!important}',
-            '.qol-ss-toolbar{display:flex!important;align-items:center!important;gap:7px!important;margin-bottom:9px!important}',
-            '.qol-ss-search{flex:1!important;min-width:0!important;height:29px!important;padding:5px 8px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#422f1e!important;font-size:11px!important}',
-            '.qol-ss-summary{margin:0 0 8px!important;color:#735a3b!important;font-size:10px!important}',
-            '.qol-ss-empty{padding:28px 16px!important;border:1px dashed #c8b490!important;border-radius:5px!important;background:#fffaf0!important;color:#6e573b!important;text-align:center!important;font-size:12px!important;line-height:1.45!important}',
-            '.qol-ss-table-wrap{border:1px solid #cdbb9d!important;border-radius:4px!important;overflow:auto!important;background:#fff!important}',
-            '.qol-ss-table{width:100%!important;border-collapse:collapse!important;font-size:10px!important}',
-            '.qol-ss-table th{position:sticky!important;top:0!important;padding:7px 6px!important;background:#e5d4b8!important;color:#533b22!important;text-align:left!important;font-size:9px!important;text-transform:uppercase!important;z-index:1!important}',
-            '.qol-ss-sort{cursor:pointer!important;user-select:none!important}.qol-ss-sort:hover{background:#d7c29d!important}.qol-ss-sort::after{content:""!important;margin-left:4px!important}.qol-ss-sort.qol-sort-asc::after{content:"▲"!important}.qol-ss-sort.qol-sort-desc::after{content:"▼"!important}',
-            '#' + DIALOG_ID + '{position:fixed!important;inset:0!important;z-index:1000005!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(20,16,11,.56)!important}',
-            '.qol-ss-dialog-card{width:390px!important;max-width:calc(100vw - 36px)!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;box-shadow:0 16px 42px rgba(0,0,0,.5)!important;color:#432f1d!important;font-family:Arial,Helvetica,sans-serif!important}',
-            '.qol-ss-dialog-title{padding:12px!important;background:linear-gradient(var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important;font-weight:700!important;font-size:14px!important}',
-            '.qol-ss-dialog-message{padding:16px 14px!important;font-size:12px!important;line-height:1.45!important}',
-            '.qol-ss-dialog-actions{display:flex!important;justify-content:flex-end!important;padding:0 14px 14px!important}',
-            '.qol-ss-table td{padding:7px 6px!important;border-top:1px solid #eadfce!important;color:#4d3824!important;white-space:nowrap!important}',
-            '.qol-ss-table tr:hover td{background:#fff8e7!important}',
-            '.qol-ss-native-scan{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:25px!important;margin:7px 0!important;padding:4px 10px!important;border:1px solid #725634!important;border-radius:4px!important;background:linear-gradient(#f7efd9,#d9c59e)!important;color:var(--qol-accent-dark)!important;font:700 10px Arial,sans-serif!important;cursor:pointer!important}',
-            '.qol-ss-native-scan.qol-ss-working{opacity:.65!important;cursor:wait!important}'
-        ].join('');
+        style.id = STYLE_ID;
+        style.textContent = `
+            #${BUTTON_ID}{position:fixed!important;display:none;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;margin:0!important;padding:0!important;box-sizing:border-box!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;box-shadow:0 2px 4px rgba(0,0,0,.2)!important;cursor:pointer!important;user-select:none!important;transition:transform .2s ease,background-color .2s ease!important;z-index:9999!important}
+            #${BUTTON_ID}:hover{transform:scale(1.08)!important;background:#f7f5f0!important}
+            #${BUTTON_ID} svg{width:17px!important;height:17px!important;fill:none!important;stroke:var(--qol-accent)!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important;pointer-events:none!important}
+
+            #${PANEL_ID},#${PANEL_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
+            #${PANEL_ID}{position:fixed!important;right:18px!important;top:76px!important;z-index:1000002!important;display:none;flex-direction:column!important;width:min(1080px,calc(100vw - 36px))!important;min-width:min(720px,calc(100vw - 20px))!important;height:min(610px,calc(100vh - 100px))!important;min-height:360px!important;max-width:calc(100vw - 16px)!important;max-height:calc(100vh - 16px)!important;overflow:hidden!important;resize:both!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;box-shadow:0 16px 42px rgba(0,0,0,.5)!important;color:#432f1d!important}
+            #${PANEL_ID}.qol-ss-open{display:flex!important}
+            #${PANEL_ID} .qol-ss-head{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:39px!important;padding:0 10px 0 12px!important;background:linear-gradient(var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important;font-size:13px!important;font-weight:700!important;cursor:move!important;user-select:none!important;touch-action:none!important}
+            #${PANEL_ID} .qol-ss-close{display:flex!important;align-items:center!important;justify-content:center!important;width:24px!important;height:24px!important;border-radius:4px!important;background:rgba(0,0,0,.2)!important;color:#fff!important;cursor:pointer!important;font-size:19px!important;line-height:1!important}
+            #${PANEL_ID} .qol-ss-body{display:flex!important;flex:1 1 auto!important;min-height:0!important;flex-direction:column!important;gap:8px!important;padding:10px!important;overflow:hidden!important}
+            #${PANEL_ID} .qol-ss-tabs{display:flex!important;flex:0 0 auto!important;gap:5px!important;overflow-x:auto!important;padding-bottom:2px!important}
+            #${PANEL_ID} .qol-ss-tab,#${PANEL_ID} .qol-ss-action,#${DIALOG_ID} .qol-ss-action,#${DIALOG_ID} .qol-ss-tab{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:27px!important;padding:5px 10px!important;border:1px solid #a9906d!important;border-radius:4px!important;background:linear-gradient(#fffaf0,#e8d6b6)!important;color:#4d351d!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important;white-space:nowrap!important;user-select:none!important}
+            #${PANEL_ID} .qol-ss-tab.qol-active,#${PANEL_ID} .qol-ss-action,#${DIALOG_ID} .qol-ss-action{border-color:var(--qol-action-border)!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;color:#fff8e9!important}
+            #${PANEL_ID} [aria-disabled="true"]{opacity:.5!important;cursor:not-allowed!important;pointer-events:none!important}
+
+            #${PANEL_ID} .qol-ss-composer{display:grid!important;grid-template-columns:minmax(0,1fr) 170px!important;gap:8px!important;flex:0 0 auto!important;padding:9px!important;border:1px solid #cdbb9d!important;border-radius:5px!important;background:#fffaf0!important}
+            #${PANEL_ID} .qol-ss-composer-copy{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
+            #${PANEL_ID} .qol-ss-composer-label{color:var(--qol-accent-deep)!important;font-size:9px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.3px!important}
+            #${PANEL_ID} .qol-ss-message{display:block!important;width:100%!important;height:68px!important;min-height:54px!important;max-height:130px!important;padding:7px 8px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#332719!important;resize:vertical!important;font-size:10px!important;line-height:1.4!important;outline:none!important;appearance:auto!important;-webkit-appearance:auto!important}
+            #${PANEL_ID} .qol-ss-message:focus,#${PANEL_ID} .qol-ss-recipient-select:focus,#${PANEL_ID} .qol-ss-search:focus{border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
+            #${PANEL_ID} .qol-ss-composer-actions{display:flex!important;flex-direction:column!important;justify-content:flex-end!important;gap:5px!important;min-width:0!important}
+            #${PANEL_ID} .qol-ss-recipient-select{display:block!important;width:100%!important;height:28px!important;padding:3px 6px!important;border:1px solid #a99473!important;border-radius:4px!important;background:#fff!important;color:#432f1d!important;font-size:10px!important;appearance:auto!important;-webkit-appearance:auto!important}
+            #${PANEL_ID} .qol-ss-recipient-count{min-height:14px!important;color:#735a3b!important;font-size:8.5px!important;line-height:1.3!important}
+            #${PANEL_ID} .qol-ss-send{width:100%!important}
+
+            #${PANEL_ID} .qol-ss-toolbar{display:flex!important;align-items:center!important;gap:6px!important;flex:0 0 auto!important}
+            #${PANEL_ID} .qol-ss-search{flex:1!important;min-width:120px!important;height:27px!important;padding:4px 7px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#422f1e!important;font-size:10px!important;appearance:auto!important;-webkit-appearance:auto!important}
+            #${PANEL_ID} .qol-ss-summary{flex:0 0 auto!important;margin:0!important;color:#735a3b!important;font-size:9px!important}
+            #${PANEL_ID} .qol-ss-empty{padding:30px 16px!important;border:1px dashed #c8b490!important;border-radius:5px!important;background:#fffaf0!important;color:#6e573b!important;text-align:center!important;font-size:11px!important;line-height:1.5!important}
+            #${PANEL_ID} .qol-ss-table-wrap{flex:1 1 auto!important;min-height:0!important;border:1px solid #cdbb9d!important;border-radius:4px!important;overflow:auto!important;background:#fff!important;scrollbar-color:var(--qol-scroll-thumb) #e7ded1!important;scrollbar-width:thin!important}
+            #${PANEL_ID} .qol-ss-table{width:100%!important;min-width:970px!important;border-collapse:collapse!important;table-layout:auto!important;font-size:9.5px!important}
+            #${PANEL_ID} .qol-ss-table th{position:sticky!important;top:0!important;z-index:2!important;padding:7px 5px!important;border-bottom:1px solid #cbbd9f!important;background:#e5d4b8!important;color:#533b22!important;text-align:left!important;font-size:8.5px!important;text-transform:uppercase!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-ss-table th.qol-ss-role-column,#${PANEL_ID} .qol-ss-table td.qol-ss-role-column{text-align:center!important;width:40px!important}
+            #${PANEL_ID} .qol-ss-table td{padding:6px 5px!important;border-top:1px solid #eadfce!important;color:#4d3824!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-ss-table tr:hover td{background:#fff8e7!important}
+            #${PANEL_ID} .qol-ss-sort{cursor:pointer!important;user-select:none!important}
+            #${PANEL_ID} .qol-ss-sort:hover{background:#d7c29d!important}
+            #${PANEL_ID} .qol-ss-sort::after{content:""!important;margin-left:3px!important}
+            #${PANEL_ID} .qol-ss-sort.qol-sort-asc::after{content:"▲"!important}
+            #${PANEL_ID} .qol-ss-sort.qol-sort-desc::after{content:"▼"!important}
+            #${PANEL_ID} .qol-ss-role-check{position:relative!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:17px!important;height:17px!important;margin:0 auto!important;border:1px solid #8e7656!important;border-radius:3px!important;background:#fff!important;color:#fff!important;cursor:pointer!important;user-select:none!important;outline:none!important}
+            #${PANEL_ID} .qol-ss-role-check:hover,#${PANEL_ID} .qol-ss-role-check:focus-visible{border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
+            #${PANEL_ID} .qol-ss-role-check[aria-checked="true"]{border-color:#46651f!important;background:#648b2c!important}
+            #${PANEL_ID} .qol-ss-role-check[aria-checked="true"]::after{content:"✓"!important;font-size:12px!important;font-weight:700!important;line-height:1!important}
+
+            #${NATIVE_ACTION_ID}{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:7px!important;margin:8px 0!important;padding:6px 8px!important;border:1px solid #cdbb9d!important;border-radius:4px!important;background:#f4ecde!important;font-family:Arial,Helvetica,sans-serif!important}
+            #${NATIVE_ACTION_ID} .qol-ss-native-label{margin-right:auto!important;color:#6e573b!important;font-size:9px!important;font-weight:700!important;text-transform:uppercase!important}
+            #${NATIVE_SCAN_ID}{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:27px!important;padding:5px 12px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;font:700 10px Arial,sans-serif!important;cursor:pointer!important;user-select:none!important}
+            #${NATIVE_SCAN_ID}.qol-ss-working{opacity:.65!important;cursor:wait!important;pointer-events:none!important}
+
+            #${DIALOG_ID}{position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:20px!important;background:rgba(20,16,11,.62)!important}
+            #${DIALOG_ID},#${DIALOG_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
+            #${DIALOG_ID} .qol-ss-dialog-card{width:min(430px,calc(100vw - 36px))!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;box-shadow:0 16px 42px rgba(0,0,0,.5)!important;color:#432f1d!important;overflow:hidden!important}
+            #${DIALOG_ID} .qol-ss-dialog-title{padding:11px 13px!important;background:linear-gradient(var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important;font-weight:700!important;font-size:13px!important}
+            #${DIALOG_ID} .qol-ss-dialog-message{padding:15px 14px!important;font-size:11px!important;line-height:1.5!important;white-space:pre-line!important}
+            #${DIALOG_ID} .qol-ss-dialog-actions{display:flex!important;justify-content:flex-end!important;gap:7px!important;padding:0 14px 14px!important}
+
+            #${LOCK_ID}{position:fixed!important;inset:0!important;z-index:2147483646!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:22px!important;background:rgba(0,0,0,.72)!important;color:#fff!important;font-family:Arial,Helvetica,sans-serif!important;text-align:center!important;cursor:wait!important;user-select:none!important;pointer-events:auto!important;touch-action:none!important}
+            #${LOCK_ID} .qol-ss-lock-card{display:flex!important;flex-direction:column!important;align-items:center!important;gap:7px!important;min-width:min(360px,82vw)!important;max-width:560px!important;padding:18px 22px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:7px!important;background:rgba(30,24,17,.88)!important;box-shadow:0 12px 32px rgba(0,0,0,.42)!important}
+            #${LOCK_ID} .qol-ss-lock-title{font-size:14px!important;font-weight:700!important}
+            #${LOCK_ID} .qol-ss-lock-status{color:#ddd!important;font-size:10px!important;font-weight:400!important;line-height:1.45!important}
+            #${LOCK_ID} .qol-ss-lock-stop{display:none!important;margin-top:5px!important;min-height:26px!important;padding:5px 12px!important;border:1px solid #b8a383!important;border-radius:4px!important;background:#f7f5f0!important;color:#4d351d!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important}
+            #${LOCK_ID}.qol-ss-cancellable .qol-ss-lock-stop{display:inline-flex!important;align-items:center!important;justify-content:center!important}
+
+            @media(max-width:820px){#${PANEL_ID}{min-width:calc(100vw - 20px)!important;right:10px!important}#${PANEL_ID} .qol-ss-composer{grid-template-columns:1fr!important}#${PANEL_ID} .qol-ss-composer-actions{display:grid!important;grid-template-columns:minmax(0,1fr) auto!important}#${PANEL_ID} .qol-ss-recipient-count{grid-column:1 / -1!important}}
+        `;
         document.head.appendChild(style);
     }
 
-    function isSecretSocietiesTabActive() {
-        return /tab:SecretSociety/i.test(location.hash || '');
+    function isSecretSocietyTabActive() {
+        return /(?:^|\/)tab:SecretSociety(?:\/|$)/i.test(location.hash || '');
     }
 
     function getSocietyRoot() {
-        if (!isSecretSocietiesTabActive()) return null;
-        return document.querySelector('.loadedTab.tabSecretSociety.activeTab .secretSociety, .loadedTab.tabSecretSociety.currentTab .secretSociety, .secretSociety.defaultWindow, .loadedTab.tabSecretSociety.activeTab, .loadedTab.tabSecretSociety.currentTab');
-    }
+        if (!isSecretSocietyTabActive()) return null;
 
-    function getSocietyId(root) {
-        const routeMatch = String(location.hash || '').match(/(?:societyId|ssId|groupId):([0-9]+)/i);
-        if (routeMatch) return routeMatch[1];
-
-        const activeTab = root?.querySelector('dynamic-tabulation[active-tab]');
-        if (activeTab?.getAttribute('active-tab')) return activeTab.getAttribute('active-tab');
-
-        const actionText = root?.querySelector('[clickable*="societyId"]')?.getAttribute('clickable') || '';
-        return actionText.match(/societyId['"]?\s*:\s*([0-9]+)/i)?.[1] || '';
+        return document.querySelector(
+            '.loadedTab.tabSecretSociety.activeTab.currentTab .secretSociety.defaultWindow,' +
+            '.loadedTab.tabSecretSociety.activeTab .secretSociety.defaultWindow,' +
+            '.loadedTab.tabSecretSociety.currentTab .secretSociety.defaultWindow,' +
+            '.secretSociety.defaultWindow'
+        );
     }
 
     function getMembersTable(root) {
-        return root?.querySelector('table.memberList') || document.querySelector('.loadedTab.tabSecretSociety.activeTab table.memberList, .loadedTab.tabSecretSociety.currentTab table.memberList') || null;
+        return root?.querySelector('.paginated table.memberList, table.memberList') || null;
+    }
+
+    function getSocietyId(root) {
+        const routeMatch = String(location.hash || '').match(/(?:^|\/)societyId:(\d+)(?:\/|$)/i);
+        if (routeMatch) return routeMatch[1];
+
+        const activeTab = root?.querySelector('dynamic-tabulation[active-tab]');
+        const activeId = cleanText(activeTab?.getAttribute('active-tab'));
+        if (activeId) return activeId;
+
+        const kickAction = root?.querySelector('[clickable*="societyId"]')?.getAttribute('clickable') || '';
+        return kickAction.match(/societyId['"]?\s*:\s*(\d+)/i)?.[1] || '';
     }
 
     function getSocietyName(root) {
-        const activeTab = root?.querySelector('.dynamicTabulation .tab.active .content span');
-        const heading = root?.querySelector('h6.headerWithIcon');
-        return cleanText(activeTab?.textContent || heading?.childNodes?.[2]?.textContent || heading?.textContent) || 'Secret Society';
+        return cleanText(
+            root?.querySelector('dynamic-tabulation .tab.active .content span')?.textContent ||
+            root?.querySelector('h6.headerWithIcon')?.textContent
+        ) || 'Secret Society';
     }
 
     function extractMembers(root) {
         const table = getMembersTable(root);
         if (!table) return [];
+
         return Array.from(table.querySelectorAll('tbody tr')).map(row => {
-            const cells = Array.from(row.querySelectorAll('td')).map(cell => cleanText(cell.textContent));
-            const playerCell = row.querySelector('[playername],[player-name],.playerColumn,.name .playerLink');
-            const name = row.getAttribute('player-name') || playerCell?.getAttribute('player-name') || playerCell?.getAttribute('playername') || cleanText(playerCell?.textContent) || cells[1] || 'Unknown';
-            const playerId = row.getAttribute('player-id') || playerCell?.getAttribute('player-id') || playerCell?.getAttribute('playerid') || '';
-            return {
-                rank: cells[0] || '',
+            const cells = Array.from(row.querySelectorAll(':scope > td'));
+            const playerLink = row.querySelector('td.name a.playerLink[playername], a.playerLink[playername]');
+            const name = cleanText(
+                playerLink?.getAttribute('playername') ||
+                playerLink?.textContent ||
+                cells[1]?.textContent
+            );
+
+            return normalizeMember({
+                rank: cleanText(cells[0]?.textContent).replace(/\.$/, ''),
                 name,
-                playerId,
-                villages: cells[2] || '',
-                population: cells[3] || '',
-                resourcesSent: cells[4] || '',
-                troopsLostInDefense: cells[5] || '',
-                troopsCurrentlyProvided: cells[6] || '',
-                values: cells
-            };
-        }).filter(member => member.name && member.name !== 'Unknown');
+                playerId: playerLink?.getAttribute('playerid') || '',
+                villages: cells[2]?.textContent,
+                population: cells[3]?.textContent,
+                resourcesSent: cells[4]?.textContent,
+                troopsLostInDefense: cells[5]?.textContent,
+                troopsCurrentlyProvided: cells[6]?.textContent
+            });
+        }).filter(member => member.name);
     }
 
     function currentPage(root) {
-        const routePage = String(location.hash || '').match(/\/cp:(\d+)\b/i);
+        const routePage = String(location.hash || '').match(/(?:^|\/)cp:(\d+)(?:\/|$)/i);
         if (routePage) return Number(routePage[1]);
 
-        const page = root?.querySelector('.tg-pagination .number.disabled, .tg-pagination .number.active, .tg-pagination [aria-current="page"]');
+        const page = root?.querySelector(
+            '.tg-pagination .number.disabled,' +
+            '.tg-pagination .number.active,' +
+            '.tg-pagination [aria-current="page"]'
+        );
         const value = Number(cleanText(page?.textContent));
         return Number.isFinite(value) && value > 0 ? value : 1;
     }
 
     function totalPages(root) {
-        const pages = Array.from(root?.querySelectorAll('.tg-pagination .number') || [])
+        const values = Array.from(root?.querySelectorAll('.tg-pagination .number') || [])
             .map(item => Number(cleanText(item.textContent)))
             .filter(value => Number.isFinite(value) && value > 0);
-        return Math.max(1, ...pages);
+        return Math.max(1, currentPage(root), ...values);
     }
 
-    function pageRoute(page) {
-        const hash = String(location.hash || '');
-        return /\/cp:\d+\b/i.test(hash)
-            ? hash.replace(/\/cp:\d+\b/i, '/cp:' + page)
-            : hash.replace(/\/?$/, '') + '/cp:' + page;
-    }
-
-    async function openPage(page, root) {
-        if (currentPage(root) === page) return root;
-        const before = pageSignature(root);
-        const nextRoute = pageRoute(page);
-        if (location.hash !== nextRoute) location.hash = nextRoute;
-
-        const startedAt = Date.now();
-        while (Date.now() - startedAt < 5500) {
-            await new Promise(resolve => setTimeout(resolve, 100));
-            const activeRoot = getSocietyRoot();
-            if (activeRoot && getMembersTable(activeRoot) && pageSignature(activeRoot) !== before) return activeRoot;
-        }
-        return null;
+    function hasNextPage(root) {
+        return Boolean(root?.querySelector(
+            '.tg-pagination .nextPage:not(.disabled),' +
+            '.tg-pagination .next:not(.disabled)'
+        ));
     }
 
     function pageSignature(root) {
-        return extractMembers(root).map(member => member.playerId || member.name).join('|');
+        return extractMembers(root)
+            .map(member => `${memberKey(member)}:${member.rank}`)
+            .join('|');
     }
 
-    function nextButton(root) {
-        return root.querySelector('.tg-pagination .nextPage:not(.disabled)');
+    function pageRoute(page) {
+        const hash = String(location.hash || '#/');
+        if (/(?:^|\/)cp:\d+(?:\/|$)/i.test(hash)) {
+            return hash.replace(/\/cp:\d+(?=\/|$)/i, `/cp:${page}`);
+        }
+        return `${hash.replace(/\/$/, '')}/cp:${page}`;
     }
 
-    function waitForChange(root, before, timeout = 4500) {
-        return new Promise(resolve => {
-            const start = Date.now();
-            const timer = setInterval(() => {
-                if (pageSignature(root) !== before || Date.now() - start >= timeout) {
-                    clearInterval(timer);
-                    setTimeout(resolve, 130);
-                }
-            }, 90);
-        });
+    async function waitForPage(page, previousSignature = '', timeout = PAGE_TIMEOUT) {
+        const startedAt = Date.now();
+        let lastSignature = '';
+        let stableReads = 0;
+
+        while (Date.now() - startedAt < timeout) {
+            await delay(120);
+            const root = getSocietyRoot();
+            if (!root || currentPage(root) !== page || !getMembersTable(root)) continue;
+
+            const signature = pageSignature(root);
+            if (!signature) continue;
+            if (previousSignature && signature === previousSignature) continue;
+
+            if (signature === lastSignature) stableReads += 1;
+            else {
+                lastSignature = signature;
+                stableReads = 1;
+            }
+
+            if (stableReads >= 3) return root;
+        }
+
+        return null;
     }
 
-    function clickPage(root, number) {
-        const page = Array.from(root.querySelectorAll('.tg-pagination .number')).find(item => cleanText(item.textContent) === String(number) && !item.classList.contains('disabled'));
-        page?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    async function openPage(page, root) {
+        const before = pageSignature(root);
+        if (currentPage(root) === page && before) {
+            return waitForPage(page, '', 2500);
+        }
+
+        const target = pageRoute(page);
+        if (location.hash !== target) location.hash = target;
+        return waitForPage(page, before);
     }
 
     function scanButtonState(text, working) {
@@ -214,75 +349,150 @@
         if (!button) return;
         button.textContent = text;
         button.classList.toggle('qol-ss-working', Boolean(working));
+        button.setAttribute('aria-busy', String(Boolean(working)));
+    }
+
+    function showInteractionLock(title, message, { cancellable = false } = {}) {
+        hideInteractionLock();
+        const lock = document.createElement('div');
+        lock.id = LOCK_ID;
+        lock.setAttribute('role', 'status');
+        lock.setAttribute('aria-live', 'polite');
+        lock.setAttribute('aria-busy', 'true');
+        if (cancellable) lock.classList.add('qol-ss-cancellable');
+        lock.innerHTML = `
+            <div class="qol-ss-lock-card">
+                <div class="qol-ss-lock-title"></div>
+                <div class="qol-ss-lock-status"></div>
+                <div class="qol-ss-lock-stop" role="button" tabindex="0">Stop after current message</div>
+            </div>
+        `;
+        lock.querySelector('.qol-ss-lock-title').textContent = title;
+        lock.querySelector('.qol-ss-lock-status').textContent = message;
+
+        const stop = lock.querySelector('.qol-ss-lock-stop');
+        const requestStop = event => {
+            event?.preventDefault();
+            event?.stopPropagation();
+            cancelMessageRun = true;
+            stop.textContent = 'Stopping…';
+            stop.setAttribute('aria-disabled', 'true');
+            updateInteractionLock('Finishing the current message, then APES will stop.');
+        };
+        stop.addEventListener('click', requestStop);
+        stop.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') requestStop(event);
+        });
+        lock.addEventListener('wheel', event => event.preventDefault(), { passive: false });
+        lock.addEventListener('contextmenu', event => event.preventDefault());
+        document.body.appendChild(lock);
+        return lock;
+    }
+
+    function updateInteractionLock(message) {
+        const status = document.querySelector(`#${LOCK_ID} .qol-ss-lock-status`);
+        if (status) status.textContent = message;
+    }
+
+    function hideInteractionLock() {
+        document.getElementById(LOCK_ID)?.remove();
     }
 
     async function scanCurrentSociety() {
         let root = getSocietyRoot();
-        if (!root || scanInProgress) return;
+        if (scanInProgress || !root || !getMembersTable(root)) return;
+
         scanInProgress = true;
-        const lock = showUpdateLock('Preparing Secret Society scan…');
+        showInteractionLock('Scanning Secret Society…', 'Opening page 1.');
+        scanButtonState('Preparing scan…', true);
 
         try {
-            // Always start from page 1. The game exposes the page as /cp:N in the route.
             root = await openPage(1, root);
-            if (!root) throw new Error('Could not open page 1');
+            if (!root) throw new Error('Page 1 did not finish rendering.');
 
             const societyName = getSocietyName(root);
             const societyId = getSocietyId(root);
-            const expectedPages = totalPages(root);
+            const scanId = societyId || normalizedText(societyName).replace(/[^a-z0-9]+/g, '-') || 'secret-society';
+            const previous = loadScans().find(scan => scan.id === scanId);
+            const previousRoles = new Map(
+                (previous?.members || []).map(member => [memberKey(member), {
+                    off: member.off,
+                    def: member.def,
+                    op: member.op
+                }])
+            );
             const members = new Map();
+            let expectedPages = totalPages(root);
+            let reachedLastPage = false;
 
-            for (let page = 1; page <= expectedPages; page += 1) {
-                lock.textContent = 'Scanning Secret Society… page ' + page + ' of ' + expectedPages;
-                scanButtonState('Scanning page ' + page + ' of ' + expectedPages + '…', true);
-
-                if (currentPage(root) !== page) throw new Error('Expected page ' + page);
-                extractMembers(root).forEach(member => members.set(member.playerId || member.name, member));
-
-                if (page === expectedPages) break;
-                const next = nextButton(root);
-                if (!next) throw new Error('Last page was not reached');
-
-                const before = pageSignature(root);
-                next.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-                await waitForChange(root, before);
-                root = getSocietyRoot();
-                if (!root || pageSignature(root) === before || currentPage(root) !== page + 1) {
-                    throw new Error('Page ' + (page + 1) + ' did not load');
+            for (let page = 1; page <= MAX_PAGES; page += 1) {
+                if (currentPage(root) !== page) {
+                    root = await openPage(page, root);
+                    if (!root) throw new Error(`Page ${page} did not finish rendering.`);
                 }
+
+                expectedPages = Math.max(expectedPages, totalPages(root), page);
+                updateInteractionLock(`Reading page ${page} of ${expectedPages}…`);
+                scanButtonState(`Scanning page ${page} of ${expectedPages}…`, true);
+
+                const pageMembers = extractMembers(root);
+                if (!pageMembers.length) throw new Error(`No members were found on page ${page}.`);
+                pageMembers.forEach(member => members.set(memberKey(member), member));
+
+                const nextAvailable = hasNextPage(root);
+                if (page >= expectedPages && !nextAvailable) {
+                    reachedLastPage = true;
+                    break;
+                }
+                if (page >= expectedPages && nextAvailable) expectedPages = page + 1;
+
+                const nextRoot = await openPage(page + 1, root);
+                if (!nextRoot) throw new Error(`Page ${page + 1} did not finish rendering.`);
+                root = nextRoot;
             }
 
-            if (currentPage(root) !== expectedPages) throw new Error('Scan stopped before the final page');
+            if (!reachedLastPage) throw new Error('The scan reached its page safety limit.');
+
+            const scannedMembers = Array.from(members.values()).map(member => ({
+                ...member,
+                ...(previousRoles.get(memberKey(member)) || { off: false, def: false, op: false })
+            })).sort((left, right) => {
+                return (numericValue(left.rank) ?? Number.MAX_SAFE_INTEGER) -
+                    (numericValue(right.rank) ?? Number.MAX_SAFE_INTEGER);
+            });
 
             const scan = {
-                id: societyId || societyName.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'secret-society',
+                id: scanId,
                 societyId,
                 route: pageRoute(1),
                 name: societyName,
                 scannedAt: Date.now(),
-                members: Array.from(members.values()).sort((a, b) => Number.parseInt(a.rank, 10) - Number.parseInt(b.rank, 10))
+                members: scannedMembers
             };
             const scans = loadScans();
             const index = scans.findIndex(item => item.id === scan.id);
             if (index >= 0) scans[index] = scan;
             else scans.push(scan);
             saveScans(scans);
-            renderPanel(scan.id);
-            scanButtonState('Scan complete · ' + scan.members.length + ' members', false);
-            lock.textContent = 'Scan complete · ' + scan.members.length + ' members';
-            setTimeout(() => lock.remove(), 700);
-        } catch (_) {
-            scanButtonState('Scan error · scan again', false);
-            lock.textContent = 'Scan incomplete. Please scan again.';
-            setTimeout(() => lock.remove(), 1800);
+
+            openPanel(scan.id);
+            scanButtonState(`Scan complete · ${scan.members.length} members`, false);
+            updateInteractionLock(`Scan complete · ${scan.members.length} members found.`);
+            await delay(700);
+        } catch (error) {
+            console.error('[APES Secret Society] Scan failed:', error);
+            scanButtonState('Scan incomplete · try again', false);
+            updateInteractionLock(error?.message || 'The scan did not finish. Please try again.');
+            await delay(1800);
         } finally {
             scanInProgress = false;
-            setTimeout(() => scanButtonState('Scan Secret Society', false), 1800);
+            hideInteractionLock();
+            window.setTimeout(() => scanButtonState('Scan SS', false), 1200);
         }
     }
 
     function injectNativeScanButton() {
-        const existing = document.getElementById(NATIVE_SCAN_ID);
+        const existing = document.getElementById(NATIVE_ACTION_ID);
         if (!enabled()) {
             existing?.remove();
             return;
@@ -294,98 +504,379 @@
             existing?.remove();
             return;
         }
-        if (existing) return;
-        const button = document.createElement('div');
-        button.id = NATIVE_SCAN_ID;
-        button.className = 'qol-ss-native-scan';
-        button.setAttribute('role', 'button');
-        button.setAttribute('tabindex', '0');
-        button.textContent = 'Scan Secret Society';
+
+        if (existing && root.contains(existing)) return;
+        existing?.remove();
+
+        const actions = document.createElement('div');
+        actions.id = NATIVE_ACTION_ID;
+        actions.innerHTML = `
+            <span class="qol-ss-native-label">APES Secret Society tools</span>
+            <div id="${NATIVE_SCAN_ID}" role="button" tabindex="0">Scan SS</div>
+        `;
+        const button = actions.querySelector(`#${NATIVE_SCAN_ID}`);
         const activate = event => {
             event.preventDefault();
-            scanCurrentSociety();
+            event.stopPropagation();
+            void scanCurrentSociety();
         };
         button.addEventListener('click', activate);
         button.addEventListener('keydown', event => {
             if (event.key === 'Enter' || event.key === ' ') activate(event);
         });
-        // The Society member table is inside a pagination wrapper, unlike Kingdom's statistics table.
-        // Insert at that wrapper so the button is always visibly above the Society member list.
-        const anchor = table.closest('[pagination], .paginated, .contentBox, .windowContent') || table;
-        anchor.before(button);
+
+        const paginated = table.closest('.paginated, [pagination]');
+        (paginated || table).before(actions);
     }
 
-    function showUpdateLock(message) {
-        let lock = document.getElementById('qol-ss-update-lock');
-        if (!lock) {
-            lock = document.createElement('div');
-            lock.id = 'qol-ss-update-lock';
-            lock.style.cssText = 'position:fixed!important;inset:0!important;z-index:1000003!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(20,16,11,.52)!important;color:#fffaf0!important;font:700 13px Arial,sans-serif!important;text-align:center!important';
-            document.body.appendChild(lock);
-        }
-        lock.textContent = message;
-        return lock;
-    }
-
-    function waitForSecretSociety(timeout = 8000) {
-        return new Promise(resolve => {
-            const startedAt = Date.now();
-            const timer = setInterval(() => {
-                const root = getSocietyRoot();
-                if ((root && getMembersTable(root)) || Date.now() - startedAt >= timeout) {
-                    clearInterval(timer);
-                    resolve(root);
-                }
-            }, 100);
-        });
-    }
-
-    async function updateStoredSociety(scan) {
-        if (!scan) return;
-        const lock = showUpdateLock('Opening Secret Society…');
-        try {
-            if (scan.route && location.hash !== scan.route) location.hash = scan.route;
-            const root = await waitForSecretSociety();
-            if (!root) {
-                lock.textContent = 'Could not open this Secret Society.';
-                setTimeout(() => lock.remove(), 1600);
-                return;
-            }
-            lock.textContent = 'Scanning Secret Society…';
-            await scanCurrentSociety();
-        } finally {
-            lock.remove();
-        }
-    }
-
-    const MEMBER_COLUMNS = [
-        { key: 'rank', label: '#' }, { key: 'name', label: 'Player' }, { key: 'villages', label: 'Villages' },
-        { key: 'population', label: 'Population' }, { key: 'resourcesSent', label: 'Resources Sent' },
-        { key: 'troopsLostInDefense', label: 'Troops Lost in Defense' }, { key: 'troopsCurrentlyProvided', label: 'Troops Currently Provided' }
-    ];
     function numericValue(value) {
         const parsed = Number(String(value == null ? '' : value).replace(/[^0-9.-]/g, ''));
         return Number.isFinite(parsed) ? parsed : null;
     }
+
+    const MEMBER_COLUMNS = [
+        { key: 'rank', label: 'Rank' },
+        { key: 'name', label: 'Member' },
+        { key: 'villages', label: 'Villages' },
+        { key: 'population', label: 'Population' },
+        { key: 'resourcesSent', label: 'Res Sent' },
+        { key: 'troopsLostInDefense', label: 'Def Lost' },
+        { key: 'troopsCurrentlyProvided', label: 'Troops Provided' }
+    ];
+
     function sortedMembers(members) {
         const multiplier = memberSort.direction === 'asc' ? 1 : -1;
         return members.slice().sort((left, right) => {
-            const a = numericValue(left[memberSort.key]), b = numericValue(right[memberSort.key]);
+            const a = numericValue(left[memberSort.key]);
+            const b = numericValue(right[memberSort.key]);
             if (a != null && b != null) return (a - b) * multiplier;
-            return String(left[memberSort.key] || '').localeCompare(String(right[memberSort.key] || ''), undefined, { numeric: true, sensitivity: 'base' }) * multiplier;
+            return String(left[memberSort.key] || '').localeCompare(
+                String(right[memberSort.key] || ''),
+                undefined,
+                { numeric: true, sensitivity: 'base' }
+            ) * multiplier;
         });
     }
+
+    function getDraft(scanId) {
+        if (!composerDrafts.has(scanId)) {
+            composerDrafts.set(scanId, { message: '', role: 'off' });
+        }
+        return composerDrafts.get(scanId);
+    }
+
+    function roleCount(scan, role) {
+        return scan.members.filter(member => member[role]).length;
+    }
+
     function showScannerDialog(title, message) {
         document.getElementById(DIALOG_ID)?.remove();
         const dialog = document.createElement('div');
         dialog.id = DIALOG_ID;
-        dialog.innerHTML = '<div class="qol-ss-dialog-card" role="dialog" aria-modal="true"><div class="qol-ss-dialog-title">' + escapeHtml(title) + '</div><div class="qol-ss-dialog-message">' + escapeHtml(message) + '</div><div class="qol-ss-dialog-actions"><div class="qol-ss-action" role="button" tabindex="0">OK</div></div></div>';
+        dialog.innerHTML = `
+            <div class="qol-ss-dialog-card" role="dialog" aria-modal="true">
+                <div class="qol-ss-dialog-title"></div>
+                <div class="qol-ss-dialog-message"></div>
+                <div class="qol-ss-dialog-actions">
+                    <div class="qol-ss-action" role="button" tabindex="0">OK</div>
+                </div>
+            </div>
+        `;
+        dialog.querySelector('.qol-ss-dialog-title').textContent = title;
+        dialog.querySelector('.qol-ss-dialog-message').textContent = message;
         const close = () => dialog.remove();
         const ok = dialog.querySelector('.qol-ss-action');
         ok.addEventListener('click', close);
-        ok.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') close(); });
-        document.body.appendChild(dialog); ok.focus();
+        ok.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') close();
+        });
+        document.body.appendChild(dialog);
+        ok.focus();
     }
+
+    function confirmAction(title, message, confirmLabel) {
+        return new Promise(resolve => {
+            document.getElementById(DIALOG_ID)?.remove();
+            const dialog = document.createElement('div');
+            dialog.id = DIALOG_ID;
+            dialog.innerHTML = `
+                <div class="qol-ss-dialog-card" role="alertdialog" aria-modal="true">
+                    <div class="qol-ss-dialog-title"></div>
+                    <div class="qol-ss-dialog-message"></div>
+                    <div class="qol-ss-dialog-actions">
+                        <div class="qol-ss-tab" data-cancel role="button" tabindex="0">Cancel</div>
+                        <div class="qol-ss-action" data-confirm role="button" tabindex="0"></div>
+                    </div>
+                </div>
+            `;
+            dialog.querySelector('.qol-ss-dialog-title').textContent = title;
+            dialog.querySelector('.qol-ss-dialog-message').textContent = message;
+            dialog.querySelector('[data-confirm]').textContent = confirmLabel;
+
+            const finish = value => {
+                dialog.remove();
+                resolve(value);
+            };
+            const cancel = dialog.querySelector('[data-cancel]');
+            const confirm = dialog.querySelector('[data-confirm]');
+            cancel.addEventListener('click', () => finish(false));
+            confirm.addEventListener('click', () => finish(true));
+            cancel.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') finish(false);
+            });
+            confirm.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') finish(true);
+            });
+            document.body.appendChild(dialog);
+            cancel.focus();
+        });
+    }
+
+    function setNativeValue(element, value) {
+        const prototype = element instanceof HTMLTextAreaElement
+            ? HTMLTextAreaElement.prototype
+            : HTMLInputElement.prototype;
+        const setter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+        if (setter) setter.call(element, value);
+        else element.value = value;
+        element.dispatchEvent(new Event('input', { bubbles: true }));
+        element.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function cleanIgmRoute() {
+        return String(location.hash || '#/')
+            .replace(/\/overlayigm:[^/]+/gi, '')
+            .replace(/\/$/, '');
+    }
+
+    async function openNewConversation() {
+        document.getElementById(COMPOSER_ID)?.querySelector('.closeOverlay')?.click();
+        let base = cleanIgmRoute();
+        if (!/(?:^|\/)window:igm(?:\/|$)/i.test(base)) base += '/window:igm';
+
+        if (location.hash !== base) {
+            location.hash = base;
+            await delay(120);
+        }
+        location.hash = `${base}/overlayigm:igmSystemNewConversation`;
+
+        return waitUntil(() => {
+            return document.querySelector(`#${COMPOSER_ID} .newIgmConversation`);
+        }, COMPOSER_TIMEOUT, 120);
+    }
+
+    function visibleAutocompleteItems() {
+        return Array.from(document.querySelectorAll(
+            '.ui-autocomplete li, .ui-autocomplete [role="option"], .ui-menu li.ui-menu-item'
+        )).filter(item => {
+            const style = window.getComputedStyle(item);
+            return style.display !== 'none' && style.visibility !== 'hidden' && item.getClientRects().length > 0;
+        });
+    }
+
+    function exactAutocompleteItem(playerName) {
+        const expected = normalizedText(playerName);
+        const items = visibleAutocompleteItems();
+        return items.find(item => {
+            const playerElement = item.matches?.('[playername]')
+                ? item
+                : item.querySelector?.('[playername]');
+            const explicitName = cleanText(playerElement?.getAttribute('playername'));
+            return normalizedText(explicitName || item.textContent) === expected;
+        }) || null;
+    }
+
+    function clickAutocompleteItem(item) {
+        const target = item.querySelector('a, [role="option"]') || item;
+        ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(type => {
+            const EventClass = type.startsWith('pointer') && typeof PointerEvent === 'function'
+                ? PointerEvent
+                : MouseEvent;
+            target.dispatchEvent(new EventClass(type, {
+                bubbles: true,
+                cancelable: true,
+                view: window
+            }));
+        });
+    }
+
+    function composerElements(composer) {
+        return {
+            recipient: composer.querySelector(
+                '.optionContainer [autocompletedata="player"] input.targetInput,' +
+                '.optionContainer .serverautocompleteContainer input.targetInput'
+            ),
+            message: composer.querySelector('.shareMessage textarea, textarea[ng-model="localTextModel"]'),
+            send: composer.querySelector('.buttonContainer button.share, button[clickable="share();"]')
+        };
+    }
+
+    function sendButtonReady(button) {
+        return Boolean(button) &&
+            !button.classList.contains('disabled') &&
+            button.getAttribute('aria-disabled') !== 'true' &&
+            !button.disabled;
+    }
+
+    async function prepareNativeMessage(composer, playerName, messageText) {
+        const elements = composerElements(composer);
+        if (!elements.recipient || !elements.message || !elements.send) {
+            throw new Error('Travian message fields were not found.');
+        }
+
+        setNativeValue(elements.message, messageText);
+        elements.recipient.focus();
+        setNativeValue(elements.recipient, '');
+        await delay(80);
+        setNativeValue(elements.recipient, playerName);
+        elements.recipient.dispatchEvent(new KeyboardEvent('keyup', {
+            key: playerName.slice(-1) || 'a',
+            bubbles: true,
+            cancelable: true
+        }));
+
+        await delay(250);
+        if (!sendButtonReady(elements.send)) {
+            const suggestion = await waitUntil(
+                () => exactAutocompleteItem(playerName),
+                6500,
+                100
+            );
+            if (!suggestion) {
+                throw new Error(`Recipient “${playerName}” was not confirmed by Travian.`);
+            }
+            clickAutocompleteItem(suggestion);
+        }
+
+        const ready = await waitUntil(() => sendButtonReady(elements.send), 5000, 100);
+        if (!ready) throw new Error(`The message for “${playerName}” never became sendable.`);
+        return elements.send;
+    }
+
+    async function sendNativeMessage(playerName, messageText) {
+        const composer = await openNewConversation();
+        if (!composer) throw new Error('The new-message window did not open.');
+
+        const send = await prepareNativeMessage(composer, playerName, messageText);
+        send.dispatchEvent(new MouseEvent('click', {
+            bubbles: true,
+            cancelable: true,
+            view: window
+        }));
+
+        const closed = await waitUntil(() => !document.getElementById(COMPOSER_ID), COMPOSER_TIMEOUT, 120);
+        if (!closed) {
+            const error = cleanText(document.querySelector(`#${COMPOSER_ID} .error`)?.textContent);
+            throw new Error(error || `Travian did not confirm the message to “${playerName}”.`);
+        }
+    }
+
+    async function sendRoleMessages(scan, role, messageText) {
+        if (messageInProgress) return;
+        const recipients = scan.members.filter(member => member[role] && member.name);
+        if (!messageText.trim()) {
+            showScannerDialog('Message required', 'Type the message you want to send first.');
+            return;
+        }
+        if (!recipients.length) {
+            showScannerDialog('No recipients', `No members are currently marked as ${role.toUpperCase()}.`);
+            return;
+        }
+
+        const confirmed = await confirmAction(
+            'Send Secret Society messages?',
+            `APES will send this message individually to ${recipients.length} ${role.toUpperCase()} ${recipients.length === 1 ? 'member' : 'members'}. The screen will remain locked until the sequence finishes.`,
+            `Send ${recipients.length} ${recipients.length === 1 ? 'message' : 'messages'}`
+        );
+        if (!confirmed) return;
+
+        messageInProgress = true;
+        cancelMessageRun = false;
+        const failures = [];
+        let sent = 0;
+        showInteractionLock(
+            'Sending Secret Society messages…',
+            `Preparing message 1 of ${recipients.length}.`,
+            { cancellable: true }
+        );
+
+        try {
+            for (let index = 0; index < recipients.length; index += 1) {
+                if (cancelMessageRun) break;
+                const member = recipients[index];
+                updateInteractionLock(
+                    `Message ${index + 1} of ${recipients.length} · ${member.name}`
+                );
+
+                try {
+                    await sendNativeMessage(member.name, messageText);
+                    sent += 1;
+                } catch (error) {
+                    console.error(`[APES Secret Society] Message to ${member.name} failed:`, error);
+                    failures.push({ name: member.name, reason: error?.message || 'Unknown error' });
+                    document.getElementById(COMPOSER_ID)?.querySelector('.closeOverlay')?.click();
+                    await delay(250);
+                }
+
+                if (!cancelMessageRun && index < recipients.length - 1) await delay(MESSAGE_GAP);
+            }
+        } finally {
+            messageInProgress = false;
+            hideInteractionLock();
+        }
+
+        const stopped = cancelMessageRun;
+        cancelMessageRun = false;
+        const failureSummary = failures.length
+            ? `\n\nNot sent: ${failures.slice(0, 6).map(item => item.name).join(', ')}${failures.length > 6 ? ` and ${failures.length - 6} more` : ''}.`
+            : '';
+        showScannerDialog(
+            stopped ? 'Message sequence stopped' : 'Message sequence complete',
+            `${sent} of ${recipients.length} messages sent.${failureSummary}`
+        );
+    }
+
+    function updateMemberRole(scanId, key, role, checked) {
+        if (!ROLE_KEYS.includes(role)) return;
+        const scans = loadScans();
+        const scan = scans.find(item => item.id === scanId);
+        const member = scan?.members.find(item => memberKey(item) === key);
+        if (!member) return;
+        member[role] = Boolean(checked);
+        saveScans(scans);
+    }
+
+    function exportScanCsv(scan) {
+        if (!scan) return;
+        const quote = value => `"${String(value == null ? '' : value).replace(/"/g, '""')}"`;
+        const columns = [
+            ...MEMBER_COLUMNS,
+            { key: 'off', label: 'Off' },
+            { key: 'def', label: 'Def' },
+            { key: 'op', label: 'OP' }
+        ];
+        const rows = [
+            columns.map(column => quote(column.label)).join(','),
+            ...sortedMembers(scan.members).map(member => {
+                return columns.map(column => quote(
+                    ROLE_KEYS.includes(column.key) ? (member[column.key] ? 'Yes' : 'No') : member[column.key]
+                )).join(',');
+            })
+        ];
+        const blob = new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        const safeName = String(scan.name || 'secret-society')
+            .replace(/[^a-z0-9_-]+/gi, '-')
+            .replace(/^-|-$/g, '');
+        link.href = url;
+        link.download = `APES-Secret-Society-${safeName}.csv`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.setTimeout(() => URL.revokeObjectURL(url), 0);
+    }
+
     function deleteStoredScans() {
         try {
             const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
@@ -394,66 +885,267 @@
         } catch (_) {
             localStorage.removeItem(STORAGE_KEY);
         }
+        composerDrafts.clear();
         renderPanel();
     }
 
-    function confirmDeleteStoredScans() {
-        document.getElementById(DIALOG_ID)?.remove();
-        const dialog = document.createElement('div');
-        dialog.id = DIALOG_ID;
-        dialog.innerHTML = '<div class="qol-ss-dialog-card" role="dialog" aria-modal="true"><div class="qol-ss-dialog-title">Delete Secret Society data?</div><div class="qol-ss-dialog-message">This removes every Secret Society list saved by APES on this game server. It cannot be undone.</div><div class="qol-ss-dialog-actions"><div class="qol-ss-tab" data-ss-cancel role="button" tabindex="0">Cancel</div><div class="qol-ss-action" data-ss-confirm-delete role="button" tabindex="0">Delete data</div></div></div>';
-        const close = () => dialog.remove();
-        const cancel = dialog.querySelector('[data-ss-cancel]');
-        const confirm = dialog.querySelector('[data-ss-confirm-delete]');
-        cancel.addEventListener('click', close);
-        confirm.addEventListener('click', () => { deleteStoredScans(); close(); });
-        document.body.appendChild(dialog);
-        cancel.focus();
+    async function confirmDeleteStoredScans() {
+        const confirmed = await confirmAction(
+            'Delete Secret Society data?',
+            'This removes every Secret Society list and every Off/Def/OP assignment saved by APES on this game server. This cannot be undone.',
+            'Delete data'
+        );
+        if (confirmed) deleteStoredScans();
     }
-    function exportScanCsv(scan) {
-        if (!scan) return;
-        const quote = value => '"' + String(value == null ? '' : value).replace(/"/g, '""') + '"';
-        const rows = [MEMBER_COLUMNS.map(column => quote(column.label)).join(','), ...sortedMembers(scan.members).map(member => MEMBER_COLUMNS.map(column => quote(member[column.key])).join(','))];
-        const blob = new Blob([rows.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-        const url = URL.createObjectURL(blob), link = document.createElement('a');
-        const safeName = String(scan.name || 'secret-society').replace(/[^a-z0-9_-]+/gi, '-').replace(/^-|-$/g, '');
-        link.href = url; link.download = 'APES-Secret-Society-' + safeName + '.csv'; document.body.appendChild(link); link.click(); link.remove(); setTimeout(() => URL.revokeObjectURL(url), 0);
+
+    function waitForSecretSociety(timeout = PAGE_TIMEOUT) {
+        return waitUntil(() => {
+            const root = getSocietyRoot();
+            return root && getMembersTable(root) ? root : null;
+        }, timeout, 120);
     }
+
+    async function updateStoredSociety(scan) {
+        if (!scan || scanInProgress) return;
+        showInteractionLock('Opening Secret Society…', `Opening ${scan.name}.`);
+        try {
+            if (scan.route && location.hash !== scan.route) location.hash = scan.route;
+            const root = await waitForSecretSociety();
+            hideInteractionLock();
+            if (!root) {
+                showScannerDialog('Secret Society unavailable', 'APES could not open this Secret Society.');
+                return;
+            }
+            await scanCurrentSociety();
+        } finally {
+            if (!scanInProgress) hideInteractionLock();
+        }
+    }
+
+    function roleCheckboxHtml(member, role) {
+        const checked = Boolean(member[role]);
+        return `
+            <div class="qol-ss-role-check"
+                 data-member-key="${escapeHtml(memberKey(member))}"
+                 data-member-role="${role}"
+                 role="checkbox"
+                 tabindex="0"
+                 aria-label="Mark ${escapeHtml(member.name)} as ${role.toUpperCase()}"
+                 aria-checked="${checked}"></div>
+        `;
+    }
+
     function renderPanel(selectedId) {
         const panel = document.getElementById(PANEL_ID);
         if (!panel) return;
         const scans = loadScans();
         const selected = scans.find(scan => scan.id === selectedId) || scans[0];
-        const tabs = scans.map(scan => '<div class="qol-ss-tab' + (scan.id === selected?.id ? ' qol-active' : '') + '" data-ss-tab="' + escapeHtml(scan.id) + '" role="button" tabindex="0">' + escapeHtml(scan.name) + '</div>').join('');
+        const body = panel.querySelector('.qol-ss-body');
 
         if (!selected) {
-            panel.querySelector('.qol-ss-body').innerHTML = '<div class="qol-ss-empty">No Secret Society scanned yet.<br>Open a Secret Society, then use <strong>Scan Secret Society</strong> above its member list.</div>';
+            body.innerHTML = `
+                <div class="qol-ss-empty">
+                    No Secret Society has been scanned yet.<br>
+                    Open its Secret Society tab and select <strong>Scan SS</strong> above the member table.
+                </div>
+            `;
             return;
         }
 
-        const body = panel.querySelector('.qol-ss-body');
-        body.innerHTML = '<div class="qol-ss-tabs">' + tabs + '</div><div class="qol-ss-toolbar"><input class="qol-ss-search" type="search" placeholder="Search members…" aria-label="Search Secret Society members"><div class="qol-ss-action" data-ss-export role="button" tabindex="0">Export CSV</div><div class="qol-ss-action" data-ss-refresh role="button" tabindex="0">Update</div><div class="qol-ss-tab" data-ss-delete role="button" tabindex="0">Delete SS Data</div></div><p class="qol-ss-summary">' + selected.members.length + ' members · scanned ' + new Date(selected.scannedAt).toLocaleString() + '</p><div class="qol-ss-table-wrap"><table class="qol-ss-table"><thead><tr>' + MEMBER_COLUMNS.map(column => '<th class="qol-ss-sort' + (memberSort.key === column.key ? ' qol-sort-' + memberSort.direction : '') + '" data-ss-sort="' + column.key + '" role="button" tabindex="0">' + column.label + '</th>').join('') + '</tr></thead><tbody></tbody></table></div>';
+        const tabs = scans.map(scan => `
+            <div class="qol-ss-tab${scan.id === selected.id ? ' qol-active' : ''}"
+                 data-ss-tab="${escapeHtml(scan.id)}" role="button" tabindex="0">
+                ${escapeHtml(scan.name)}
+            </div>
+        `).join('');
+        const draft = getDraft(selected.id);
+
+        body.innerHTML = `
+            <div class="qol-ss-tabs">${tabs}</div>
+            <section class="qol-ss-composer">
+                <label class="qol-ss-composer-copy">
+                    <span class="qol-ss-composer-label">Message</span>
+                    <textarea class="qol-ss-message" placeholder="Type the message APES should send individually to the selected group…">${escapeHtml(draft.message)}</textarea>
+                </label>
+                <div class="qol-ss-composer-actions">
+                    <span class="qol-ss-composer-label">Recipients</span>
+                    <select class="qol-ss-recipient-select" aria-label="Select recipient group">
+                        <option value="off"${draft.role === 'off' ? ' selected' : ''}>All Off members</option>
+                        <option value="def"${draft.role === 'def' ? ' selected' : ''}>All Def members</option>
+                        <option value="op"${draft.role === 'op' ? ' selected' : ''}>All OP members</option>
+                    </select>
+                    <span class="qol-ss-recipient-count"></span>
+                    <div class="qol-ss-action qol-ss-send" data-ss-send role="button" tabindex="0">Send messages</div>
+                </div>
+            </section>
+            <div class="qol-ss-toolbar">
+                <input class="qol-ss-search" type="search" placeholder="Search members…" aria-label="Search Secret Society members">
+                <div class="qol-ss-action" data-ss-export role="button" tabindex="0">Export CSV</div>
+                <div class="qol-ss-action" data-ss-refresh role="button" tabindex="0">Update</div>
+                <div class="qol-ss-tab" data-ss-delete role="button" tabindex="0">Delete SS Data</div>
+            </div>
+            <p class="qol-ss-summary">
+                ${selected.members.length} members · scanned ${new Date(selected.scannedAt).toLocaleString()}
+            </p>
+            <div class="qol-ss-table-wrap">
+                <table class="qol-ss-table">
+                    <thead><tr>
+                        ${MEMBER_COLUMNS.map(column => `
+                            <th class="qol-ss-sort${memberSort.key === column.key ? ` qol-sort-${memberSort.direction}` : ''}"
+                                data-ss-sort="${column.key}" role="button" tabindex="0">${column.label}</th>
+                        `).join('')}
+                        <th class="qol-ss-role-column">Off</th>
+                        <th class="qol-ss-role-column">Def</th>
+                        <th class="qol-ss-role-column">OP</th>
+                    </tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        `;
+
+        const search = body.querySelector('.qol-ss-search');
+        const message = body.querySelector('.qol-ss-message');
+        const recipientSelect = body.querySelector('.qol-ss-recipient-select');
+        const recipientCount = body.querySelector('.qol-ss-recipient-count');
+        const sendButton = body.querySelector('[data-ss-send]');
+
+        const refreshRecipientCount = () => {
+            const role = recipientSelect.value;
+            const count = roleCount(selected, role);
+            recipientCount.textContent = `${count} ${role.toUpperCase()} ${count === 1 ? 'member' : 'members'} selected`;
+            sendButton.setAttribute('aria-disabled', String(count === 0));
+            sendButton.textContent = count === 0 ? 'No recipients' : `Send to ${count}`;
+        };
 
         const renderRows = () => {
-            const query = cleanText(body.querySelector('.qol-ss-search')?.value).toLowerCase();
-            const rows = sortedMembers(selected.members.filter(member => Object.values(member).join(' ').toLowerCase().includes(query))).map(member => '<tr><td>' + escapeHtml(member.rank) + '</td><td>' + escapeHtml(member.name) + '</td><td>' + escapeHtml(member.villages) + '</td><td>' + escapeHtml(member.population) + '</td><td>' + escapeHtml(member.resourcesSent) + '</td><td>' + escapeHtml(member.troopsLostInDefense) + '</td><td>' + escapeHtml(member.troopsCurrentlyProvided) + '</td></tr>').join('');
-            body.querySelector('tbody').innerHTML = rows || '<tr><td colspan="7">No matching members.</td></tr>';
+            const query = normalizedText(search.value);
+            const members = sortedMembers(selected.members.filter(member => {
+                return !query || normalizedText(Object.values(member).join(' ')).includes(query);
+            }));
+            body.querySelector('tbody').innerHTML = members.length
+                ? members.map(member => `
+                    <tr>
+                        <td>${escapeHtml(member.rank)}</td>
+                        <td>${escapeHtml(member.name)}</td>
+                        <td>${escapeHtml(member.villages)}</td>
+                        <td>${escapeHtml(member.population)}</td>
+                        <td>${escapeHtml(member.resourcesSent)}</td>
+                        <td>${escapeHtml(member.troopsLostInDefense)}</td>
+                        <td>${escapeHtml(member.troopsCurrentlyProvided)}</td>
+                        <td class="qol-ss-role-column">${roleCheckboxHtml(member, 'off')}</td>
+                        <td class="qol-ss-role-column">${roleCheckboxHtml(member, 'def')}</td>
+                        <td class="qol-ss-role-column">${roleCheckboxHtml(member, 'op')}</td>
+                    </tr>
+                `).join('')
+                : '<tr><td colspan="10">No matching members.</td></tr>';
+
+            body.querySelectorAll('[data-member-role]').forEach(control => {
+                const toggle = event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const role = control.dataset.memberRole;
+                    const key = control.dataset.memberKey;
+                    const checked = control.getAttribute('aria-checked') !== 'true';
+                    control.setAttribute('aria-checked', String(checked));
+                    const member = selected.members.find(item => memberKey(item) === key);
+                    if (member) member[role] = checked;
+                    updateMemberRole(selected.id, key, role, checked);
+                    refreshRecipientCount();
+                };
+                control.addEventListener('click', toggle);
+                control.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') toggle(event);
+                });
+            });
         };
+
         renderRows();
-        body.querySelector('.qol-ss-search').addEventListener('input', renderRows);
-        body.querySelectorAll('[data-ss-tab]').forEach(tab => tab.addEventListener('click', () => renderPanel(tab.dataset.ssTab)));
-        body.querySelector('[data-ss-refresh]').addEventListener('click', () => updateStoredSociety(selected));
+        refreshRecipientCount();
+        search.addEventListener('input', renderRows);
+        message.addEventListener('input', () => {
+            draft.message = message.value;
+        });
+        recipientSelect.addEventListener('change', () => {
+            draft.role = recipientSelect.value;
+            refreshRecipientCount();
+        });
+        sendButton.addEventListener('click', () => {
+            void sendRoleMessages(selected, recipientSelect.value, message.value);
+        });
+        sendButton.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                void sendRoleMessages(selected, recipientSelect.value, message.value);
+            }
+        });
+        body.querySelectorAll('[data-ss-tab]').forEach(tab => {
+            tab.addEventListener('click', () => renderPanel(tab.dataset.ssTab));
+        });
+        body.querySelector('[data-ss-refresh]').addEventListener('click', () => {
+            void updateStoredSociety(selected);
+        });
         body.querySelector('[data-ss-export]').addEventListener('click', () => exportScanCsv(selected));
-        body.querySelector('[data-ss-delete]').addEventListener('click', confirmDeleteStoredScans);
+        body.querySelector('[data-ss-delete]').addEventListener('click', () => {
+            void confirmDeleteStoredScans();
+        });
         body.querySelectorAll('[data-ss-sort]').forEach(header => {
             const sort = () => {
                 const key = header.dataset.ssSort;
-                memberSort = { key, direction: memberSort.key === key && memberSort.direction === 'asc' ? 'desc' : 'asc' };
+                memberSort = {
+                    key,
+                    direction: memberSort.key === key && memberSort.direction === 'asc' ? 'desc' : 'asc'
+                };
                 renderPanel(selected.id);
             };
             header.addEventListener('click', sort);
-            header.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') sort(); });
+            header.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') sort();
+            });
         });
+    }
+
+    function makeDraggable(panel, handle) {
+        if (handle.dataset.qolDragBound === 'true') return;
+        handle.dataset.qolDragBound = 'true';
+
+        handle.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || event.target.closest('.qol-ss-close')) return;
+            event.preventDefault();
+            const rect = panel.getBoundingClientRect();
+            const startX = event.clientX;
+            const startY = event.clientY;
+            const startLeft = rect.left;
+            const startTop = rect.top;
+            handle.setPointerCapture?.(event.pointerId);
+
+            const move = moveEvent => {
+                const maxLeft = Math.max(8, window.innerWidth - panel.offsetWidth - 8);
+                const maxTop = Math.max(8, window.innerHeight - panel.offsetHeight - 8);
+                const left = Math.min(maxLeft, Math.max(8, startLeft + moveEvent.clientX - startX));
+                const top = Math.min(maxTop, Math.max(8, startTop + moveEvent.clientY - startY));
+                panel.style.setProperty('left', `${left}px`, 'important');
+                panel.style.setProperty('top', `${top}px`, 'important');
+                panel.style.setProperty('right', 'auto', 'important');
+            };
+            const stop = () => {
+                window.removeEventListener('pointermove', move, true);
+                window.removeEventListener('pointerup', stop, true);
+                window.removeEventListener('pointercancel', stop, true);
+            };
+            window.addEventListener('pointermove', move, true);
+            window.addEventListener('pointerup', stop, true);
+            window.addEventListener('pointercancel', stop, true);
+        });
+    }
+
+    function openPanel(selectedId) {
+        const panel = document.getElementById(PANEL_ID);
+        if (!panel) return;
+        window.dispatchEvent(new CustomEvent('qol_close_others', {
+            detail: { source: 'secretSocietyScanner' }
+        }));
+        panel.classList.add('qol-ss-open');
+        renderPanel(selectedId);
     }
 
     function injectPanel() {
@@ -465,13 +1157,21 @@
             button.title = 'Secret Society Scanner';
             button.setAttribute('role', 'button');
             button.setAttribute('tabindex', '0');
-            button.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 20h12"></path><path d="M8 20v-4h8v4"></path><path d="M7 5h10v5c0 3-2.2 5-5 5s-5-2-5-5z"></path><path d="M9 5V3h6v2"></path><path d="M9 9h6"></path></svg>';
+            button.setAttribute('aria-label', 'Open Secret Society Scanner');
+            button.innerHTML = `
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                    <circle cx="8" cy="8" r="3"></circle>
+                    <circle cx="16" cy="8" r="3"></circle>
+                    <path d="M3 20v-2c0-3 2-5 5-5s5 2 5 5v2"></path>
+                    <path d="M11 15c1-1.3 2.6-2 4.5-2 3 0 5.5 2 5.5 5v2"></path>
+                </svg>
+            `;
             const toggle = event => {
                 event.preventDefault();
                 event.stopPropagation();
                 const panel = document.getElementById(PANEL_ID);
-                panel.classList.toggle('qol-ss-open');
-                if (panel.classList.contains('qol-ss-open')) renderPanel();
+                if (panel.classList.contains('qol-ss-open')) panel.classList.remove('qol-ss-open');
+                else openPanel();
             };
             button.addEventListener('click', toggle);
             button.addEventListener('keydown', event => {
@@ -480,13 +1180,28 @@
             document.body.appendChild(button);
         }
 
-        if (!document.getElementById(PANEL_ID)) {
-            const panel = document.createElement('div');
+        let panel = document.getElementById(PANEL_ID);
+        if (!panel) {
+            panel = document.createElement('div');
             panel.id = PANEL_ID;
-            panel.innerHTML = '<div class="qol-ss-head"><span>Secret Society Scanner</span><div class="qol-ss-close" role="button" tabindex="0">×</div></div><div class="qol-ss-body"></div>';
-            panel.querySelector('.qol-ss-close').addEventListener('click', () => panel.classList.remove('qol-ss-open'));
+            panel.innerHTML = `
+                <div class="qol-ss-head">
+                    <span>Secret Society Manager</span>
+                    <div class="qol-ss-close" role="button" tabindex="0" aria-label="Close">×</div>
+                </div>
+                <div class="qol-ss-body"></div>
+            `;
+            const close = panel.querySelector('.qol-ss-close');
+            close.addEventListener('click', () => panel.classList.remove('qol-ss-open'));
+            close.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') panel.classList.remove('qol-ss-open');
+            });
             document.body.appendChild(panel);
+            makeDraggable(panel, panel.querySelector('.qol-ss-head'));
         }
+
+        panel.style.removeProperty('display');
+
         renderPanel();
         window.qolRepositionAllButtons?.();
     }
@@ -495,32 +1210,51 @@
         if (!enabled()) return;
         injectPanel();
         injectNativeScanButton();
+
         if (!observer) {
             observer = new MutationObserver(() => {
-                if (!enabled()) return;
-                injectNativeScanButton();
+                if (nativeScanRefreshQueued || !enabled()) return;
+                nativeScanRefreshQueued = true;
+                window.setTimeout(() => {
+                    nativeScanRefreshQueued = false;
+                    if (enabled()) injectNativeScanButton();
+                }, 80);
             });
             observer.observe(document.documentElement, { childList: true, subtree: true });
         }
     }
 
     document.addEventListener('keydown', event => {
-        if (event.key !== 'Escape' || event.defaultPrevented) return;
+        if (event.key !== 'Escape' || event.defaultPrevented || document.getElementById(LOCK_ID)) return;
+        document.getElementById(DIALOG_ID)?.remove();
         document.getElementById(PANEL_ID)?.classList.remove('qol-ss-open');
+    });
+
+    window.addEventListener('qol_close_others', event => {
+        if (event.detail?.source !== 'secretSocietyScanner') {
+            document.getElementById(PANEL_ID)?.classList.remove('qol-ss-open');
+        }
     });
 
     window.addEventListener('qol_setting_changed', event => {
         if (event.detail?.key !== FEATURE_KEY) return;
-        if (event.detail.enabled) {
-            document.getElementById(PANEL_ID)?.style.removeProperty('display');
-            start();
-        } else {
+        if (event.detail.enabled) start();
+        else {
+            cancelMessageRun = true;
+            document.getElementById(NATIVE_ACTION_ID)?.remove();
             document.getElementById(PANEL_ID)?.classList.remove('qol-ss-open');
             document.getElementById(PANEL_ID)?.style.setProperty('display', 'none', 'important');
+            hideInteractionLock();
         }
+        window.qolRepositionAllButtons?.();
     });
 
+    window.qolOpenSecretSocietyManager = () => openPanel();
+
     const begin = () => start();
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', begin, { once: true });
-    else begin();
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', begin, { once: true });
+    } else {
+        begin();
+    }
 })();

@@ -88,6 +88,14 @@
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 6h16v15H4zM8 3h8v5H8zM8 12h8M8 16h6"/>
             </svg>
+        `,
+        secretSociety: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="8" cy="8" r="3"/>
+                <circle cx="16" cy="8" r="3"/>
+                <path d="M3 20v-2c0-3 2-5 5-5s5 2 5 5v2"/>
+                <path d="M11 15c1-1.3 2.6-2 4.5-2 3 0 5.5 2 5.5 5v2"/>
+            </svg>
         `
     };
 
@@ -176,6 +184,13 @@
             label: 'Watchlists',
             icon: ICONS.watchlist,
             controlId: 'qol-watchlist-toggle'
+        },
+        {
+            id: 'secretSociety.open',
+            featureKey: 'secretSocietyScanner',
+            label: 'Secret Society',
+            icon: ICONS.secretSociety,
+            controlId: 'qol-ss-scanner-toggle-btn'
         }
     ];
 

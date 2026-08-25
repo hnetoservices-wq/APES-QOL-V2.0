@@ -153,6 +153,13 @@ const ADVANCED_FEATURES = [
         name: 'Watchlists',
         icon: '◎',
         description: 'Saves and organizes players for quick access to profiles, hero data and tracking information.'
+    },
+    {
+        id: 'qol-chk-secret-society-scanner',
+        key: 'secretSocietyScanner',
+        name: 'Secret Society Scanner',
+        icon: 'SS',
+        description: 'Scans Secret Society member pages, tracks Off, Def and OP roles, and sends targeted individual messages.'
     }
 ];
 
@@ -191,6 +198,7 @@ const TOOLBAR_ITEMS = [
     { id: 'qol-oasis-toggle-btn', label: 'Oasis Scanner', key: 'oasisScanner' },
     { id: 'qol-report-archive-toggle', label: 'Report Archive', key: 'reportArchive' },
     { id: 'qol-cp-toggle-btn', label: 'CP Manager', key: 'cpManager' },
+    { id: 'qol-ss-scanner-toggle-btn', label: 'Secret Society Scanner', key: 'secretSocietyScanner' },
     { id: 'qol-tribe-skins-toggle-btn', label: 'Visual Tribe Skin', key: 'visualTribeSkins' }
 ];
 
@@ -314,6 +322,7 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-oasis-toggle-btn,
         body.qol-toolbar-collapsed #qol-report-archive-toggle,
         body.qol-toolbar-collapsed #qol-cp-toggle-btn,
+        body.qol-toolbar-collapsed #qol-ss-scanner-toggle-btn,
         body.qol-toolbar-collapsed #qol-tribe-skins-toggle-btn{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
         #${QOL_TOOLBAR_DROPDOWN_ID}{position:fixed!important;display:none!important;flex-direction:column!important;min-width:220px!important;max-width:min(300px,88vw)!important;max-height:min(520px,80vh)!important;overflow-y:auto!important;padding:5px!important;border:2px solid var(--qol-border)!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 26px rgba(0,0,0,.38)!important;z-index:1000001!important;font-family:Arial,Helvetica,sans-serif!important;box-sizing:border-box!important}
