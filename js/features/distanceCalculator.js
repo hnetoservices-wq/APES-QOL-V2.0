@@ -174,7 +174,7 @@
 
     function formatDuration(seconds) {
         if (!Number.isFinite(seconds)) return '—';
-        const rounded = Math.max(0, Math.ceil(seconds));
+        const rounded = Math.max(0, Math.floor(seconds));
         const hours = Math.floor(rounded / 3600);
         const minutes = Math.floor((rounded % 3600) / 60);
         const remaining = rounded % 60;
@@ -183,7 +183,7 @@
 
     function formatArrival(clockSeconds, durationSeconds) {
         if (!Number.isFinite(clockSeconds) || !Number.isFinite(durationSeconds)) return '—';
-        const total = Math.max(0, Math.floor(clockSeconds) + Math.ceil(durationSeconds));
+        const total = Math.max(0, Math.floor(clockSeconds) + Math.floor(durationSeconds));
         const dayOffset = Math.floor(total / 86400);
         const withinDay = total % 86400;
         const hours = Math.floor(withinDay / 3600);
@@ -201,9 +201,10 @@
         const targetX = parseCoordinate(state.targetX);
         const targetY = parseCoordinate(state.targetY);
         const movement = MOVEMENT_MAP.get(state.movementKey);
-        const baseSpeed = movement?.type === 'custom'
-            ? clamp(state.customSpeed, 0.1, 999, 0)
-            : Number(movement?.speed || 0);
+        const enteredSpeed = Number.parseFloat(String(state.customSpeed));
+        const baseSpeed = Number.isFinite(enteredSpeed) && enteredSpeed > 0
+            ? clamp(enteredSpeed, 0.1, 999, 0)
+            : 0;
         const world = WORLD_SPEEDS[state.worldSpeed] || WORLD_SPEEDS[1];
 
         if ([originX, originY, targetX, targetY].some(value => value === null) || !movement || baseSpeed <= 0) {
@@ -397,8 +398,6 @@
         if (!panel) return;
         const movement = MOVEMENT_MAP.get(state.movementKey);
         const merchant = movement?.type === 'merchant';
-        const custom = movement?.type === 'custom';
-        panel.querySelector('[data-field="customSpeed"]')?.toggleAttribute('disabled', !custom);
         panel.querySelectorAll('[data-troop-modifier]').forEach(input => input.toggleAttribute('disabled', merchant));
         panel.querySelector('.qol-distance-modifiers')?.classList.toggle('qol-disabled', merchant);
         const help = panel.querySelector('.qol-distance-modifier-help');
@@ -431,6 +430,14 @@
         const field = input.dataset.field;
         if (!field) return;
         state[field] = input.value;
+        if (field === 'movementKey') {
+            const preset = MOVEMENT_MAP.get(input.value);
+            if (preset?.speed > 0) {
+                state.customSpeed = preset.speed;
+                const speedInput = document.querySelector(`#${PANEL_ID} [data-field="customSpeed"]`);
+                if (speedInput) speedInput.value = preset.speed;
+            }
+        }
         if (field === 'worldSpeed' || field === 'tournamentLevel') state[field] = Number(input.value);
         if (field === 'customSpeed' || field === 'bootsBonus') state[field] = Number(input.value);
         saveState();
@@ -529,11 +536,11 @@
                         <section class="qol-distance-card">
                             <div class="qol-distance-card-title">Movement</div>
                             <div class="qol-distance-fields">
-                                <div class="qol-distance-field qol-full"><label>Slowest unit or merchant</label><select data-field="movementKey">${movementOptions()}</select></div>
-                                <div class="qol-distance-field"><label>Custom fields/hour</label><input data-field="customSpeed" type="number" min="0.1" max="999" step="0.1"></div>
+                                <div class="qol-distance-field qol-full"><label>Unit or merchant preset</label><select data-field="movementKey">${movementOptions()}</select></div>
+                                <div class="qol-distance-field"><label>Slowest speed (fields/hour)</label><input data-field="customSpeed" type="number" min="0.1" max="999" step="0.1"></div>
                                 <div class="qol-distance-field"><label>Gameworld speed</label><select data-field="worldSpeed">${Object.entries(WORLD_SPEEDS).map(([speed, item]) => `<option value="${speed}">${item.label} · movement x${item.movement}</option>`).join('')}</select></div>
                             </div>
-                            <p class="qol-distance-help">A mixed army moves at the speed of its slowest unit.</p>
+                            <p class="qol-distance-help">The preset fills the speed field. Edit it freely; this value drives the calculation.</p>
                         </section>
                         <section class="qol-distance-card qol-distance-modifiers">
                             <div class="qol-distance-card-title">Long-distance modifiers</div>
@@ -560,7 +567,7 @@
                     </section>
                     <div class="qol-distance-footer">
                         <div class="qol-distance-copy" data-copy role="button" tabindex="0">Copy calculation</div>
-                        <p class="qol-distance-formula">Straight-line distance · rounded up to the next second</p>
+                        <p class="qol-distance-formula">Straight-line distance · matched to whole game seconds</p>
                     </div>
                 </div>
             `;
