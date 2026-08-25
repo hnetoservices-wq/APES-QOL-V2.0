@@ -134,13 +134,6 @@ const ADVANCED_FEATURES = [
         description: 'Scans and plans Culture Points, expansion slots, Town Halls, celebrations and Artworks.'
     },
     {
-        id: 'qol-chk-oasis-scanner',
-        key: 'oasisScanner',
-        name: 'Oasis Scanner',
-        icon: '⌖',
-        description: 'Records scanned oases, croppers and Natars and builds useful coordinate lists.'
-    },
-    {
         id: 'qol-chk-report-archive',
         key: 'reportArchive',
         name: 'Report Archive',
@@ -153,6 +146,16 @@ const ADVANCED_FEATURES = [
         name: 'Watchlists',
         icon: '◎',
         description: 'Saves and organizes players for quick access to profiles, hero data and tracking information.'
+    }
+];
+
+const KINGDOM_MANAGEMENT_FEATURES = [
+    {
+        id: 'qol-chk-oasis-scanner',
+        key: 'oasisScanner',
+        name: 'Oasis Scanner',
+        icon: '⌖',
+        description: 'Records scanned oases, croppers and Natars and builds useful coordinate lists.'
     },
     {
         id: 'qol-chk-secret-society-scanner',
@@ -205,6 +208,7 @@ const TOOLBAR_ITEMS = [
 const menuConfigMap = Object.fromEntries([
     ...BASIC_FEATURES.map(feature => [feature.id, feature.key]),
     ...ADVANCED_FEATURES.map(feature => [feature.id, feature.key]),
+    ...KINGDOM_MANAGEMENT_FEATURES.map(feature => [feature.id, feature.key]),
     ...COSMETIC_FEATURES.map(feature => [feature.id, feature.key]),
     ...KEYBINDS.filter(item => !item.fixed).map(item => [item.id, item.key])
 ]);
@@ -353,9 +357,11 @@ function injectQolMenuStyles() {
         #qol-modal #qol-basic-feature-grid{order:4!important}
         #qol-modal .qol-advanced-heading{order:5!important}
         #qol-modal #qol-advanced-feature-grid{order:6!important}
-        #qol-modal .qol-cosmetic-heading{order:7!important}
-        #qol-modal #qol-cosmetic-feature-grid{order:8!important}
-        #qol-modal .qol-theme-card{order:9!important}
+        #qol-modal .qol-kingdom-management-heading{order:7!important}
+        #qol-modal #qol-kingdom-management-feature-grid{order:8!important}
+        #qol-modal .qol-cosmetic-heading{order:9!important}
+        #qol-modal #qol-cosmetic-feature-grid{order:10!important}
+        #qol-modal .qol-theme-card{order:11!important}
         #qol-modal .qol-section-heading{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:14px!important;margin:0 0 9px!important}
         #qol-modal .qol-section-heading:not(:first-child){margin-top:20px!important}
         #qol-modal .qol-section-title-group{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
@@ -822,15 +828,6 @@ function buildSettingsMarkup() {
                 </div>
                 <div class="qol-keybind-grid">${KEYBINDS.map(keybindHtml).join('')}</div>
 
-                <div class="qol-section-heading qol-advanced-heading">
-                    <div class="qol-section-title-group">
-                        <h2 class="qol-section-title">Advanced Features</h2>
-                        <span class="qol-section-caption">Larger APES tools for scanning, planning, archiving and long-term tracking.</span>
-                    </div>
-                    <span class="qol-section-count" id="qol-advanced-feature-count">${ADVANCED_FEATURES.length} tools</span>
-                </div>
-                <div class="qol-feature-grid" id="qol-advanced-feature-grid">${ADVANCED_FEATURES.map(featureCardHtml).join('')}</div>
-
                 <div class="qol-section-heading qol-basic-heading">
                     <div class="qol-section-title-group">
                         <h2 class="qol-section-title">Basic Features</h2>
@@ -839,6 +836,24 @@ function buildSettingsMarkup() {
                     <span class="qol-section-count">${BASIC_FEATURES.length} tools</span>
                 </div>
                 <div class="qol-feature-grid" id="qol-basic-feature-grid">${BASIC_FEATURES.map(featureCardHtml).join('')}</div>
+
+                <div class="qol-section-heading qol-advanced-heading">
+                    <div class="qol-section-title-group">
+                        <h2 class="qol-section-title">Advanced Features</h2>
+                        <span class="qol-section-caption">Larger APES tools for planning, archiving and long-term tracking.</span>
+                    </div>
+                    <span class="qol-section-count" id="qol-advanced-feature-count">${ADVANCED_FEATURES.length} tools</span>
+                </div>
+                <div class="qol-feature-grid" id="qol-advanced-feature-grid">${ADVANCED_FEATURES.map(featureCardHtml).join('')}</div>
+
+                <div class="qol-section-heading qol-kingdom-management-heading">
+                    <div class="qol-section-title-group">
+                        <h2 class="qol-section-title">Kingdom Management Features</h2>
+                        <span class="qol-section-caption">Tools for map intelligence, society coordination and kingdom-wide planning.</span>
+                    </div>
+                    <span class="qol-section-count" id="qol-kingdom-management-feature-count">${KINGDOM_MANAGEMENT_FEATURES.length} tools</span>
+                </div>
+                <div class="qol-feature-grid" id="qol-kingdom-management-feature-grid">${KINGDOM_MANAGEMENT_FEATURES.map(featureCardHtml).join('')}</div>
 
                 <div class="qol-section-heading qol-cosmetic-heading">
                     <div class="qol-section-title-group">
