@@ -1744,39 +1744,11 @@
         button.style.setProperty('display', 'flex', 'important');
     }
 
-    function setFeatureEnabled(enabled) {
-        localStorage.setItem(`qol_${FEATURE_KEY}`, String(enabled));
-        window.dispatchEvent(new CustomEvent('qol_setting_changed', { detail: { key: FEATURE_KEY, enabled } }));
-    }
-
     function ensureSettingsCard() {
-        const grid = document.querySelector('#qol-modal .qol-feature-grid');
-        if (!grid) return;
-
-        let checkbox = grid.querySelector(`#${MENU_CHECKBOX_ID}`);
-        if (!checkbox) {
-            const card = document.createElement('article');
-            card.className = 'qol-feature-card';
-            card.innerHTML = `
-                <span class="qol-feature-icon">CP</span>
-                <div class="qol-feature-copy">
-                    <h3 class="qol-feature-name">CP Manager</h3>
-                    <p class="qol-feature-desc">Tracks and plans CP, expansion slots, Town Halls, celebrations and Artworks across your account.</p>
-                </div>
-                <label class="qol-switch">
-                    <input type="checkbox" id="${MENU_CHECKBOX_ID}" class="qol-checkbox">
-                    <span class="qol-switch-track"></span>
-                </label>
-            `;
-            grid.appendChild(card);
-            checkbox = card.querySelector(`#${MENU_CHECKBOX_ID}`);
-        }
-
-        checkbox.checked = isEnabled();
-        if (checkbox.dataset.qolCpBound !== 'true') {
-            checkbox.dataset.qolCpBound = 'true';
-            checkbox.addEventListener('change', event => setFeatureEnabled(Boolean(event.target.checked)));
-        }
+        const checkbox = document.querySelector(
+            `#qol-advanced-feature-grid #${MENU_CHECKBOX_ID}`
+        );
+        if (checkbox) checkbox.checked = isEnabled();
     }
 
     function destroyUI() {

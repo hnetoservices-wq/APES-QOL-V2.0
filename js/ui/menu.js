@@ -895,6 +895,30 @@ function buildSettingsMarkup() {
     `;
 }
 
+function reconcileCanonicalFeatureCards(overlay) {
+    const sectionFeatures = [
+        ['qol-basic-feature-grid', BASIC_FEATURES],
+        ['qol-advanced-feature-grid', ADVANCED_FEATURES],
+        ['qol-kingdom-management-feature-grid', KINGDOM_MANAGEMENT_FEATURES],
+        ['qol-cosmetic-feature-grid', COSMETIC_FEATURES]
+    ];
+
+    sectionFeatures.forEach(([gridId, features]) => {
+        const canonicalGrid = overlay.querySelector(`#${gridId}`);
+        if (!canonicalGrid) return;
+
+        features.forEach(feature => {
+            const canonicalControl = canonicalGrid.querySelector(`[id="${feature.id}"]`);
+            if (!canonicalControl) return;
+
+            overlay.querySelectorAll(`[id="${feature.id}"]`).forEach(control => {
+                if (control === canonicalControl) return;
+                control.closest('.qol-feature-card')?.remove();
+            });
+        });
+    });
+}
+
 function setupQolMenu() {
     injectQolMenuStyles();
 
@@ -925,6 +949,8 @@ function setupQolMenu() {
     } else {
         bindMenuControls(overlay);
     }
+
+    reconcileCanonicalFeatureCards(overlay);
 
     if (cog.dataset.qolMenuBound !== 'true') {
         cog.dataset.qolMenuBound = 'true';
