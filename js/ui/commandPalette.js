@@ -59,6 +59,13 @@
                 <path d="M8 6h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h2M14 19h2"/>
             </svg>
         `,
+        distance: `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="6" cy="18" r="2"/>
+                <circle cx="18" cy="6" r="2"/>
+                <path d="M8 16L16 8M10 18h8v-8"/>
+            </svg>
+        `,
         cp: `
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 18V8l8-5 8 5v10"/>
@@ -134,6 +141,13 @@
             label: 'NPC Calculator',
             icon: ICONS.calculator,
             controlId: 'qol-npc-calc-toggle-btn'
+        },
+        {
+            id: 'distance.open',
+            featureKey: 'distanceCalculator',
+            label: 'Distance & Arrival',
+            icon: ICONS.distance,
+            controlId: 'qol-distance-calc-toggle-btn'
         },
         {
             id: 'cp.open',

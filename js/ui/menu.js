@@ -92,6 +92,13 @@ const BASIC_FEATURES = [
         description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
     },
     {
+        id: 'qol-chk-distance-calculator',
+        key: 'distanceCalculator',
+        name: 'Distance & Arrival Calculator',
+        icon: '↗',
+        description: 'Calculates route distance, travel duration and server-time arrival for troops and merchants.'
+    },
+    {
         id: 'qol-chk-send-troops',
         key: 'sendTroopsEnhanced',
         name: 'Send Button Enhancer',
@@ -162,6 +169,7 @@ const TOOLBAR_ITEMS = [
     { id: 'qol-watchlist-toggle', label: 'Watchlists', key: 'watchlist' },
     { id: 'qol-checklist-toggle-btn', label: 'Checklists', key: 'checklists' },
     { id: 'qol-npc-calc-toggle-btn', label: 'NPC Calculator', key: 'npcCalculator' },
+    { id: 'qol-distance-calc-toggle-btn', label: 'Distance & Arrival Calculator', key: 'distanceCalculator' },
     { id: 'qol-oasis-toggle-btn', label: 'Oasis Scanner', key: 'oasisScanner' },
     { id: 'qol-report-archive-toggle', label: 'Report Archive', key: 'reportArchive' },
     { id: 'qol-cp-toggle-btn', label: 'CP Manager', key: 'cpManager' },
@@ -251,6 +259,7 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-watchlist-toggle,
         body.qol-toolbar-collapsed #qol-checklist-toggle-btn,
         body.qol-toolbar-collapsed #qol-npc-calc-toggle-btn,
+        body.qol-toolbar-collapsed #qol-distance-calc-toggle-btn,
         body.qol-toolbar-collapsed #qol-oasis-toggle-btn,
         body.qol-toolbar-collapsed #qol-report-archive-toggle,
         body.qol-toolbar-collapsed #qol-cp-toggle-btn,
