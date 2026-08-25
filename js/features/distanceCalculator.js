@@ -149,20 +149,6 @@
         return id ? locationIdToCoordinates(id) : null;
     }
 
-    function getVisibleMapCoordinates() {
-        const wrapper = document.querySelector('#tileInformation .coordinateWrapper');
-        if (wrapper) {
-            const x = parseCoordinate(wrapper.getAttribute('x'));
-            const y = parseCoordinate(wrapper.getAttribute('y'));
-            if (x !== null && y !== null) return { x, y };
-        }
-
-        const hash = String(window.location.hash || '');
-        const x = parseCoordinate(hash.match(/(?:^|\/)x:(-?\d+)/i)?.[1]);
-        const y = parseCoordinate(hash.match(/(?:^|\/)y:(-?\d+)/i)?.[1]);
-        return x !== null && y !== null ? { x, y } : null;
-    }
-
     function getServerClockSeconds() {
         const clock = document.querySelector('span[i18ndt][full="true"]') ||
             document.querySelector('#servertime[i18ndt], #servertime');
@@ -500,8 +486,6 @@
         set('[data-result="arrival"]', lastResult.arrival);
         set('[data-result="duration"]', formatDuration(lastResult.durationSeconds));
         set('[data-result="distance"]', `${lastResult.distance.toFixed(3)} fields`);
-        set('[data-result="baseSpeed"]', `${lastResult.firstSpeed.toFixed(2)} fields/h`);
-        set('[data-result="longSpeed"]', `${lastResult.longSpeed.toFixed(2)} fields/h`);
         set('[data-result="movement"]', lastResult.movement.label);
         set('[data-result="route"]', `(${lastResult.originX}|${lastResult.originY}) → (${lastResult.targetX}|${lastResult.targetY})`);
 
@@ -629,7 +613,7 @@
                         </section>
                         <div class="qol-distance-swap" data-swap role="button" tabindex="0" title="Swap origin and target">⇄</div>
                         <section class="qol-distance-card">
-                            <div class="qol-distance-card-title"><span>Target</span><div class="qol-distance-mini" data-map-target role="button" tabindex="0">Map target</div></div>
+                            <div class="qol-distance-card-title"><span>Target</span></div>
                             <div class="qol-distance-pair"><input data-field="targetX" inputmode="numeric" aria-label="Target X"><span class="qol-distance-separator">|</span><input data-field="targetY" inputmode="numeric" aria-label="Target Y"></div>
                         </section>
                     </div>
@@ -672,8 +656,6 @@
                         <div class="qol-distance-metrics">
                             <div class="qol-distance-metric"><span>Travel time</span><strong data-result="duration">—</strong></div>
                             <div class="qol-distance-metric"><span>Distance</span><strong data-result="distance">—</strong></div>
-                            <div class="qol-distance-metric"><span>First 20 speed</span><strong data-result="baseSpeed">—</strong></div>
-                            <div class="qol-distance-metric"><span>After 20 speed</span><strong data-result="longSpeed">—</strong></div>
                         </div>
                     </section>
                     <div class="qol-distance-footer">
@@ -690,9 +672,6 @@
             activate(panel.querySelector('[data-close]'), closePanel);
             activate(panel.querySelector('[data-current-village]'), () => {
                 if (!setCoordinates('origin', getCurrentVillageCoordinates())) setFeedback('Current village coordinates were not found.');
-            });
-            activate(panel.querySelector('[data-map-target]'), () => {
-                if (!setCoordinates('target', getVisibleMapCoordinates())) setFeedback('Open a map tile first, or enter the coordinates.');
             });
             activate(panel.querySelector('[data-swap]'), () => {
                 [state.originX, state.targetX] = [state.targetX, state.originX];
@@ -784,8 +763,7 @@
             return result.valid ? calculateSendPlan(result.durationSeconds) : { valid: false };
         },
         send: openSendTroops,
-        useCurrentVillage: () => setCoordinates('origin', getCurrentVillageCoordinates()),
-        useMapTarget: () => setCoordinates('target', getVisibleMapCoordinates())
+        useCurrentVillage: () => setCoordinates('origin', getCurrentVillageCoordinates())
     });
 
     const begin = () => {
