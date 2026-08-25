@@ -3,7 +3,9 @@
  *
  * - Scans every page of the active Secret Society member table.
  * - Stores independent lists for each society on each game server.
+ * - Compares member, village and population totals with the previous snapshot.
  * - Lets users classify members as Off, Def and/or OP.
+ * - Opens an addressed native IGM composer from any member row.
  * - Sends one message at a time through Travian's native IGM composer.
  */
 (() => {
@@ -23,10 +25,12 @@
     const PAGE_TIMEOUT = 9000;
     const COMPOSER_TIMEOUT = 11000;
     const MESSAGE_GAP = 850;
+    const SNAPSHOT_HISTORY_LIMIT = 24;
     const ROLE_KEYS = ['off', 'def', 'op'];
 
     let scanInProgress = false;
     let messageInProgress = false;
+    let memberMailInProgress = false;
     let cancelMessageRun = false;
     let memberSort = { key: 'rank', direction: 'asc' };
     let observer = null;
@@ -98,7 +102,29 @@
             troopsCurrentlyProvided: cleanText(member?.troopsCurrentlyProvided),
             off: Boolean(member?.off),
             def: Boolean(member?.def),
-            op: Boolean(member?.op)
+            op: Boolean(member?.op),
+            villageChange: nullableNumber(member?.villageChange),
+            populationChange: nullableNumber(member?.populationChange),
+            isNew: Boolean(member?.isNew)
+        };
+    }
+
+    function summarizeMembers(members, scannedAt = Date.now()) {
+        return {
+            scannedAt: Number(scannedAt) || Date.now(),
+            memberCount: members.length,
+            villages: members.reduce((total, member) => total + (numericValue(member.villages) || 0), 0),
+            population: members.reduce((total, member) => total + (numericValue(member.population) || 0), 0)
+        };
+    }
+
+    function normalizeSnapshot(snapshot, fallbackMembers = [], fallbackScannedAt = Date.now()) {
+        const fallback = summarizeMembers(fallbackMembers, fallbackScannedAt);
+        return {
+            scannedAt: Number(snapshot?.scannedAt) || fallback.scannedAt,
+            memberCount: nullableNumber(snapshot?.memberCount) ?? fallback.memberCount,
+            villages: nullableNumber(snapshot?.villages) ?? fallback.villages,
+            population: nullableNumber(snapshot?.population) ?? fallback.population
         };
     }
 
@@ -106,12 +132,19 @@
         try {
             const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
             const scans = Array.isArray(all[serverKey()]) ? all[serverKey()] : [];
-            return scans.map(scan => ({
-                ...scan,
-                members: Array.isArray(scan.members)
+            return scans.map(scan => {
+                const members = Array.isArray(scan.members)
                     ? scan.members.map(normalizeMember).filter(member => member.name)
-                    : []
-            }));
+                    : [];
+                return {
+                    ...scan,
+                    members,
+                    summary: normalizeSnapshot(scan.summary, members, scan.scannedAt),
+                    history: Array.isArray(scan.history)
+                        ? scan.history.map(snapshot => normalizeSnapshot(snapshot)).slice(-SNAPSHOT_HISTORY_LIMIT)
+                        : []
+                };
+            });
         } catch (_) {
             return [];
         }
@@ -160,19 +193,39 @@
 
             #${PANEL_ID} .qol-ss-toolbar{display:flex!important;align-items:center!important;gap:6px!important;flex:0 0 auto!important}
             #${PANEL_ID} .qol-ss-search{flex:1!important;min-width:120px!important;height:27px!important;padding:4px 7px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#422f1e!important;font-size:10px!important;appearance:auto!important;-webkit-appearance:auto!important}
-            #${PANEL_ID} .qol-ss-summary{flex:0 0 auto!important;margin:0!important;color:#735a3b!important;font-size:9px!important}
+            #${PANEL_ID} .qol-ss-summary{display:flex!important;align-items:center!important;gap:7px!important;flex:0 0 auto!important;min-height:31px!important;margin:0!important;padding:5px 7px!important;border:1px solid #d3c3aa!important;border-radius:4px!important;background:#f1e9dc!important;color:#735a3b!important;font-size:8.5px!important;overflow-x:auto!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-ss-summary-metric{display:inline-flex!important;align-items:center!important;gap:4px!important;padding-right:8px!important;border-right:1px solid #ccb99b!important;font-weight:700!important}
+            #${PANEL_ID} .qol-ss-summary-metric:last-of-type{border-right:0!important}
+            #${PANEL_ID} .qol-ss-summary-meta{margin-left:auto!important;color:#87745c!important;font-size:8px!important;font-weight:400!important}
+            #${PANEL_ID} .qol-ss-summary-change,#${PANEL_ID} .qol-ss-change{font-weight:700!important}
+            #${PANEL_ID} .qol-positive{color:#35651f!important}
+            #${PANEL_ID} .qol-negative{color:#8b2922!important}
+            #${PANEL_ID} .qol-stationary{color:#967016!important}
             #${PANEL_ID} .qol-ss-empty{padding:30px 16px!important;border:1px dashed #c8b490!important;border-radius:5px!important;background:#fffaf0!important;color:#6e573b!important;text-align:center!important;font-size:11px!important;line-height:1.5!important}
             #${PANEL_ID} .qol-ss-table-wrap{flex:1 1 auto!important;min-height:0!important;border:1px solid #cdbb9d!important;border-radius:4px!important;overflow:auto!important;background:#fff!important;scrollbar-color:var(--qol-scroll-thumb) #e7ded1!important;scrollbar-width:thin!important}
-            #${PANEL_ID} .qol-ss-table{width:100%!important;min-width:970px!important;border-collapse:collapse!important;table-layout:auto!important;font-size:9.5px!important}
-            #${PANEL_ID} .qol-ss-table th{position:sticky!important;top:0!important;z-index:2!important;padding:7px 5px!important;border-bottom:1px solid #cbbd9f!important;background:#e5d4b8!important;color:#533b22!important;text-align:left!important;font-size:8.5px!important;text-transform:uppercase!important;white-space:nowrap!important}
-            #${PANEL_ID} .qol-ss-table th.qol-ss-role-column,#${PANEL_ID} .qol-ss-table td.qol-ss-role-column{text-align:center!important;width:40px!important}
-            #${PANEL_ID} .qol-ss-table td{padding:6px 5px!important;border-top:1px solid #eadfce!important;color:#4d3824!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-ss-table{width:100%!important;min-width:990px!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:9px!important}
+            #${PANEL_ID} .qol-ss-table th{position:sticky!important;top:0!important;z-index:2!important;height:31px!important;padding:4px 5px!important;border-bottom:1px solid #cbbd9f!important;background:#e5d4b8!important;color:#533b22!important;text-align:left!important;font-size:8px!important;text-transform:uppercase!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-ss-table th.qol-ss-icon-column,#${PANEL_ID} .qol-ss-table td.qol-ss-number-column,#${PANEL_ID} .qol-ss-table th.qol-ss-role-column,#${PANEL_ID} .qol-ss-table td.qol-ss-role-column,#${PANEL_ID} .qol-ss-table th.qol-ss-mail-column,#${PANEL_ID} .qol-ss-table td.qol-ss-mail-column{text-align:center!important}
+            #${PANEL_ID} .qol-ss-table td{height:29px!important;padding:4px 5px!important;border-top:1px solid #eadfce!important;color:#4d3824!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+            #${PANEL_ID} .qol-ss-table td.qol-ss-name-column{font-weight:700!important}
+            #${PANEL_ID} .qol-ss-table td.qol-ss-notes-column{overflow:visible!important;text-overflow:clip!important}
             #${PANEL_ID} .qol-ss-table tr:hover td{background:#fff8e7!important}
             #${PANEL_ID} .qol-ss-sort{cursor:pointer!important;user-select:none!important}
             #${PANEL_ID} .qol-ss-sort:hover{background:#d7c29d!important}
             #${PANEL_ID} .qol-ss-sort::after{content:""!important;margin-left:3px!important}
             #${PANEL_ID} .qol-ss-sort.qol-sort-asc::after{content:"▲"!important}
             #${PANEL_ID} .qol-ss-sort.qol-sort-desc::after{content:"▼"!important}
+            #${PANEL_ID} .qol-ss-metric-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:17px!important;height:17px!important;vertical-align:middle!important;color:currentColor!important}
+            #${PANEL_ID} .qol-ss-metric-icon svg{width:15px!important;height:15px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}
+            #${PANEL_ID} .qol-ss-metric-icon i{display:block!important;margin:0!important;transform:scale(.82)!important;transform-origin:center!important}
+            #${PANEL_ID} .qol-ss-note-icon{width:13px!important;height:13px!important}
+            #${PANEL_ID} .qol-ss-note-icon svg{width:12px!important;height:12px!important;stroke-width:2!important}
+            #${PANEL_ID} .qol-ss-change{display:inline-flex!important;align-items:center!important;gap:2px!important}
+            #${PANEL_ID} .qol-ss-note-divider{display:inline-block!important;margin:0 5px!important;color:#b7a98f!important;font-weight:400!important}
+            #${PANEL_ID} .qol-ss-mail{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:21px!important;height:21px!important;margin:0 auto!important;border:1px solid #a98e67!important;border-radius:4px!important;background:#fffaf0!important;color:var(--qol-accent-deep)!important;cursor:pointer!important;outline:none!important}
+            #${PANEL_ID} .qol-ss-mail:hover,#${PANEL_ID} .qol-ss-mail:focus-visible{border-color:var(--qol-accent)!important;background:var(--qol-accent-soft)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
+            #${PANEL_ID} .qol-ss-mail .qol-ss-metric-icon{width:14px!important;height:14px!important}
+            #${PANEL_ID} .qol-ss-mail svg{width:13px!important;height:13px!important;stroke-width:2!important}
             #${PANEL_ID} .qol-ss-role-check{position:relative!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:17px!important;height:17px!important;margin:0 auto!important;border:1px solid #8e7656!important;border-radius:3px!important;background:#fff!important;color:#fff!important;cursor:pointer!important;user-select:none!important;outline:none!important}
             #${PANEL_ID} .qol-ss-role-check:hover,#${PANEL_ID} .qol-ss-role-check:focus-visible{border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
             #${PANEL_ID} .qol-ss-role-check[aria-checked="true"]{border-color:#46651f!important;background:#648b2c!important}
@@ -414,6 +467,9 @@
             const societyId = getSocietyId(root);
             const scanId = societyId || normalizedText(societyName).replace(/[^a-z0-9]+/g, '-') || 'secret-society';
             const previous = loadScans().find(scan => scan.id === scanId);
+            const previousMembers = new Map(
+                (previous?.members || []).map(member => [memberKey(member), member])
+            );
             const previousRoles = new Map(
                 (previous?.members || []).map(member => [memberKey(member), {
                     off: member.off,
@@ -453,21 +509,48 @@
 
             if (!reachedLastPage) throw new Error('The scan reached its page safety limit.');
 
-            const scannedMembers = Array.from(members.values()).map(member => ({
-                ...member,
-                ...(previousRoles.get(memberKey(member)) || { off: false, def: false, op: false })
-            })).sort((left, right) => {
+            const scannedMembers = Array.from(members.values()).map(member => {
+                const earlier = previousMembers.get(memberKey(member));
+                const villages = numericValue(member.villages);
+                const earlierVillages = numericValue(earlier?.villages);
+                const population = numericValue(member.population);
+                const earlierPopulation = numericValue(earlier?.population);
+                return {
+                    ...member,
+                    ...(previousRoles.get(memberKey(member)) || { off: false, def: false, op: false }),
+                    villageChange: earlier && villages != null && earlierVillages != null
+                        ? villages - earlierVillages
+                        : null,
+                    populationChange: earlier && population != null && earlierPopulation != null
+                        ? population - earlierPopulation
+                        : null,
+                    isNew: Boolean(previous && !earlier)
+                };
+            }).sort((left, right) => {
                 return (numericValue(left.rank) ?? Number.MAX_SAFE_INTEGER) -
                     (numericValue(right.rank) ?? Number.MAX_SAFE_INTEGER);
             });
 
+            const scannedAt = Date.now();
+            const previousSummary = previous
+                ? normalizeSnapshot(previous.summary, previous.members, previous.scannedAt)
+                : null;
+            const history = previousSummary
+                ? [...(previous.history || []), previousSummary]
+                    .filter((snapshot, index, snapshots) => {
+                        return snapshots.findIndex(item => item.scannedAt === snapshot.scannedAt) === index;
+                    })
+                    .slice(-SNAPSHOT_HISTORY_LIMIT)
+                : [];
             const scan = {
                 id: scanId,
                 societyId,
                 route: pageRoute(1),
                 name: societyName,
-                scannedAt: Date.now(),
-                members: scannedMembers
+                scannedAt,
+                members: scannedMembers,
+                summary: summarizeMembers(scannedMembers, scannedAt),
+                history
             };
             const scans = loadScans();
             const index = scans.findIndex(item => item.id === scan.id);
@@ -530,19 +613,89 @@
     }
 
     function numericValue(value) {
-        const parsed = Number(String(value == null ? '' : value).replace(/[^0-9.-]/g, ''));
-        return Number.isFinite(parsed) ? parsed : null;
+        const source = String(value == null ? '' : value).trim();
+        const digits = source.replace(/\D/g, '');
+        if (!digits) return null;
+        const parsed = Number(digits) * (/^-/.test(source) ? -1 : 1);
+        return Number.isSafeInteger(parsed) ? parsed : null;
+    }
+
+    function nullableNumber(value) {
+        return value == null || value === '' ? null : numericValue(value);
     }
 
     const MEMBER_COLUMNS = [
         { key: 'rank', label: 'Rank' },
         { key: 'name', label: 'Member' },
-        { key: 'villages', label: 'Villages' },
-        { key: 'population', label: 'Population' },
-        { key: 'resourcesSent', label: 'Res Sent' },
-        { key: 'troopsLostInDefense', label: 'Def Lost' },
-        { key: 'troopsCurrentlyProvided', label: 'Troops Provided' }
+        { key: 'villages', label: 'Villages', icon: 'house' },
+        { key: 'population', label: 'Population', icon: 'person' },
+        { key: 'resourcesSent', label: 'Resources Sent', icon: 'crop' },
+        { key: 'troopsLostInDefense', label: 'Troops Lost in Defense', icon: 'shield' },
+        { key: 'troopsCurrentlyProvided', label: 'Troops Currently Provided', icon: 'sword' }
     ];
+
+    const ICON_PATHS = Object.freeze({
+        house: '<path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v10h13V10M9 20v-6h6v6"></path>',
+        person: '<circle cx="12" cy="7.5" r="3.5"></circle><path d="M5.5 20c.4-4.3 2.6-6.5 6.5-6.5s6.1 2.2 6.5 6.5"></path>',
+        shield: '<path d="M12 3 20 6v5.5c0 4.8-3.2 7.9-8 9.5-4.8-1.6-8-4.7-8-9.5V6l8-3Z"></path>',
+        sword: '<path d="m5 19 4.5-4.5M7 21l-4-4 3-1 1-3 4 4-3 1-1 3Z"></path><path d="m10 14 8.5-8.5L21 3l-2.5 6L13 14.5"></path>',
+        mail: '<rect x="3" y="5" width="18" height="14" rx="2"></rect><path d="m4 7 8 6 8-6"></path>'
+    });
+
+    function iconHtml(kind, label, extraClass = '') {
+        const classes = `qol-ss-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
+        if (kind === 'crop') {
+            return `<span class="${classes}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><i class="unit_crop_small_illu resType4"></i></span>`;
+        }
+        const paths = ICON_PATHS[kind] || '';
+        return `<span class="${classes}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg></span>`;
+    }
+
+    function formatMetric(value) {
+        const numeric = numericValue(value);
+        return numeric == null ? escapeHtml(value || '—') : numeric.toLocaleString();
+    }
+
+    function changeDescriptor(value) {
+        const numeric = nullableNumber(value);
+        if (numeric == null) return { tone: 'stationary', arrow: '—', amount: '—' };
+        if (numeric > 0) return { tone: 'positive', arrow: '↗', amount: Math.abs(numeric).toLocaleString() };
+        if (numeric < 0) return { tone: 'negative', arrow: '↘', amount: Math.abs(numeric).toLocaleString() };
+        return { tone: 'stationary', arrow: '→', amount: '0' };
+    }
+
+    function changeMetricHtml(kind, label, value) {
+        const change = changeDescriptor(value);
+        return `<span class="qol-ss-change qol-${change.tone}">${iconHtml(kind, label, 'qol-ss-note-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
+    }
+
+    function memberNotesHtml(member) {
+        if (member.isNew) return '<span class="qol-ss-change qol-positive">New member</span>';
+        if (member.villageChange == null && member.populationChange == null) {
+            return '<span class="qol-ss-change qol-stationary">Baseline</span>';
+        }
+        return `${changeMetricHtml('house', 'Village change', member.villageChange)}<span class="qol-ss-note-divider">|</span>${changeMetricHtml('person', 'Population change', member.populationChange)}`;
+    }
+
+    function memberNotesText(member) {
+        if (member.isNew) return 'New member';
+        if (member.villageChange == null && member.populationChange == null) return 'Baseline';
+        const villages = changeDescriptor(member.villageChange);
+        const population = changeDescriptor(member.populationChange);
+        return `Villages ${villages.arrow} ${villages.amount} | Population ${population.arrow} ${population.amount}`;
+    }
+
+    function previousSnapshot(scan) {
+        return Array.isArray(scan?.history) && scan.history.length
+            ? scan.history[scan.history.length - 1]
+            : null;
+    }
+
+    function summaryChangeHtml(value, hasComparison = true) {
+        if (!hasComparison) return '';
+        const change = changeDescriptor(value);
+        return `<span class="qol-ss-summary-change qol-${change.tone}">${change.arrow} ${change.amount}</span>`;
+    }
 
     function sortedMembers(members) {
         const multiplier = memberSort.direction === 'asc' ? 1 : -1;
@@ -718,13 +871,10 @@
             !button.disabled;
     }
 
-    async function prepareNativeMessage(composer, playerName, messageText) {
+    async function fillNativeRecipient(composer, playerName) {
         const elements = composerElements(composer);
-        if (!elements.recipient || !elements.message || !elements.send) {
-            throw new Error('Travian message fields were not found.');
-        }
+        if (!elements.recipient) throw new Error('Travian recipient field was not found.');
 
-        setNativeValue(elements.message, messageText);
         elements.recipient.focus();
         setNativeValue(elements.recipient, '');
         await delay(80);
@@ -736,21 +886,58 @@
         }));
 
         await delay(250);
-        if (!sendButtonReady(elements.send)) {
-            const suggestion = await waitUntil(
+        let suggestion = exactAutocompleteItem(playerName);
+        if (!suggestion && !sendButtonReady(elements.send)) {
+            suggestion = await waitUntil(
                 () => exactAutocompleteItem(playerName),
                 6500,
                 100
             );
-            if (!suggestion) {
-                throw new Error(`Recipient “${playerName}” was not confirmed by Travian.`);
-            }
-            clickAutocompleteItem(suggestion);
         }
+        if (suggestion) {
+            clickAutocompleteItem(suggestion);
+            await delay(180);
+        } else if (!sendButtonReady(elements.send)) {
+            throw new Error(`Recipient “${playerName}” was not confirmed by Travian.`);
+        }
+        return elements;
+    }
+
+    async function prepareNativeMessage(composer, playerName, messageText) {
+        const elements = composerElements(composer);
+        if (!elements.recipient || !elements.message || !elements.send) {
+            throw new Error('Travian message fields were not found.');
+        }
+
+        setNativeValue(elements.message, messageText);
+        await fillNativeRecipient(composer, playerName);
 
         const ready = await waitUntil(() => sendButtonReady(elements.send), 5000, 100);
         if (!ready) throw new Error(`The message for “${playerName}” never became sendable.`);
         return elements.send;
+    }
+
+    async function openMemberMessage(playerName, control) {
+        if (memberMailInProgress || messageInProgress) return;
+        memberMailInProgress = true;
+        control?.setAttribute('aria-busy', 'true');
+        control?.setAttribute('aria-disabled', 'true');
+        try {
+            const composer = await openNewConversation();
+            if (!composer) throw new Error('The new-message window did not open.');
+            const elements = await fillNativeRecipient(composer, playerName);
+            elements.message?.focus();
+        } catch (error) {
+            console.error(`[APES Secret Society] Could not address message to ${playerName}:`, error);
+            showScannerDialog(
+                'Could not open message',
+                error?.message || `APES could not address a new message to “${playerName}”.`
+            );
+        } finally {
+            memberMailInProgress = false;
+            control?.removeAttribute('aria-busy');
+            control?.removeAttribute('aria-disabled');
+        }
     }
 
     async function sendNativeMessage(playerName, messageText) {
@@ -851,15 +1038,20 @@
         const quote = value => `"${String(value == null ? '' : value).replace(/"/g, '""')}"`;
         const columns = [
             ...MEMBER_COLUMNS,
-            { key: 'off', label: 'Off' },
             { key: 'def', label: 'Def' },
-            { key: 'op', label: 'OP' }
+            { key: 'off', label: 'Off' },
+            { key: 'op', label: 'OP' },
+            { key: 'notes', label: 'Notes' }
         ];
         const rows = [
             columns.map(column => quote(column.label)).join(','),
             ...sortedMembers(scan.members).map(member => {
                 return columns.map(column => quote(
-                    ROLE_KEYS.includes(column.key) ? (member[column.key] ? 'Yes' : 'No') : member[column.key]
+                    column.key === 'notes'
+                        ? memberNotesText(member)
+                        : ROLE_KEYS.includes(column.key)
+                            ? (member[column.key] ? 'Yes' : 'No')
+                            : member[column.key]
                 )).join(',');
             })
         ];
@@ -959,6 +1151,15 @@
             </div>
         `).join('');
         const draft = getDraft(selected.id);
+        const summary = normalizeSnapshot(selected.summary, selected.members, selected.scannedAt);
+        const earlierSummary = previousSnapshot(selected);
+        const hasComparison = Boolean(earlierSummary);
+        const memberDelta = hasComparison ? summary.memberCount - earlierSummary.memberCount : null;
+        const villageDelta = hasComparison ? summary.villages - earlierSummary.villages : null;
+        const populationDelta = hasComparison ? summary.population - earlierSummary.population : null;
+        const comparisonText = hasComparison
+            ? `Compared with ${new Date(earlierSummary.scannedAt).toLocaleString()}`
+            : 'First snapshot';
 
         body.innerHTML = `
             <div class="qol-ss-tabs">${tabs}</div>
@@ -984,19 +1185,27 @@
                 <div class="qol-ss-action" data-ss-refresh role="button" tabindex="0">Update</div>
                 <div class="qol-ss-tab" data-ss-delete role="button" tabindex="0">Delete SS Data</div>
             </div>
-            <p class="qol-ss-summary">
-                ${selected.members.length} members · scanned ${new Date(selected.scannedAt).toLocaleString()}
-            </p>
+            <div class="qol-ss-summary">
+                <span class="qol-ss-summary-metric"><strong>${summary.memberCount.toLocaleString()}</strong> members ${summaryChangeHtml(memberDelta, hasComparison)}</span>
+                <span class="qol-ss-summary-metric">${iconHtml('house', 'Total villages')}<strong>${summary.villages.toLocaleString()}</strong> villages ${summaryChangeHtml(villageDelta, hasComparison)}</span>
+                <span class="qol-ss-summary-metric">${iconHtml('person', 'Total population')}<strong>${summary.population.toLocaleString()}</strong> population ${summaryChangeHtml(populationDelta, hasComparison)}</span>
+                <span class="qol-ss-summary-meta">${escapeHtml(comparisonText)} · scanned ${escapeHtml(new Date(selected.scannedAt).toLocaleString())}</span>
+            </div>
             <div class="qol-ss-table-wrap">
                 <table class="qol-ss-table">
+                    <colgroup>
+                        <col style="width:46px"><col style="width:160px"><col style="width:50px"><col style="width:72px"><col style="width:94px"><col style="width:78px"><col style="width:86px"><col style="width:36px"><col style="width:36px"><col style="width:36px"><col style="width:42px"><col style="width:190px">
+                    </colgroup>
                     <thead><tr>
                         ${MEMBER_COLUMNS.map(column => `
-                            <th class="qol-ss-sort${memberSort.key === column.key ? ` qol-sort-${memberSort.direction}` : ''}"
-                                data-ss-sort="${column.key}" role="button" tabindex="0">${column.label}</th>
+                            <th class="qol-ss-sort${column.icon ? ' qol-ss-icon-column' : ''}${memberSort.key === column.key ? ` qol-sort-${memberSort.direction}` : ''}"
+                                data-ss-sort="${column.key}" role="button" tabindex="0" title="${escapeHtml(column.label)}">${column.icon ? iconHtml(column.icon, column.label) : column.label}</th>
                         `).join('')}
-                        <th class="qol-ss-role-column">Off</th>
                         <th class="qol-ss-role-column">Def</th>
+                        <th class="qol-ss-role-column">Off</th>
                         <th class="qol-ss-role-column">OP</th>
+                        <th class="qol-ss-mail-column" title="Message member">${iconHtml('mail', 'Message member')}</th>
+                        <th>Notes</th>
                     </tr></thead>
                     <tbody></tbody>
                 </table>
@@ -1025,19 +1234,21 @@
             body.querySelector('tbody').innerHTML = members.length
                 ? members.map(member => `
                     <tr>
-                        <td>${escapeHtml(member.rank)}</td>
-                        <td>${escapeHtml(member.name)}</td>
-                        <td>${escapeHtml(member.villages)}</td>
-                        <td>${escapeHtml(member.population)}</td>
-                        <td>${escapeHtml(member.resourcesSent)}</td>
-                        <td>${escapeHtml(member.troopsLostInDefense)}</td>
-                        <td>${escapeHtml(member.troopsCurrentlyProvided)}</td>
-                        <td class="qol-ss-role-column">${roleCheckboxHtml(member, 'off')}</td>
+                        <td class="qol-ss-number-column">${formatMetric(member.rank)}</td>
+                        <td class="qol-ss-name-column" title="${escapeHtml(member.name)}">${escapeHtml(member.name)}</td>
+                        <td class="qol-ss-number-column">${formatMetric(member.villages)}</td>
+                        <td class="qol-ss-number-column">${formatMetric(member.population)}</td>
+                        <td class="qol-ss-number-column">${formatMetric(member.resourcesSent)}</td>
+                        <td class="qol-ss-number-column">${formatMetric(member.troopsLostInDefense)}</td>
+                        <td class="qol-ss-number-column">${formatMetric(member.troopsCurrentlyProvided)}</td>
                         <td class="qol-ss-role-column">${roleCheckboxHtml(member, 'def')}</td>
+                        <td class="qol-ss-role-column">${roleCheckboxHtml(member, 'off')}</td>
                         <td class="qol-ss-role-column">${roleCheckboxHtml(member, 'op')}</td>
+                        <td class="qol-ss-mail-column"><div class="qol-ss-mail" data-ss-mail="${escapeHtml(memberKey(member))}" role="button" tabindex="0" title="Message ${escapeHtml(member.name)}" aria-label="Message ${escapeHtml(member.name)}">${iconHtml('mail', `Message ${member.name}`)}</div></td>
+                        <td class="qol-ss-notes-column">${memberNotesHtml(member)}</td>
                     </tr>
                 `).join('')
-                : '<tr><td colspan="10">No matching members.</td></tr>';
+                : '<tr><td colspan="12">No matching members.</td></tr>';
 
             body.querySelectorAll('[data-member-role]').forEach(control => {
                 const toggle = event => {
@@ -1055,6 +1266,21 @@
                 control.addEventListener('click', toggle);
                 control.addEventListener('keydown', event => {
                     if (event.key === 'Enter' || event.key === ' ') toggle(event);
+                });
+            });
+
+            body.querySelectorAll('[data-ss-mail]').forEach(control => {
+                const open = event => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    const member = selected.members.find(item => {
+                        return memberKey(item) === control.dataset.ssMail;
+                    });
+                    if (member?.name) void openMemberMessage(member.name, control);
+                };
+                control.addEventListener('click', open);
+                control.addEventListener('keydown', event => {
+                    if (event.key === 'Enter' || event.key === ' ') open(event);
                 });
             });
         };
