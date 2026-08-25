@@ -88,8 +88,8 @@
                 position: fixed !important;
                 width: 30px !important;
                 height: 30px !important;
-                background-color: #ebdcb9 !important;
-                border: 2px solid #7d6342 !important;
+                background-color: var(--qol-accent-soft) !important;
+                border: 2px solid var(--qol-accent) !important;
                 border-radius: 50% !important;
                 display: none;
                 align-items: center !important;
@@ -112,8 +112,8 @@
             }
 
             .qol-wl-profile-btn {
-                background-color: #7d6342 !important;
-                background: linear-gradient(to bottom, #7d6342, #543f26) !important;
+                background-color: var(--qol-accent) !important;
+                background: linear-gradient(to bottom, var(--qol-accent), var(--qol-accent-dark)) !important;
                 color: #ffffff !important;
                 padding: 3px 8px !important;
                 border-radius: 4px !important;
@@ -124,7 +124,7 @@
                 text-align: center !important;
                 white-space: nowrap !important;
                 box-sizing: border-box !important;
-                border: 1px solid #42311c !important;
+                border: 1px solid var(--qol-accent-outline) !important;
                 box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
                 display: inline-flex !important;
                 align-items: center !important;
@@ -136,14 +136,14 @@
                 vertical-align: middle !important;
             }
             .qol-wl-profile-btn:hover {
-                background-color: #543f26 !important;
-                background: linear-gradient(to bottom, #8d7352, #644f36) !important;
+                background-color: var(--qol-accent-dark) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-hover), var(--qol-accent-hover-dark)) !important;
             }
 
             .qol-wl-dropdown-menu {
                 position: fixed !important;
                 background-color: #ffffff !important;
-                border: 2px solid #634d31 !important;
+                border: 2px solid var(--qol-border) !important;
                 border-radius: 4px !important;
                 box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
                 z-index: 100001 !important;
@@ -178,7 +178,7 @@
                 min-height: 200px !important;
                 max-height: 90vh !important;
                                 background-color: #ffffff !important;
-                border: 3px solid #634d31 !important;
+                border: 3px solid var(--qol-border) !important;
                 border-radius: 4px !important;
                 box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
                 z-index: 9999 !important;
@@ -191,7 +191,7 @@
 
             
             .qol-wl-header {
-                background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
                 color: #f7f5f0 !important;
                 padding: 5px 10px !important;
                 font-weight: bold !important;
@@ -281,7 +281,7 @@
                 user-select: none !important;
             }
             .qol-wl-tab.active {
-                background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
                 color: #ffffff !important;
                 border-color: #43321e !important;
                 font-weight: bold !important;
@@ -303,14 +303,14 @@
                 color: #c00 !important;
             }
             .qol-wl-tab-add {
-                background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
                 color: #f7f5f0 !important;
                 font-weight: bold !important;
-                border: 1px solid #42311c !important;
+                border: 1px solid var(--qol-accent-outline) !important;
                 border-bottom: none !important;
             }
             .qol-wl-tab-add:hover {
-                background: linear-gradient(to bottom, #7d6342, #543f26) !important;
+                background: linear-gradient(to bottom, var(--qol-accent), var(--qol-accent-dark)) !important;
             }
 
             .qol-wl-status {
@@ -408,14 +408,14 @@
             }
             .qol-modal-box {
                 background-color: #f7f5f0 !important;
-                border: 3px solid #634d31 !important;
+                border: 3px solid var(--qol-border) !important;
                 border-radius: 4px !important;
                 width: 320px !important;
                 box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
                 overflow: hidden !important;
             }
             .qol-modal-header {
-                background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
                 color: #f7f5f0 !important;
                 padding: 6px 10px !important;
                 font-weight: bold !important;
@@ -890,7 +890,7 @@
             top: ${rect.bottom + 4}px !important;
             left: ${rect.left}px !important;
             background-color: #ffffff !important;
-            border: 2px solid #634d31 !important;
+            border: 2px solid var(--qol-border) !important;
             border-radius: 4px !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.3) !important;
             z-index: 100001 !important;
@@ -1248,7 +1248,7 @@
         watchlistToggleBtn.id = 'qol-watchlist-toggle';
         watchlistToggleBtn.title = 'Toggle Player Watchlist';
         watchlistToggleBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" style="fill:none !important; stroke:#7d6342 !important; stroke-width:2 !important; stroke-linecap:round !important; stroke-linejoin:round !important;">
+            <svg viewBox="0 0 24 24" style="fill:none !important; stroke:var(--qol-accent) !important; stroke-width:2 !important; stroke-linecap:round !important; stroke-linejoin:round !important;">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
                 <path d="M9 12h6"></path>
@@ -1288,7 +1288,7 @@
             <div class="qol-wl-body">
                 <div class="qol-wl-tutorial">Open a player's profile and click "Add Profile to Watchlist" next to Description.</div>
                 <div class="qol-wl-controls">
-                    <div id="qol-wl-update-btn" style="background-color:#543f26 !important; color:#ffffff !important; padding:4px 8px !important; border-radius:4px !important; font-size:11px !important; font-weight:bold !important; cursor:pointer !important; user-select:none !important; text-align:center !important; white-space:nowrap; box-sizing:border-box !important; border:1px solid #42311c !important; box-shadow:0 1px 3px rgba(0,0,0,0.2) !important;">Update Current Watchlist</div>
+                    <div id="qol-wl-update-btn" style="background-color:var(--qol-accent-dark) !important; color:#ffffff !important; padding:4px 8px !important; border-radius:4px !important; font-size:11px !important; font-weight:bold !important; cursor:pointer !important; user-select:none !important; text-align:center !important; white-space:nowrap; box-sizing:border-box !important; border:1px solid var(--qol-accent-outline) !important; box-shadow:0 1px 3px rgba(0,0,0,0.2) !important;">Update Current Watchlist</div>
                 </div>
                 
                 <div class="qol-wl-tabs"></div>

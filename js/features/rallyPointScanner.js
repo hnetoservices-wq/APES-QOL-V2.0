@@ -204,7 +204,7 @@ function initUnifiedRallyPointScanner() {
                 max-height: 92vh !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                border: 3px solid #634d31 !important;
+                border: 3px solid var(--qol-border) !important;
                 border-radius: 5px !important;
                 background: #f7f5f0 !important;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, .5) !important;
@@ -229,8 +229,8 @@ function initUnifiedRallyPointScanner() {
                 flex: 0 0 38px !important;
                 min-height: 38px !important;
                 padding: 6px 10px !important;
-                border-bottom: 1px solid #3f2d19 !important;
-                background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+                border-bottom: 1px solid var(--qol-accent-outline) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
                 color: #f7f5f0 !important;
                 cursor: move !important;
                 user-select: none !important;
@@ -495,9 +495,9 @@ function initUnifiedRallyPointScanner() {
                 height: 30px !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                border: 2px solid #7d6342 !important;
+                border: 2px solid var(--qol-accent) !important;
                 border-radius: 50% !important;
-                background: #ebdcb9 !important;
+                background: var(--qol-accent-soft) !important;
                 box-shadow: 0 2px 4px rgba(0, 0, 0, .22) !important;
                 cursor: pointer !important;
                 user-select: none !important;
@@ -513,7 +513,7 @@ function initUnifiedRallyPointScanner() {
                 width: 17px !important;
                 height: 17px !important;
                 fill: none !important;
-                stroke: #7d6342 !important;
+                stroke: var(--qol-accent) !important;
                 stroke-width: 2 !important;
                 stroke-linecap: round !important;
                 stroke-linejoin: round !important;

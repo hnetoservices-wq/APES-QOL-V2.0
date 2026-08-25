@@ -373,12 +373,12 @@
                 height: 28px !important;
                 margin: 0 !important;
                 padding: 5px 11px !important;
-                border: 1px solid #523d24 !important;
+                border: 1px solid var(--qol-action-border) !important;
                 border-radius: 3px !important;
                 background: linear-gradient(
                     to bottom,
-                    #7d6342,
-                    #543f26
+                    var(--qol-accent),
+                    var(--qol-accent-dark)
                 ) !important;
                 color: #ffffff !important;
                 font-size: 11px !important;
@@ -425,7 +425,7 @@
             }
 
             #${STATUS_ID}[data-state="scanning"] {
-                color: #6d5436 !important;
+                color: var(--qol-accent-mid) !important;
             }
 
             #${STATUS_ID}[data-state="success"] {
@@ -458,8 +458,8 @@
                 padding: 6px 9px !important;
                 background: linear-gradient(
                     to bottom,
-                    #6d5436,
-                    #4f3b24
+                    var(--qol-accent-mid),
+                    var(--qol-accent-deep)
                 ) !important;
                 color: #fffaf0 !important;
             }

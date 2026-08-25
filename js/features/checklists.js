@@ -473,7 +473,7 @@
         checklistToggleBtn.id = 'qol-checklist-toggle-btn';
         checklistToggleBtn.title = 'Checklists';
         checklistToggleBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" style="fill:none !important; stroke:#7d6342 !important; stroke-width:2 !important; stroke-linecap:round !important; stroke-linejoin:round !important;">
+            <svg viewBox="0 0 24 24" style="fill:none !important; stroke:var(--qol-accent) !important; stroke-width:2 !important; stroke-linecap:round !important; stroke-linejoin:round !important;">
                 <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
                 <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
             </svg>

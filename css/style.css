@@ -1,3 +1,130 @@
+/* APES theme tokens. Brown preserves the extension's original palette. */
+:root,
+html[data-qol-theme="brown"] {
+    --qol-accent: #7d6342;
+    --qol-accent-mid: #6d5436;
+    --qol-accent-dark: #543f26;
+    --qol-accent-deep: #4f3b24;
+    --qol-accent-outline: #42311c;
+    --qol-border: #634d31;
+    --qol-accent-soft: #ebdcb9;
+    --qol-accent-ink: #654c30;
+    --qol-accent-hover: #8d7352;
+    --qol-accent-hover-dark: #644f36;
+    --qol-accent-gradient-end: #5a4328;
+    --qol-action-border: #523d24;
+    --qol-border-strong: #604929;
+    --qol-scroll-thumb: #8a6a42;
+    --qol-text-accent: #4a3821;
+    --qol-radial-ring: #e7c444;
+    --qol-radial-glow: #f6df67;
+    --qol-radial-border: #c49b42;
+    --qol-radial-top: #74552e;
+    --qol-radial-mid: #3b2919;
+    --qol-radial-bottom: #24190f;
+    --qol-radial-center: rgba(24, 18, 11, .82);
+}
+
+html[data-qol-theme="forest"] {
+    --qol-accent: #617447;
+    --qol-accent-mid: #50633b;
+    --qol-accent-dark: #334329;
+    --qol-accent-deep: #2c3924;
+    --qol-accent-outline: #24301d;
+    --qol-border: #405331;
+    --qol-accent-soft: #dce5c8;
+    --qol-accent-ink: #3d4d2e;
+    --qol-accent-hover: #728657;
+    --qol-accent-hover-dark: #50633b;
+    --qol-accent-gradient-end: #465a35;
+    --qol-action-border: #2f4224;
+    --qol-border-strong: #35462a;
+    --qol-scroll-thumb: #6f8252;
+    --qol-text-accent: #314127;
+    --qol-radial-ring: #b8d35b;
+    --qol-radial-glow: #d8ef79;
+    --qol-radial-border: #86a83e;
+    --qol-radial-top: #526b34;
+    --qol-radial-mid: #2f4224;
+    --qol-radial-bottom: #1c2916;
+    --qol-radial-center: rgba(18, 28, 14, .86);
+}
+
+html[data-qol-theme="ocean"] {
+    --qol-accent: #416f82;
+    --qol-accent-mid: #375f70;
+    --qol-accent-dark: #294653;
+    --qol-accent-deep: #223d48;
+    --qol-accent-outline: #1b3038;
+    --qol-border: #31596a;
+    --qol-accent-soft: #d3e4e9;
+    --qol-accent-ink: #294c5a;
+    --qol-accent-hover: #528296;
+    --qol-accent-hover-dark: #375f70;
+    --qol-accent-gradient-end: #315765;
+    --qol-action-border: #223d48;
+    --qol-border-strong: #294e5d;
+    --qol-scroll-thumb: #4b7889;
+    --qol-text-accent: #294653;
+    --qol-radial-ring: #62c5d8;
+    --qol-radial-glow: #8ce1ef;
+    --qol-radial-border: #3d9bad;
+    --qol-radial-top: #3b7180;
+    --qol-radial-mid: #244753;
+    --qol-radial-bottom: #162d35;
+    --qol-radial-center: rgba(13, 31, 38, .86);
+}
+
+html[data-qol-theme="slate"] {
+    --qol-accent: #626b79;
+    --qol-accent-mid: #515b69;
+    --qol-accent-dark: #3a424d;
+    --qol-accent-deep: #303741;
+    --qol-accent-outline: #252b33;
+    --qol-border: #49525f;
+    --qol-accent-soft: #dfe3e8;
+    --qol-accent-ink: #404955;
+    --qol-accent-hover: #74808f;
+    --qol-accent-hover-dark: #515b69;
+    --qol-accent-gradient-end: #46515f;
+    --qol-action-border: #303741;
+    --qol-border-strong: #3d4652;
+    --qol-scroll-thumb: #6d7886;
+    --qol-text-accent: #343c47;
+    --qol-radial-ring: #aebdce;
+    --qol-radial-glow: #d4deea;
+    --qol-radial-border: #7f91a5;
+    --qol-radial-top: #596879;
+    --qol-radial-mid: #394451;
+    --qol-radial-bottom: #252c35;
+    --qol-radial-center: rgba(23, 28, 35, .87);
+}
+
+html[data-qol-theme="wine"] {
+    --qol-accent: #824f5c;
+    --qol-accent-mid: #713f4c;
+    --qol-accent-dark: #532d37;
+    --qol-accent-deep: #47262f;
+    --qol-accent-outline: #351c23;
+    --qol-border: #663945;
+    --qol-accent-soft: #ead7dc;
+    --qol-accent-ink: #5e3440;
+    --qol-accent-hover: #96606e;
+    --qol-accent-hover-dark: #713f4c;
+    --qol-accent-gradient-end: #653845;
+    --qol-action-border: #47262f;
+    --qol-border-strong: #57303a;
+    --qol-scroll-thumb: #8d5865;
+    --qol-text-accent: #4c2933;
+    --qol-radial-ring: #d6869a;
+    --qol-radial-glow: #f0aec0;
+    --qol-radial-border: #a85b70;
+    --qol-radial-top: #784555;
+    --qol-radial-mid: #4b2a34;
+    --qol-radial-bottom: #2f1920;
+    --qol-radial-center: rgba(39, 17, 24, .87);
+}
+
 /* Global Styles & Animations */
 @keyframes fastWiggle {
     0%, 100% { transform: rotate(0deg); }
@@ -18,8 +145,8 @@
     position: fixed !important;
     width: 30px !important;
     height: 30px !important;
-    background-color: #ebdcb9 !important;
-    border: 2px solid #7d6342 !important;
+    background-color: var(--qol-accent-soft) !important;
+    border: 2px solid var(--qol-accent) !important;
     border-radius: 50% !important;
     display: none;
     align-items: center !important;
@@ -45,7 +172,7 @@
     width: 18px !important;
     height: 18px !important;
     fill: none !important;
-    stroke: #7d6342 !important;
+    stroke: var(--qol-accent) !important;
     stroke-width: 2 !important;
     stroke-linecap: round !important;
     stroke-linejoin: round !important;
@@ -53,7 +180,7 @@
 }
 
 #qol-cog-btn svg {
-    fill: #7d6342 !important;
+    fill: var(--qol-accent) !important;
     stroke: none !important;
 }
 
@@ -86,7 +213,7 @@ body.qol-menu-open #qol-npc-calc-toggle-btn {
     width: 660px !important;
     max-width: 92% !important;
     background-color: #f7f5f0 !important;
-    border: 3px solid #634d31 !important;
+    border: 3px solid var(--qol-border) !important;
     border-radius: 8px !important;
     box-shadow: 0 12px 32px rgba(0,0,0,0.6) !important;
     font-family: Arial, sans-serif !important;
@@ -96,7 +223,7 @@ body.qol-menu-open #qol-npc-calc-toggle-btn {
 }
 
 .qol-modal-header {
-    background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+    background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
     color: #f7f5f0 !important;
     padding: 10px 18px !important;
     display: flex !important;
@@ -148,7 +275,7 @@ body.qol-menu-open #qol-npc-calc-toggle-btn {
     border-radius: 4px !important;
 }
 .qol-modal-body::-webkit-scrollbar-thumb:hover {
-    background: #7d6342 !important;
+    background: var(--qol-accent) !important;
 }
 
 /* Tables in Modal */
@@ -194,7 +321,7 @@ body.qol-menu-open #qol-npc-calc-toggle-btn {
 
 .qol-modal-table td {
     padding: 10px 12px !important;
-    border-bottom: 1px solid #ebdcb9 !important;
+    border-bottom: 1px solid var(--qol-accent-soft) !important;
     font-size: 13px !important;
     vertical-align: middle !important;
 }
@@ -380,7 +507,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     width: 920px;
     max-width: 95vw !important;
     background-color: #f7f5f0 !important;
-    border: 3px solid #634d31 !important;
+    border: 3px solid var(--qol-border) !important;
     border-radius: 4px !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
     z-index: 9999 !important;
@@ -391,7 +518,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 }
 
 .qol-wl-header {
-    background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+    background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
     color: #f7f5f0 !important;
     padding: 5px 10px !important;
     font-weight: bold !important;
@@ -484,7 +611,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 }
 .qol-modal-box {
     background-color: #f7f5f0 !important;
-    border: 3px solid #634d31 !important;
+    border: 3px solid var(--qol-border) !important;
     border-radius: 4px !important;
     width: 320px !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
@@ -506,27 +633,27 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     font-weight: bold !important;
     cursor: pointer !important;
     text-align: center !important;
-    border: 1px solid #42311c !important;
+    border: 1px solid var(--qol-accent-outline) !important;
     box-shadow: 0 1px 3px rgba(0,0,0,0.2) !important;
     user-select: none !important;
 }
 
 .qol-wl-action-btn.primary {
-    background-color: #7d6342 !important;
+    background-color: var(--qol-accent) !important;
     color: #ffffff !important;
 }
 
 .qol-wl-action-btn.primary:hover {
-    background-color: #8d7352 !important;
+    background-color: var(--qol-accent-hover) !important;
 }
 
 .qol-wl-action-btn.secondary {
-    background-color: #543f26 !important;
+    background-color: var(--qol-accent-dark) !important;
     color: #ffffff !important;
 }
 
 .qol-wl-action-btn.secondary:hover {
-    background-color: #644f36 !important;
+    background-color: var(--qol-accent-hover-dark) !important;
 }
 
 .qol-wl-action-btn.danger {
@@ -565,7 +692,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 /* Generic Modal Utility Classes (used by Watchlist prompts) */
 .qol-modal-footer {
     padding: 12px 18px !important;
-    background-color: #ebdcb9 !important;
+    background-color: var(--qol-accent-soft) !important;
     display: flex !important;
     justify-content: flex-end !important;
     gap: 10px !important;
@@ -578,24 +705,24 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     font-size: 12px !important;
     font-weight: bold !important;
     cursor: pointer !important;
-    border: 1px solid #7d6342 !important;
-    background-color: #7d6342 !important;
+    border: 1px solid var(--qol-accent) !important;
+    background-color: var(--qol-accent) !important;
     color: #ffffff !important;
     text-align: center !important;
     transition: background-color 0.2s !important;
 }
 
 .qol-modal-btn:hover {
-    background-color: #8d7352 !important;
+    background-color: var(--qol-accent-hover) !important;
 }
 
 .qol-modal-btn-secondary {
-    background-color: #543f26 !important;
-    border-color: #42311c !important;
+    background-color: var(--qol-accent-dark) !important;
+    border-color: var(--qol-accent-outline) !important;
 }
 
 .qol-modal-btn-secondary:hover {
-    background-color: #644f36 !important;
+    background-color: var(--qol-accent-hover-dark) !important;
 }
 
 .qol-modal-danger {
@@ -622,7 +749,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     padding: 2px 4px !important;
     font-size: 11px !important;
     background-color: #fff6e5 !important;
-    border: 1px solid #7d6342 !important;
+    border: 1px solid var(--qol-accent) !important;
     border-radius: 3px !important;
     color: #332211 !important;
     cursor: pointer !important;
@@ -650,7 +777,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     width: 100% !important;
     height: 34px !important;
     font-size: 10px !important;
-    border: 1px solid #7d6342 !important;
+    border: 1px solid var(--qol-accent) !important;
     background-color: #fff6e5 !important;
     border-radius: 3px !important;
     resize: none !important;
@@ -672,7 +799,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     width: 400px;
     background-color: #f7f5f0 !important;
     background: #f7f5f0 !important;
-    border: 3px solid #634d31 !important;
+    border: 3px solid var(--qol-border) !important;
     border-radius: 4px !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
     z-index: 9999 !important;
@@ -685,7 +812,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 }
 
 .qol-checklist-header {
-    background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+    background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
     color: #f7f5f0 !important;
     padding: 8px 12px !important;
     font-weight: bold !important;
@@ -702,8 +829,8 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 
 .qol-checklist-toolbar {
     padding: 10px !important;
-    background-color: #ebdcb9 !important;
-    background: #ebdcb9 !important;
+    background-color: var(--qol-accent-soft) !important;
+    background: var(--qol-accent-soft) !important;
     border-bottom: 1px solid #b8a383 !important;
     box-sizing: border-box !important;
     opacity: 1 !important;
@@ -753,7 +880,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     display: flex !important;
     gap: 6px !important;
     padding: 8px 10px !important;
-    background-color: #ebdcb9 !important;
+    background-color: var(--qol-accent-soft) !important;
     border-bottom: 1px solid #b8a383 !important;
     align-items: center !important;
 }
@@ -761,7 +888,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 .qol-add-step-container input {
     flex: 1 !important;
     padding: 5px 8px !important;
-    border: 1px solid #7d6342 !important;
+    border: 1px solid var(--qol-accent) !important;
     border-radius: 3px !important;
     font-size: 11px !important;
     background-color: #fff6e5 !important;
@@ -771,7 +898,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 #qol-checklist-select {
     width: 100% !important;
     padding: 6px !important;
-    border: 1px solid #7d6342 !important;
+    border: 1px solid var(--qol-accent) !important;
     background-color: #fff6e5 !important;
     background: #fff6e5 !important;
     border-radius: 3px !important;
@@ -845,7 +972,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     height: 15px !important;
     cursor: nwse-resize !important;
     z-index: 10 !important;
-    background: linear-gradient(135deg, transparent 50%, #7d6342 50%) !important;
+    background: linear-gradient(135deg, transparent 50%, var(--qol-accent) 50%) !important;
     border-radius: 0 0 4px 0 !important;
 }
 
@@ -898,7 +1025,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     z-index: 999999 !important;
     background: #f7f5f0 !important;
     background-color: #f7f5f0 !important;
-    border: 3px solid #634d31 !important;
+    border: 3px solid var(--qol-border) !important;
     border-radius: 4px !important;
     box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
     display: flex !important;
@@ -916,7 +1043,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 }
 
 .qol-calc-header {
-    background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+    background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
     color: #f7f5f0 !important;
     padding: 10px 14px !important;
     font-weight: bold !important;
@@ -941,7 +1068,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 
 .qol-calc-toolbar {
     padding: 10px 14px !important;
-    background-color: #ebdcb9 !important;
+    background-color: var(--qol-accent-soft) !important;
     border-bottom: 1px solid #b8a383 !important;
     display: flex !important;
     align-items: center !important;
@@ -958,7 +1085,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     max-height: none !important;
     box-sizing: border-box !important;
     padding: 4px 8px !important;
-    border: 1px solid #7d6342 !important;
+    border: 1px solid var(--qol-accent) !important;
     border-radius: 3px !important;
     background-color: #fff6e5 !important;
     color: #332211 !important;
@@ -981,7 +1108,7 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     background-color: #ffffff !important;
     background: #ffffff !important;
     color: #332211 !important;
-    border: 1px solid #7d6342 !important;
+    border: 1px solid var(--qol-accent) !important;
     border-radius: 3px !important;
     padding: 3px !important;
     font-weight: bold !important;
@@ -995,10 +1122,10 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
     align-items: center !important;
     justify-content: center !important;
     gap: 4px !important;
-    background-color: #ebdcb9 !important;
-    background: #ebdcb9 !important;
-    color: #4a3821 !important;
-    border: 1px solid #7d6342 !important;
+    background-color: var(--qol-accent-soft) !important;
+    background: var(--qol-accent-soft) !important;
+    color: var(--qol-text-accent) !important;
+    border: 1px solid var(--qol-accent) !important;
     border-radius: 3px !important;
     padding: 5px 12px !important;
     font-weight: bold !important;
@@ -1023,11 +1150,11 @@ body.qol-send-troops-enhanced-enabled .sendTroopsFooter .back .innerText span sp
 }
 
 .qol-calc-table th {
-    background-color: #ebdcb9 !important;
-    color: #4a3821 !important;
+    background-color: var(--qol-accent-soft) !important;
+    color: var(--qol-text-accent) !important;
     font-weight: bold !important;
     padding: 8px 10px !important;
-    border-bottom: 2px solid #7d6342 !important;
+    border-bottom: 2px solid var(--qol-accent) !important;
     text-align: left !important;
 }
 

@@ -10,6 +10,16 @@ const QOL_DEFAULT_DISABLED_FEATURES = new Set([
     'watchlist'
 ]);
 
+const QOL_THEME_STORAGE_KEY = 'qol_theme';
+const QOL_THEMES = Object.freeze([
+    { key: 'brown', name: 'Brown', description: 'Original APES parchment', swatches: ['#7d6342', '#543f26', '#ebdcb9'] },
+    { key: 'forest', name: 'Forest', description: 'Olive and woodland green', swatches: ['#617447', '#334329', '#dce5c8'] },
+    { key: 'ocean', name: 'Ocean', description: 'Deep blue and teal', swatches: ['#416f82', '#294653', '#d3e4e9'] },
+    { key: 'slate', name: 'Slate', description: 'Neutral blue-grey', swatches: ['#626b79', '#3a424d', '#dfe3e8'] },
+    { key: 'wine', name: 'Wine', description: 'Muted burgundy', swatches: ['#824f5c', '#532d37', '#ead7dc'] }
+]);
+const QOL_THEME_KEYS = new Set(QOL_THEMES.map(theme => theme.key));
+
 window.isQolEnabled = function(key) {
     try {
         const storedValue = localStorage.getItem(`qol_${key}`);
@@ -21,11 +31,19 @@ window.isQolEnabled = function(key) {
 };
 
 window.getQolTheme = function() {
-    return 'default';
+    try {
+        const stored = localStorage.getItem(QOL_THEME_STORAGE_KEY);
+        return QOL_THEME_KEYS.has(stored) ? stored : 'brown';
+    } catch (_) {
+        return 'brown';
+    }
 };
 
-window.applyQolTheme = function() {
-    document.body?.removeAttribute('data-qol-theme');
+window.applyQolTheme = function(theme = window.getQolTheme()) {
+    const selected = QOL_THEME_KEYS.has(theme) ? theme : 'brown';
+    document.documentElement.setAttribute('data-qol-theme', selected);
+    document.body?.setAttribute('data-qol-theme', selected);
+    return selected;
 };
 
 const QOL_MENU_STYLE_ID = 'qol-menu-styles';
@@ -184,9 +202,10 @@ const menuConfigMap = Object.fromEntries([
 ]);
 
 const QOL_STORAGE_PREFIXES = ['qol_', 'apes_', 'restos_qol_'];
-const QOL_PREFERENCE_STORAGE_KEYS = new Set(
-    Object.values(menuConfigMap).map(key => `qol_${key}`)
-);
+const QOL_PREFERENCE_STORAGE_KEYS = new Set([
+    ...Object.values(menuConfigMap).map(key => `qol_${key}`),
+    QOL_THEME_STORAGE_KEY
+]);
 
 let autoDismissActive = true;
 let isRepositionScheduled = false;
@@ -222,6 +241,38 @@ function featureCardHtml(feature) {
     `;
 }
 
+function themePickerHtml() {
+    const options = QOL_THEMES.map(theme => `
+        <div class="qol-theme-option"
+             data-qol-theme-option="${escapeHtml(theme.key)}"
+             role="radio"
+             tabindex="0"
+             aria-checked="false"
+             aria-label="${escapeHtml(theme.name)} theme">
+            <span class="qol-theme-swatches" aria-hidden="true">
+                ${theme.swatches.map(color => `<i style="background:${escapeHtml(color)}"></i>`).join('')}
+            </span>
+            <span class="qol-theme-option-copy">
+                <strong>${escapeHtml(theme.name)}</strong>
+                <small>${escapeHtml(theme.description)}</small>
+            </span>
+            <span class="qol-theme-selected" aria-hidden="true">&#10003;</span>
+        </div>
+    `).join('');
+
+    return `
+        <section class="qol-theme-card" aria-labelledby="qol-theme-title">
+            <div class="qol-theme-card-copy">
+                <h3 id="qol-theme-title">Extension Theme</h3>
+                <p>Recolors APES windows, toolbar controls and the command palette without changing Travian itself.</p>
+            </div>
+            <div class="qol-theme-options" role="radiogroup" aria-label="Extension theme">
+                ${options}
+            </div>
+        </section>
+    `;
+}
+
 function keybindHtml(item) {
     const keys = item.keys.map(key => `<span class="qol-kbd">${escapeHtml(key)}</span>`).join('');
     const state = item.fixed
@@ -249,10 +300,10 @@ function injectQolMenuStyles() {
     const style = document.createElement('style');
     style.id = QOL_MENU_STYLE_ID;
     style.textContent = `
-        #qol-cog-btn{position:fixed!important;width:30px!important;height:30px!important;display:none;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;border:2px solid #7d6342!important;border-radius:50%!important;background:#ebdcb9!important;box-shadow:0 2px 4px rgba(0,0,0,.22)!important;cursor:pointer!important;user-select:none!important;box-sizing:border-box!important;z-index:9999!important}
+        #qol-cog-btn{position:fixed!important;width:30px!important;height:30px!important;display:none;align-items:center!important;justify-content:center!important;margin:0!important;padding:0!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;box-shadow:0 2px 4px rgba(0,0,0,.22)!important;cursor:pointer!important;user-select:none!important;box-sizing:border-box!important;z-index:9999!important}
         #qol-cog-btn:hover{transform:scale(1.08)!important;background:#f7f5f0!important}
-        #qol-cog-btn svg{width:16px!important;height:16px!important;fill:#7d6342!important;pointer-events:none!important}
-        body.qol-toolbar-collapsed #qol-cog-btn::after{content:'▾'!important;position:absolute!important;right:-3px!important;bottom:-4px!important;display:flex!important;align-items:center!important;justify-content:center!important;width:12px!important;height:12px!important;border:1px solid #7d6342!important;border-radius:50%!important;background:#f7f5f0!important;color:#6a5034!important;font-size:8px!important;line-height:1!important}
+        #qol-cog-btn svg{width:16px!important;height:16px!important;fill:var(--qol-accent)!important;pointer-events:none!important}
+        body.qol-toolbar-collapsed #qol-cog-btn::after{content:'▾'!important;position:absolute!important;right:-3px!important;bottom:-4px!important;display:flex!important;align-items:center!important;justify-content:center!important;width:12px!important;height:12px!important;border:1px solid var(--qol-accent)!important;border-radius:50%!important;background:#f7f5f0!important;color:var(--qol-accent-ink)!important;font-size:8px!important;line-height:1!important}
 
         body.qol-toolbar-collapsed #qol-help-toggle-btn,
         body.qol-toolbar-collapsed #qol-rally-point-toggle-btn,
@@ -265,7 +316,7 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-cp-toggle-btn,
         body.qol-toolbar-collapsed #qol-tribe-skins-toggle-btn{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
-        #${QOL_TOOLBAR_DROPDOWN_ID}{position:fixed!important;display:none!important;flex-direction:column!important;min-width:220px!important;max-width:min(300px,88vw)!important;max-height:min(520px,80vh)!important;overflow-y:auto!important;padding:5px!important;border:2px solid #634d31!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 26px rgba(0,0,0,.38)!important;z-index:1000001!important;font-family:Arial,Helvetica,sans-serif!important;box-sizing:border-box!important}
+        #${QOL_TOOLBAR_DROPDOWN_ID}{position:fixed!important;display:none!important;flex-direction:column!important;min-width:220px!important;max-width:min(300px,88vw)!important;max-height:min(520px,80vh)!important;overflow-y:auto!important;padding:5px!important;border:2px solid var(--qol-border)!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 26px rgba(0,0,0,.38)!important;z-index:1000001!important;font-family:Arial,Helvetica,sans-serif!important;box-sizing:border-box!important}
         #${QOL_TOOLBAR_DROPDOWN_ID}.qol-open{display:flex!important}
         #${QOL_TOOLBAR_DROPDOWN_ID} .qol-toolbar-menu-title{padding:6px 8px!important;color:#806b50!important;font-size:9px!important;font-weight:bold!important;text-transform:uppercase!important;letter-spacing:.35px!important}
         #${QOL_TOOLBAR_DROPDOWN_ID} .qol-toolbar-menu-item{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;min-height:30px!important;padding:6px 8px!important;border-radius:3px!important;color:#4b3822!important;font-size:10px!important;font-weight:bold!important;cursor:pointer!important;user-select:none!important}
@@ -275,8 +326,8 @@ function injectQolMenuStyles() {
 
         #qol-modal-overlay{position:fixed!important;inset:0!important;display:none;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(18,16,13,.76)!important;box-sizing:border-box!important;z-index:1000000!important}
         #qol-modal,#qol-modal *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
-        #qol-modal{display:flex!important;flex-direction:column!important;width:min(920px,94vw)!important;max-height:min(860px,92vh)!important;margin:0!important;padding:0!important;border:3px solid #634d31!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 24px 64px rgba(0,0,0,.52)!important;overflow:hidden!important}
-        #qol-modal .qol-modal-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:66px!important;padding:10px 12px 10px 14px!important;border-bottom:1px solid #3f2d19!important;background:linear-gradient(to bottom,#6d5436,#4f3b24)!important;color:#f8f0df!important}
+        #qol-modal{display:flex!important;flex-direction:column!important;width:min(920px,94vw)!important;max-height:min(860px,92vh)!important;margin:0!important;padding:0!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 24px 64px rgba(0,0,0,.52)!important;overflow:hidden!important}
+        #qol-modal .qol-modal-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:66px!important;padding:10px 12px 10px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#f8f0df!important}
         #qol-modal .qol-modal-title-group{display:flex!important;align-items:center!important;gap:11px!important;min-width:0!important}
         #qol-modal .qol-brand-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:40px!important;height:40px!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:8px!important;background:rgba(24,15,8,.24)!important;font-size:23px!important}
         #qol-modal .qol-title-copy{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
@@ -295,12 +346,13 @@ function injectQolMenuStyles() {
         #qol-modal #qol-advanced-feature-grid{order:6!important}
         #qol-modal .qol-cosmetic-heading{order:7!important}
         #qol-modal #qol-cosmetic-feature-grid{order:8!important}
+        #qol-modal .qol-theme-card{order:9!important}
         #qol-modal .qol-section-heading{display:flex!important;align-items:flex-end!important;justify-content:space-between!important;gap:14px!important;margin:0 0 9px!important}
         #qol-modal .qol-section-heading:not(:first-child){margin-top:20px!important}
         #qol-modal .qol-section-title-group{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
-        #qol-modal .qol-section-title{margin:0!important;color:#4f3b24!important;font-size:13px!important;font-weight:700!important;line-height:18px!important}
+        #qol-modal .qol-section-title{margin:0!important;color:var(--qol-accent-deep)!important;font-size:13px!important;font-weight:700!important;line-height:18px!important}
         #qol-modal .qol-section-caption{color:#7a6a55!important;font-size:10px!important;line-height:15px!important}
-        #qol-modal .qol-section-count{flex:0 0 auto!important;padding:2px 8px!important;border:1px solid #d4c2a5!important;border-radius:10px!important;background:#fffaf0!important;color:#6d5436!important;font-size:9px!important;font-weight:700!important;text-transform:uppercase!important}
+        #qol-modal .qol-section-count{flex:0 0 auto!important;padding:2px 8px!important;border:1px solid #d4c2a5!important;border-radius:10px!important;background:#fffaf0!important;color:var(--qol-accent-mid)!important;font-size:9px!important;font-weight:700!important;text-transform:uppercase!important}
 
         #qol-modal .qol-keybind-grid{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
         #qol-modal .qol-keybind-item{display:grid!important;grid-template-columns:minmax(56px,auto) minmax(0,1fr) 40px!important;align-items:center!important;gap:8px!important;min-height:48px!important;padding:7px 8px!important;border:1px solid #d9cebd!important;border-radius:4px!important;background:#fff!important}
@@ -313,10 +365,26 @@ function injectQolMenuStyles() {
         #qol-modal .qol-feature-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
         #qol-modal .qol-feature-card{position:relative!important;display:grid!important;grid-template-columns:34px minmax(0,1fr) 40px!important;align-items:start!important;gap:9px!important;min-height:88px!important;padding:11px!important;border:1px solid #d6cab8!important;border-radius:5px!important;background:#fff!important;box-shadow:0 1px 2px rgba(72,51,29,.06)!important}
         #qol-modal .qol-feature-card:hover{border-color:#b9a589!important;box-shadow:0 4px 12px rgba(72,51,29,.1)!important}
-        #qol-modal .qol-feature-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;border:1px solid #d7c7ad!important;border-radius:6px!important;background:linear-gradient(to bottom,#fffaf0,#eee5d6)!important;color:#654c30!important;font-size:15px!important;font-weight:700!important}
+        #qol-modal .qol-feature-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;border:1px solid #d7c7ad!important;border-radius:6px!important;background:linear-gradient(to bottom,#fffaf0,#eee5d6)!important;color:var(--qol-accent-ink)!important;font-size:15px!important;font-weight:700!important}
         #qol-modal .qol-feature-copy{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important}
         #qol-modal .qol-feature-name{margin:0!important;color:#3f3020!important;font-size:11px!important;font-weight:700!important;line-height:16px!important}
         #qol-modal .qol-feature-desc{margin:0!important;color:#746653!important;font-size:9.5px!important;line-height:1.42!important}
+
+        #qol-modal .qol-theme-card{display:grid!important;grid-template-columns:minmax(170px,.55fr) minmax(0,1.45fr)!important;align-items:center!important;gap:14px!important;margin-top:9px!important;padding:12px!important;border:1px solid #d6cab8!important;border-radius:5px!important;background:#fff!important;box-shadow:0 1px 2px rgba(72,51,29,.06)!important}
+        #qol-modal .qol-theme-card-copy{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
+        #qol-modal .qol-theme-card-copy h3{margin:0!important;color:#3f3020!important;font-size:11px!important;font-weight:700!important;line-height:16px!important}
+        #qol-modal .qol-theme-card-copy p{margin:0!important;color:#746653!important;font-size:9.5px!important;line-height:1.42!important}
+        #qol-modal .qol-theme-options{display:grid!important;grid-template-columns:repeat(5,minmax(0,1fr))!important;gap:6px!important;min-width:0!important}
+        #qol-modal .qol-theme-option{position:relative!important;display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0!important;min-height:68px!important;padding:7px!important;border:1px solid #d3c6b3!important;border-radius:5px!important;background:#fbfaf7!important;cursor:pointer!important;outline:none!important;user-select:none!important;transition:border-color .15s ease,background-color .15s ease,box-shadow .15s ease,transform .15s ease!important}
+        #qol-modal .qol-theme-option:hover,#qol-modal .qol-theme-option:focus-visible{border-color:var(--qol-accent)!important;transform:translateY(-1px)!important}
+        #qol-modal .qol-theme-option[aria-checked="true"]{border-color:var(--qol-accent)!important;background:var(--qol-accent-soft)!important;box-shadow:0 0 0 1px var(--qol-accent)!important}
+        #qol-modal .qol-theme-swatches{display:flex!important;width:100%!important;height:18px!important;border:1px solid rgba(0,0,0,.16)!important;border-radius:3px!important;overflow:hidden!important}
+        #qol-modal .qol-theme-swatches i{display:block!important;flex:1 1 0!important;height:100%!important}
+        #qol-modal .qol-theme-option-copy{display:flex!important;flex-direction:column!important;gap:1px!important;min-width:0!important}
+        #qol-modal .qol-theme-option-copy strong{color:#3f3020!important;font-size:9.5px!important;line-height:12px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+        #qol-modal .qol-theme-option-copy small{color:#786a58!important;font-size:7.5px!important;line-height:10px!important}
+        #qol-modal .qol-theme-selected{position:absolute!important;top:4px!important;right:4px!important;display:none!important;align-items:center!important;justify-content:center!important;width:15px!important;height:15px!important;border-radius:50%!important;background:var(--qol-accent-dark)!important;color:#fff!important;font-size:9px!important;font-weight:700!important}
+        #qol-modal .qol-theme-option[aria-checked="true"] .qol-theme-selected{display:flex!important}
 
         #qol-modal .qol-switch{position:relative!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;align-self:start!important;width:40px!important;height:24px!important;margin:4px 0 0!important;cursor:pointer!important;user-select:none!important}
         #qol-modal .qol-keybind-item .qol-switch{margin-top:0!important}
@@ -336,8 +404,8 @@ function injectQolMenuStyles() {
 
         #qol-modal-overlay .qol-cache-dialog-layer{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(18,16,13,.62)!important;z-index:1000002!important}
         #qol-modal-overlay .qol-cache-dialog-layer.qol-open{display:flex!important}
-        #qol-modal-overlay .qol-cache-dialog{width:min(430px,92vw)!important;border:2px solid #634d31!important;border-radius:6px!important;background:#f7f5f0!important;box-shadow:0 18px 48px rgba(0,0,0,.46)!important;overflow:hidden!important}
-        #qol-modal-overlay .qol-cache-dialog-header{padding:12px 14px!important;border-bottom:1px solid #3f2d19!important;background:linear-gradient(to bottom,#6d5436,#4f3b24)!important;color:#fffaf0!important;font-size:13px!important;font-weight:700!important}
+        #qol-modal-overlay .qol-cache-dialog{width:min(430px,92vw)!important;border:2px solid var(--qol-border)!important;border-radius:6px!important;background:#f7f5f0!important;box-shadow:0 18px 48px rgba(0,0,0,.46)!important;overflow:hidden!important}
+        #qol-modal-overlay .qol-cache-dialog-header{padding:12px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important;font-size:13px!important;font-weight:700!important}
         #qol-modal-overlay .qol-cache-dialog-body{padding:14px!important;color:#665744!important;font-size:10px!important;line-height:1.55!important}
         #qol-modal-overlay .qol-cache-dialog-status{min-height:16px!important;margin-top:8px!important;color:#8f3f2f!important;font-size:9px!important;font-weight:700!important}
         #qol-modal-overlay .qol-cache-dialog-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:8px!important;padding:10px 14px!important;border-top:1px solid #d8ccba!important;background:#eee8dc!important}
@@ -347,8 +415,8 @@ function injectQolMenuStyles() {
 
         #qol-modal .qol-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
 
-        @media(max-width:820px){#qol-modal-overlay{padding:12px!important}#qol-modal{width:96vw!important;max-height:94vh!important}#qol-modal .qol-feature-grid{grid-template-columns:1fr!important}#qol-modal .qol-keybind-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
-        @media(max-width:560px){#qol-modal .qol-brand-mark,#qol-modal .qol-modal-subtitle,#qol-modal .qol-footer-hint{display:none!important}#qol-modal .qol-modal-body{padding:11px!important}#qol-modal .qol-keybind-grid{grid-template-columns:1fr!important}}
+        @media(max-width:820px){#qol-modal-overlay{padding:12px!important}#qol-modal{width:96vw!important;max-height:94vh!important}#qol-modal .qol-feature-grid{grid-template-columns:1fr!important}#qol-modal .qol-keybind-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#qol-modal .qol-theme-card{grid-template-columns:1fr!important}#qol-modal .qol-theme-options{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
+        @media(max-width:560px){#qol-modal .qol-brand-mark,#qol-modal .qol-modal-subtitle,#qol-modal .qol-footer-hint{display:none!important}#qol-modal .qol-modal-body{padding:11px!important}#qol-modal .qol-keybind-grid{grid-template-columns:1fr!important}#qol-modal .qol-theme-options{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
     `;
     document.head.appendChild(style);
 }
@@ -409,6 +477,65 @@ function bindMenuControls(modalContainer) {
             scheduleReposition();
         });
     });
+
+    bindThemeControls(modalContainer);
+}
+
+function syncThemeControls(container = document) {
+    const currentTheme = window.getQolTheme();
+    container.querySelectorAll('[data-qol-theme-option]').forEach(option => {
+        const isSelected = option.dataset.qolThemeOption === currentTheme;
+        option.setAttribute('aria-checked', String(isSelected));
+        option.tabIndex = isSelected ? 0 : -1;
+    });
+}
+
+function selectQolTheme(theme, container = document) {
+    if (!QOL_THEME_KEYS.has(theme)) return;
+
+    try {
+        localStorage.setItem(QOL_THEME_STORAGE_KEY, theme);
+    } catch (error) {
+        console.warn('[QoL] Theme preference could not be saved:', error);
+    }
+
+    const selected = window.applyQolTheme(theme);
+    syncThemeControls(container);
+    window.dispatchEvent(new CustomEvent('qol_theme_changed', {
+        detail: { theme: selected }
+    }));
+}
+
+function bindThemeControls(modalContainer) {
+    const options = [...modalContainer.querySelectorAll('[data-qol-theme-option]')];
+    options.forEach((option, index) => {
+        if (option.dataset.qolThemeBound === 'true') return;
+        option.dataset.qolThemeBound = 'true';
+
+        const activate = event => {
+            event.preventDefault();
+            event.stopPropagation();
+            selectQolTheme(option.dataset.qolThemeOption, modalContainer);
+            option.focus();
+        };
+
+        option.addEventListener('click', activate);
+        option.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ') {
+                activate(event);
+                return;
+            }
+
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(event.key)) return;
+            event.preventDefault();
+            const direction = event.key === 'ArrowLeft' || event.key === 'ArrowUp' ? -1 : 1;
+            const next = options[(index + direction + options.length) % options.length];
+            selectQolTheme(next.dataset.qolThemeOption, modalContainer);
+            next.focus();
+        });
+    });
+
+    syncThemeControls(modalContainer);
 }
 
 function isQolStorageKey(key) {
@@ -709,9 +836,10 @@ function buildSettingsMarkup() {
                         <h2 class="qol-section-title">Cosmetic Features</h2>
                         <span class="qol-section-caption">Optional visual changes that alter presentation without changing gameplay.</span>
                     </div>
-                    <span class="qol-section-count">${COSMETIC_FEATURES.length} ${COSMETIC_FEATURES.length === 1 ? 'tool' : 'tools'}</span>
+                    <span class="qol-section-count">${COSMETIC_FEATURES.length + 1} customization tools</span>
                 </div>
                 <div class="qol-feature-grid" id="qol-cosmetic-feature-grid">${COSMETIC_FEATURES.map(featureCardHtml).join('')}</div>
+                ${themePickerHtml()}
             </div>
 
             <div class="qol-modal-footer">

@@ -2273,7 +2273,7 @@
                 max-height: 92vh !important;
                 margin: 0 !important;
                 padding: 0 !important;
-                border: 3px solid #634d31 !important;
+                border: 3px solid var(--qol-border) !important;
                 border-radius: 4px !important;
                 background: #f7f5f0 !important;
                 box-shadow:
@@ -2315,8 +2315,8 @@
                 background:
                     linear-gradient(
                         to bottom,
-                        #6d5436,
-                        #543f26
+                        var(--qol-accent-mid),
+                        var(--qol-accent-dark)
                     )
                     !important;
                 color: #f7f5f0 !important;
@@ -2495,7 +2495,7 @@
                     1px
                     !important;
                 border-color:
-                    #6d5436
+                    var(--qol-accent-mid)
                     !important;
             }
 
@@ -2512,14 +2512,14 @@
                 padding: 5px 11px !important;
                 border:
                     1px solid
-                    #523d24
+                    var(--qol-action-border)
                     !important;
                 border-radius: 3px !important;
                 background:
                     linear-gradient(
                         to bottom,
-                        #7d6342,
-                        #543f26
+                        var(--qol-accent),
+                        var(--qol-accent-dark)
                     )
                     !important;
                 color: #fff !important;
@@ -2601,7 +2601,7 @@
                 margin: 0 !important;
                 padding: 6px 9px !important;
                 background: #e9dfcc !important;
-                color: #4f3b24 !important;
+                color: var(--qol-accent-deep) !important;
                 display: flex !important;
                 align-items: center !important;
                 justify-content:
@@ -2787,7 +2787,7 @@
                 top: 0 !important;
                 z-index: 2 !important;
                 background: #e9dfcc !important;
-                color: #4f3b24 !important;
+                color: var(--qol-accent-deep) !important;
                 font-size: 10px !important;
                 font-weight: bold !important;
                 line-height: 16px !important;
@@ -2835,7 +2835,7 @@
 
             #${PANEL_ID}
             .qol-calc-cost {
-                color: #6d5436 !important;
+                color: var(--qol-accent-mid) !important;
             }
 
             #${PANEL_ID}
@@ -2930,8 +2930,8 @@
             #${PANEL_ID}
             .qol-calc-gbgs-check:checked +
             .qol-calc-switch-track {
-                background: #7d6342 !important;
-                border-color: #523d24 !important;
+                background: var(--qol-accent) !important;
+                border-color: var(--qol-action-border) !important;
             }
 
             #${PANEL_ID}
@@ -3054,7 +3054,7 @@
 
             .qol-calc-dropdown-trigger:hover {
                 background: #fffaf0 !important;
-                border-color: #7d6342 !important;
+                border-color: var(--qol-accent) !important;
             }
 
             .qol-calc-dropdown-label {
@@ -3069,7 +3069,7 @@
             .qol-calc-dropdown-arrow {
                 flex: 0 0 auto !important;
                 margin-left: 7px !important;
-                color: #7d6342 !important;
+                color: var(--qol-accent) !important;
                 font-size: 8px !important;
                 line-height: 1 !important;
             }
@@ -3083,7 +3083,7 @@
                 padding: 4px !important;
                 border:
                     2px solid
-                    #634d31
+                    var(--qol-border)
                     !important;
                 border-radius: 4px !important;
                 background: #f7f5f0 !important;

@@ -450,7 +450,7 @@ function initBuildingAlarm() {
                 min-height: 220px !important;
                 max-width: calc(100vw - 24px) !important;
                 max-height: calc(100vh - 16px) !important;
-                border: 2px solid #634d31 !important;
+                border: 2px solid var(--qol-border) !important;
                 border-radius: 5px !important;
                 background: #f7f5f0 !important;
                 box-shadow: 0 10px 28px rgba(0,0,0,.4) !important;
@@ -464,7 +464,7 @@ function initBuildingAlarm() {
                 justify-content: space-between !important;
                 min-height: 36px !important;
                 padding: 6px 9px !important;
-                background: linear-gradient(to bottom, #6d5436, #543f26) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
                 color: #fffaf0 !important;
                 font-size: 12px !important;
                 font-weight: bold !important;
@@ -518,7 +518,7 @@ function initBuildingAlarm() {
                 gap: 12px !important;
                 overscroll-behavior: contain !important;
                 overflow-y: auto !important;
-                scrollbar-color: #8a6a42 #e7ded1 !important;
+                scrollbar-color: var(--qol-scroll-thumb) #e7ded1 !important;
                 scrollbar-width: thin !important;
             }
 
@@ -533,7 +533,7 @@ function initBuildingAlarm() {
             .qol-building-alarm-list::-webkit-scrollbar-thumb {
                 border: 2px solid #e7ded1 !important;
                 border-radius: 5px !important;
-                background: #8a6a42 !important;
+                background: var(--qol-scroll-thumb) !important;
             }
 
             .qol-building-alarm-resize-handle {

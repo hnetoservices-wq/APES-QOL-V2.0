@@ -160,7 +160,7 @@
             width: 100% !important;
             box-sizing: border-box !important;
             padding: 8px 12px !important;
-            border: 1px solid #7d6342 !important;
+            border: 1px solid var(--qol-accent) !important;
             border-radius: 4px !important;
             background: #ffffff !important;
             font-weight: bold !important;
@@ -178,7 +178,7 @@
 
         trigger.innerHTML = `
             <span>${selectedLabel}</span>
-            <span style="font-size:10px; color:#7d6342;">▼</span>
+            <span style="font-size:10px; color:var(--qol-accent);">▼</span>
         `;
 
         containerEl.appendChild(trigger);
@@ -211,7 +211,7 @@
                 max-height: 220px !important;
                 overflow-y: auto !important;
                 background: #ffffff !important;
-                border: 1px solid #7d6342 !important;
+                border: 1px solid var(--qol-accent) !important;
                 border-radius: 4px !important;
                 box-shadow: 0 6px 16px rgba(0,0,0,0.3) !important;
                 z-index: 99999999 !important;
@@ -292,10 +292,10 @@
 
         const data = TUTORIALS[featureKey];
         let html = `
-            <div style="font-size:14px; font-weight:bold; color:#4a3821; border-bottom:1px solid #d4c2a5; padding-bottom:4px; margin-bottom:8px;">
+            <div style="font-size:14px; font-weight:bold; color:var(--qol-text-accent); border-bottom:1px solid #d4c2a5; padding-bottom:4px; margin-bottom:8px;">
                 ${data.title}
             </div>
-            <div style="font-size:12px; color:#555; font-style:italic; margin-bottom:10px; background:#fbf9f5; padding:6px 8px; border-left:3px solid #7d6342; border-radius:2px;">
+            <div style="font-size:12px; color:#555; font-style:italic; margin-bottom:10px; background:#fbf9f5; padding:6px 8px; border-left:3px solid var(--qol-accent); border-radius:2px;">
                 ${data.purpose}
             </div>
             <div style="font-weight:bold; font-size:12px; color:#332211; margin-bottom:6px;">How to use:</div>
@@ -356,7 +356,7 @@
             position: fixed !important;
             z-index: 999999 !important;
             background: #f7f5f0 !important;
-            border: 3px solid #634d31 !important;
+            border: 3px solid var(--qol-border) !important;
             border-radius: 4px !important;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5) !important;
             flex-direction: column !important;
@@ -373,13 +373,13 @@
         `;
 
         helpContainer.innerHTML = `
-            <div class="qol-help-header" style="background:#4a3821; color:#ebdcb9; padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-weight:bold; border-bottom:2px solid #7d6342; cursor:move; user-select:none;">
+            <div class="qol-help-header" style="background:var(--qol-text-accent); color:var(--qol-accent-soft); padding:8px 12px; display:flex; justify-content:space-between; align-items:center; font-weight:bold; border-bottom:2px solid var(--qol-accent); cursor:move; user-select:none;">
                 <span style="font-size:14px;">🦧 APES QoL Help 🦧</span>
-                <span class="qol-help-close" style="cursor:pointer; font-size:18px; color:#ebdcb9; font-weight:bold;">&times;</span>
+                <span class="qol-help-close" style="cursor:pointer; font-size:18px; color:var(--qol-accent-soft); font-weight:bold;">&times;</span>
             </div>
             <div class="qol-help-body-content" style="padding:12px; overflow-y:auto; color:#332211; font-size:12px; line-height:1.5; flex:1; display:flex; flex-direction:column; gap:10px;">
                 
-                <div style="font-size:12px; font-weight:bold; color:#6d5436; background:#fff6e5; padding:8px 10px; border-radius:4px; border:1px solid #d4c2a5;">
+                <div style="font-size:12px; font-weight:bold; color:var(--qol-accent-mid); background:#fff6e5; padding:8px 10px; border-radius:4px; border:1px solid #d4c2a5;">
                     Need help figuring out how a feature works? Select the feature below!
                 </div>
 

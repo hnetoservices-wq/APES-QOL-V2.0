@@ -3711,10 +3711,10 @@
         width: 30px !important;
         height: 30px !important;
         background-color:
-          #ebdcb9
+          var(--qol-accent-soft)
           !important;
         border:
-          2px solid #7d6342
+          2px solid var(--qol-accent)
           !important;
         border-radius:
           50%
@@ -3770,7 +3770,7 @@
           none
           !important;
         stroke:
-          #7d6342
+          var(--qol-accent)
           !important;
         stroke-width:
           2
@@ -3828,7 +3828,7 @@
           #f7f5f0
           !important;
         border:
-          3px solid #634d31
+          3px solid var(--qol-border)
           !important;
         border-radius:
           4px
@@ -3871,8 +3871,8 @@
         background:
           linear-gradient(
             to bottom,
-            #6d5436,
-            #543f26
+            var(--qol-accent-mid),
+            var(--qol-accent-dark)
           )
           !important;
         color:
@@ -4005,7 +4005,7 @@
 
       .qol-tag-team-card.is-enabled {
         border-color:
-          #7d6342
+          var(--qol-accent)
           !important;
         background:
           #f8f4eb
@@ -4145,7 +4145,7 @@
           #fff
           !important;
         color:
-          #4f3b24
+          var(--qol-accent-deep)
           !important;
         font-weight:
           bold
@@ -4184,7 +4184,7 @@
           3px
           !important;
         color:
-          #4f3b24
+          var(--qol-accent-deep)
           !important;
         font-size:
           10px
@@ -4226,7 +4226,7 @@
 
       #qol-tag-team-overall-bar {
         background:
-          #7d6342
+          var(--qol-accent)
           !important;
       }
 
@@ -4293,7 +4293,7 @@
 
       .qol-tag-team-legend-item.is-selected {
         border-color:
-          #7d6342
+          var(--qol-accent)
           !important;
         background:
           #fff
@@ -4398,7 +4398,7 @@
           5px 9px
           !important;
         border:
-          1px solid #523d24
+          1px solid var(--qol-action-border)
           !important;
         border-radius:
           3px
@@ -4406,8 +4406,8 @@
         background:
           linear-gradient(
             to bottom,
-            #7d6342,
-            #543f26
+            var(--qol-accent),
+            var(--qol-accent-dark)
           )
           !important;
         color:
@@ -4437,8 +4437,8 @@
         background:
           linear-gradient(
             to bottom,
-            #8d7352,
-            #644f36
+            var(--qol-accent-hover),
+            var(--qol-accent-hover-dark)
           )
           !important;
       }
@@ -4659,7 +4659,7 @@
           #e9dfcc
           !important;
         color:
-          #4f3b24
+          var(--qol-accent-deep)
           !important;
         font-size:
           10px
@@ -4790,7 +4790,7 @@
           8px 14px
           !important;
         border-left:
-          4px solid #7d6342
+          4px solid var(--qol-accent)
           !important;
         color:
           #4c3b28

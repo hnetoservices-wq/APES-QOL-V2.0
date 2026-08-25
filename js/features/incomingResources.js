@@ -75,7 +75,7 @@ function initIncomingResourceEnhancer() {
                 min-height: 340px !important;
                 max-height: 92vh !important;
                 background-color: #f7f5f0 !important;
-                border: 3px solid #634d31 !important;
+                border: 3px solid var(--qol-border) !important;
                 border-radius: 4px !important;
                 box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5) !important;
                 color: #333333 !important;
@@ -92,8 +92,8 @@ function initIncomingResourceEnhancer() {
                 padding: 6px 10px !important;
                 background: linear-gradient(
                     to bottom,
-                    #6d5436,
-                    #543f26
+                    var(--qol-accent-mid),
+                    var(--qol-accent-dark)
                 ) !important;
                 color: #f7f5f0 !important;
                 font-size: 14px !important;
@@ -154,13 +154,13 @@ function initIncomingResourceEnhancer() {
             .qol-ir-action-btn {
                 height: auto !important;
                 padding: 4px 8px !important;
-                border: 1px solid #42311c !important;
+                border: 1px solid var(--qol-accent-outline) !important;
                 border-radius: 4px !important;
-                background-color: #543f26 !important;
+                background-color: var(--qol-accent-dark) !important;
                 background: linear-gradient(
                     to bottom,
-                    #7d6342,
-                    #543f26
+                    var(--qol-accent),
+                    var(--qol-accent-dark)
                 ) !important;
                 color: #ffffff !important;
                 font-size: 11px !important;
@@ -191,8 +191,8 @@ function initIncomingResourceEnhancer() {
             }
 
             .qol-ir-action-btn:not(.qol-action-disabled):hover {
-                background-color: #543f26 !important;
-                background: linear-gradient(to bottom, #8d7352, #644f36) !important;
+                background-color: var(--qol-accent-dark) !important;
+                background: linear-gradient(to bottom, var(--qol-accent-hover), var(--qol-accent-hover-dark)) !important;
             }
 
             .qol-ir-action-danger:not(.qol-action-disabled):hover {
@@ -332,7 +332,7 @@ function initIncomingResourceEnhancer() {
                 top: 0 !important;
                 z-index: 2 !important;
                 background-color: #e9dfcc !important;
-                color: #4f3b24 !important;
+                color: var(--qol-accent-deep) !important;
                 font-size: 10px !important;
                 text-transform: uppercase !important;
                 letter-spacing: 0.3px !important;
@@ -395,7 +395,7 @@ function initIncomingResourceEnhancer() {
                 width: 24px !important;
                 height: 24px !important;
                 border: 3px solid #d8ccb6 !important;
-                border-top-color: #6d5436 !important;
+                border-top-color: var(--qol-accent-mid) !important;
                 border-radius: 50% !important;
                 animation:
                     qolIrSpin 0.8s linear infinite
@@ -2696,7 +2696,7 @@ function initIncomingResourceEnhancer() {
                 viewBox="0 0 24 24"
                 style="
                     fill: none !important;
-                    stroke: #7d6342 !important;
+                    stroke: var(--qol-accent) !important;
                     stroke-width: 2 !important;
                     stroke-linecap: round !important;
                     stroke-linejoin: round !important;

@@ -363,7 +363,7 @@ function initIgmEnhancer() {
                 height: auto !important;
                 margin: 0 0 8px 0 !important;
                 padding: 0 !important;
-                border: 2px solid #634d31 !important;
+                border: 2px solid var(--qol-border) !important;
                 border-radius: 4px !important;
                 background: #f7f5f0 !important;
                 box-shadow:
@@ -408,8 +408,8 @@ function initIgmEnhancer() {
                 background:
                     linear-gradient(
                         to bottom,
-                        #6d5436,
-                        #543f26
+                        var(--qol-accent-mid),
+                        var(--qol-accent-dark)
                     )
                     !important;
                 color: #f7f5f0 !important;
@@ -502,7 +502,7 @@ function initIgmEnhancer() {
             #${FILTER_BUTTON_ID}:hover {
                 background: #fffaf0 !important;
                 border-color:
-                    #7d6342
+                    var(--qol-accent)
                     !important;
             }
 
@@ -520,7 +520,7 @@ function initIgmEnhancer() {
                 display: block !important;
                 flex: 0 0 auto !important;
                 margin-left: 8px !important;
-                color: #7d6342 !important;
+                color: var(--qol-accent) !important;
                 font-size: 10px !important;
                 line-height: 1 !important;
             }
@@ -537,14 +537,14 @@ function initIgmEnhancer() {
                 margin: 0 !important;
                 padding: 5px 9px !important;
                 border:
-                    1px solid #523d24
+                    1px solid var(--qol-action-border)
                     !important;
                 border-radius: 3px !important;
                 background:
                     linear-gradient(
                         to bottom,
-                        #7d6342,
-                        #543f26
+                        var(--qol-accent),
+                        var(--qol-accent-dark)
                     )
                     !important;
                 color: #ffffff !important;
@@ -602,7 +602,7 @@ function initIgmEnhancer() {
                 margin: 0 !important;
                 padding: 2px 5px !important;
                 border:
-                    1px solid #523d24
+                    1px solid var(--qol-action-border)
                     !important;
                 border-radius: 2px !important;
                 background:
@@ -666,7 +666,7 @@ function initIgmEnhancer() {
                 margin: 0 !important;
                 padding: 4px !important;
                 border:
-                    2px solid #634d31
+                    2px solid var(--qol-border)
                     !important;
                 border-radius: 4px !important;
                 background:
@@ -766,7 +766,7 @@ function initIgmEnhancer() {
                 margin: 0 !important;
                 padding: 0 !important;
                 border:
-                    3px solid #634d31
+                    3px solid var(--qol-border)
                     !important;
                 border-radius: 4px !important;
                 background:
@@ -790,8 +790,8 @@ function initIgmEnhancer() {
                 background:
                     linear-gradient(
                         to bottom,
-                        #6d5436,
-                        #543f26
+                        var(--qol-accent-mid),
+                        var(--qol-accent-dark)
                     )
                     !important;
                 color: #f7f5f0 !important;
@@ -867,14 +867,14 @@ function initIgmEnhancer() {
                 margin: 0 !important;
                 padding: 5px 11px !important;
                 border:
-                    1px solid #523d24
+                    1px solid var(--qol-action-border)
                     !important;
                 border-radius: 3px !important;
                 background:
                     linear-gradient(
                         to bottom,
-                        #7d6342,
-                        #543f26
+                        var(--qol-accent),
+                        var(--qol-accent-dark)
                     )
                     !important;
                 color: #ffffff !important;
