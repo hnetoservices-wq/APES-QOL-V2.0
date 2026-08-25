@@ -92,13 +92,6 @@ const BASIC_FEATURES = [
         description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
     },
     {
-        id: 'qol-chk-distance-calculator',
-        key: 'distanceCalculator',
-        name: 'Distance & Arrival Calculator',
-        icon: '↗',
-        description: 'Calculates route distance, travel duration and server-time arrival for troops and merchants.'
-    },
-    {
         id: 'qol-chk-send-troops',
         key: 'sendTroopsEnhanced',
         name: 'Send Button Enhancer',
@@ -108,6 +101,13 @@ const BASIC_FEATURES = [
 ];
 
 const ADVANCED_FEATURES = [
+    {
+        id: 'qol-chk-distance-calculator',
+        key: 'distanceCalculator',
+        name: 'Distance & Arrival Calculator',
+        icon: '↗',
+        description: 'Calculates route distance, travel duration, exact send times and server-time arrival for troops and merchants.'
+    },
     {
         id: 'qol-chk-cp-manager',
         key: 'cpManager',

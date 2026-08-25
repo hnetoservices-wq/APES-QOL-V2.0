@@ -85,7 +85,8 @@
             targetY: '',
             movementKey: 'roman-legionnaire',
             tournamentLevel: 0,
-            bootsBonus: 0
+            bootsBonus: 0,
+            desiredArrival: ''
         };
     }
 
@@ -185,6 +186,12 @@
     function formatArrival(clockSeconds, durationSeconds) {
         if (!Number.isFinite(clockSeconds) || !Number.isFinite(durationSeconds)) return '—';
         const total = Math.max(0, Math.floor(clockSeconds) + Math.floor(durationSeconds));
+        return formatClockWithDay(total);
+    }
+
+    function formatClockWithDay(totalSeconds) {
+        if (!Number.isFinite(totalSeconds)) return '—';
+        const total = Math.max(0, Math.floor(totalSeconds));
         const dayOffset = Math.floor(total / 86400);
         const withinDay = total % 86400;
         const hours = Math.floor(withinDay / 3600);
@@ -194,6 +201,36 @@
         if (dayOffset === 1) return `${time} · tomorrow`;
         if (dayOffset > 1) return `${time} · +${dayOffset} days`;
         return `${time} · today`;
+    }
+
+    function parseClockTime(value) {
+        const match = String(value || '').trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+        if (!match) return null;
+        const hours = Number(match[1]);
+        const minutes = Number(match[2]);
+        const seconds = Number(match[3] || 0);
+        if (hours > 23 || minutes > 59 || seconds > 59) return null;
+        return hours * 3600 + minutes * 60 + seconds;
+    }
+
+    function calculateSendPlan(durationSeconds) {
+        const desiredSeconds = parseClockTime(state.desiredArrival);
+        if (desiredSeconds === null || !Number.isFinite(durationSeconds)) return { valid: false };
+
+        const serverNow = Math.floor(getServerClockSeconds());
+        const travelSeconds = Math.max(0, Math.floor(durationSeconds));
+        const earliestArrival = serverNow + travelSeconds;
+        const extraDays = Math.max(0, Math.ceil((earliestArrival - desiredSeconds) / 86400));
+        const arrivalAt = desiredSeconds + extraDays * 86400;
+        const sendAt = arrivalAt - travelSeconds;
+
+        return {
+            valid: true,
+            sendAt,
+            arrivalAt,
+            sendLabel: formatClockWithDay(sendAt),
+            arrivalLabel: formatClockWithDay(arrivalAt)
+        };
     }
 
     function calculate() {
@@ -283,7 +320,7 @@
             #${PANEL_ID},#${PANEL_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
             #${PANEL_ID}{position:fixed!important;right:24px!important;top:74px!important;z-index:1000001!important;display:none!important;flex-direction:column!important;width:min(590px,calc(100vw - 30px))!important;min-width:min(370px,calc(100vw - 30px))!important;min-height:430px!important;max-width:calc(100vw - 16px)!important;max-height:calc(100vh - 16px)!important;border:3px solid #634d31!important;border-radius:6px!important;background:#f7f5f0!important;box-shadow:0 12px 34px rgba(0,0,0,.48)!important;overflow:hidden!important;resize:both!important;color:#332719!important}
             #${PANEL_ID}.qol-open{display:flex!important}
-            #${PANEL_ID} .qol-distance-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:40px!important;padding:8px 10px 8px 12px!important;background:linear-gradient(to bottom,#6d5436,#543f26)!important;color:#fff!important;cursor:move!important;user-select:none!important}
+            #${PANEL_ID} .qol-distance-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:40px!important;padding:8px 10px 8px 12px!important;background:linear-gradient(to bottom,#6d5436,#543f26)!important;color:#fff!important;cursor:move!important;user-select:none!important;touch-action:none!important}
             #${PANEL_ID} .qol-distance-title{display:flex!important;align-items:center!important;gap:8px!important;font-size:13px!important;font-weight:700!important}
             #${PANEL_ID} .qol-distance-title svg{width:18px!important;height:18px!important;fill:none!important;stroke:#f7e7c8!important;stroke-width:1.8!important}
             #${PANEL_ID} .qol-distance-close{display:flex!important;align-items:center!important;justify-content:center!important;width:23px!important;height:23px!important;border-radius:3px!important;background:rgba(0,0,0,.22)!important;color:#fff!important;font-size:20px!important;font-weight:700!important;line-height:1!important;cursor:pointer!important}
@@ -313,6 +350,15 @@
             #${PANEL_ID} .qol-distance-detected span{color:#7a6549!important;font-size:8px!important;font-weight:700!important}
             #${PANEL_ID} .qol-distance-help{margin:0!important;color:#8b7a65!important;font-size:8px!important;line-height:1.35!important}
             #${PANEL_ID} .qol-distance-modifiers.qol-disabled{opacity:.55!important}
+            #${PANEL_ID} .qol-distance-scheduler{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr)!important;align-items:stretch!important;gap:9px!important}
+            #${PANEL_ID} .qol-distance-scheduler-copy{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important}
+            #${PANEL_ID} .qol-distance-scheduler-copy strong{color:#4d3922!important;font-size:11px!important;text-transform:uppercase!important;letter-spacing:.3px!important}
+            #${PANEL_ID} .qol-distance-scheduler-copy span{color:#806d55!important;font-size:8px!important;line-height:1.35!important}
+            #${PANEL_ID} .qol-distance-scheduler-control{display:grid!important;grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr)!important;align-items:end!important;gap:8px!important}
+            #${PANEL_ID} .qol-distance-send-time{display:flex!important;min-height:46px!important;flex-direction:column!important;justify-content:center!important;gap:2px!important;padding:6px 9px!important;border:1px solid #cdbb9f!important;border-radius:3px!important;background:#f4ecde!important}
+            #${PANEL_ID} .qol-distance-send-time span{color:#7a6549!important;font-size:7px!important;font-weight:700!important;text-transform:uppercase!important}
+            #${PANEL_ID} .qol-distance-send-time strong{color:#4c7620!important;font-size:15px!important;line-height:1.1!important}
+            #${PANEL_ID} .qol-distance-send-time small{color:#806d55!important;font-size:7px!important}
             #${PANEL_ID} .qol-distance-result{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr)!important;gap:8px!important;padding:10px!important;border:1px solid #4a351f!important;border-radius:5px!important;background:linear-gradient(135deg,#6b5132,#4e3a24)!important;color:#fff8e9!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important}
             #${PANEL_ID} .qol-distance-arrival{display:flex!important;flex-direction:column!important;justify-content:center!important;gap:4px!important;min-width:0!important}
             #${PANEL_ID} .qol-distance-result-label{color:#d9c7a8!important;font-size:8px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.45px!important}
@@ -326,10 +372,14 @@
             #${PANEL_ID}.qol-invalid .qol-distance-result{display:none!important}
             #${PANEL_ID}.qol-invalid .qol-distance-invalid{display:flex!important}
             #${PANEL_ID} .qol-distance-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important}
-            #${PANEL_ID} .qol-distance-copy{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:29px!important;padding:6px 12px!important;border:1px solid #42311c!important;border-radius:3px!important;background:#7d6342!important;color:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.18)!important;cursor:pointer!important;user-select:none!important;font-size:9px!important;font-weight:700!important}
+            #${PANEL_ID} .qol-distance-actions{display:flex!important;align-items:center!important;gap:6px!important}
+            #${PANEL_ID} .qol-distance-copy,#${PANEL_ID} .qol-distance-send{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:29px!important;padding:6px 12px!important;border:1px solid #42311c!important;border-radius:3px!important;background:#7d6342!important;color:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.18)!important;cursor:pointer!important;user-select:none!important;font-size:9px!important;font-weight:700!important}
             #${PANEL_ID} .qol-distance-copy:hover{background:#8d7352!important}
+            #${PANEL_ID} .qol-distance-send{border-color:#47641f!important;background:#668b2c!important}
+            #${PANEL_ID} .qol-distance-send:hover{background:#76a134!important}
+            #${PANEL_ID} .qol-distance-send.qol-disabled{opacity:.45!important;cursor:not-allowed!important}
             #${PANEL_ID} .qol-distance-formula{margin:0!important;color:#8b7a65!important;font-size:7.5px!important;text-align:right!important}
-            @media(max-width:620px){#${PANEL_ID} .qol-distance-coordinates{grid-template-columns:1fr!important}#${PANEL_ID} .qol-distance-swap{justify-self:center!important;transform:rotate(90deg)!important}#${PANEL_ID} .qol-distance-swap:hover{transform:rotate(270deg)!important}#${PANEL_ID} .qol-distance-settings,#${PANEL_ID} .qol-distance-result{grid-template-columns:1fr!important}}
+            @media(max-width:620px){#${PANEL_ID} .qol-distance-coordinates{grid-template-columns:1fr!important}#${PANEL_ID} .qol-distance-swap{justify-self:center!important;transform:rotate(90deg)!important}#${PANEL_ID} .qol-distance-swap:hover{transform:rotate(270deg)!important}#${PANEL_ID} .qol-distance-settings,#${PANEL_ID} .qol-distance-result,#${PANEL_ID} .qol-distance-scheduler,#${PANEL_ID} .qol-distance-scheduler-control{grid-template-columns:1fr!important}}
         `;
         document.head.appendChild(style);
     }
@@ -354,16 +404,16 @@
             const rect = panel.getBoundingClientRect();
             const offsetX = event.clientX - rect.left;
             const offsetY = event.clientY - rect.top;
-            panel.style.left = `${rect.left}px`;
-            panel.style.top = `${rect.top}px`;
-            panel.style.right = 'auto';
+            panel.style.setProperty('left', `${rect.left}px`, 'important');
+            panel.style.setProperty('top', `${rect.top}px`, 'important');
+            panel.style.setProperty('right', 'auto', 'important');
             header.setPointerCapture?.(event.pointerId);
 
             const move = moveEvent => {
                 const maxLeft = Math.max(0, window.innerWidth - panel.offsetWidth);
                 const maxTop = Math.max(0, window.innerHeight - panel.offsetHeight);
-                panel.style.left = `${Math.min(maxLeft, Math.max(0, moveEvent.clientX - offsetX))}px`;
-                panel.style.top = `${Math.min(maxTop, Math.max(0, moveEvent.clientY - offsetY))}px`;
+                panel.style.setProperty('left', `${Math.min(maxLeft, Math.max(0, moveEvent.clientX - offsetX))}px`, 'important');
+                panel.style.setProperty('top', `${Math.min(maxTop, Math.max(0, moveEvent.clientY - offsetY))}px`, 'important');
             };
             const stop = () => {
                 window.removeEventListener('pointermove', move, true);
@@ -386,7 +436,8 @@
             targetY: state.targetY,
             movementKey: state.movementKey,
             tournamentLevel: state.tournamentLevel,
-            bootsBonus: state.bootsBonus
+            bootsBonus: state.bootsBonus,
+            desiredArrival: state.desiredArrival
         };
         Object.entries(values).forEach(([name, value]) => {
             const input = panel.querySelector(`[data-field="${name}"]`);
@@ -419,6 +470,9 @@
         if (!panel) return;
         lastResult = calculate();
         panel.classList.toggle('qol-invalid', !lastResult.valid);
+        const sendButton = panel.querySelector('[data-send]');
+        sendButton?.classList.toggle('qol-disabled', !lastResult.valid);
+        sendButton?.setAttribute('aria-disabled', String(!lastResult.valid));
         if (!lastResult.valid) return;
 
         const set = (selector, value) => {
@@ -432,6 +486,15 @@
         set('[data-result="longSpeed"]', `${lastResult.longSpeed.toFixed(2)} fields/h`);
         set('[data-result="movement"]', lastResult.movement.label);
         set('[data-result="route"]', `(${lastResult.originX}|${lastResult.originY}) → (${lastResult.targetX}|${lastResult.targetY})`);
+
+        const sendPlan = calculateSendPlan(lastResult.durationSeconds);
+        const sendAt = panel.querySelector('[data-result="sendAt"]');
+        const plannedArrival = panel.querySelector('[data-result="plannedArrival"]');
+        if (sendAt) sendAt.textContent = sendPlan.valid ? sendPlan.sendLabel : 'Choose a time';
+        if (plannedArrival) plannedArrival.textContent = sendPlan.valid
+            ? `Landing ${sendPlan.arrivalLabel}`
+            : 'Uses the live server clock';
+
     }
 
     function updateStateFromInput(input) {
@@ -464,6 +527,16 @@
         }, 1800);
     }
 
+    function openSendTroops() {
+        const result = calculate();
+        if (!result.valid) {
+            setFeedback('Enter valid target coordinates first.');
+            return;
+        }
+        closePanel();
+        window.location.hash = `#/page:map/x:${result.targetX}/y:${result.targetY}/window:sendTroops`;
+    }
+
     async function copyResult() {
         if (!lastResult?.valid) {
             setFeedback('Enter valid coordinates first.');
@@ -475,9 +548,13 @@
             lastResult.movement.label,
             `travel ${formatDuration(lastResult.durationSeconds)}`,
             `arrival ${lastResult.arrival}`
-        ].join(' · ');
+        ];
+        const sendPlan = calculateSendPlan(lastResult.durationSeconds);
+        if (sendPlan.valid) {
+            summary.push(`send ${sendPlan.sendLabel}`, `planned landing ${sendPlan.arrivalLabel}`);
+        }
         try {
-            await navigator.clipboard.writeText(summary);
+            await navigator.clipboard.writeText(summary.join(' · '));
             setFeedback('Calculation copied.');
         } catch (_) {
             setFeedback('Clipboard is unavailable.');
@@ -549,6 +626,16 @@
                             <p class="qol-distance-help qol-distance-modifier-help">Tournament Square and boots apply only after the first 20 fields.</p>
                         </section>
                     </div>
+                    <section class="qol-distance-card qol-distance-scheduler">
+                        <div class="qol-distance-scheduler-copy">
+                            <strong>Plan an exact landing</strong>
+                            <span>Choose the desired server-time arrival. APES calculates the next valid time to send.</span>
+                        </div>
+                        <div class="qol-distance-scheduler-control">
+                            <div class="qol-distance-field"><label>Desired landing time</label><input data-field="desiredArrival" type="time" step="1" aria-label="Desired landing time in server time"></div>
+                            <div class="qol-distance-send-time"><span>Send at</span><strong data-result="sendAt">Choose a time</strong><small data-result="plannedArrival">Uses the live server clock</small></div>
+                        </div>
+                    </section>
                     <div class="qol-distance-invalid">Enter both origin and target coordinates to calculate the route.</div>
                     <section class="qol-distance-result">
                         <div class="qol-distance-arrival">
@@ -564,7 +651,10 @@
                         </div>
                     </section>
                     <div class="qol-distance-footer">
-                        <div class="qol-distance-copy" data-copy role="button" tabindex="0">Copy calculation</div>
+                        <div class="qol-distance-actions">
+                            <div class="qol-distance-send" data-send role="button" tabindex="0" aria-disabled="true">Send</div>
+                            <div class="qol-distance-copy" data-copy role="button" tabindex="0">Copy calculation</div>
+                        </div>
                         <p class="qol-distance-formula">Straight-line distance · matched to whole game seconds</p>
                     </div>
                 </div>
@@ -584,6 +674,7 @@
                 saveState();
                 syncInputs();
             });
+            activate(panel.querySelector('[data-send]'), openSendTroops);
             activate(panel.querySelector('[data-copy]'), copyResult);
             panel.querySelectorAll('[data-field]').forEach(input => {
                 input.addEventListener('input', () => updateStateFromInput(input));
@@ -661,6 +752,11 @@
         open: openPanel,
         close: closePanel,
         calculate: () => calculate(),
+        calculateSendPlan: () => {
+            const result = calculate();
+            return result.valid ? calculateSendPlan(result.durationSeconds) : { valid: false };
+        },
+        send: openSendTroops,
         useCurrentVillage: () => setCoordinates('origin', getCurrentVillageCoordinates()),
         useMapTarget: () => setCoordinates('target', getVisibleMapCoordinates())
     });
