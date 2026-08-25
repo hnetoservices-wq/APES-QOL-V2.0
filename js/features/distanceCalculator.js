@@ -86,6 +86,7 @@
             movementKey: 'roman-legionnaire',
             tournamentLevel: 0,
             bootsBonus: 0,
+            siegeMode: false,
             desiredArrival: ''
         };
     }
@@ -96,6 +97,7 @@
             const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
             const merged = { ...fallback, ...(saved && typeof saved === 'object' ? saved : {}) };
             if (!MOVEMENT_MAP.has(merged.movementKey)) merged.movementKey = fallback.movementKey;
+            merged.siegeMode = merged.siegeMode === true;
             delete merged.customSpeed;
             delete merged.worldSpeed;
             return merged;
@@ -263,6 +265,10 @@
                 ((distance - 20) / longSpeed * 3600);
         }
 
+        durationSeconds = Math.floor(durationSeconds);
+        const siegeMode = state.siegeMode === true;
+        if (siegeMode) durationSeconds *= 2;
+
         const serverNow = getServerClockSeconds();
         return {
             valid: true,
@@ -281,6 +287,7 @@
             world,
             tournamentLevel,
             bootsBonus,
+            siegeMode,
             usesTroopModifiers
         };
     }
@@ -345,6 +352,14 @@
             #${PANEL_ID} .qol-distance-field{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
             #${PANEL_ID} .qol-distance-field.qol-full{grid-column:1/-1!important}
             #${PANEL_ID} .qol-distance-field label{color:#6d5b43!important;font-size:8px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.3px!important}
+            #${PANEL_ID} .qol-distance-check{display:flex!important;align-items:center!important;gap:7px!important;min-height:30px!important;padding:5px 7px!important;border:1px solid #cdbb9f!important;border-radius:3px!important;background:#f4ecde!important;color:#5d482d!important;cursor:pointer!important;user-select:none!important}
+            #${PANEL_ID} .qol-distance-check.qol-full{grid-column:1/-1!important}
+            #${PANEL_ID} .qol-distance-check:hover{border-color:#9c815d!important;background:#fff5e5!important}
+            #${PANEL_ID} .qol-distance-check-box{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 15px!important;width:15px!important;height:15px!important;border:1px solid #886d49!important;border-radius:3px!important;background:#fff!important;color:#fff!important;font-size:11px!important;font-weight:700!important;line-height:1!important}
+            #${PANEL_ID} .qol-distance-check.qol-checked .qol-distance-check-box{border-color:#48651f!important;background:#668b2c!important}
+            #${PANEL_ID} .qol-distance-check.qol-checked .qol-distance-check-box::after{content:'✓'!important}
+            #${PANEL_ID} .qol-distance-check-label{font-size:9px!important;font-weight:700!important}
+            #${PANEL_ID} .qol-distance-check-note{margin-left:auto!important;color:#806d55!important;font-size:8px!important;font-weight:700!important}
             #${PANEL_ID} .qol-distance-detected{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:30px!important;padding:5px 8px!important;border:1px solid #cdbb9f!important;border-radius:3px!important;background:#f4ecde!important;color:#503b23!important}
             #${PANEL_ID} .qol-distance-detected strong{font-size:10px!important}
             #${PANEL_ID} .qol-distance-detected span{color:#7a6549!important;font-size:8px!important;font-weight:700!important}
@@ -448,6 +463,9 @@
         const detectedMovement = panel.querySelector('[data-world-movement]');
         if (detectedWorldLabel) detectedWorldLabel.textContent = detectedWorld.label;
         if (detectedMovement) detectedMovement.textContent = `Movement x${detectedWorld.movement}`;
+        const siegeToggle = panel.querySelector('[data-siege]');
+        siegeToggle?.classList.toggle('qol-checked', state.siegeMode === true);
+        siegeToggle?.setAttribute('aria-checked', String(state.siegeMode === true));
         updateModifierState();
         updateResult();
     }
@@ -507,6 +525,12 @@
         updateResult();
     }
 
+    function toggleSiegeMode() {
+        state.siegeMode = state.siegeMode !== true;
+        saveState();
+        syncInputs();
+    }
+
     function setCoordinates(kind, coordinates) {
         if (!coordinates) return false;
         state[`${kind}X`] = coordinates.x;
@@ -549,6 +573,7 @@
             `travel ${formatDuration(lastResult.durationSeconds)}`,
             `arrival ${lastResult.arrival}`
         ];
+        if (lastResult.siegeMode) summary.push('siege travel x2');
         const sendPlan = calculateSendPlan(lastResult.durationSeconds);
         if (sendPlan.valid) {
             summary.push(`send ${sendPlan.sendLabel}`, `planned landing ${sendPlan.arrivalLabel}`);
@@ -622,6 +647,7 @@
                             <div class="qol-distance-fields">
                                 <div class="qol-distance-field"><label>Tournament Square</label><input data-field="tournamentLevel" data-troop-modifier type="number" min="0" max="20" step="1"></div>
                                 <div class="qol-distance-field"><label>Hero boots bonus %</label><input data-field="bootsBonus" data-troop-modifier type="number" min="0" max="200" step="1"></div>
+                                <div class="qol-distance-check qol-full" data-siege role="checkbox" tabindex="0" aria-checked="false"><span class="qol-distance-check-box" aria-hidden="true"></span><span class="qol-distance-check-label">Siege</span><span class="qol-distance-check-note">Travel time x2</span></div>
                             </div>
                             <p class="qol-distance-help qol-distance-modifier-help">Tournament Square and boots apply only after the first 20 fields.</p>
                         </section>
@@ -674,6 +700,7 @@
                 saveState();
                 syncInputs();
             });
+            activate(panel.querySelector('[data-siege]'), toggleSiegeMode);
             activate(panel.querySelector('[data-send]'), openSendTroops);
             activate(panel.querySelector('[data-copy]'), copyResult);
             panel.querySelectorAll('[data-field]').forEach(input => {
