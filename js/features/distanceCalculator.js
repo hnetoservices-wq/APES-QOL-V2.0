@@ -23,6 +23,8 @@
         5: { label: 'x5 world', movement: 3 }
     });
 
+    // Canonical x1-world movement speeds. World speed and long-distance
+    // modifiers are applied later; these values must never be pre-multiplied.
     const MOVEMENTS = Object.freeze([
         { group: 'Roman troops', key: 'roman-legionnaire', label: 'Legionnaire', speed: 6, type: 'troop' },
         { group: 'Roman troops', key: 'roman-praetorian', label: 'Praetorian', speed: 5, type: 'troop' },
@@ -57,7 +59,7 @@
         { group: 'Merchants', key: 'merchant-roman', label: 'Roman Merchant', speed: 16, type: 'merchant' },
         { group: 'Merchants', key: 'merchant-teuton', label: 'Teuton Merchant', speed: 12, type: 'merchant' },
         { group: 'Merchants', key: 'merchant-gaul', label: 'Gaul Merchant', speed: 24, type: 'merchant' },
-        { group: 'Other', key: 'custom', label: 'Custom movement speed', speed: 0, type: 'custom' }
+        { group: 'Hero', key: 'hero', label: 'Hero', speed: 7, type: 'troop' }
     ]);
 
     const MOVEMENT_MAP = new Map(MOVEMENTS.map(item => [item.key, item]));
@@ -82,8 +84,6 @@
             targetX: '',
             targetY: '',
             movementKey: 'roman-legionnaire',
-            customSpeed: 6,
-            worldSpeed: detectWorldSpeed(),
             tournamentLevel: 0,
             bootsBonus: 0
         };
@@ -95,7 +95,8 @@
             const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
             const merged = { ...fallback, ...(saved && typeof saved === 'object' ? saved : {}) };
             if (!MOVEMENT_MAP.has(merged.movementKey)) merged.movementKey = fallback.movementKey;
-            if (!WORLD_SPEEDS[merged.worldSpeed]) merged.worldSpeed = fallback.worldSpeed;
+            delete merged.customSpeed;
+            delete merged.worldSpeed;
             return merged;
         } catch (_) {
             return fallback;
@@ -201,11 +202,9 @@
         const targetX = parseCoordinate(state.targetX);
         const targetY = parseCoordinate(state.targetY);
         const movement = MOVEMENT_MAP.get(state.movementKey);
-        const enteredSpeed = Number.parseFloat(String(state.customSpeed));
-        const baseSpeed = Number.isFinite(enteredSpeed) && enteredSpeed > 0
-            ? clamp(enteredSpeed, 0.1, 999, 0)
-            : 0;
-        const world = WORLD_SPEEDS[state.worldSpeed] || WORLD_SPEEDS[1];
+        const baseSpeed = Number(movement?.speed || 0);
+        const worldSpeed = detectWorldSpeed();
+        const world = WORLD_SPEEDS[worldSpeed] || WORLD_SPEEDS[1];
 
         if ([originX, originY, targetX, targetY].some(value => value === null) || !movement || baseSpeed <= 0) {
             return { valid: false };
@@ -239,6 +238,8 @@
             arrival: formatArrival(serverNow, durationSeconds),
             firstSpeed,
             longSpeed,
+            baseSpeed,
+            worldSpeed,
             movement,
             world,
             tournamentLevel,
@@ -265,7 +266,7 @@
         return [...groups.entries()].map(([group, items]) => `
             <optgroup label="${escapeHtml(group)}">
                 ${items.map(item => `
-                    <option value="${escapeHtml(item.key)}">${escapeHtml(item.label)}${item.speed ? ` · ${item.speed} fields/h` : ''}</option>
+                    <option value="${escapeHtml(item.key)}">${escapeHtml(item.label)} · ${item.speed} fields/h at x1</option>
                 `).join('')}
             </optgroup>
         `).join('');
@@ -294,7 +295,8 @@
             #${PANEL_ID} .qol-distance-card-title{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:7px!important;color:#4d3922!important;font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.35px!important}
             #${PANEL_ID} .qol-distance-pair{display:grid!important;grid-template-columns:1fr auto 1fr!important;align-items:center!important;gap:5px!important}
             #${PANEL_ID} .qol-distance-separator{color:#8b7658!important;font-size:13px!important;font-weight:700!important}
-            #${PANEL_ID} input,#${PANEL_ID} select{width:100%!important;height:30px!important;margin:0!important;padding:5px 7px!important;border:1px solid #a99575!important;border-radius:3px!important;background:#fffdf9!important;color:#3d2d1c!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.08)!important;font-size:10px!important;line-height:1.2!important;outline:none!important}
+            #${PANEL_ID} input,#${PANEL_ID} select{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:30px!important;margin:0!important;padding:5px 7px!important;border:1px solid #a99575!important;border-radius:3px!important;background:#fffdf9!important;color:#3d2d1c!important;box-shadow:inset 0 1px 2px rgba(0,0,0,.08)!important;font-size:10px!important;line-height:1.2!important;outline:none!important}
+            #${PANEL_ID} select{-webkit-appearance:menulist!important;appearance:auto!important;position:static!important;clip:auto!important;clip-path:none!important;transform:none!important;pointer-events:auto!important}
             #${PANEL_ID} input:focus,#${PANEL_ID} select:focus{border-color:#7ca821!important;box-shadow:0 0 0 2px rgba(124,168,33,.18)!important}
             #${PANEL_ID} input:disabled{opacity:.55!important;cursor:not-allowed!important;background:#eee9e1!important}
             #${PANEL_ID} .qol-distance-mini{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:23px!important;padding:3px 7px!important;border:1px solid #8e7656!important;border-radius:3px!important;background:#eadfcf!important;color:#563f26!important;cursor:pointer!important;user-select:none!important;font-size:8px!important;font-weight:700!important;white-space:nowrap!important}
@@ -306,6 +308,9 @@
             #${PANEL_ID} .qol-distance-field{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
             #${PANEL_ID} .qol-distance-field.qol-full{grid-column:1/-1!important}
             #${PANEL_ID} .qol-distance-field label{color:#6d5b43!important;font-size:8px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.3px!important}
+            #${PANEL_ID} .qol-distance-detected{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:30px!important;padding:5px 8px!important;border:1px solid #cdbb9f!important;border-radius:3px!important;background:#f4ecde!important;color:#503b23!important}
+            #${PANEL_ID} .qol-distance-detected strong{font-size:10px!important}
+            #${PANEL_ID} .qol-distance-detected span{color:#7a6549!important;font-size:8px!important;font-weight:700!important}
             #${PANEL_ID} .qol-distance-help{margin:0!important;color:#8b7a65!important;font-size:8px!important;line-height:1.35!important}
             #${PANEL_ID} .qol-distance-modifiers.qol-disabled{opacity:.55!important}
             #${PANEL_ID} .qol-distance-result{display:grid!important;grid-template-columns:minmax(0,1.2fr) minmax(0,.8fr)!important;gap:8px!important;padding:10px!important;border:1px solid #4a351f!important;border-radius:5px!important;background:linear-gradient(135deg,#6b5132,#4e3a24)!important;color:#fff8e9!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.12)!important}
@@ -380,8 +385,6 @@
             targetX: state.targetX,
             targetY: state.targetY,
             movementKey: state.movementKey,
-            customSpeed: state.customSpeed,
-            worldSpeed: state.worldSpeed,
             tournamentLevel: state.tournamentLevel,
             bootsBonus: state.bootsBonus
         };
@@ -389,6 +392,11 @@
             const input = panel.querySelector(`[data-field="${name}"]`);
             if (input) input.value = value;
         });
+        const detectedWorld = WORLD_SPEEDS[detectWorldSpeed()] || WORLD_SPEEDS[1];
+        const detectedWorldLabel = panel.querySelector('[data-world-label]');
+        const detectedMovement = panel.querySelector('[data-world-movement]');
+        if (detectedWorldLabel) detectedWorldLabel.textContent = detectedWorld.label;
+        if (detectedMovement) detectedMovement.textContent = `Movement x${detectedWorld.movement}`;
         updateModifierState();
         updateResult();
     }
@@ -419,7 +427,7 @@
         };
         set('[data-result="arrival"]', lastResult.arrival);
         set('[data-result="duration"]', formatDuration(lastResult.durationSeconds));
-        set('[data-result="distance"]', `${lastResult.distance.toFixed(2)} fields`);
+        set('[data-result="distance"]', `${lastResult.distance.toFixed(3)} fields`);
         set('[data-result="baseSpeed"]', `${lastResult.firstSpeed.toFixed(2)} fields/h`);
         set('[data-result="longSpeed"]', `${lastResult.longSpeed.toFixed(2)} fields/h`);
         set('[data-result="movement"]', lastResult.movement.label);
@@ -430,16 +438,7 @@
         const field = input.dataset.field;
         if (!field) return;
         state[field] = input.value;
-        if (field === 'movementKey') {
-            const preset = MOVEMENT_MAP.get(input.value);
-            if (preset?.speed > 0) {
-                state.customSpeed = preset.speed;
-                const speedInput = document.querySelector(`#${PANEL_ID} [data-field="customSpeed"]`);
-                if (speedInput) speedInput.value = preset.speed;
-            }
-        }
-        if (field === 'worldSpeed' || field === 'tournamentLevel') state[field] = Number(input.value);
-        if (field === 'customSpeed' || field === 'bootsBonus') state[field] = Number(input.value);
+        if (field === 'tournamentLevel' || field === 'bootsBonus') state[field] = Number(input.value);
         saveState();
         updateModifierState();
         updateResult();
@@ -472,7 +471,7 @@
         }
         const summary = [
             `(${lastResult.originX}|${lastResult.originY}) → (${lastResult.targetX}|${lastResult.targetY})`,
-            `${lastResult.distance.toFixed(2)} fields`,
+            `${lastResult.distance.toFixed(3)} fields`,
             lastResult.movement.label,
             `travel ${formatDuration(lastResult.durationSeconds)}`,
             `arrival ${lastResult.arrival}`
@@ -536,11 +535,10 @@
                         <section class="qol-distance-card">
                             <div class="qol-distance-card-title">Movement</div>
                             <div class="qol-distance-fields">
-                                <div class="qol-distance-field qol-full"><label>Unit or merchant preset</label><select data-field="movementKey">${movementOptions()}</select></div>
-                                <div class="qol-distance-field"><label>Slowest speed (fields/hour)</label><input data-field="customSpeed" type="number" min="0.1" max="999" step="0.1"></div>
-                                <div class="qol-distance-field"><label>Gameworld speed</label><select data-field="worldSpeed">${Object.entries(WORLD_SPEEDS).map(([speed, item]) => `<option value="${speed}">${item.label} · movement x${item.movement}</option>`).join('')}</select></div>
+                                <div class="qol-distance-field qol-full"><label>Slowest unit or merchant</label><select data-field="movementKey">${movementOptions()}</select></div>
+                                <div class="qol-distance-field qol-full"><label>Detected gameworld speed</label><div class="qol-distance-detected"><strong data-world-label>x1 world</strong><span data-world-movement>Movement x1</span></div></div>
                             </div>
-                            <p class="qol-distance-help">The preset fills the speed field. Edit it freely; this value drives the calculation.</p>
+                            <p class="qol-distance-help">Unit speeds are stored at x1. APES applies the detected world's movement multiplier automatically.</p>
                         </section>
                         <section class="qol-distance-card qol-distance-modifiers">
                             <div class="qol-distance-card-title">Long-distance modifiers</div>
