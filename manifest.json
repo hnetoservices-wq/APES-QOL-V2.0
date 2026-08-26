@@ -46,6 +46,7 @@
         "js/features/npcCalculator.js",
         "js/ui/resourceUpgradePlannerPreference.js",
         "js/features/resourceUpgradePlanner.js",
+        "js/ui/resourceUpgradePlannerButtons.js",
         "js/ui/resourceUpgradePlannerIntegration.js",
         "js/features/distanceCalculator.js",
         "js/features/auctionHouseScanner.js",
