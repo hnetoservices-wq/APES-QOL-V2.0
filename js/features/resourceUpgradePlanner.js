@@ -118,16 +118,6 @@
         }
     });
 
-    const EMBASSY_COSTS = Object.freeze([
-        null,
-        [180,130,150,80],[930,890,930,320],[1240,1185,1240,425],[1645,1575,1645,565],
-        [2190,2095,2190,750],[2915,2790,2915,1000],[3875,3710,3875,1330],[5155,4930,5155,1765],
-        [6855,6560,6855,2350],[9115,8725,9115,3125],[12125,11605,12125,4155],[16125,15435,16125,5530],
-        [21445,20525,21445,7350],[28520,27300,28520,9780],[37935,36310,37935,13005],
-        [50450,48290,50450,17300],[67100,64225,67100,23005],[89245,85420,89245,30600],
-        [118695,113605,118695,40695],[157865,151095,157865,54125]
-    ]);
-
     const OASIS_PRESETS = Object.freeze({
         none: { label: 'No bonus', values: [0,0,0,0] },
         wood25: { label: 'Wood +25%', values: [25,0,0,0] },
@@ -145,9 +135,8 @@
         layout: '4-4-4-6',
         maxLevel: 10,
         speed: 1,
-        steps: 5,
+        steps: 15,
         goldBoost: false,
-        skipWciBoosters: false,
         fields: { wood:[0,0,0,0], clay:[0,0,0,0], iron:[0,0,0,0], crop:[0,0,0,0,0,0] },
         buildings: { sawmill:0, brickyard:0, foundry:0, mill:0, bakery:0, embassy:0 },
         oases: [
@@ -181,10 +170,6 @@
     function maxField(current, resource) { return Math.max(0, ...(current.fields?.[resource] || [0])); }
     function productionTotal(values) { return values.reduce((sum, value) => sum + Number(value || 0), 0); }
     function totalCost(cost) { return productionTotal(cost); }
-    function sumCosts(costs) {
-        return costs.reduce((sum, cost) => sum.map((value, index) => value + Number(cost?.[index] || 0)), [0,0,0,0]);
-    }
-
     function normalizeFields(fields, layout, maxLevel) {
         const counts = getLayoutCounts(layout);
         return Object.fromEntries(RESOURCE_KEYS.map((resource, index) => {
@@ -207,9 +192,8 @@
             next.layout = Object.hasOwn(LAYOUTS, raw.layout) ? raw.layout : next.layout;
             next.maxLevel = [10,12,20].includes(Number(raw.maxLevel)) ? Number(raw.maxLevel) : 10;
             next.speed = [1,2,3,5].includes(Number(raw.speed)) ? Number(raw.speed) : 1;
-            next.steps = clamp(raw.steps, 1, 100, 5);
+            next.steps = clamp(raw.steps, 15, 100, 15);
             next.goldBoost = raw.goldBoost === true;
-            next.skipWciBoosters = raw.skipWciBoosters === true;
             next.fields = normalizeFields(raw.fields, next.layout, next.maxLevel);
             Object.keys(next.buildings).forEach(key => {
                 next.buildings[key] = clamp(raw.buildings?.[key] ?? 0, 0, key === 'embassy' ? 20 : 5, 0);
@@ -450,7 +434,6 @@
             <div class="qol-rup-scan-lock-card">
                 <strong>Scanning village development…</strong>
                 <span data-lock-status>Preparing village scan…</span>
-                <small>APES is checking buildings, assigned oases, and all 18 resource fields.</small>
             </div>
         `;
         document.body.appendChild(lock);
@@ -587,8 +570,6 @@
         if (embassyLevel >= 1) return 1;
         return 0;
     }
-    function embassyLevelForSlot(slot) { return [1,10,20][slot - 1] || 20; }
-
     function generateCandidates(current) {
         const candidates = [];
         RESOURCE_KEYS.forEach(resource => {
@@ -605,7 +586,6 @@
         });
 
         Object.entries(BUILDINGS).forEach(([key, building]) => {
-            if (current.skipWciBoosters && ['sawmill','brickyard','foundry'].includes(key)) return;
             const fromLevel = Number(current.buildings[key] || 0);
             const toLevel = fromLevel + 1;
             if (toLevel <= building.max && building.prerequisite(current) && building.costs[toLevel]) {
@@ -616,34 +596,12 @@
             }
         });
 
-        const annexed = current.oases.filter(oasis => oasis.state === 'annexed').length;
-        if (annexed < 3) {
-            const slot = annexed + 1;
-            const embassyFrom = Number(current.buildings.embassy || 0);
-            const embassyTo = Math.max(embassyFrom, embassyLevelForSlot(slot));
-            current.oases.forEach((oasis, oasisIndex) => {
-                if (oasis.state !== 'available' || productionTotal(oasis.bonuses) <= 0) return;
-                const upgradeCosts = [];
-                for (let level = embassyFrom + 1; level <= embassyTo; level += 1) {
-                    if (EMBASSY_COSTS[level]) upgradeCosts.push(EMBASSY_COSTS[level]);
-                }
-                const embassyText = embassyTo > embassyFrom ? `Embassy ${embassyFrom} → ${embassyTo} + ` : '';
-                candidates.push({
-                    kind:'oasis', oasisIndex, embassyFrom, embassyTo,
-                    cost:sumCosts(upgradeCosts), label:`${embassyText}annex Oasis ${oasisIndex + 1}`
-                });
-            });
-        }
         return candidates;
     }
 
     function applyCandidate(current, candidate) {
         if (candidate.kind === 'field') current.fields[candidate.resource][candidate.index] = candidate.toLevel;
         if (candidate.kind === 'building') current.buildings[candidate.building] = candidate.toLevel;
-        if (candidate.kind === 'oasis') {
-            current.buildings.embassy = candidate.embassyTo;
-            current.oases[candidate.oasisIndex].state = 'annexed';
-        }
     }
 
     function timeToAfford(cost, balance, production) {
@@ -776,42 +734,42 @@
             #${PANEL_ID}{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:18px!important;background:rgba(18,16,13,.76)!important;z-index:2147483644!important}
             #${PANEL_ID}.qol-open{display:flex!important}
             #${PANEL_ID} .qol-rup-window{display:flex!important;flex-direction:column!important;width:min(1120px,96vw)!important;max-height:94vh!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 24px 64px rgba(0,0,0,.52)!important;overflow:hidden!important}
-            #${PANEL_ID} .qol-rup-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;min-height:62px!important;padding:11px 14px!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#f8f0df!important;border-bottom:1px solid var(--qol-accent-outline)!important}
+            #${PANEL_ID} .qol-rup-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:14px!important;min-height:52px!important;padding:8px 14px!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#f8f0df!important;border-bottom:1px solid var(--qol-accent-outline)!important}
             #${PANEL_ID} .qol-rup-title-wrap{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
             #${PANEL_ID} .qol-rup-title-icon{display:flex!important;align-items:center!important;justify-content:center!important;width:37px!important;height:37px!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:7px!important;background:rgba(0,0,0,.16)!important;flex:0 0 auto!important}
             #${PANEL_ID} .qol-rup-title-icon svg{width:23px!important;height:23px!important;fill:none!important;stroke:#fff2d7!important;stroke-width:1.7!important}
             #${PANEL_ID} .qol-rup-title{margin:0!important;color:#fffaf0!important;font-size:16px!important;font-weight:800!important;line-height:1.2!important}
-            #${PANEL_ID} .qol-rup-subtitle{margin-top:2px!important;color:#d9c9ad!important;font-size:9px!important;line-height:1.35!important}
             #${PANEL_ID} .qol-rup-close{display:flex!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;border:0!important;border-radius:5px!important;background:rgba(0,0,0,.2)!important;color:#fff!important;font-size:22px!important;font-weight:700!important;cursor:pointer!important}
             #${PANEL_ID} .qol-rup-close:hover{background:rgba(255,255,255,.14)!important}
             #${PANEL_ID} .qol-rup-body{overflow:auto!important;padding:11px!important;background:#ede5d7!important}
             #${PANEL_ID} .qol-rup-section{margin-bottom:9px!important;border:1px solid #cbbb9f!important;border-radius:5px!important;background:#f8f4ec!important;overflow:hidden!important}
             #${PANEL_ID} .qol-rup-section-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:7px 9px!important;background:#e6dac6!important;border-bottom:1px solid #cbbb9f!important}
             #${PANEL_ID} .qol-rup-section-title{color:var(--qol-accent-deep)!important;font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.35px!important}
-            #${PANEL_ID} .qol-rup-section-note{color:#7d6b53!important;font-size:8px!important;text-align:right!important}
             #${PANEL_ID} .qol-rup-section-body{padding:9px!important}
-            #${PANEL_ID} .qol-rup-settings{display:grid!important;grid-template-columns:repeat(6,minmax(105px,1fr))!important;gap:7px!important;align-items:end!important}
+            #${PANEL_ID} .qol-rup-settings{display:grid!important;grid-template-columns:repeat(5,minmax(120px,1fr))!important;gap:8px!important;align-items:end!important}
             #${PANEL_ID} .qol-rup-control{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important}
-            #${PANEL_ID} .qol-rup-control>label,#${PANEL_ID} .qol-rup-oasis-bonus>label{color:#66513a!important;font-size:8px!important;font-weight:700!important}
-            #${PANEL_ID} select,#${PANEL_ID} input[type=number]{width:100%!important;height:28px!important;padding:3px 6px!important;border:1px solid #ad9b7d!important;border-radius:3px!important;background:#fffdf8!important;color:#382b1d!important;font-size:9px!important;outline:none!important}
+            #${PANEL_ID} .qol-rup-control>label{color:#66513a!important;font-size:9px!important;font-weight:700!important}
+            #${PANEL_ID} select,#${PANEL_ID} input[type=number]{width:100%!important;height:30px!important;padding:3px 7px!important;border:1px solid #ad9b7d!important;border-radius:3px!important;background:#fffdf8!important;color:#382b1d!important;font-size:10px!important;outline:none!important}
             #${PANEL_ID} select:focus,#${PANEL_ID} input[type=number]:focus{border-color:var(--qol-accent)!important;box-shadow:0 0 0 2px color-mix(in srgb,var(--qol-accent) 16%,transparent)!important}
-            #${PANEL_ID} .qol-rup-check{display:flex!important;align-items:center!important;gap:6px!important;min-height:28px!important;padding:4px 7px!important;border:1px solid #c9baa0!important;border-radius:3px!important;background:#f1eadf!important;color:#59452e!important;font-size:8px!important;font-weight:700!important;cursor:pointer!important}
+            #${PANEL_ID} .qol-rup-check{display:flex!important;align-items:center!important;gap:7px!important;min-height:30px!important;padding:4px 8px!important;border:1px solid #c9baa0!important;border-radius:3px!important;background:#f1eadf!important;color:#59452e!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important}
             #${PANEL_ID} .qol-rup-check input{margin:0!important}
-            #${PANEL_ID} .qol-rup-fields-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
-            #${PANEL_ID} .qol-rup-field-group{padding:7px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important}
-            #${PANEL_ID} .qol-rup-field-group-title{display:flex!important;align-items:center!important;justify-content:space-between!important;margin-bottom:5px!important;color:#5b452d!important;font-size:9px!important;font-weight:800!important}
-            #${PANEL_ID} .qol-rup-field-resource{display:inline-flex!important;align-items:center!important;gap:5px!important}
-            #${PANEL_ID} .qol-rup-field-inputs{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(38px,1fr))!important;gap:3px!important}
-            #${PANEL_ID} .qol-rup-field-input-wrap{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
-            #${PANEL_ID} .qol-rup-field-input-wrap span{color:#9a876c!important;font-size:7px!important;text-align:center!important}
-            #${PANEL_ID} .qol-rup-field-input-wrap input{text-align:center!important;padding:2px!important}
-            #${PANEL_ID} .qol-rup-buildings{display:grid!important;grid-template-columns:repeat(6,minmax(100px,1fr))!important;gap:7px!important}
-            #${PANEL_ID} .qol-rup-oases{display:grid!important;gap:5px!important}
-            #${PANEL_ID} .qol-rup-oasis-row{display:grid!important;grid-template-columns:66px minmax(190px,1.45fr) repeat(4,minmax(78px,.55fr))!important;gap:6px!important;align-items:end!important;padding:7px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important}
-            #${PANEL_ID} .qol-rup-oasis-index{align-self:center!important;color:#5d472e!important;font-size:9px!important;font-weight:800!important}
-            #${PANEL_ID} .qol-rup-oasis-selects{display:grid!important;grid-template-columns:.75fr 1.25fr!important;gap:4px!important}
-            #${PANEL_ID} .qol-rup-oasis-bonus>label{display:flex!important;align-items:center!important;gap:4px!important;min-height:18px!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-rup-fields-grid{overflow-x:auto!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important}
+            #${PANEL_ID} .qol-rup-fields-table{width:100%!important}
+            #${PANEL_ID} .qol-rup-fields-head,#${PANEL_ID} .qol-rup-fields-row{display:grid!important;align-items:center!important;gap:4px!important;padding:4px 6px!important}
+            #${PANEL_ID} .qol-rup-fields-head{background:#eee4d3!important;border-bottom:1px solid #d2c4ac!important;color:#8b765b!important;font-size:8px!important;font-weight:800!important;text-align:center!important}
+            #${PANEL_ID} .qol-rup-fields-row{border-bottom:1px solid #eee5d6!important}.qol-rup-fields-row:last-child{border-bottom:0!important}
+            #${PANEL_ID} .qol-rup-fields-row input{height:29px!important;padding:2px 4px!important;text-align:center!important}
+            #${PANEL_ID} .qol-rup-field-resource{display:inline-flex!important;align-items:center!important;gap:6px!important;color:#5b452d!important;font-size:10px!important}
+            #${PANEL_ID} .qol-rup-field-empty{height:29px!important}
+            #${PANEL_ID} .qol-rup-buildings{display:grid!important;grid-template-columns:repeat(6,minmax(130px,1fr))!important;gap:7px!important}
+            #${PANEL_ID} .qol-rup-building-level{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;min-height:34px!important;padding:4px 7px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important;color:#59452e!important;font-size:9px!important;font-weight:800!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-rup-building-level select{width:44px!important;height:26px!important;padding:2px 4px!important;text-align:center!important}
+            #${PANEL_ID} .qol-rup-oasis-summary{display:grid!important;grid-template-columns:minmax(130px,1.1fr) repeat(4,minmax(120px,1fr))!important;gap:7px!important}
+            #${PANEL_ID} .qol-rup-oasis-count,#${PANEL_ID} .qol-rup-oasis-total{display:flex!important;align-items:center!important;gap:6px!important;min-height:36px!important;padding:4px 7px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important;color:#59452e!important;font-size:9px!important;font-weight:800!important;white-space:nowrap!important}
+            #${PANEL_ID} .qol-rup-oasis-count{justify-content:space-between!important}#${PANEL_ID} .qol-rup-oasis-count select{width:48px!important;height:27px!important}
+            #${PANEL_ID} .qol-rup-oasis-total input{min-width:42px!important;height:27px!important;padding:2px 4px!important;text-align:center!important}
             #${PANEL_ID} .qol-rup-actions{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;flex-wrap:wrap!important;margin:2px 0 9px!important}
+            #${PANEL_ID} .qol-rup-actions-top{padding:8px!important;border:1px solid #cbbb9f!important;border-radius:5px!important;background:#f8f4ec!important}
             #${PANEL_ID} .qol-rup-action-left{display:flex!important;align-items:center!important;gap:7px!important}
             #${PANEL_ID} .qol-rup-action-control{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:104px!important;height:30px!important;padding:0 13px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;color:#fff8eb!important;font-size:9px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important;box-shadow:0 1px 2px rgba(0,0,0,.18)!important}
             #${PANEL_ID} .qol-rup-action-control:hover{filter:brightness(1.08)!important}
@@ -819,7 +777,6 @@
             #${PANEL_ID} .qol-rup-action-control.qol-disabled{opacity:.55!important;filter:grayscale(.25)!important;cursor:wait!important;pointer-events:none!important}
             #${PANEL_ID} .qol-rup-scan-status{min-width:170px!important;color:#7e6b53!important;font-size:8px!important;font-weight:700!important;line-height:1.35!important}
             #${PANEL_ID} .qol-rup-scan-status[data-tone="success"]{color:#496f27!important}#${PANEL_ID} .qol-rup-scan-status[data-tone="warning"]{color:#916618!important}#${PANEL_ID} .qol-rup-scan-status[data-tone="error"]{color:#8b332a!important}
-            #${PANEL_ID} .qol-rup-method{max-width:650px!important;color:#7e6b53!important;font-size:8px!important;line-height:1.35!important}
             #${PANEL_ID} .qol-rup-error{display:none!important;margin-bottom:9px!important;padding:7px 9px!important;border:1px solid #9b4b3f!important;border-radius:4px!important;background:#f5dfd9!important;color:#713329!important;font-size:9px!important;font-weight:700!important}
             #${PANEL_ID} .qol-rup-error.show{display:block!important}
             #${PANEL_ID} .qol-rup-results{display:none!important}
@@ -841,22 +798,21 @@
             #${PANEL_ID} .qol-rup-view{display:none!important}
             #${PANEL_ID} .qol-rup-view.active{display:block!important}
             #${PANEL_ID} .qol-rup-table-wrap{overflow:auto!important;border:1px solid #c8b99f!important;border-radius:4px!important;background:#fffdf8!important}
-            #${PANEL_ID} table{width:100%!important;border-collapse:collapse!important;color:#44321f!important;font-size:8px!important}
-            #${PANEL_ID} th{position:sticky!important;top:0!important;z-index:1!important;padding:5px!important;background:#ded0b9!important;color:var(--qol-accent-deep)!important;border-bottom:1px solid #b9a78a!important;text-align:left!important;white-space:nowrap!important;font-size:7px!important;text-transform:uppercase!important}
+            #${PANEL_ID} table{width:100%!important;border-collapse:collapse!important;color:#44321f!important;font-size:9px!important}
+            #${PANEL_ID} th{position:sticky!important;top:0!important;z-index:1!important;padding:6px!important;background:#ded0b9!important;color:var(--qol-accent-deep)!important;border-bottom:1px solid #b9a78a!important;text-align:left!important;white-space:nowrap!important;font-size:8px!important;text-transform:uppercase!important}
             #${PANEL_ID} td{padding:5px!important;border-bottom:1px solid #eee5d6!important;vertical-align:top!important;white-space:nowrap!important}
             #${PANEL_ID} tr:last-child td{border-bottom:0!important}
             #${PANEL_ID} .qol-rup-step{color:#8a765c!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-action-name{color:#49351f!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-compact-list{display:grid!important;gap:4px!important}
-            #${PANEL_ID} .qol-rup-compact-row{display:grid!important;grid-template-columns:72px minmax(190px,1.35fr) minmax(230px,1.6fr) 100px 110px!important;align-items:center!important;gap:6px!important;padding:6px 7px!important;border:1px solid #d5c8b3!important;border-radius:4px!important;background:#fffdf8!important;color:#5b4933!important;font-size:8px!important}
+            #${PANEL_ID} .qol-rup-compact-row{display:grid!important;grid-template-columns:72px minmax(190px,1.35fr) minmax(230px,1.6fr) 100px 110px!important;align-items:center!important;gap:6px!important;padding:7px 8px!important;border:1px solid #d5c8b3!important;border-radius:4px!important;background:#fffdf8!important;color:#5b4933!important;font-size:9px!important}
             #${PANEL_ID} .qol-rup-compact-step{color:var(--qol-accent)!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-levels{display:flex!important;align-items:center!important;gap:3px!important;flex-wrap:wrap!important}
             #${PANEL_ID} .qol-rup-level{padding:2px 4px!important;border:1px solid #dfd4c4!important;border-radius:3px!important;background:#f5efe6!important;color:#7b6b56!important}
             #${PANEL_ID} .qol-rup-level.changed{border-color:#9bb37d!important;background:#edf4e5!important;color:#49682d!important;font-weight:800!important}
-            #${PANEL_ID} .qol-rup-footnote{margin-top:7px!important;padding:6px 8px!important;border-left:3px solid var(--qol-accent)!important;background:#eee7dc!important;color:#756550!important;font-size:7.5px!important;line-height:1.45!important}
             #${PANEL_ID} .qol-rup-empty{padding:14px!important;border:1px dashed #c4b59c!important;border-radius:4px!important;background:#fffdf8!important;color:#7d6b55!important;text-align:center!important;font-size:9px!important}
-            @media(max-width:900px){#${PANEL_ID} .qol-rup-settings,#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(3,minmax(100px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-row{grid-template-columns:65px minmax(180px,1.5fr) repeat(2,minmax(84px,1fr))!important}#${PANEL_ID} .qol-rup-compact-row{grid-template-columns:55px minmax(160px,1fr) minmax(180px,1.2fr)!important}#${PANEL_ID} .qol-rup-compact-row>*:nth-last-child(-n+2){display:none!important}}
-            @media(max-width:620px){#${PANEL_ID}{padding:5px!important}#${PANEL_ID} .qol-rup-fields-grid{grid-template-columns:1fr!important}#${PANEL_ID} .qol-rup-settings,#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(2,minmax(95px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-row{grid-template-columns:1fr 1fr!important}#${PANEL_ID} .qol-rup-oasis-index{grid-column:1/-1!important}#${PANEL_ID} .qol-rup-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+            @media(max-width:900px){#${PANEL_ID} .qol-rup-settings{grid-template-columns:repeat(3,minmax(110px,1fr))!important}#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(3,minmax(130px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-summary{grid-template-columns:repeat(2,minmax(130px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-count{grid-column:1/-1!important}#${PANEL_ID} .qol-rup-compact-row{grid-template-columns:55px minmax(160px,1fr) minmax(180px,1.2fr)!important}#${PANEL_ID} .qol-rup-compact-row>*:nth-last-child(-n+2){display:none!important}}
+            @media(max-width:620px){#${PANEL_ID}{padding:5px!important}#${PANEL_ID} .qol-rup-settings,#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(2,minmax(120px,1fr))!important}#${PANEL_ID} .qol-rup-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
         `;
         document.head.appendChild(style);
     }
@@ -869,38 +825,52 @@
         const panel = document.getElementById(PANEL_ID);
         const root = panel?.querySelector('[data-rup-fields]');
         if (!root) return;
-        root.innerHTML = RESOURCE_KEYS.map(resource => `
-            <div class="qol-rup-field-group">
-                <div class="qol-rup-field-group-title"><span class="qol-rup-field-resource">${resourceIcon(resource)}<span>${RESOURCE_LABELS[resource]}</span></span><span>${state.fields[resource].length} fields</span></div>
-                <div class="qol-rup-field-inputs">
-                    ${state.fields[resource].map((level, index) => `
-                        <label class="qol-rup-field-input-wrap"><span>#${index + 1}</span><input type="number" min="0" max="${state.maxLevel}" step="1" value="${level}" data-rup-field="${resource}" data-index="${index}"></label>
-                    `).join('')}
-                </div>
-            </div>
-        `).join('');
+        const columns = Math.max(...RESOURCE_KEYS.map(resource => state.fields[resource].length));
+        const template = `110px repeat(${columns}, minmax(48px, 1fr))`;
+        root.innerHTML = `
+            <div class="qol-rup-fields-table" style="--qol-rup-field-columns:${template};min-width:${110 + columns * 50}px">
+                <div class="qol-rup-fields-head" style="grid-template-columns:${template}"><span></span>${Array.from({ length:columns }, (_, index) => `<span>#${index + 1}</span>`).join('')}</div>
+                ${RESOURCE_KEYS.map(resource => `
+                    <div class="qol-rup-fields-row" style="grid-template-columns:${template}">
+                        <span class="qol-rup-field-resource">${resourceIcon(resource)}<strong>${RESOURCE_LABELS[resource]}</strong></span>
+                        ${Array.from({ length:columns }, (_, index) => index < state.fields[resource].length
+                            ? `<input type="number" min="0" max="${state.maxLevel}" step="1" value="${state.fields[resource][index]}" data-rup-field="${resource}" data-index="${index}" aria-label="${RESOURCE_LABELS[resource]} field ${index + 1} level">`
+                            : '<span class="qol-rup-field-empty"></span>').join('')}
+                    </div>
+                `).join('')}
+            </div>`;
+    }
+
+    function combinedOasisState() {
+        const annexed = state.oases.filter(oasis => oasis.state === 'annexed');
+        return {
+            count: annexed.length,
+            bonuses: RESOURCE_KEYS.map((_, resourceIndex) =>
+                annexed.reduce((total, oasis) => total + Number(oasis.bonuses[resourceIndex] || 0), 0)
+            )
+        };
+    }
+
+    function setCombinedOasisState(count, bonuses) {
+        const normalizedCount = clamp(count, 0, 3, 0);
+        const totals = Array.from({ length:4 }, (_, index) => clamp(bonuses[index], 0, 150, 0));
+        state.oases = Array.from({ length:3 }, (_, index) => ({
+            state: index < normalizedCount ? 'annexed' : 'none',
+            preset: index === 0 && normalizedCount > 0 ? 'custom' : 'none',
+            bonuses: index === 0 && normalizedCount > 0 ? totals.slice() : [0,0,0,0]
+        }));
     }
 
     function renderOases() {
         const panel = document.getElementById(PANEL_ID);
         const root = panel?.querySelector('[data-rup-oases]');
         if (!root) return;
-        root.innerHTML = state.oases.map((oasis, index) => `
-            <div class="qol-rup-oasis-row">
-                <div class="qol-rup-oasis-index">Oasis ${index + 1}</div>
-                <div class="qol-rup-control"><label>Status / bonus</label><div class="qol-rup-oasis-selects">
-                    <select data-rup-oasis-state="${index}"><option value="none">None</option><option value="available">Available</option><option value="annexed">Already annexed</option></select>
-                    <select data-rup-oasis-preset="${index}">${Object.entries(OASIS_PRESETS).map(([key,preset]) => `<option value="${key}">${escapeHtml(preset.label)}</option>`).join('')}</select>
-                </div></div>
-                ${RESOURCE_KEYS.map((resource, resourceIndex) => `<div class="qol-rup-oasis-bonus"><label title="${RESOURCE_LABELS[resource]} bonus">${resourceIcon(resource)}<span>Bonus %</span></label><input type="number" min="0" max="150" step="1" value="${oasis.bonuses[resourceIndex]}" data-rup-oasis-bonus="${index}" data-resource-index="${resourceIndex}" aria-label="${RESOURCE_LABELS[resource]} bonus percent"></div>`).join('')}
-            </div>
-        `).join('');
-        state.oases.forEach((oasis, index) => {
-            const status = root.querySelector(`[data-rup-oasis-state="${index}"]`);
-            const preset = root.querySelector(`[data-rup-oasis-preset="${index}"]`);
-            if (status) status.value = oasis.state;
-            if (preset) preset.value = oasis.preset;
-        });
+        const combined = combinedOasisState();
+        root.innerHTML = `
+            <div class="qol-rup-oasis-summary">
+                <label class="qol-rup-oasis-count"><span>Assigned oases</span><select data-rup-oasis-count aria-label="Number of assigned oases">${Array.from({ length:4 }, (_, count) => `<option value="${count}"${combined.count === count ? ' selected' : ''}>${count}</option>`).join('')}</select></label>
+                ${RESOURCE_KEYS.map((resource, resourceIndex) => `<label class="qol-rup-oasis-total" title="${RESOURCE_LABELS[resource]} oasis bonus">${resourceIcon(resource)}<span>${RESOURCE_LABELS[resource]}</span><input type="number" min="0" max="150" step="1" value="${combined.bonuses[resourceIndex]}" data-rup-oasis-total="${resourceIndex}" aria-label="Total ${RESOURCE_LABELS[resource]} oasis bonus percent"><b>%</b></label>`).join('')}
+            </div>`;
     }
 
     function renderInputState() {
@@ -912,9 +882,7 @@
         setValue('[data-rup="speed"]', state.speed);
         setValue('[data-rup="steps"]', state.steps);
         const gold = panel.querySelector('[data-rup="goldBoost"]');
-        const skip = panel.querySelector('[data-rup="skipWciBoosters"]');
         if (gold) gold.checked = state.goldBoost;
-        if (skip) skip.checked = state.skipWciBoosters;
         Object.entries(state.buildings).forEach(([key,value]) => setValue(`[data-rup-building="${key}"]`, value));
         renderFields();
         renderOases();
@@ -930,37 +898,36 @@
         panel.innerHTML = `
             <div class="qol-rup-window" role="dialog" aria-modal="true" aria-label="Resource Upgrade Planner">
                 <div class="qol-rup-header">
-                    <div class="qol-rup-title-wrap"><span class="qol-rup-title-icon">${iconSvg()}</span><div><h2 class="qol-rup-title">Resource Upgrade Planner</h2><div class="qol-rup-subtitle">Efficient resource-field, production-building and oasis development for Travian Kingdoms.</div></div></div>
+                    <div class="qol-rup-title-wrap"><span class="qol-rup-title-icon">${iconSvg()}</span><h2 class="qol-rup-title">Resource Upgrade Planner</h2></div>
                     <div class="qol-rup-close" data-close role="button" tabindex="0" aria-label="Close">×</div>
                 </div>
                 <div class="qol-rup-body">
+                    <div class="qol-rup-actions qol-rup-actions-top"><div class="qol-rup-action-left"><div class="qol-rup-action-control" data-action="scan" role="button" tabindex="0">Scan village</div><div class="qol-rup-action-control" data-action="calculate" role="button" tabindex="0">Calculate order</div><div class="qol-rup-action-control qol-secondary" data-action="reset" role="button" tabindex="0">Reset</div><span class="qol-rup-scan-status" data-scan-status aria-live="polite">Ready.</span></div></div>
                     <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Planner settings</span><span class="qol-rup-section-note">Kingdoms economy model</span></div>
+                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Planner settings</span></div>
                         <div class="qol-rup-section-body qol-rup-settings">
                             <div class="qol-rup-control"><label>Resource layout</label><select data-rup="layout">${Object.keys(LAYOUTS).map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>
                             <div class="qol-rup-control"><label>Village type</label><select data-rup="maxLevel"><option value="10">Village · fields to 10</option><option value="12">City · fields to 12</option><option value="20">Capital · fields to 20</option></select></div>
                             <div class="qol-rup-control"><label>World speed</label><select data-rup="speed"><option value="1">x1</option><option value="2">x2</option><option value="3">x3</option><option value="5">x5</option></select></div>
-                            <div class="qol-rup-control"><label>Future steps</label><input data-rup="steps" type="number" min="1" max="100" step="1"></div>
+                            <div class="qol-rup-control"><label>Future steps</label><input data-rup="steps" type="number" min="15" max="100" step="1"></div>
                             <label class="qol-rup-check"><input data-rup="goldBoost" type="checkbox"> +25% Gold production</label>
-                            <label class="qol-rup-check"><input data-rup="skipWciBoosters" type="checkbox"> Skip W/C/I boosters</label>
                         </div>
                     </section>
                     <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Current resource fields</span><span class="qol-rup-section-note">Changing one field carries that level to same-resource fields on its right.</span></div>
+                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Current resource fields</span></div>
                         <div class="qol-rup-section-body"><div class="qol-rup-fields-grid" data-rup-fields></div></div>
                     </section>
                     <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Production buildings</span><span class="qol-rup-section-note">Embassy unlocks oasis slots at levels 1 / 10 / 20.</span></div>
+                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Production buildings</span></div>
                         <div class="qol-rup-section-body qol-rup-buildings">
-                            ${Object.entries(BUILDINGS).map(([key,building]) => `<div class="qol-rup-control"><label>${escapeHtml(building.label)}</label><select data-rup-building="${key}">${Array.from({length:6},(_,level) => `<option value="${level}">${level}</option>`).join('')}</select></div>`).join('')}
-                            <div class="qol-rup-control"><label>Embassy</label><select data-rup-building="embassy">${Array.from({length:21},(_,level) => `<option value="${level}">${level}</option>`).join('')}</select></div>
+                            ${Object.entries(BUILDINGS).map(([key,building]) => `<label class="qol-rup-building-level"><span>${escapeHtml(building.label)} —</span><select data-rup-building="${key}" aria-label="${escapeHtml(building.label)} level">${Array.from({length:6},(_,level) => `<option value="${level}">${level}</option>`).join('')}</select></label>`).join('')}
+                            <label class="qol-rup-building-level"><span>Embassy —</span><select data-rup-building="embassy" aria-label="Embassy level">${Array.from({length:21},(_,level) => `<option value="${level}">${level}</option>`).join('')}</select></label>
                         </div>
                     </section>
                     <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Oases</span><span class="qol-rup-section-note">Custom values support partial Kingdoms influence bonuses such as 20% crop.</span></div>
+                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Oases</span></div>
                         <div class="qol-rup-section-body"><div class="qol-rup-oases" data-rup-oases></div></div>
                     </section>
-                    <div class="qol-rup-actions"><div class="qol-rup-action-left"><div class="qol-rup-action-control" data-action="scan" role="button" tabindex="0">Scan village</div><div class="qol-rup-action-control" data-action="calculate" role="button" tabindex="0">Calculate order</div><div class="qol-rup-action-control qol-secondary" data-action="reset" role="button" tabindex="0">Reset</div><span class="qol-rup-scan-status" data-scan-status aria-live="polite">Ready.</span></div><div class="qol-rup-method">Actions are ranked by resource-cost payback time. The simulated timeline starts with zero stock and carries surplus resources into later steps.</div></div>
                     <div class="qol-rup-error" data-error></div>
                     <section class="qol-rup-results" data-results></section>
                 </div>
@@ -996,8 +963,8 @@
             state.fields = normalizeFields(state.fields, state.layout, state.maxLevel);
             renderFields();
         } else if (setting === 'speed') state.speed = Number(target.value);
-        else if (setting === 'steps') state.steps = clamp(target.value, 1, 100, 5);
-        else if (setting === 'goldBoost' || setting === 'skipWciBoosters') state[setting] = target.checked === true;
+        else if (setting === 'steps') state.steps = clamp(target.value, 15, 100, 15);
+        else if (setting === 'goldBoost') state.goldBoost = target.checked === true;
 
         if (target.dataset.rupBuilding) {
             const key = target.dataset.rupBuilding;
@@ -1010,29 +977,15 @@
             for (let cursor = index; cursor < state.fields[resource].length; cursor += 1) state.fields[resource][cursor] = value;
             renderFields();
         }
-        if (target.dataset.rupOasisState !== undefined) {
-            state.oases[Number(target.dataset.rupOasisState)].state = target.value;
-        }
-        if (target.dataset.rupOasisPreset !== undefined) {
-            const index = Number(target.dataset.rupOasisPreset);
-            const presetKey = target.value;
-            state.oases[index].preset = presetKey;
-            const preset = OASIS_PRESETS[presetKey];
-            if (preset?.values) state.oases[index].bonuses = preset.values.slice();
-            if (presetKey === 'none') state.oases[index].state = 'none';
-            else if (state.oases[index].state === 'none') state.oases[index].state = 'available';
+        if (target.dataset.rupOasisCount !== undefined) {
+            const combined = combinedOasisState();
+            setCombinedOasisState(target.value, combined.bonuses);
             renderOases();
         }
-        if (target.dataset.rupOasisBonus !== undefined) {
-            const index = Number(target.dataset.rupOasisBonus);
-            const resourceIndex = Number(target.dataset.resourceIndex);
-            state.oases[index].bonuses[resourceIndex] = clamp(target.value, 0, 150, 0);
-            state.oases[index].preset = 'custom';
-            if (productionTotal(state.oases[index].bonuses) > 0 && state.oases[index].state === 'none') state.oases[index].state = 'available';
-            const preset = document.querySelector(`#${PANEL_ID} [data-rup-oasis-preset="${index}"]`);
-            const status = document.querySelector(`#${PANEL_ID} [data-rup-oasis-state="${index}"]`);
-            if (preset) preset.value = 'custom';
-            if (status) status.value = state.oases[index].state;
+        if (target.dataset.rupOasisTotal !== undefined) {
+            const combined = combinedOasisState();
+            combined.bonuses[Number(target.dataset.rupOasisTotal)] = clamp(target.value, 0, 150, 0);
+            setCombinedOasisState(combined.count, combined.bonuses);
         }
         void saveState();
     }
@@ -1100,7 +1053,6 @@
             <div class="qol-rup-tabs"><div class="qol-rup-tab active" data-tab="compact" role="button" tabindex="0">Compact view</div><div class="qol-rup-tab" data-tab="detail" role="button" tabindex="0">Detail view</div></div>
             <div class="qol-rup-view active" data-view="compact">${renderCompact(resultMeta.results)}</div>
             <div class="qol-rup-view" data-view="detail">${renderDetail(resultMeta.results)}</div>
-            <div class="qol-rup-footnote">Saving-time simulation begins with zero stored resources and carries unused resources between steps. Construction duration, troop upkeep, hero production, quests and incoming resources are not included. Total simulated resource-saving time: <b>${formatHours(resultMeta.elapsedHours)}</b>.</div>
         `;
         root.classList.add('show');
     }
