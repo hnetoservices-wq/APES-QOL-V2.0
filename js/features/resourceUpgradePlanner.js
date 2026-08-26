@@ -144,7 +144,9 @@
             { state:'none', preset:'none', bonuses:[0,0,0,0] },
             { state:'none', preset:'none', bonuses:[0,0,0,0] },
             { state:'none', preset:'none', bonuses:[0,0,0,0] }
-        ]
+        ],
+        completionPlanKey: '',
+        completedSteps: []
     });
 
     let state = normalizeState(null);
@@ -237,6 +239,10 @@
                 next.buildings[key] = clamp(raw.buildings?.[key] ?? 0, 0, key === 'embassy' ? 20 : 5, 0);
             });
             next.oases = Array.from({ length: 3 }, (_, index) => normalizeOasis(raw.oases?.[index]));
+            next.completionPlanKey = typeof raw.completionPlanKey === 'string' ? raw.completionPlanKey : '';
+            next.completedSteps = Array.isArray(raw.completedSteps)
+                ? [...new Set(raw.completedSteps.map(Number).filter(step => Number.isInteger(step) && step > 0 && step <= 100))]
+                : [];
         }
         const detectedSpeed = detectWorldSpeed();
         if (detectedSpeed.detected) next.speed = detectedSpeed.speed;
@@ -855,14 +861,28 @@
             #${PANEL_ID} tr:last-child td{border-bottom:0!important}
             #${PANEL_ID} .qol-rup-step{color:#8a765c!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-action-name{color:#49351f!important;font-weight:800!important}
+            #${PANEL_ID} .qol-rup-done-column{width:48px!important;text-align:center!important}
+            #${PANEL_ID} tr.qol-rup-completed td{background:#dddcd8!important}
+            #${PANEL_ID} .qol-rup-completed td,#${PANEL_ID} .qol-rup-completed .qol-rup-step,#${PANEL_ID} .qol-rup-completed .qol-rup-action-name,#${PANEL_ID} .qol-rup-completed .qol-rup-res strong,#${PANEL_ID} .qol-rup-completed .qol-rup-gain{color:#777!important}
+            #${PANEL_ID} .qol-rup-completed .qol-rup-game-resource-icon{filter:grayscale(1)!important;opacity:.55!important}
+            #${PANEL_ID} .qol-rup-step-check{position:relative!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;width:22px!important;height:22px!important;margin:0!important;cursor:pointer!important}
+            #${PANEL_ID} .qol-rup-step-check input{position:absolute!important;width:1px!important;height:1px!important;margin:0!important;opacity:0!important;pointer-events:none!important}
+            #${PANEL_ID} .qol-rup-step-check-box{display:flex!important;align-items:center!important;justify-content:center!important;width:16px!important;height:16px!important;border:1px solid #9f8a69!important;border-radius:3px!important;background:#fffdf8!important;color:#fff!important;font-size:12px!important;font-weight:900!important;line-height:1!important;box-shadow:inset 0 1px 1px rgba(0,0,0,.08)!important;transition:background .12s ease,border-color .12s ease!important}
+            #${PANEL_ID} .qol-rup-step-check:hover .qol-rup-step-check-box{border-color:var(--qol-accent)!important}
+            #${PANEL_ID} .qol-rup-step-check input:focus-visible+.qol-rup-step-check-box{outline:2px solid var(--qol-accent)!important;outline-offset:2px!important}
+            #${PANEL_ID} .qol-rup-step-check input:checked+.qol-rup-step-check-box{border-color:#54752d!important;background:#658d36!important}
+            #${PANEL_ID} .qol-rup-step-check input:checked+.qol-rup-step-check-box::after{content:'✓'!important}
             #${PANEL_ID} .qol-rup-compact-list{display:grid!important;gap:4px!important}
-            #${PANEL_ID} .qol-rup-compact-row{display:grid!important;grid-template-columns:72px minmax(190px,1.35fr) minmax(230px,1.6fr) 100px 110px!important;align-items:center!important;gap:6px!important;padding:7px 8px!important;border:1px solid #d5c8b3!important;border-radius:4px!important;background:#fffdf8!important;color:#5b4933!important;font-size:9px!important}
+            #${PANEL_ID} .qol-rup-compact-row{display:grid!important;grid-template-columns:72px minmax(190px,1.35fr) minmax(230px,1.6fr) 100px 110px 40px!important;align-items:center!important;gap:6px!important;padding:7px 8px!important;border:1px solid #d5c8b3!important;border-radius:4px!important;background:#fffdf8!important;color:#5b4933!important;font-size:9px!important}
+            #${PANEL_ID} .qol-rup-compact-row.qol-rup-completed{background:#dddcd8!important;color:#777!important;border-color:#c6c4bf!important}
+            #${PANEL_ID} .qol-rup-compact-row.qol-rup-completed .qol-rup-level{border-color:#c7c5c0!important;background:#d3d2ce!important;color:#777!important}
+            #${PANEL_ID} .qol-rup-compact-done{display:flex!important;align-items:center!important;justify-content:center!important}
             #${PANEL_ID} .qol-rup-compact-step{color:var(--qol-accent)!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-levels{display:flex!important;align-items:center!important;gap:3px!important;flex-wrap:wrap!important}
             #${PANEL_ID} .qol-rup-level{padding:2px 4px!important;border:1px solid #dfd4c4!important;border-radius:3px!important;background:#f5efe6!important;color:#7b6b56!important}
             #${PANEL_ID} .qol-rup-level.changed{border-color:#9bb37d!important;background:#edf4e5!important;color:#49682d!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-empty{padding:14px!important;border:1px dashed #c4b59c!important;border-radius:4px!important;background:#fffdf8!important;color:#7d6b55!important;text-align:center!important;font-size:9px!important}
-            @media(max-width:900px){#${PANEL_ID} .qol-rup-settings{grid-template-columns:repeat(3,minmax(110px,1fr))!important}#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(3,minmax(130px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-summary{grid-template-columns:repeat(2,minmax(130px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-count{grid-column:1/-1!important}#${PANEL_ID} .qol-rup-compact-row{grid-template-columns:55px minmax(160px,1fr) minmax(180px,1.2fr)!important}#${PANEL_ID} .qol-rup-compact-row>*:nth-last-child(-n+2){display:none!important}}
+            @media(max-width:900px){#${PANEL_ID} .qol-rup-settings{grid-template-columns:repeat(3,minmax(110px,1fr))!important}#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(3,minmax(130px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-summary{grid-template-columns:repeat(2,minmax(130px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-count{grid-column:1/-1!important}#${PANEL_ID} .qol-rup-compact-row{grid-template-columns:55px minmax(160px,1fr) minmax(180px,1.2fr) 40px!important}#${PANEL_ID} .qol-rup-compact-row>*:nth-last-child(2),#${PANEL_ID} .qol-rup-compact-row>*:nth-last-child(3){display:none!important}}
             @media(max-width:620px){#${PANEL_ID}{padding:5px!important}#${PANEL_ID} .qol-rup-settings,#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(2,minmax(120px,1fr))!important}#${PANEL_ID} .qol-rup-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
         `;
         document.head.appendChild(style);
@@ -1055,6 +1075,63 @@
         }).join('');
     }
 
+    function getCompletionPlanKey(results) {
+        return results.map(row => [
+            row.kind,
+            row.resource || row.building || '',
+            row.index ?? '',
+            row.fromLevel,
+            row.toLevel
+        ].join(':')).join('|');
+    }
+
+    function completedStepSet() {
+        return new Set(state.completedSteps || []);
+    }
+
+    function stepsAreCompleted(steps) {
+        const completed = completedStepSet();
+        return steps.length > 0 && steps.every(step => completed.has(step));
+    }
+
+    function completionCheckbox(steps, label) {
+        const normalized = steps.map(Number).filter(Number.isInteger);
+        const checked = stepsAreCompleted(normalized) ? ' checked' : '';
+        return `<label class="qol-rup-step-check" title="${escapeHtml(label)}"><input type="checkbox" data-rup-complete="${normalized.join(',')}" aria-label="${escapeHtml(label)}"${checked}><span class="qol-rup-step-check-box" aria-hidden="true"></span></label>`;
+    }
+
+    function syncCompletionPlan(results) {
+        const key = getCompletionPlanKey(results);
+        if (state.completionPlanKey === key) return false;
+        state.completionPlanKey = key;
+        state.completedSteps = [];
+        return true;
+    }
+
+    function setStepsCompleted(steps, completed) {
+        const next = completedStepSet();
+        steps.forEach(step => {
+            if (completed) next.add(step);
+            else next.delete(step);
+        });
+        state.completedSteps = [...next].sort((a, b) => a - b);
+        syncCompletionUI();
+        void saveState();
+    }
+
+    function syncCompletionUI() {
+        const panel = document.getElementById(PANEL_ID);
+        if (!panel) return;
+        panel.querySelectorAll('[data-rup-result-steps]').forEach(row => {
+            const steps = String(row.dataset.rupResultSteps || '').split(',').map(Number).filter(Number.isInteger);
+            row.classList.toggle('qol-rup-completed', stepsAreCompleted(steps));
+        });
+        panel.querySelectorAll('[data-rup-complete]').forEach(input => {
+            const steps = String(input.dataset.rupComplete || '').split(',').map(Number).filter(Number.isInteger);
+            input.checked = stepsAreCompleted(steps);
+        });
+    }
+
     function buildCompactGroups(results) {
         const groups = [];
         let active = null;
@@ -1085,16 +1162,19 @@
             const first = group.rows[0];
             const last = group.rows.at(-1);
             const step = group.firstStep === group.lastStep ? `#${group.firstStep}` : `#${group.firstStep}–${group.lastStep}`;
+            const groupSteps = group.rows.map(row => row.step);
+            const completedClass = stepsAreCompleted(groupSteps) ? ' qol-rup-completed' : '';
+            const done = `<div class="qol-rup-compact-done">${completionCheckbox(groupSteps, `Mark ${step} complete`)}</div>`;
             if (group.kind === 'field') {
-                return `<div class="qol-rup-compact-row"><div class="qol-rup-compact-step">${step}</div><div class="qol-rup-action-name">Upgrade ${RESOURCE_LABELS[group.resource]} fields ×${group.rows.length}</div><div class="qol-rup-levels">${renderLevelChips(group.startFields[group.resource], group.endFields[group.resource])}</div><div>Avg ROI ${formatHours(group.rows.reduce((sum,row) => sum + row.roiHours, 0) / group.rows.length)}</div><div>Total ${formatHours(last.elapsedHours)}</div></div>`;
+                return `<div class="qol-rup-compact-row${completedClass}" data-rup-result-steps="${groupSteps.join(',')}"><div class="qol-rup-compact-step">${step}</div><div class="qol-rup-action-name">Upgrade ${RESOURCE_LABELS[group.resource]} fields ×${group.rows.length}</div><div class="qol-rup-levels">${renderLevelChips(group.startFields[group.resource], group.endFields[group.resource])}</div><div>Avg ROI ${formatHours(group.rows.reduce((sum,row) => sum + row.roiHours, 0) / group.rows.length)}</div><div>Total ${formatHours(last.elapsedHours)}</div>${done}</div>`;
             }
-            return `<div class="qol-rup-compact-row"><div class="qol-rup-compact-step">${step}</div><div class="qol-rup-action-name">${escapeHtml(first.label)}</div><div>${formatResourceLine(first.productionAfter)}</div><div>ROI ${formatHours(first.roiHours)}</div><div>Total ${formatHours(first.elapsedHours)}</div></div>`;
+            return `<div class="qol-rup-compact-row${completedClass}" data-rup-result-steps="${groupSteps.join(',')}"><div class="qol-rup-compact-step">${step}</div><div class="qol-rup-action-name">${escapeHtml(first.label)}</div><div>${formatResourceLine(first.productionAfter)}</div><div>ROI ${formatHours(first.roiHours)}</div><div>Total ${formatHours(first.elapsedHours)}</div>${done}</div>`;
         }).join('')}</div>`;
     }
 
     function renderDetail(results) {
         if (!results.length) return '<div class="qol-rup-empty">No further production-improving action is available.</div>';
-        return `<div class="qol-rup-table-wrap"><table><thead><tr><th>#</th><th>Upgrade</th><th>Cost</th><th>Production before / h</th><th>Production after / h</th><th>Gain / h</th><th>Save time</th><th>ROI</th><th>Total time</th></tr></thead><tbody>${results.map(row => `<tr><td class="qol-rup-step">${row.step}</td><td class="qol-rup-action-name">${escapeHtml(row.label)}</td><td>${formatResourceLine(row.cost)}</td><td>${formatResourceLine(row.productionBefore)}</td><td>${formatResourceLine(row.productionAfter)}</td><td class="qol-rup-gain">+${formatNumber(row.gainTotal,1)}</td><td>${formatHours(row.saveHours)}</td><td>${formatHours(row.roiHours)}</td><td>${formatHours(row.elapsedHours)}</td></tr>`).join('')}</tbody></table></div>`;
+        return `<div class="qol-rup-table-wrap"><table><thead><tr><th>#</th><th>Upgrade</th><th>Cost</th><th>Production before / h</th><th>Production after / h</th><th>Gain / h</th><th>Save time</th><th>ROI</th><th>Total time</th><th class="qol-rup-done-column" title="Completed">Done</th></tr></thead><tbody>${results.map(row => `<tr class="${stepsAreCompleted([row.step]) ? 'qol-rup-completed' : ''}" data-rup-result-steps="${row.step}"><td class="qol-rup-step">${row.step}</td><td class="qol-rup-action-name">${escapeHtml(row.label)}</td><td>${formatResourceLine(row.cost)}</td><td>${formatResourceLine(row.productionBefore)}</td><td>${formatResourceLine(row.productionAfter)}</td><td class="qol-rup-gain">+${formatNumber(row.gainTotal,1)}</td><td>${formatHours(row.saveHours)}</td><td>${formatHours(row.roiHours)}</td><td>${formatHours(row.elapsedHours)}</td><td class="qol-rup-done-column">${completionCheckbox([row.step], `Mark step ${row.step} complete`)}</td></tr>`).join('')}</tbody></table></div>`;
     }
 
     function setSectionCollapsed(section, collapsed) {
@@ -1138,6 +1218,7 @@
         hideError();
         try {
             resultMeta = calculatePlan(state);
+            if (syncCompletionPlan(resultMeta.results)) void saveState();
             renderResults();
         } catch (error) {
             showError(error?.message || String(error));
@@ -1182,7 +1263,16 @@
             event.preventDefault();
             control.click();
         });
-        panel.addEventListener('change', event => updateFromControl(event.target));
+        panel.addEventListener('change', event => {
+            const completion = event.target.closest?.('[data-rup-complete]');
+            if (completion) {
+                const steps = String(completion.dataset.rupComplete || '')
+                    .split(',').map(Number).filter(Number.isInteger);
+                setStepsCompleted(steps, completion.checked === true);
+                return;
+            }
+            updateFromControl(event.target);
+        });
     }
 
     function mountButton() {
