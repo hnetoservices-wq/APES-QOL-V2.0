@@ -24,7 +24,12 @@
 
     const RESOURCE_KEYS = Object.freeze(['wood', 'clay', 'iron', 'crop']);
     const RESOURCE_LABELS = Object.freeze({ wood: 'Wood', clay: 'Clay', iron: 'Iron', crop: 'Crop' });
-    const RESOURCE_SHORT = Object.freeze({ wood: 'W', clay: 'C', iron: 'I', crop: 'G' });
+    const RESOURCE_ICON_CLASSES = Object.freeze({
+        wood: 'unit_wood_small_illu resType1',
+        clay: 'unit_clay_small_illu resType2',
+        iron: 'unit_iron_small_illu resType3',
+        crop: 'unit_crop_small_illu resType4'
+    });
 
     const LAYOUTS = Object.freeze({
         '4-4-4-6': [4, 4, 4, 6],
@@ -744,9 +749,13 @@
         const h = Math.round(hours - days * 24);
         return h ? `${days}d ${h}h` : `${days}d`;
     }
+    function resourceIcon(resource, extraClass = '') {
+        const label = RESOURCE_LABELS[resource] || 'Resource';
+        return `<i class="qol-rup-game-resource-icon ${RESOURCE_ICON_CLASSES[resource] || ''} ${extraClass}" title="${label}" aria-label="${label}" role="img"></i>`;
+    }
     function formatResourceLine(values, digits = 0) {
         return RESOURCE_KEYS.map((key, index) =>
-            `<span class="qol-rup-res"><b>${RESOURCE_SHORT[key]}</b> ${formatNumber(values[index], digits)}</span>`
+            `<span class="qol-rup-res" title="${RESOURCE_LABELS[key]}">${resourceIcon(key)}<strong>${formatNumber(values[index], digits)}</strong></span>`
         ).join('');
     }
 
@@ -791,15 +800,17 @@
             #${PANEL_ID} .qol-rup-fields-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:7px!important}
             #${PANEL_ID} .qol-rup-field-group{padding:7px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important}
             #${PANEL_ID} .qol-rup-field-group-title{display:flex!important;align-items:center!important;justify-content:space-between!important;margin-bottom:5px!important;color:#5b452d!important;font-size:9px!important;font-weight:800!important}
+            #${PANEL_ID} .qol-rup-field-resource{display:inline-flex!important;align-items:center!important;gap:5px!important}
             #${PANEL_ID} .qol-rup-field-inputs{display:grid!important;grid-template-columns:repeat(auto-fit,minmax(38px,1fr))!important;gap:3px!important}
             #${PANEL_ID} .qol-rup-field-input-wrap{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
             #${PANEL_ID} .qol-rup-field-input-wrap span{color:#9a876c!important;font-size:7px!important;text-align:center!important}
             #${PANEL_ID} .qol-rup-field-input-wrap input{text-align:center!important;padding:2px!important}
             #${PANEL_ID} .qol-rup-buildings{display:grid!important;grid-template-columns:repeat(6,minmax(100px,1fr))!important;gap:7px!important}
             #${PANEL_ID} .qol-rup-oases{display:grid!important;gap:5px!important}
-            #${PANEL_ID} .qol-rup-oasis-row{display:grid!important;grid-template-columns:66px minmax(190px,1.45fr) repeat(4,minmax(54px,.5fr))!important;gap:4px!important;align-items:end!important;padding:6px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important}
+            #${PANEL_ID} .qol-rup-oasis-row{display:grid!important;grid-template-columns:66px minmax(190px,1.45fr) repeat(4,minmax(78px,.55fr))!important;gap:6px!important;align-items:end!important;padding:7px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important}
             #${PANEL_ID} .qol-rup-oasis-index{align-self:center!important;color:#5d472e!important;font-size:9px!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-oasis-selects{display:grid!important;grid-template-columns:.75fr 1.25fr!important;gap:4px!important}
+            #${PANEL_ID} .qol-rup-oasis-bonus>label{display:flex!important;align-items:center!important;gap:4px!important;min-height:18px!important;white-space:nowrap!important}
             #${PANEL_ID} .qol-rup-actions{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;flex-wrap:wrap!important;margin:2px 0 9px!important}
             #${PANEL_ID} .qol-rup-action-left{display:flex!important;align-items:center!important;gap:7px!important}
             #${PANEL_ID} .qol-rup-action-control{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:104px!important;height:30px!important;padding:0 13px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;color:#fff8eb!important;font-size:9px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important;box-shadow:0 1px 2px rgba(0,0,0,.18)!important}
@@ -817,9 +828,13 @@
             #${PANEL_ID} .qol-rup-stat{padding:6px 7px!important;border:1px solid #d2c4ac!important;border-radius:4px!important;background:#fffdf8!important}
             #${PANEL_ID} .qol-rup-stat-label{color:#927f64!important;font-size:7px!important;font-weight:700!important;text-transform:uppercase!important}
             #${PANEL_ID} .qol-rup-stat-value{margin-top:3px!important;color:#4f3922!important;font-size:10px!important;font-weight:800!important;line-height:1.3!important}
-            #${PANEL_ID} .qol-rup-res{display:inline-block!important;margin-right:7px!important;white-space:nowrap!important}
-            #${PANEL_ID} .qol-rup-res b{color:var(--qol-accent-ink)!important}
+            #${PANEL_ID} .qol-rup-production-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;column-gap:10px!important;row-gap:2px!important}
+            #${PANEL_ID} .qol-rup-res{display:inline-flex!important;align-items:center!important;gap:4px!important;margin-right:9px!important;white-space:nowrap!important;font-size:9px!important;line-height:18px!important}
+            #${PANEL_ID} .qol-rup-res strong{color:#4f3922!important;font-size:inherit!important;font-weight:800!important}
+            #${PANEL_ID} .qol-rup-game-resource-icon{display:inline-block!important;width:16px!important;height:16px!important;min-width:16px!important;margin:0!important;padding:0!important;vertical-align:middle!important;flex:0 0 16px!important}
+            #${PANEL_ID} .qol-rup-field-resource .qol-rup-game-resource-icon{width:18px!important;height:18px!important;min-width:18px!important;flex-basis:18px!important}
             #${PANEL_ID} .qol-rup-gain{color:#4c7620!important;font-weight:800!important}
+            #${PANEL_ID} .qol-rup-gain .qol-rup-res strong{color:#4c7620!important}
             #${PANEL_ID} .qol-rup-tabs{display:flex!important;gap:4px!important;margin-bottom:6px!important}
             #${PANEL_ID} .qol-rup-tab{display:inline-flex!important;align-items:center!important;justify-content:center!important;height:27px!important;padding:0 10px!important;border:1px solid #b5a487!important;border-radius:4px!important;background:#eee5d6!important;color:#604a31!important;font-size:8px!important;font-weight:800!important;cursor:pointer!important;user-select:none!important}
             #${PANEL_ID} .qol-rup-tab.active{background:var(--qol-accent)!important;color:#fff!important;border-color:var(--qol-accent-dark)!important}
@@ -840,7 +855,7 @@
             #${PANEL_ID} .qol-rup-level.changed{border-color:#9bb37d!important;background:#edf4e5!important;color:#49682d!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-footnote{margin-top:7px!important;padding:6px 8px!important;border-left:3px solid var(--qol-accent)!important;background:#eee7dc!important;color:#756550!important;font-size:7.5px!important;line-height:1.45!important}
             #${PANEL_ID} .qol-rup-empty{padding:14px!important;border:1px dashed #c4b59c!important;border-radius:4px!important;background:#fffdf8!important;color:#7d6b55!important;text-align:center!important;font-size:9px!important}
-            @media(max-width:900px){#${PANEL_ID} .qol-rup-settings,#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(3,minmax(100px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-row{grid-template-columns:65px minmax(180px,1.5fr) repeat(2,minmax(60px,1fr))!important}#${PANEL_ID} .qol-rup-compact-row{grid-template-columns:55px minmax(160px,1fr) minmax(180px,1.2fr)!important}#${PANEL_ID} .qol-rup-compact-row>*:nth-last-child(-n+2){display:none!important}}
+            @media(max-width:900px){#${PANEL_ID} .qol-rup-settings,#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(3,minmax(100px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-row{grid-template-columns:65px minmax(180px,1.5fr) repeat(2,minmax(84px,1fr))!important}#${PANEL_ID} .qol-rup-compact-row{grid-template-columns:55px minmax(160px,1fr) minmax(180px,1.2fr)!important}#${PANEL_ID} .qol-rup-compact-row>*:nth-last-child(-n+2){display:none!important}}
             @media(max-width:620px){#${PANEL_ID}{padding:5px!important}#${PANEL_ID} .qol-rup-fields-grid{grid-template-columns:1fr!important}#${PANEL_ID} .qol-rup-settings,#${PANEL_ID} .qol-rup-buildings{grid-template-columns:repeat(2,minmax(95px,1fr))!important}#${PANEL_ID} .qol-rup-oasis-row{grid-template-columns:1fr 1fr!important}#${PANEL_ID} .qol-rup-oasis-index{grid-column:1/-1!important}#${PANEL_ID} .qol-rup-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
         `;
         document.head.appendChild(style);
@@ -856,7 +871,7 @@
         if (!root) return;
         root.innerHTML = RESOURCE_KEYS.map(resource => `
             <div class="qol-rup-field-group">
-                <div class="qol-rup-field-group-title"><span>${RESOURCE_LABELS[resource]}</span><span>${state.fields[resource].length} fields</span></div>
+                <div class="qol-rup-field-group-title"><span class="qol-rup-field-resource">${resourceIcon(resource)}<span>${RESOURCE_LABELS[resource]}</span></span><span>${state.fields[resource].length} fields</span></div>
                 <div class="qol-rup-field-inputs">
                     ${state.fields[resource].map((level, index) => `
                         <label class="qol-rup-field-input-wrap"><span>#${index + 1}</span><input type="number" min="0" max="${state.maxLevel}" step="1" value="${level}" data-rup-field="${resource}" data-index="${index}"></label>
@@ -877,7 +892,7 @@
                     <select data-rup-oasis-state="${index}"><option value="none">None</option><option value="available">Available</option><option value="annexed">Already annexed</option></select>
                     <select data-rup-oasis-preset="${index}">${Object.entries(OASIS_PRESETS).map(([key,preset]) => `<option value="${key}">${escapeHtml(preset.label)}</option>`).join('')}</select>
                 </div></div>
-                ${RESOURCE_KEYS.map((resource, resourceIndex) => `<div class="qol-rup-oasis-bonus"><label>${RESOURCE_SHORT[resource]} bonus %</label><input type="number" min="0" max="150" step="1" value="${oasis.bonuses[resourceIndex]}" data-rup-oasis-bonus="${index}" data-resource-index="${resourceIndex}"></div>`).join('')}
+                ${RESOURCE_KEYS.map((resource, resourceIndex) => `<div class="qol-rup-oasis-bonus"><label title="${RESOURCE_LABELS[resource]} bonus">${resourceIcon(resource)}<span>Bonus %</span></label><input type="number" min="0" max="150" step="1" value="${oasis.bonuses[resourceIndex]}" data-rup-oasis-bonus="${index}" data-resource-index="${resourceIndex}" aria-label="${RESOURCE_LABELS[resource]} bonus percent"></div>`).join('')}
             </div>
         `).join('');
         state.oases.forEach((oasis, index) => {
@@ -1078,9 +1093,9 @@
         root.innerHTML = `
             <div class="qol-rup-summary">
                 <div class="qol-rup-stat"><div class="qol-rup-stat-label">Steps</div><div class="qol-rup-stat-value">${resultMeta.results.length}</div></div>
-                <div class="qol-rup-stat"><div class="qol-rup-stat-label">Start production / h</div><div class="qol-rup-stat-value">${formatResourceLine(resultMeta.startProduction)}</div></div>
-                <div class="qol-rup-stat"><div class="qol-rup-stat-label">End production / h</div><div class="qol-rup-stat-value">${formatResourceLine(resultMeta.endProduction)}</div></div>
-                <div class="qol-rup-stat"><div class="qol-rup-stat-label">Gain / h</div><div class="qol-rup-stat-value qol-rup-gain">${formatResourceLine(gain)}</div></div>
+                <div class="qol-rup-stat"><div class="qol-rup-stat-label">Start production / h</div><div class="qol-rup-stat-value qol-rup-production-grid">${formatResourceLine(resultMeta.startProduction)}</div></div>
+                <div class="qol-rup-stat"><div class="qol-rup-stat-label">End production / h</div><div class="qol-rup-stat-value qol-rup-production-grid">${formatResourceLine(resultMeta.endProduction)}</div></div>
+                <div class="qol-rup-stat"><div class="qol-rup-stat-label">Gain / h</div><div class="qol-rup-stat-value qol-rup-production-grid qol-rup-gain">${formatResourceLine(gain)}</div></div>
             </div>
             <div class="qol-rup-tabs"><div class="qol-rup-tab active" data-tab="compact" role="button" tabindex="0">Compact view</div><div class="qol-rup-tab" data-tab="detail" role="button" tabindex="0">Detail view</div></div>
             <div class="qol-rup-view active" data-view="compact">${renderCompact(resultMeta.results)}</div>
