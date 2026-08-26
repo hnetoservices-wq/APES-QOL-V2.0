@@ -14,8 +14,13 @@
     const BUTTON_ID = 'qol-resource-planner-toggle-btn';
     const PANEL_ID = 'qol-resource-upgrade-planner-overlay';
     const STYLE_ID = 'qol-resource-upgrade-planner-styles';
+    const SCAN_LOCK_ID = 'qol-resource-upgrade-planner-scan-lock';
     const FALLBACK_STORAGE_KEY = `apes_resource_upgrade_planner_v2_${window.location.hostname}`;
     const STORAGE_OPTIONS = Object.freeze({ feature: FEATURE_KEY, key: 'plannerState', scope: 'player' });
+    const RESOURCE_TYPE_MAP = Object.freeze({ 1:'wood', 2:'clay', 3:'iron', 4:'crop' });
+    const PRODUCTION_BUILDING_MAP = Object.freeze({
+        5:'sawmill', 6:'brickyard', 7:'foundry', 8:'mill', 9:'bakery', 18:'embassy'
+    });
 
     const RESOURCE_KEYS = Object.freeze(['wood', 'clay', 'iron', 'crop']);
     const RESOURCE_LABELS = Object.freeze({ wood: 'Wood', clay: 'Clay', iron: 'Iron', crop: 'Crop' });
@@ -151,6 +156,8 @@
     let stateLoaded = false;
     let loadPromise = null;
     let resultMeta = null;
+    let scanToken = 0;
+    let isScanning = false;
 
     function clone(value) { return JSON.parse(JSON.stringify(value)); }
     function clamp(value, min, max, fallback = min) {
@@ -240,6 +247,309 @@
             console.warn('[APES Resource Planner] v2 storage write failed:', error);
         }
         try { localStorage.setItem(FALLBACK_STORAGE_KEY, JSON.stringify(snapshot)); } catch (_) {}
+    }
+
+    function sleep(milliseconds) {
+        return new Promise(resolve => window.setTimeout(resolve, milliseconds));
+    }
+
+    function normalizeText(value) {
+        return String(value ?? '').replace(/\s+/g, ' ').trim();
+    }
+
+    function parseNumber(value) {
+        const cleaned = String(value ?? '')
+            .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
+            .replace(/[^\d,.-]/g, '')
+            .replace(',', '.');
+        const parsed = Number.parseFloat(cleaned);
+        return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function currentVillageIdentity() {
+        const contextName = APES?.context?.getVillageName?.();
+        const domName = document.querySelector(
+            '.currentVillageName .dropdownHead .selectedItem .villageEntry, ' +
+            '#villageList .dropdownHead .selectedItem .villageEntry, ' +
+            '.dropdownHead .selectedItem .villageEntry'
+        )?.textContent;
+        const villageName = normalizeText(
+            contextName && contextName !== 'Unknown village' ? contextName : domName
+        );
+        const hashVillageId = String(window.location.hash || '').match(/(?:^|\/)villId:(\d+)/i)?.[1];
+        const contextVillageId = APES?.context?.getVillageId?.();
+        const villageId = /^\d+$/.test(String(hashVillageId || contextVillageId || ''))
+            ? String(hashVillageId || contextVillageId)
+            : '';
+        return { villageName, villageId };
+    }
+
+    function villageRoute(page, villageId, extras = []) {
+        return [
+            `page:${page}`,
+            villageId ? `villId:${villageId}` : '',
+            ...extras
+        ].filter(Boolean);
+    }
+
+    function navigateTo(parts) {
+        const target = `#/${parts.filter(Boolean).join('/')}`;
+        if (window.location.hash !== target) window.location.hash = target;
+        return target;
+    }
+
+    function scanIsCurrent(token) {
+        return token === scanToken && enabled();
+    }
+
+    async function waitForStableRead(reader, isReady, token, timeout = 9000) {
+        const started = performance.now();
+        let lastSignature = '';
+        let stableReads = 0;
+
+        while (performance.now() - started < timeout) {
+            if (!scanIsCurrent(token)) throw new Error('Scan cancelled.');
+            const value = reader();
+            if (isReady(value)) {
+                const signature = JSON.stringify(value);
+                if (signature === lastSignature) stableReads += 1;
+                else {
+                    lastSignature = signature;
+                    stableReads = 1;
+                }
+                if (stableReads >= 3) return value;
+            } else {
+                lastSignature = '';
+                stableReads = 0;
+            }
+            await sleep(140);
+        }
+        return null;
+    }
+
+    function elementClassNumber(element, expression) {
+        const match = String(element?.className || '').match(expression);
+        return match ? Number(match[1]) : null;
+    }
+
+    function readVillageBuildings() {
+        const root = document.querySelector(
+            '.mainContentBackground.villageBackground #villageView, #villageView:not(#villageViewRes)'
+        );
+        if (!root) return null;
+
+        const buildings = {};
+        let embassyLocation = null;
+        root.querySelectorAll('building-location').forEach(wrapper => {
+            const marker = wrapper.querySelector('[class*="buildingId"], .buildingStatusButton[class*="type_"]');
+            const buildingId = elementClassNumber(marker, /(?:buildingId|type_)(\d+)/i);
+            const key = PRODUCTION_BUILDING_MAP[buildingId];
+            if (!key) return;
+
+            const level = Math.max(0, Math.round(parseNumber(wrapper.querySelector('.buildingLevel')?.textContent)));
+            buildings[key] = level;
+            if (buildingId === 18) {
+                embassyLocation = elementClassNumber(wrapper, /buildingLocation(\d+)/i) ??
+                    elementClassNumber(wrapper.querySelector('.buildingStatusButton'), /location_(\d+)/i);
+            }
+        });
+
+        Object.values(PRODUCTION_BUILDING_MAP).forEach(key => {
+            if (!Object.hasOwn(buildings, key)) buildings[key] = 0;
+        });
+        return { buildings, embassyLocation };
+    }
+
+    function oasisPresetFor(bonuses) {
+        return Object.entries(OASIS_PRESETS).find(([key, preset]) =>
+            key !== 'custom' && preset.values?.every((value, index) => value === bonuses[index])
+        )?.[0] || 'custom';
+    }
+
+    function readAssignedOases(villageName, villageId) {
+        const root = document.querySelector('.contentBox.oasisInRange');
+        if (!root) return null;
+        const normalizedVillageName = normalizeText(villageName).toLocaleLowerCase();
+        const oases = [];
+
+        root.querySelectorAll('tr[ng-repeat*="oasis"], tbody tr').forEach(row => {
+            const villageLink = row.querySelector('td.village .villageLink');
+            if (!villageLink) return;
+            const assignedVillageId = villageLink.getAttribute('villageid') || '';
+            const assignedVillageName = normalizeText(villageLink.textContent).toLocaleLowerCase();
+            const idMatches = villageId && assignedVillageId === villageId;
+            const nameMatches = normalizedVillageName && assignedVillageName === normalizedVillageName;
+            if (!idMatches && !nameMatches) return;
+
+            const bonuses = RESOURCE_KEYS.map(resource =>
+                Math.max(0, parseNumber(
+                    row.querySelector(`td.resources .${resource}Value .resourceValue`)?.textContent
+                ))
+            );
+            if (!productionTotal(bonuses)) return;
+            oases.push({ state:'annexed', preset:oasisPresetFor(bonuses), bonuses });
+        });
+
+        return { ready:true, oases:oases.slice(0, 3) };
+    }
+
+    function readResourceFields() {
+        const root = document.querySelector('#villageViewRes');
+        if (!root) return null;
+        const fields = { wood:[], clay:[], iron:[], crop:[] };
+        const seenLocations = new Set();
+
+        root.querySelectorAll('building-location').forEach(wrapper => {
+            const location = elementClassNumber(wrapper, /buildingLocation(\d+)/i);
+            if (!Number.isInteger(location) || location < 1 || location > 18 || seenLocations.has(location)) return;
+            const status = wrapper.querySelector('.buildingStatusButton[class*="type_"]');
+            const type = elementClassNumber(status, /type_(\d+)/i);
+            const resource = RESOURCE_TYPE_MAP[type];
+            if (!resource) return;
+            const levelNode = wrapper.querySelector('.buildingLevel');
+            if (!levelNode) return;
+            seenLocations.add(location);
+            fields[resource].push({ location, level:Math.max(0, Math.round(parseNumber(levelNode.textContent))) });
+        });
+
+        RESOURCE_KEYS.forEach(resource => fields[resource].sort((a, b) => a.location - b.location));
+        const counts = RESOURCE_KEYS.map(resource => fields[resource].length);
+        const layout = counts.join('-');
+        return {
+            ready:seenLocations.size === 18 && Object.hasOwn(LAYOUTS, layout),
+            layout,
+            fields:Object.fromEntries(RESOURCE_KEYS.map(resource => [
+                resource,
+                fields[resource].map(field => field.level)
+            ]))
+        };
+    }
+
+    function setScanStatus(message, tone = 'neutral') {
+        const status = document.querySelector(`#${PANEL_ID} [data-scan-status]`);
+        if (status) {
+            status.textContent = message;
+            status.dataset.tone = tone;
+        }
+        const lockStatus = document.querySelector(`#${SCAN_LOCK_ID} [data-lock-status]`);
+        if (lockStatus) lockStatus.textContent = message;
+    }
+
+    function showScanLock() {
+        document.getElementById(SCAN_LOCK_ID)?.remove();
+        const lock = document.createElement('div');
+        lock.id = SCAN_LOCK_ID;
+        lock.setAttribute('role', 'status');
+        lock.setAttribute('aria-live', 'polite');
+        lock.innerHTML = `
+            <div class="qol-rup-scan-lock-card">
+                <strong>Scanning village development…</strong>
+                <span data-lock-status>Preparing village scan…</span>
+                <small>APES is checking buildings, assigned oases, and all 18 resource fields.</small>
+            </div>
+        `;
+        document.body.appendChild(lock);
+    }
+
+    function removeScanLock() {
+        document.getElementById(SCAN_LOCK_ID)?.remove();
+    }
+
+    function setScanBusy(busy) {
+        isScanning = busy;
+        const button = document.querySelector(`#${PANEL_ID} [data-action="scan"]`);
+        button?.classList.toggle('qol-disabled', busy);
+        button?.setAttribute('aria-disabled', busy ? 'true' : 'false');
+        if (button) button.textContent = busy ? 'Scanning…' : 'Scan village';
+    }
+
+    async function scanCurrentVillage() {
+        if (isScanning) return;
+        const token = ++scanToken;
+        const identity = currentVillageIdentity();
+        if (!identity.villageName) {
+            showError('APES could not identify the active village. Close the village dropdown and try again.');
+            return;
+        }
+
+        hideError();
+        setScanBusy(true);
+        showScanLock();
+        const warnings = [];
+
+        try {
+            setScanStatus(`Opening ${identity.villageName}…`);
+            navigateTo(villageRoute('village', identity.villageId));
+            const village = await waitForStableRead(
+                readVillageBuildings,
+                value => Boolean(value),
+                token
+            );
+            if (!village) throw new Error('The village building view did not finish loading.');
+            state.buildings = { ...state.buildings, ...village.buildings };
+
+            if (village.embassyLocation && village.buildings.embassy > 0) {
+                setScanStatus('Checking Embassy oasis assignments…');
+                navigateTo(villageRoute('village', identity.villageId, [
+                    `location:${village.embassyLocation}`,
+                    'window:building',
+                    'tab:Oases'
+                ]));
+                const oasisResult = await waitForStableRead(
+                    () => readAssignedOases(identity.villageName, identity.villageId),
+                    value => value?.ready === true,
+                    token
+                );
+                if (oasisResult) {
+                    state.oases = Array.from({ length:3 }, (_, index) =>
+                        oasisResult.oases[index] || normalizeOasis(null)
+                    );
+                } else {
+                    warnings.push('Embassy oases could not be read');
+                }
+            } else {
+                state.buildings.embassy = 0;
+                state.oases = Array.from({ length:3 }, () => normalizeOasis(null));
+            }
+
+            setScanStatus('Reading all 18 resource fields…');
+            navigateTo(villageRoute('resources', identity.villageId));
+            const resourceResult = await waitForStableRead(
+                readResourceFields,
+                value => value?.ready === true,
+                token
+            );
+            if (!resourceResult) throw new Error('APES could not read all 18 resource fields.');
+
+            const highestLevel = Math.max(...RESOURCE_KEYS.flatMap(resource => resourceResult.fields[resource]));
+            if (highestLevel > 12) state.maxLevel = 20;
+            else if (highestLevel > 10 && state.maxLevel < 12) state.maxLevel = 12;
+            state.layout = resourceResult.layout;
+            state.fields = resourceResult.fields;
+            stateLoaded = true;
+            resultMeta = null;
+            await saveState();
+            renderInputState();
+            runCalculation();
+
+            const annexed = state.oases.filter(oasis => oasis.state === 'annexed').length;
+            const suffix = warnings.length ? ` (${warnings.join('; ')}.)` : '';
+            setScanStatus(
+                `Scanned ${identity.villageName}: ${state.layout}, 18 fields, ${annexed} assigned oasis${annexed === 1 ? '' : 'es'}.${suffix}`,
+                warnings.length ? 'warning' : 'success'
+            );
+        } catch (error) {
+            if (scanIsCurrent(token)) {
+                const message = error?.message || String(error);
+                showError(message);
+                setScanStatus(message, 'error');
+            }
+        } finally {
+            if (token === scanToken) {
+                setScanBusy(false);
+                removeScanLock();
+            }
+        }
     }
 
     function getOasisBonusTotals(current, annexedOnly = true) {
@@ -449,6 +759,10 @@
             #${BUTTON_ID}{position:fixed!important;display:flex;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;padding:0!important;margin:0!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;color:var(--qol-accent-ink)!important;box-shadow:0 2px 4px rgba(0,0,0,.22)!important;cursor:pointer!important;z-index:9999!important;user-select:none!important}
             #${BUTTON_ID}:hover{transform:scale(1.08)!important;background:#f7f5f0!important}
             #${BUTTON_ID} svg{width:17px!important;height:17px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important;pointer-events:none!important}
+            #${SCAN_LOCK_ID},#${SCAN_LOCK_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
+            #${SCAN_LOCK_ID}{position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;padding:20px!important;background:rgba(13,12,10,.78)!important;cursor:wait!important;pointer-events:auto!important;user-select:none!important}
+            #${SCAN_LOCK_ID} .qol-rup-scan-lock-card{display:flex!important;flex-direction:column!important;align-items:center!important;gap:7px!important;width:min(430px,90vw)!important;padding:18px 22px!important;border:2px solid var(--qol-border)!important;border-radius:6px!important;background:#302616!important;color:#fff8e9!important;box-shadow:0 16px 48px rgba(0,0,0,.55)!important;text-align:center!important}
+            #${SCAN_LOCK_ID} strong{font-size:14px!important;color:#fff!important}#${SCAN_LOCK_ID} span{font-size:10px!important;color:#f1d895!important}#${SCAN_LOCK_ID} small{font-size:8px!important;line-height:1.4!important;color:#cbbda6!important}
             #${PANEL_ID},#${PANEL_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
             #${PANEL_ID}{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:18px!important;background:rgba(18,16,13,.76)!important;z-index:2147483644!important}
             #${PANEL_ID}.qol-open{display:flex!important}
@@ -488,9 +802,12 @@
             #${PANEL_ID} .qol-rup-oasis-selects{display:grid!important;grid-template-columns:.75fr 1.25fr!important;gap:4px!important}
             #${PANEL_ID} .qol-rup-actions{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;flex-wrap:wrap!important;margin:2px 0 9px!important}
             #${PANEL_ID} .qol-rup-action-left{display:flex!important;align-items:center!important;gap:7px!important}
-            #${PANEL_ID} .qol-rup-btn{height:30px!important;padding:0 12px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;color:#fff8eb!important;font-size:9px!important;font-weight:800!important;cursor:pointer!important;box-shadow:0 1px 2px rgba(0,0,0,.18)!important}
-            #${PANEL_ID} .qol-rup-btn:hover{filter:brightness(1.08)!important}
-            #${PANEL_ID} .qol-rup-btn.secondary{background:#eee5d6!important;color:var(--qol-accent-deep)!important;border-color:#ad9b7d!important;box-shadow:none!important}
+            #${PANEL_ID} .qol-rup-action-control{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:104px!important;height:30px!important;padding:0 13px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;color:#fff8eb!important;font-size:9px!important;font-weight:800!important;line-height:1!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important;box-shadow:0 1px 2px rgba(0,0,0,.18)!important}
+            #${PANEL_ID} .qol-rup-action-control:hover{filter:brightness(1.08)!important}
+            #${PANEL_ID} .qol-rup-action-control.qol-secondary{min-width:72px!important;background:#eee5d6!important;color:var(--qol-accent-deep)!important;border-color:#ad9b7d!important;box-shadow:none!important}
+            #${PANEL_ID} .qol-rup-action-control.qol-disabled{opacity:.55!important;filter:grayscale(.25)!important;cursor:wait!important;pointer-events:none!important}
+            #${PANEL_ID} .qol-rup-scan-status{min-width:170px!important;color:#7e6b53!important;font-size:8px!important;font-weight:700!important;line-height:1.35!important}
+            #${PANEL_ID} .qol-rup-scan-status[data-tone="success"]{color:#496f27!important}#${PANEL_ID} .qol-rup-scan-status[data-tone="warning"]{color:#916618!important}#${PANEL_ID} .qol-rup-scan-status[data-tone="error"]{color:#8b332a!important}
             #${PANEL_ID} .qol-rup-method{max-width:650px!important;color:#7e6b53!important;font-size:8px!important;line-height:1.35!important}
             #${PANEL_ID} .qol-rup-error{display:none!important;margin-bottom:9px!important;padding:7px 9px!important;border:1px solid #9b4b3f!important;border-radius:4px!important;background:#f5dfd9!important;color:#713329!important;font-size:9px!important;font-weight:700!important}
             #${PANEL_ID} .qol-rup-error.show{display:block!important}
@@ -504,7 +821,7 @@
             #${PANEL_ID} .qol-rup-res b{color:var(--qol-accent-ink)!important}
             #${PANEL_ID} .qol-rup-gain{color:#4c7620!important;font-weight:800!important}
             #${PANEL_ID} .qol-rup-tabs{display:flex!important;gap:4px!important;margin-bottom:6px!important}
-            #${PANEL_ID} .qol-rup-tab{height:27px!important;padding:0 10px!important;border:1px solid #b5a487!important;border-radius:4px!important;background:#eee5d6!important;color:#604a31!important;font-size:8px!important;font-weight:800!important;cursor:pointer!important}
+            #${PANEL_ID} .qol-rup-tab{display:inline-flex!important;align-items:center!important;justify-content:center!important;height:27px!important;padding:0 10px!important;border:1px solid #b5a487!important;border-radius:4px!important;background:#eee5d6!important;color:#604a31!important;font-size:8px!important;font-weight:800!important;cursor:pointer!important;user-select:none!important}
             #${PANEL_ID} .qol-rup-tab.active{background:var(--qol-accent)!important;color:#fff!important;border-color:var(--qol-accent-dark)!important}
             #${PANEL_ID} .qol-rup-view{display:none!important}
             #${PANEL_ID} .qol-rup-view.active{display:block!important}
@@ -599,7 +916,7 @@
             <div class="qol-rup-window" role="dialog" aria-modal="true" aria-label="Resource Upgrade Planner">
                 <div class="qol-rup-header">
                     <div class="qol-rup-title-wrap"><span class="qol-rup-title-icon">${iconSvg()}</span><div><h2 class="qol-rup-title">Resource Upgrade Planner</h2><div class="qol-rup-subtitle">Efficient resource-field, production-building and oasis development for Travian Kingdoms.</div></div></div>
-                    <button type="button" class="qol-rup-close" data-close aria-label="Close">×</button>
+                    <div class="qol-rup-close" data-close role="button" tabindex="0" aria-label="Close">×</div>
                 </div>
                 <div class="qol-rup-body">
                     <section class="qol-rup-section">
@@ -628,7 +945,7 @@
                         <div class="qol-rup-section-head"><span class="qol-rup-section-title">Oases</span><span class="qol-rup-section-note">Custom values support partial Kingdoms influence bonuses such as 20% crop.</span></div>
                         <div class="qol-rup-section-body"><div class="qol-rup-oases" data-rup-oases></div></div>
                     </section>
-                    <div class="qol-rup-actions"><div class="qol-rup-action-left"><button type="button" class="qol-rup-btn" data-action="calculate">Calculate order</button><button type="button" class="qol-rup-btn secondary" data-action="reset">Reset</button></div><div class="qol-rup-method">Actions are ranked by resource-cost payback time. The simulated timeline starts with zero stock and carries surplus resources into later steps.</div></div>
+                    <div class="qol-rup-actions"><div class="qol-rup-action-left"><div class="qol-rup-action-control" data-action="scan" role="button" tabindex="0">Scan village</div><div class="qol-rup-action-control" data-action="calculate" role="button" tabindex="0">Calculate order</div><div class="qol-rup-action-control qol-secondary" data-action="reset" role="button" tabindex="0">Reset</div><span class="qol-rup-scan-status" data-scan-status aria-live="polite">Ready.</span></div><div class="qol-rup-method">Actions are ranked by resource-cost payback time. The simulated timeline starts with zero stock and carries surplus resources into later steps.</div></div>
                     <div class="qol-rup-error" data-error></div>
                     <section class="qol-rup-results" data-results></section>
                 </div>
@@ -765,7 +1082,7 @@
                 <div class="qol-rup-stat"><div class="qol-rup-stat-label">End production / h</div><div class="qol-rup-stat-value">${formatResourceLine(resultMeta.endProduction)}</div></div>
                 <div class="qol-rup-stat"><div class="qol-rup-stat-label">Gain / h</div><div class="qol-rup-stat-value qol-rup-gain">${formatResourceLine(gain)}</div></div>
             </div>
-            <div class="qol-rup-tabs"><button type="button" class="qol-rup-tab active" data-tab="compact">Compact view</button><button type="button" class="qol-rup-tab" data-tab="detail">Detail view</button></div>
+            <div class="qol-rup-tabs"><div class="qol-rup-tab active" data-tab="compact" role="button" tabindex="0">Compact view</div><div class="qol-rup-tab" data-tab="detail" role="button" tabindex="0">Detail view</div></div>
             <div class="qol-rup-view active" data-view="compact">${renderCompact(resultMeta.results)}</div>
             <div class="qol-rup-view" data-view="detail">${renderDetail(resultMeta.results)}</div>
             <div class="qol-rup-footnote">Saving-time simulation begins with zero stored resources and carries unused resources between steps. Construction duration, troop upkeep, hero production, quests and incoming resources are not included. Total simulated resource-saving time: <b>${formatHours(resultMeta.elapsedHours)}</b>.</div>
@@ -807,10 +1124,18 @@
         panel.addEventListener('click', event => {
             if (event.target === panel || event.target.closest('[data-close]')) { closePanel(); return; }
             const action = event.target.closest('[data-action]')?.dataset.action;
+            if (action === 'scan') void scanCurrentVillage();
             if (action === 'calculate') runCalculation();
             if (action === 'reset') resetState();
             const tab = event.target.closest('[data-tab]')?.dataset.tab;
             if (tab) switchTab(tab);
+        });
+        panel.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            const control = event.target.closest('[role="button"]');
+            if (!control || !panel.contains(control)) return;
+            event.preventDefault();
+            control.click();
         });
         panel.addEventListener('change', event => updateFromControl(event.target));
     }
@@ -866,6 +1191,9 @@
             mountButton();
             void loadState();
         } else {
+            scanToken += 1;
+            isScanning = false;
+            removeScanLock();
             closePanel();
             document.getElementById(BUTTON_ID)?.remove();
         }
@@ -874,6 +1202,7 @@
     document.addEventListener('keydown', event => {
         if (event.key === 'Escape' && document.getElementById(PANEL_ID)?.classList.contains('qol-open')) {
             event.preventDefault();
+            if (isScanning) return;
             closePanel();
         }
     }, true);
@@ -881,6 +1210,7 @@
     window.APES_RESOURCE_UPGRADE_PLANNER = Object.freeze({
         open: openPanel,
         close: closePanel,
+        scan: scanCurrentVillage,
         calculate: () => calculatePlan(state),
         getState: () => clone(state),
         setState: async value => {
