@@ -30,6 +30,7 @@
         iron: 'unit_iron_small_illu resType3',
         crop: 'unit_crop_small_illu resType4'
     });
+    const WORLD_SPEED_VALUES = Object.freeze([1, 2, 3, 5]);
 
     const LAYOUTS = Object.freeze({
         '4-4-4-6': [4, 4, 4, 6],
@@ -170,6 +171,43 @@
     function maxField(current, resource) { return Math.max(0, ...(current.fields?.[resource] || [0])); }
     function productionTotal(values) { return values.reduce((sum, value) => sum + Number(value || 0), 0); }
     function totalCost(cost) { return productionTotal(cost); }
+    function speedFromText(value) {
+        const text = String(value || '').toLowerCase();
+        const match = text.match(/x\s*([1235])(?=[.\s_:/-]|$)|(?:speed|world)[\s_:/-]*x?\s*([1235])(?=[.\s_:/-]|$)/i);
+        const speed = Number(match?.[1] || match?.[2]);
+        return WORLD_SPEED_VALUES.includes(speed) ? speed : null;
+    }
+
+    function detectWorldSpeed() {
+        const hostnameSpeed = speedFromText(window.location.hostname);
+        if (hostnameSpeed) return { speed:hostnameSpeed, detected:true, source:'server name' };
+
+        const titleSpeed = speedFromText(document.title);
+        if (titleSpeed) return { speed:titleSpeed, detected:true, source:'page title' };
+
+        const selectors = [
+            '[data-world-speed]', '[data-game-speed]', '[data-server-speed]',
+            'meta[name="world-speed"]', 'meta[name="game-speed"]', 'meta[name="server-speed"]'
+        ];
+        for (const element of document.querySelectorAll(selectors.join(','))) {
+            const raw = element.getAttribute('data-world-speed') ||
+                element.getAttribute('data-game-speed') ||
+                element.getAttribute('data-server-speed') ||
+                element.getAttribute('content') || element.textContent;
+            const numeric = Number(raw);
+            const speed = WORLD_SPEED_VALUES.includes(numeric) ? numeric : speedFromText(raw);
+            if (speed) return { speed, detected:true, source:'game data' };
+        }
+
+        return { speed:1, detected:false, source:'x1 fallback' };
+    }
+
+    function applyDetectedWorldSpeed() {
+        const detection = detectWorldSpeed();
+        if (detection.detected) state.speed = detection.speed;
+        return detection;
+    }
+
     function normalizeFields(fields, layout, maxLevel) {
         const counts = getLayoutCounts(layout);
         return Object.fromEntries(RESOURCE_KEYS.map((resource, index) => {
@@ -200,6 +238,8 @@
             });
             next.oases = Array.from({ length: 3 }, (_, index) => normalizeOasis(raw.oases?.[index]));
         }
+        const detectedSpeed = detectWorldSpeed();
+        if (detectedSpeed.detected) next.speed = detectedSpeed.speed;
         next.fields = normalizeFields(next.fields, next.layout, next.maxLevel);
         return next;
     }
@@ -464,6 +504,7 @@
         setScanBusy(true);
         showScanLock();
         const warnings = [];
+        const speedInfo = applyDetectedWorldSpeed();
 
         try {
             setScanStatus(`Opening ${identity.villageName}…`);
@@ -522,8 +563,11 @@
 
             const annexed = state.oases.filter(oasis => oasis.state === 'annexed').length;
             const suffix = warnings.length ? ` (${warnings.join('; ')}.)` : '';
+            const speedText = speedInfo.detected
+                ? `x${state.speed} world detected from ${speedInfo.source}`
+                : `x${state.speed} world`;
             setScanStatus(
-                `Scanned ${identity.villageName}: ${state.layout}, 18 fields, ${annexed} assigned oasis${annexed === 1 ? '' : 'es'}.${suffix}`,
+                `Scanned ${identity.villageName}: ${state.layout}, 18 fields, ${annexed} assigned oasis${annexed === 1 ? '' : 'es'}, ${speedText}.${suffix}`,
                 warnings.length ? 'warning' : 'success'
             );
         } catch (error) {
@@ -876,6 +920,7 @@
     function renderInputState() {
         const panel = document.getElementById(PANEL_ID);
         if (!panel || !stateLoaded) return;
+        const speedInfo = detectWorldSpeed();
         const setValue = (selector, value) => { const control = panel.querySelector(selector); if (control) control.value = String(value); };
         setValue('[data-rup="layout"]', state.layout);
         setValue('[data-rup="maxLevel"]', state.maxLevel);
@@ -883,6 +928,12 @@
         setValue('[data-rup="steps"]', state.steps);
         const gold = panel.querySelector('[data-rup="goldBoost"]');
         if (gold) gold.checked = state.goldBoost;
+        const speedLabel = panel.querySelector('[data-rup-speed-label]');
+        if (speedLabel) speedLabel.textContent = speedInfo.detected ? `World speed · x${speedInfo.speed} detected` : 'World speed';
+        const speedSelect = panel.querySelector('[data-rup="speed"]');
+        if (speedSelect) speedSelect.title = speedInfo.detected
+            ? `Detected from ${speedInfo.source}`
+            : 'Server speed could not be identified automatically; choose it here.';
         Object.entries(state.buildings).forEach(([key,value]) => setValue(`[data-rup-building="${key}"]`, value));
         renderFields();
         renderOases();
@@ -908,7 +959,7 @@
                         <div class="qol-rup-section-body qol-rup-settings">
                             <div class="qol-rup-control"><label>Resource layout</label><select data-rup="layout">${Object.keys(LAYOUTS).map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>
                             <div class="qol-rup-control"><label>Village type</label><select data-rup="maxLevel"><option value="10">Village · fields to 10</option><option value="12">City · fields to 12</option><option value="20">Capital · fields to 20</option></select></div>
-                            <div class="qol-rup-control"><label>World speed</label><select data-rup="speed"><option value="1">x1</option><option value="2">x2</option><option value="3">x3</option><option value="5">x5</option></select></div>
+                            <div class="qol-rup-control"><label data-rup-speed-label>World speed</label><select data-rup="speed"><option value="1">x1</option><option value="2">x2</option><option value="3">x3</option><option value="5">x5</option></select></div>
                             <div class="qol-rup-control"><label>Future steps</label><input data-rup="steps" type="number" min="15" max="100" step="1"></div>
                             <label class="qol-rup-check"><input data-rup="goldBoost" type="checkbox"> +25% Gold production</label>
                         </div>
@@ -1137,6 +1188,7 @@
     async function openPanel() {
         if (!enabled()) return;
         await loadState();
+        applyDetectedWorldSpeed();
         const panel = buildPanel();
         renderInputState();
         APES?.ui?.closeOtherTools?.(FEATURE_KEY);
