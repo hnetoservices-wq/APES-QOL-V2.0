@@ -560,6 +560,7 @@
             await saveState();
             renderInputState();
             runCalculation();
+            setInputSectionsCollapsed(true);
 
             const annexed = state.oases.filter(oasis => oasis.state === 'annexed').length;
             const suffix = warnings.length ? ` (${warnings.join('; ')}.)` : '';
@@ -788,7 +789,13 @@
             #${PANEL_ID} .qol-rup-body{overflow:auto!important;padding:11px!important;background:#ede5d7!important}
             #${PANEL_ID} .qol-rup-section{margin-bottom:9px!important;border:1px solid #cbbb9f!important;border-radius:5px!important;background:#f8f4ec!important;overflow:hidden!important}
             #${PANEL_ID} .qol-rup-section-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;padding:7px 9px!important;background:#e6dac6!important;border-bottom:1px solid #cbbb9f!important}
+            #${PANEL_ID} .qol-rup-section-head[data-section-toggle]{cursor:pointer!important;user-select:none!important}
+            #${PANEL_ID} .qol-rup-section-head[data-section-toggle]:hover{background:#ddcfb8!important}
             #${PANEL_ID} .qol-rup-section-title{color:var(--qol-accent-deep)!important;font-size:10px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.35px!important}
+            #${PANEL_ID} .qol-rup-section-chevron{display:block!important;width:9px!important;height:9px!important;margin:0 4px 4px 0!important;border-right:2px solid var(--qol-accent-deep)!important;border-bottom:2px solid var(--qol-accent-deep)!important;transform:rotate(45deg)!important;transition:transform .15s ease,margin .15s ease!important;flex:0 0 auto!important}
+            #${PANEL_ID} .qol-rup-section.qol-collapsed>.qol-rup-section-head{border-bottom:0!important}
+            #${PANEL_ID} .qol-rup-section.qol-collapsed>.qol-rup-section-head .qol-rup-section-chevron{margin:0 3px 0 0!important;transform:rotate(-45deg)!important}
+            #${PANEL_ID} .qol-rup-section.qol-collapsed>.qol-rup-section-body{display:none!important}
             #${PANEL_ID} .qol-rup-section-body{padding:9px!important}
             #${PANEL_ID} .qol-rup-settings{display:grid!important;grid-template-columns:repeat(5,minmax(120px,1fr))!important;gap:8px!important;align-items:end!important}
             #${PANEL_ID} .qol-rup-control{display:flex!important;flex-direction:column!important;gap:3px!important;min-width:0!important}
@@ -954,8 +961,8 @@
                 </div>
                 <div class="qol-rup-body">
                     <div class="qol-rup-actions qol-rup-actions-top"><div class="qol-rup-action-left"><div class="qol-rup-action-control" data-action="scan" role="button" tabindex="0">Scan village</div><div class="qol-rup-action-control" data-action="calculate" role="button" tabindex="0">Calculate order</div><div class="qol-rup-action-control qol-secondary" data-action="reset" role="button" tabindex="0">Reset</div><span class="qol-rup-scan-status" data-scan-status aria-live="polite">Ready.</span></div></div>
-                    <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Planner settings</span></div>
+                    <section class="qol-rup-section" data-rup-section="settings">
+                        <div class="qol-rup-section-head" data-section-toggle role="button" tabindex="0" aria-expanded="true"><span class="qol-rup-section-title">Planner settings</span><span class="qol-rup-section-chevron" aria-hidden="true"></span></div>
                         <div class="qol-rup-section-body qol-rup-settings">
                             <div class="qol-rup-control"><label>Resource layout</label><select data-rup="layout">${Object.keys(LAYOUTS).map(name => `<option value="${name}">${name}</option>`).join('')}</select></div>
                             <div class="qol-rup-control"><label>Village type</label><select data-rup="maxLevel"><option value="10">Village · fields to 10</option><option value="12">City · fields to 12</option><option value="20">Capital · fields to 20</option></select></div>
@@ -964,19 +971,19 @@
                             <label class="qol-rup-check"><input data-rup="goldBoost" type="checkbox"> +25% Gold production</label>
                         </div>
                     </section>
-                    <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Current resource fields</span></div>
+                    <section class="qol-rup-section" data-rup-section="fields">
+                        <div class="qol-rup-section-head" data-section-toggle role="button" tabindex="0" aria-expanded="true"><span class="qol-rup-section-title">Current resource fields</span><span class="qol-rup-section-chevron" aria-hidden="true"></span></div>
                         <div class="qol-rup-section-body"><div class="qol-rup-fields-grid" data-rup-fields></div></div>
                     </section>
-                    <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Production buildings</span></div>
+                    <section class="qol-rup-section" data-rup-section="buildings">
+                        <div class="qol-rup-section-head" data-section-toggle role="button" tabindex="0" aria-expanded="true"><span class="qol-rup-section-title">Production buildings</span><span class="qol-rup-section-chevron" aria-hidden="true"></span></div>
                         <div class="qol-rup-section-body qol-rup-buildings">
                             ${Object.entries(BUILDINGS).map(([key,building]) => `<label class="qol-rup-building-level"><span>${escapeHtml(building.label)} —</span><select data-rup-building="${key}" aria-label="${escapeHtml(building.label)} level">${Array.from({length:6},(_,level) => `<option value="${level}">${level}</option>`).join('')}</select></label>`).join('')}
                             <label class="qol-rup-building-level"><span>Embassy —</span><select data-rup-building="embassy" aria-label="Embassy level">${Array.from({length:21},(_,level) => `<option value="${level}">${level}</option>`).join('')}</select></label>
                         </div>
                     </section>
-                    <section class="qol-rup-section">
-                        <div class="qol-rup-section-head"><span class="qol-rup-section-title">Oases</span></div>
+                    <section class="qol-rup-section" data-rup-section="oases">
+                        <div class="qol-rup-section-head" data-section-toggle role="button" tabindex="0" aria-expanded="true"><span class="qol-rup-section-title">Oases</span><span class="qol-rup-section-chevron" aria-hidden="true"></span></div>
                         <div class="qol-rup-section-body"><div class="qol-rup-oases" data-rup-oases></div></div>
                     </section>
                     <div class="qol-rup-error" data-error></div>
@@ -1090,6 +1097,19 @@
         return `<div class="qol-rup-table-wrap"><table><thead><tr><th>#</th><th>Upgrade</th><th>Cost</th><th>Production before / h</th><th>Production after / h</th><th>Gain / h</th><th>Save time</th><th>ROI</th><th>Total time</th></tr></thead><tbody>${results.map(row => `<tr><td class="qol-rup-step">${row.step}</td><td class="qol-rup-action-name">${escapeHtml(row.label)}</td><td>${formatResourceLine(row.cost)}</td><td>${formatResourceLine(row.productionBefore)}</td><td>${formatResourceLine(row.productionAfter)}</td><td class="qol-rup-gain">+${formatNumber(row.gainTotal,1)}</td><td>${formatHours(row.saveHours)}</td><td>${formatHours(row.roiHours)}</td><td>${formatHours(row.elapsedHours)}</td></tr>`).join('')}</tbody></table></div>`;
     }
 
+    function setSectionCollapsed(section, collapsed) {
+        if (!section) return;
+        section.classList.toggle('qol-collapsed', collapsed);
+        const toggle = section.querySelector(':scope > [data-section-toggle]');
+        toggle?.setAttribute('aria-expanded', collapsed ? 'false' : 'true');
+    }
+
+    function setInputSectionsCollapsed(collapsed) {
+        document.querySelectorAll(`#${PANEL_ID} [data-rup-section]`).forEach(section =>
+            setSectionCollapsed(section, collapsed)
+        );
+    }
+
     function renderResults() {
         const root = document.querySelector(`#${PANEL_ID} [data-results]`);
         if (!root || !resultMeta) return;
@@ -1101,9 +1121,9 @@
                 <div class="qol-rup-stat"><div class="qol-rup-stat-label">End production / h</div><div class="qol-rup-stat-value qol-rup-production-grid">${formatResourceLine(resultMeta.endProduction)}</div></div>
                 <div class="qol-rup-stat"><div class="qol-rup-stat-label">Gain / h</div><div class="qol-rup-stat-value qol-rup-production-grid qol-rup-gain">${formatResourceLine(gain)}</div></div>
             </div>
-            <div class="qol-rup-tabs"><div class="qol-rup-tab active" data-tab="compact" role="button" tabindex="0">Compact view</div><div class="qol-rup-tab" data-tab="detail" role="button" tabindex="0">Detail view</div></div>
-            <div class="qol-rup-view active" data-view="compact">${renderCompact(resultMeta.results)}</div>
-            <div class="qol-rup-view" data-view="detail">${renderDetail(resultMeta.results)}</div>
+            <div class="qol-rup-tabs"><div class="qol-rup-tab" data-tab="compact" role="button" tabindex="0">Compact view</div><div class="qol-rup-tab active" data-tab="detail" role="button" tabindex="0">Detail view</div></div>
+            <div class="qol-rup-view" data-view="compact">${renderCompact(resultMeta.results)}</div>
+            <div class="qol-rup-view active" data-view="detail">${renderDetail(resultMeta.results)}</div>
         `;
         root.classList.add('show');
     }
@@ -1130,6 +1150,7 @@
         resultMeta = null;
         void saveState();
         renderInputState();
+        setInputSectionsCollapsed(false);
         hideError();
         const root = document.querySelector(`#${PANEL_ID} [data-results]`);
         root?.classList.remove('show');
@@ -1141,6 +1162,12 @@
         panel.dataset.rupBound = 'true';
         panel.addEventListener('click', event => {
             if (event.target === panel || event.target.closest('[data-close]')) { closePanel(); return; }
+            const sectionToggle = event.target.closest('[data-section-toggle]');
+            if (sectionToggle) {
+                const section = sectionToggle.closest('[data-rup-section]');
+                setSectionCollapsed(section, !section?.classList.contains('qol-collapsed'));
+                return;
+            }
             const action = event.target.closest('[data-action]')?.dataset.action;
             if (action === 'scan') void scanCurrentVillage();
             if (action === 'calculate') runCalculation();
