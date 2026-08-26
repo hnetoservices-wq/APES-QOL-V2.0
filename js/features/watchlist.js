@@ -4,6 +4,9 @@
  */
 
 (function() {
+    const MAX_TABS = 10;
+    const MAX_PLAYERS_PER_TAB = 50;
+
     let watchlistContainer = null;
     let watchlistToggleBtn = null;
     let profileCheckInterval = null;
@@ -17,6 +20,65 @@
 
     function delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function escapeHtml(value) {
+        return String(value ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function numericValue(value) {
+        const normalized = String(value ?? '')
+            .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
+            .replace(/[^\d-]/g, '');
+        if (!normalized || normalized === '-') return null;
+        const parsed = Number(normalized);
+        return Number.isFinite(parsed) ? parsed : null;
+    }
+
+    const ICON_PATHS = Object.freeze({
+        people: '<circle cx="8" cy="7.5" r="3"></circle><circle cx="16.5" cy="9" r="2.5"></circle><path d="M2.5 20c.4-4.2 2.2-6.3 5.5-6.3s5.1 2.1 5.5 6.3"></path><path d="M13 15c3.8-.7 6.7 1.2 7.5 5"></path>',
+        castle: '<path d="M4 21V8h4V5h3v3h2V5h3v3h4v13"></path><path d="M3 21h18M8 21v-5h8v5M4 11h16"></path>',
+        house: '<path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v10h13V10M9 20v-6h6v6"></path>',
+        sword: '<path d="m5 19 4.5-4.5M7 21l-4-4 3-1 1-3 4 4-3 1-1 3Z"></path><path d="m10 14 8.5-8.5L21 3l-2.5 6L13 14.5"></path>'
+    });
+
+    function iconSvg(kind) {
+        return `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[kind] || ''}</svg>`;
+    }
+
+    function iconHtml(kind, label, extraClass = '') {
+        const classes = `qol-wl-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
+        const artwork = kind === 'swordCastle'
+            ? `${iconSvg('sword')}${iconSvg('castle')}`
+            : kind === 'swordHouse'
+                ? `${iconSvg('sword')}${iconSvg('house')}`
+                : iconSvg(kind);
+        return `<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? ' qol-wl-combo-icon' : ''}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${artwork}</span>`;
+    }
+
+    function changeDescriptor(value) {
+        const numeric = value == null || value === '' ? null : Number(value);
+        if (!Number.isFinite(numeric)) return { tone:'stationary', arrow:'—', amount:'—' };
+        if (numeric > 0) return { tone:'positive', arrow:'↗', amount:Math.abs(numeric).toLocaleString() };
+        if (numeric < 0) return { tone:'negative', arrow:'↘', amount:Math.abs(numeric).toLocaleString() };
+        return { tone:'stationary', arrow:'→', amount:'0' };
+    }
+
+    function changeMetricHtml(kind, label, value) {
+        const change = changeDescriptor(value);
+        return `<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
+    }
+
+    function changesHtml(entry) {
+        if (entry.villageChange == null && entry.populationChange == null) {
+            return '<span class="qol-wl-change qol-stationary">Baseline</span>';
+        }
+        return `${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
     }
 
     function navigateToGameRoute(route) {
@@ -171,8 +233,8 @@
             #qol-watchlist-container {
                 position: fixed !important;
                 pointer-events: auto !important;
-                width: 820px;
-                min-width: 450px !important;
+                width: 1080px;
+                min-width: 700px !important;
                 max-width: 95vw !important;
                 height: 380px;
                 min-height: 200px !important;
@@ -230,14 +292,6 @@
                 box-sizing: border-box !important;
             }
 
-            .qol-wl-tutorial {
-                font-size: 10.5px !important;
-                color: #555 !important;
-                margin-bottom: 6px !important;
-                font-style: italic !important;
-                line-height: 1.2 !important;
-            }
-
             .qol-wl-toast {
                 position: absolute !important;
                 top: 10px !important;
@@ -260,12 +314,33 @@
                 gap: 10px !important;
                 margin-bottom: 8px !important;
             }
+            .qol-wl-action-control {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-height: 28px !important;
+                padding: 4px 10px !important;
+                border: 1px solid var(--qol-action-border) !important;
+                border-radius: 4px !important;
+                background: linear-gradient(var(--qol-accent), var(--qol-accent-gradient-end)) !important;
+                color: #fff8eb !important;
+                font-size: 10px !important;
+                font-weight: 800 !important;
+                cursor: pointer !important;
+                user-select: none !important;
+                box-shadow: 0 1px 2px rgba(0,0,0,.18) !important;
+            }
+            .qol-wl-action-control:hover { filter: brightness(1.08) !important; }
 
             .qol-wl-tabs {
                 display: flex !important;
+                flex: 0 0 auto !important;
                 gap: 2px !important;
                 margin-bottom: 8px !important;
                 border-bottom: 2px solid #ccc !important;
+                overflow-x: auto !important;
+                overflow-y: hidden !important;
+                scrollbar-width: thin !important;
             }
             .qol-wl-tab {
                 padding: 4px 8px !important;
@@ -279,7 +354,9 @@
                 align-items: center !important;
                 gap: 5px !important;
                 user-select: none !important;
+                flex: 0 0 auto !important;
             }
+            .qol-wl-tab > span:first-child { max-width: 105px !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
             .qol-wl-tab.active {
                 background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
                 color: #ffffff !important;
@@ -317,24 +394,30 @@
                 font-size: 10.5px !important;
                 color: #555 !important;
                 margin-bottom: 6px !important;
+                font-weight: 700 !important;
             }
 
             .qol-wl-table-scroll-container {
                 flex: 1 1 auto !important;
                 max-height: none !important;
-                overflow-y: auto !important;
-                border: 1px solid #dcdcdc !important;
+                min-height: 0 !important;
+                overflow: auto !important;
+                border: 1px solid #cdbb9d !important;
+                border-radius: 4px !important;
                 background-color: white !important;
+                scrollbar-width: thin !important;
             }
             .qol-wl-table {
                 width: 100% !important;
+                min-width: 1010px !important;
                 border-collapse: collapse !important;
+                table-layout: fixed !important;
                 background-color: white !important;
-                font-size: 11px !important;
+                font-size: 10.5px !important;
             }
             .qol-wl-table th, .qol-wl-table td {
-                border: 1px solid #dcdcdc !important;
-                padding: 4px 6px !important;
+                border-bottom: 1px solid #eadfce !important;
+                padding: 5px 6px !important;
                 text-align: left !important;
                 vertical-align: middle !important;
             }
@@ -342,11 +425,16 @@
                 position: sticky !important;
                 top: 0 !important;
                 z-index: 2 !important;
-                background-color: #f0f0f0 !important;
-                font-weight: normal !important;
-                color: #333 !important;
-                font-size: 10.5px !important;
+                height: 31px !important;
+                background-color: #e5d4b8 !important;
+                color: #533b22 !important;
+                font-size: 9.5px !important;
+                font-weight: 800 !important;
+                text-transform: uppercase !important;
             }
+            .qol-wl-table tr:hover td { background:#fff8e7 !important; }
+            .qol-wl-table th.qol-wl-icon-column, .qol-wl-table td.qol-wl-centered { text-align:center !important; }
+            .qol-wl-table .qol-wl-col-player{width:145px!important}.qol-wl-table .qol-wl-col-population{width:76px!important}.qol-wl-table .qol-wl-col-capital{width:130px!important}.qol-wl-table .qol-wl-col-secondary{width:150px!important}.qol-wl-table .qol-wl-col-send{width:95px!important}.qol-wl-table .qol-wl-col-changes{width:180px!important}.qol-wl-table .qol-wl-col-notes{width:180px!important}
             .qol-wl-table td a.qol-route-link {
                 color: #005580 !important;
                 text-decoration: none !important;
@@ -356,6 +444,19 @@
             .qol-wl-table td a.qol-route-link:hover {
                 text-decoration: underline !important;
             }
+            .qol-wl-player-cell { display:flex!important;align-items:center!important;justify-content:space-between!important;gap:6px!important;min-width:0!important; }
+            .qol-wl-player-link { overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important; }
+            .qol-wl-metric-icon { display:inline-flex!important;align-items:center!important;justify-content:center!important;width:18px!important;height:18px!important;vertical-align:middle!important;color:var(--qol-accent-deep)!important; }
+            .qol-wl-metric-icon svg { width:16px!important;height:16px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important; }
+            .qol-wl-combo-icon { width:30px!important;gap:0!important; }
+            .qol-wl-combo-icon svg { width:15px!important;height:15px!important; }
+            .qol-wl-change { display:inline-flex!important;align-items:center!important;gap:2px!important;font-weight:700!important;white-space:nowrap!important; }
+            .qol-wl-change-icon { width:13px!important;height:13px!important; }
+            .qol-wl-change-icon svg { width:12px!important;height:12px!important;stroke-width:2!important; }
+            .qol-wl-change-divider { display:inline-block!important;margin:0 5px!important;color:#b7a98f!important; }
+            #qol-watchlist-container .qol-positive { color:#35651f!important; }
+            #qol-watchlist-container .qol-negative { color:#8b2922!important; }
+            #qol-watchlist-container .qol-stationary { color:#967016!important; }
 
             #qol-watchlist-container select.qol-wl-select {
                 display: inline-block !important;
@@ -372,7 +473,7 @@
                 font-size: 10.5px !important;
                 height: 22px !important;
                 width: 100% !important;
-                max-width: 140px !important;
+                max-width: 138px !important;
                 box-sizing: border-box !important;
             }
             #qol-watchlist-container select.qol-wl-select option {
@@ -387,11 +488,14 @@
                 cursor: pointer !important;
                 line-height: 1 !important;
                 display: inline-block !important;
-                padding: 0 4px !important;
+                padding: 0 2px !important;
+                flex: 0 0 auto !important;
             }
             .qol-wl-del-entry:hover {
                 color: #f00 !important;
             }
+            .qol-wl-note-input { width:100%!important;height:24px!important;padding:3px 5px!important;border:1px solid transparent!important;border-radius:3px!important;background:transparent!important;color:#3f3020!important;font-size:10.5px!important;box-sizing:border-box!important; }
+            .qol-wl-note-input:hover,.qol-wl-note-input:focus { border-color:#bca789!important;background:#fffdf8!important;outline:none!important; }
 
             .qol-modal-overlay {
                 position: fixed !important;
@@ -845,8 +949,8 @@
             return;
         }
 
-        if (targetTab.entries.length >= 15) {
-            showToast(`Maximum limit of 15 players reached for "${targetTab.name}".`, "error");
+        if (targetTab.entries.length >= MAX_PLAYERS_PER_TAB) {
+            showToast(`Maximum limit of ${MAX_PLAYERS_PER_TAB} players reached for "${targetTab.name}".`, "error");
             return;
         }
 
@@ -864,6 +968,8 @@
                 selected2ndCoords: '',
                 selected2ndX: '',
                 selected2ndY: '',
+                villageChange: null,
+                populationChange: null,
                 notes: ''
             });
 
@@ -904,7 +1010,7 @@
         watchlistTabs.forEach(tab => {
             const item = document.createElement('div');
             item.className = 'qol-wl-dropdown-item';
-            item.innerHTML = `<span>${tab.name}</span> <span style="font-size:10px; color:#777;">(${tab.entries.length}/15)</span>`;
+            item.innerHTML = `<span>${escapeHtml(tab.name)}</span> <span style="font-size:10px; color:#777;">(${tab.entries.length}/${MAX_PLAYERS_PER_TAB})</span>`;
 
             item.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -981,6 +1087,7 @@
         const entries = activeTab.entries;
         const total = entries.length;
         const originalHash = window.location.hash;
+        let updatedCount = 0;
 
         const overlay = document.createElement('div');
         overlay.id = 'qol-watchlist-overlay';
@@ -1019,10 +1126,21 @@
 
             const scrapedData = scrapeOpenProfileData(entry.playerId);
             if (scrapedData && scrapedData.playerName && scrapedData.playerName !== 'Unknown' && scrapedData.villages.length > 0) {
+                const previousVillageCount = Array.isArray(entry.villages) ? entry.villages.length : null;
+                const previousPopulation = numericValue(entry.population);
+                const nextVillageCount = scrapedData.villages.length;
+                const nextPopulation = numericValue(scrapedData.population);
+
+                entry.villageChange = previousVillageCount == null ? null : nextVillageCount - previousVillageCount;
+                entry.populationChange = previousPopulation == null || nextPopulation == null
+                    ? null
+                    : nextPopulation - previousPopulation;
                 entry.playerName = scrapedData.playerName;
                 entry.population = scrapedData.population || 'N/A';
                 entry.capital = scrapedData.capital;
                 entry.villages = scrapedData.villages;
+                entry.lastUpdatedAt = Date.now();
+                updatedCount += 1;
 
                 if (entry.selected2ndId) {
                     const stillExists = entry.villages.find(v => v.id === entry.selected2ndId);
@@ -1040,12 +1158,13 @@
             }
         }
 
+        activeTab.updatedAt = Date.now();
         saveWatchlist();
         renderTableUI();
         window.location.hash = originalHash;
 
         overlay.remove();
-        showToast(`Watchlist tab "${activeTab.name}" successfully updated!`, "success");
+        showToast(`Updated ${updatedCount}/${total} players in "${activeTab.name}".`, updatedCount === total ? "success" : "warning");
     }
 
     function renderTabsUI() {
@@ -1110,7 +1229,7 @@
             tabsContainer.appendChild(tabDiv);
         });
 
-        if (watchlistTabs.length < 5) {
+        if (watchlistTabs.length < MAX_TABS) {
             const addTabBtn = document.createElement('div');
             addTabBtn.className = 'qol-wl-tab qol-wl-tab-add';
             addTabBtn.innerText = '+ Add Tab';
@@ -1140,7 +1259,8 @@
         const activeTab = watchlistTabs.find(t => t.id === activeTabId) || watchlistTabs[0];
 
         if (statusEl) {
-            statusEl.textContent = `${activeTab.name} (${activeTab.entries.length}/15 Players)`;
+            const updated = activeTab.updatedAt ? ` · Updated ${new Date(activeTab.updatedAt).toLocaleString()}` : '';
+            statusEl.textContent = `${activeTab.name} · ${activeTab.entries.length}/${MAX_PLAYERS_PER_TAB} players${updated}`;
         }
 
         tbody.innerHTML = '';
@@ -1153,50 +1273,49 @@
         }
 
         activeTab.entries.forEach((entry, index) => {
-            const capitalName = entry.capital ? entry.capital.name : 'N/A';
-            
+            const capitalName = entry.capital?.name || 'N/A';
+            const capitalTitle = entry.capital?.coords ? `Capital village ${entry.capital.coords}` : 'Capital village';
             const capitalCoordsLink = (entry.capital && entry.capital.coords)
-                ? `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${entry.capital.x}/y:${entry.capital.y}">${entry.capital.coords}</a>`
+                ? `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.capital.x)}/y:${escapeHtml(entry.capital.y)}" title="Send troops to ${escapeHtml(capitalName)}">${escapeHtml(entry.capital.coords)}</a>`
                 : '-';
 
             const nonCapitalVillages = (entry.villages || []).filter(v => !v.isCapital);
 
-            let selectOptions = `<option value="">Select 2nd Vil...</option>`;
+            let selectOptions = `<option value="">Select village…</option>`;
             if (nonCapitalVillages.length > 0) {
                 nonCapitalVillages.forEach(v => {
                     const selected = v.id === entry.selected2ndId ? 'selected' : '';
-                    selectOptions += `<option value="${v.id}" data-x="${v.x}" data-y="${v.y}" data-coords="${v.coords}" ${selected}>${v.name}</option>`;
+                    selectOptions += `<option value="${escapeHtml(v.id)}" data-x="${escapeHtml(v.x)}" data-y="${escapeHtml(v.y)}" data-coords="${escapeHtml(v.coords)}" ${selected}>${escapeHtml(v.name)}</option>`;
                 });
             } else {
-                selectOptions = `<option value="">No other vil</option>`;
+                selectOptions = `<option value="">No other village</option>`;
             }
 
             let send2ndLink = '-';
             if (entry.selected2ndCoords) {
-                send2ndLink = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${entry.selected2ndX}/y:${entry.selected2ndY}">${entry.selected2ndCoords}</a>`;
+                send2ndLink = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.selected2ndX)}/y:${escapeHtml(entry.selected2ndY)}" title="Send troops to selected village">${escapeHtml(entry.selected2ndCoords)}</a>`;
             }
+
+            const population = numericValue(entry.population);
+            const populationText = population == null ? escapeHtml(entry.population || 'N/A') : population.toLocaleString();
 
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>
-                    <div style="font-weight: bold; margin-bottom: 2px;">${entry.playerName}</div>
-                    <a href="javascript:void(0)" class="qol-route-link" data-route="playerId:${entry.playerId}/profileTab:playerProfile/window:profile" style="font-size: 9.5px;">Open Profile</a>
+                    <div class="qol-wl-player-cell">
+                        <a href="javascript:void(0)" class="qol-route-link qol-wl-player-link" data-route="playerId:${escapeHtml(entry.playerId)}/profileTab:playerProfile/window:profile" title="Open ${escapeHtml(entry.playerName)}'s profile">${escapeHtml(entry.playerName)}</a>
+                        <span class="qol-wl-del-entry" title="Remove ${escapeHtml(entry.playerName)}" aria-label="Remove ${escapeHtml(entry.playerName)}">&times;</span>
+                    </div>
                 </td>
-                <td>${entry.population || 'N/A'}</td>
-                <td>${capitalName}</td>
-                <td>
-                    <select class="qol-wl-select qol-2nd-vil-select">
+                <td class="qol-wl-centered">${populationText}</td>
+                <td title="${escapeHtml(capitalTitle)}">${escapeHtml(capitalName)}</td>
+                <td><select class="qol-wl-select qol-2nd-vil-select" title="Choose secondary village">
                         ${selectOptions}
-                    </select>
-                </td>
-                <td>${capitalCoordsLink}</td>
-                <td class="qol-send-2nd-cell">${send2ndLink}</td>
-                <td>
-                    <input type="text" class="qol-wl-note-input" value="${entry.notes || ''}" placeholder="Add note..." style="width:90%; border:none; background:transparent; font-size:11px;" />
-                </td>
-                <td style="text-align:center;">
-                    <span class="qol-wl-del-entry" title="Remove player">&times;</span>
-                </td>
+                    </select></td>
+                <td class="qol-wl-centered">${capitalCoordsLink}</td>
+                <td class="qol-send-2nd-cell qol-wl-centered">${send2ndLink}</td>
+                <td>${changesHtml(entry)}</td>
+                <td><input type="text" class="qol-wl-note-input" value="${escapeHtml(entry.notes || '')}" placeholder="Add note…" aria-label="Notes for ${escapeHtml(entry.playerName)}"></td>
             `;
 
             const selectEl = tr.querySelector('.qol-2nd-vil-select');
@@ -1216,7 +1335,7 @@
                 saveWatchlist();
 
                 if (coords) {
-                    send2ndCell.innerHTML = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${x}/y:${y}">${coords}</a>`;
+                    send2ndCell.innerHTML = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(x)}/y:${escapeHtml(y)}" title="Send troops to selected village">${escapeHtml(coords)}</a>`;
                 } else {
                     send2ndCell.innerHTML = '-';
                 }
@@ -1286,9 +1405,8 @@
                 <span class="qol-wl-close" title="Close Watchlist">&times;</span>
             </div>
             <div class="qol-wl-body">
-                <div class="qol-wl-tutorial">Open a player's profile and click "Add Profile to Watchlist" next to Description.</div>
                 <div class="qol-wl-controls">
-                    <div id="qol-wl-update-btn" style="background-color:var(--qol-accent-dark) !important; color:#ffffff !important; padding:4px 8px !important; border-radius:4px !important; font-size:11px !important; font-weight:bold !important; cursor:pointer !important; user-select:none !important; text-align:center !important; white-space:nowrap; box-sizing:border-box !important; border:1px solid var(--qol-accent-outline) !important; box-shadow:0 1px 3px rgba(0,0,0,0.2) !important;">Update Current Watchlist</div>
+                    <div id="qol-wl-update-btn" class="qol-wl-action-control" role="button" tabindex="0">Update current watchlist</div>
                 </div>
                 
                 <div class="qol-wl-tabs"></div>
@@ -1296,16 +1414,17 @@
                 
                 <div class="qol-wl-table-scroll-container">
                     <table class="qol-wl-table">
+                        <colgroup><col class="qol-wl-col-player"><col class="qol-wl-col-population"><col class="qol-wl-col-capital"><col class="qol-wl-col-secondary"><col class="qol-wl-col-send"><col class="qol-wl-col-send"><col class="qol-wl-col-changes"><col class="qol-wl-col-notes"></colgroup>
                         <thead>
                             <tr>
                                 <th>Player</th>
-                                <th>Population</th>
-                                <th>Capital</th>
-                                <th>2nd Village</th>
-                                <th>Send on Capital</th>
-                                <th>Send on 2nd</th>
+                                <th class="qol-wl-icon-column">${iconHtml('people', 'Population')}</th>
+                                <th class="qol-wl-icon-column">${iconHtml('castle', 'Capital village')}</th>
+                                <th class="qol-wl-icon-column">${iconHtml('house', 'Secondary village')}</th>
+                                <th class="qol-wl-icon-column">${iconHtml('swordCastle', 'Send troops to capital')}</th>
+                                <th class="qol-wl-icon-column">${iconHtml('swordHouse', 'Send troops to secondary village')}</th>
+                                <th>Changes</th>
                                 <th>Notes</th>
-                                <th style="width: 25px;"></th>
                             </tr>
                         </thead>
                         <tbody id="qol-wl-tbody"></tbody>
@@ -1347,6 +1466,11 @@
         const updateBtn = watchlistContainer.querySelector('#qol-wl-update-btn');
         if (updateBtn) {
             updateBtn.addEventListener('click', updateCurrentWatchlist);
+            updateBtn.addEventListener('keydown', (event) => {
+                if (event.key !== 'Enter' && event.key !== ' ') return;
+                event.preventDefault();
+                void updateCurrentWatchlist();
+            });
         }
     }
 
