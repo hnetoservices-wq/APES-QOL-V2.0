@@ -44,6 +44,7 @@
         "js/features/reportArchive.js",
         "js/features/checklists.js",
         "js/features/npcCalculator.js",
+        "js/ui/resourceUpgradePlannerPreference.js",
         "js/features/resourceUpgradePlanner.js",
         "js/ui/resourceUpgradePlannerIntegration.js",
         "js/features/distanceCalculator.js",
