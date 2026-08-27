@@ -44,10 +44,10 @@
         if (typeof value === 'number') return Number.isFinite(value) ? value : null;
         if (typeof value === 'bigint') return String(value);
         if (typeof value === 'function' || typeof value === 'symbol') return undefined;
-        if (depth > 6) return undefined;
+        if (depth > 7) return undefined;
 
         if (Array.isArray(value)) {
-            return value.slice(0, 160)
+            return value.slice(0, 220)
                 .map(item => safeCopy(item, depth + 1, seen))
                 .filter(item => item !== undefined);
         }
@@ -57,7 +57,7 @@
         seen.add(value);
 
         const output = {};
-        for (const key of Object.keys(value).slice(0, 220)) {
+        for (const key of Object.keys(value).slice(0, 260)) {
             if (key === 'movement' || key.startsWith('$$')) continue;
             let copied;
             try {
@@ -131,10 +131,9 @@
         const activeData = activeId ? modelData(cacheObject, `Village:${activeId}`) : null;
         const ownPlayerId = asFiniteNumber(activeData?.playerId);
 
-        // The native own-village collection is the authoritative source when
-        // it resolves cleanly to Village cache keys.
         const validCollectionIds = [...fromCollection]
             .filter(id => modelData(cacheObject, `Village:${id}`));
+
         if (validCollectionIds.length) {
             return {
                 playerId: ownPlayerId ?? asFiniteNumber(
@@ -144,9 +143,6 @@
             };
         }
 
-        // Fallback: all cached Village models belonging to the active
-        // village's player. This deliberately excludes map villages owned by
-        // other players.
         const ids = [];
         if (ownPlayerId !== null) {
             for (const [key, model] of Object.entries(cacheObject)) {
@@ -214,7 +210,10 @@
             locationId: asFiniteNumber(building?.locationId),
             lvl: asFiniteNumber(building?.lvl),
             lvlNext: asFiniteNumber(building?.lvlNext),
-            isMaxLvl: building?.isMaxLvl === true || building?.isMaxLvl === 1 || building?.isMaxLvl === '1'
+            isMaxLvl: building?.isMaxLvl === true || building?.isMaxLvl === 1 || building?.isMaxLvl === '1',
+            inQueueEffects: safeCopy(building?.inQueueEffects),
+            nextEffect: safeCopy(building?.nextEffect),
+            currentEffect: safeCopy(building?.currentEffect)
         };
     }
 
