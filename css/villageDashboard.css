@@ -1,0 +1,295 @@
+/* APES QoL v2 — Windowless Village Dashboard */
+
+#apes-v2-village-overlay {
+    padding: 28px !important;
+    overflow: auto !important;
+}
+
+.apes-v2-village-dashboard {
+    width: min(1180px, calc(100vw - 56px)) !important;
+    max-height: calc(100vh - 56px) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 10px !important;
+    color: #fff6df !important;
+    pointer-events: auto !important;
+}
+
+.apes-vd-heading {
+    display: flex !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    gap: 18px !important;
+    padding: 0 8px 6px !important;
+}
+
+.apes-vd-brand {
+    display: flex !important;
+    align-items: baseline !important;
+    gap: 10px !important;
+}
+
+.apes-vd-brand > span {
+    color: var(--qol-radial-ring) !important;
+    font-size: 12px !important;
+    font-weight: 900 !important;
+    letter-spacing: 2px !important;
+}
+
+.apes-vd-brand > strong {
+    color: #fff9e8 !important;
+    font-size: 20px !important;
+    font-weight: 800 !important;
+    letter-spacing: .2px !important;
+}
+
+.apes-vd-hint {
+    color: rgba(255, 246, 223, .62) !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    text-align: right !important;
+}
+
+.apes-vd-table-wrap {
+    min-height: 120px !important;
+    overflow: auto !important;
+    padding: 0 4px 6px !important;
+    scrollbar-width: thin !important;
+}
+
+.apes-vd-header,
+.apes-vd-row {
+    display: grid !important;
+    grid-template-columns: minmax(180px, 1.3fr) minmax(170px, 1.2fr) minmax(160px, 1.1fr) minmax(145px, 1fr) minmax(145px, 1fr) minmax(190px, 1.35fr) !important;
+    align-items: stretch !important;
+    min-width: 1040px !important;
+}
+
+.apes-vd-header {
+    position: sticky !important;
+    z-index: 4 !important;
+    top: 0 !important;
+    padding: 5px 10px 7px !important;
+    background: rgba(12, 14, 14, .62) !important;
+    backdrop-filter: blur(6px) !important;
+    color: rgba(255, 246, 223, .72) !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    letter-spacing: .55px !important;
+    text-transform: uppercase !important;
+}
+
+.apes-vd-header > span {
+    padding: 0 10px !important;
+}
+
+.apes-vd-body {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 7px !important;
+}
+
+.apes-vd-row {
+    position: relative !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(199, 166, 97, .34) !important;
+    border-radius: 8px !important;
+    background:
+        linear-gradient(90deg,
+            rgba(55, 43, 28, .91) 0%,
+            rgba(36, 32, 25, .91) 32%,
+            rgba(23, 26, 25, .92) 100%) !important;
+    box-shadow:
+        0 5px 18px rgba(0, 0, 0, .26),
+        inset 0 1px 0 rgba(255, 243, 208, .07) !important;
+    transition:
+        border-color 120ms ease,
+        box-shadow 120ms ease,
+        transform 120ms ease !important;
+}
+
+.apes-vd-row:hover {
+    border-color: rgba(226, 193, 116, .58) !important;
+    box-shadow:
+        0 7px 22px rgba(0, 0, 0, .32),
+        inset 0 1px 0 rgba(255, 243, 208, .1) !important;
+    transform: translateY(-1px) !important;
+}
+
+.apes-vd-row.current {
+    border-color: rgba(142, 211, 63, .78) !important;
+    box-shadow:
+        0 0 0 1px rgba(142, 211, 63, .13),
+        0 0 20px rgba(126, 205, 43, .22),
+        0 6px 18px rgba(0, 0, 0, .3) !important;
+}
+
+.apes-vd-row.current::before {
+    content: "" !important;
+    position: absolute !important;
+    z-index: 2 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    width: 3px !important;
+    background: #8ed33f !important;
+    box-shadow: 0 0 10px rgba(142, 211, 63, .7) !important;
+}
+
+.apes-vd-village,
+.apes-vd-cell {
+    min-width: 0 !important;
+    min-height: 68px !important;
+    padding: 10px 11px !important;
+    border-right: 1px solid rgba(222, 193, 130, .1) !important;
+}
+
+.apes-vd-cell:last-child {
+    border-right: 0 !important;
+}
+
+.apes-vd-village {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    gap: 5px !important;
+    margin: 0 !important;
+    border-top: 0 !important;
+    border-bottom: 0 !important;
+    border-left: 0 !important;
+    border-radius: 0 !important;
+    background: rgba(255, 255, 255, .025) !important;
+    color: inherit !important;
+    font: inherit !important;
+    text-align: left !important;
+    cursor: pointer !important;
+    outline: none !important;
+}
+
+.apes-vd-village:hover,
+.apes-vd-village:focus {
+    background: rgba(232, 195, 105, .08) !important;
+}
+
+.apes-vd-row.current .apes-vd-village:hover,
+.apes-vd-row.current .apes-vd-village:focus {
+    background: rgba(142, 211, 63, .07) !important;
+}
+
+.apes-vd-village-name {
+    max-width: 100% !important;
+    overflow: hidden !important;
+    color: #fff9e9 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    line-height: 1.15 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.apes-vd-row.current .apes-vd-village-name {
+    color: #edffd9 !important;
+}
+
+.apes-vd-village-meta {
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: wrap !important;
+    gap: 5px 7px !important;
+    color: rgba(255, 246, 223, .56) !important;
+}
+
+.apes-vd-village-meta small {
+    font-size: 9px !important;
+    line-height: 1 !important;
+}
+
+.apes-vd-badge {
+    padding: 2px 5px !important;
+    border: 1px solid rgba(215, 179, 97, .42) !important;
+    border-radius: 999px !important;
+    background: rgba(177, 135, 52, .12) !important;
+    color: #f1dca6 !important;
+    font-size: 8px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+}
+
+.apes-vd-cell {
+    display: flex !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    color: #eee7d8 !important;
+}
+
+.apes-vd-line {
+    display: block !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+.apes-vd-line strong {
+    display: block !important;
+    overflow: hidden !important;
+    color: #f7f1e4 !important;
+    font-size: 10px !important;
+    font-weight: 700 !important;
+    line-height: 1.25 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.apes-vd-line small {
+    display: block !important;
+    max-width: 100% !important;
+    margin-top: 3px !important;
+    overflow: hidden !important;
+    color: rgba(255, 246, 223, .53) !important;
+    font-size: 8.5px !important;
+    line-height: 1.2 !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+.apes-vd-idle {
+    color: rgba(255, 246, 223, .36) !important;
+    font-size: 10px !important;
+    font-style: italic !important;
+}
+
+.apes-vd-loading {
+    min-width: 1040px !important;
+    padding: 34px 20px !important;
+    border: 1px dashed rgba(199, 166, 97, .34) !important;
+    border-radius: 8px !important;
+    background: rgba(25, 23, 19, .68) !important;
+    color: rgba(255, 246, 223, .66) !important;
+    font-size: 11px !important;
+    text-align: center !important;
+}
+
+@media (max-width: 900px) {
+    #apes-v2-village-overlay {
+        align-items: flex-start !important;
+        padding: 16px !important;
+    }
+
+    .apes-v2-village-dashboard {
+        width: calc(100vw - 32px) !important;
+        max-height: calc(100vh - 32px) !important;
+    }
+
+    .apes-vd-heading {
+        align-items: flex-start !important;
+        flex-direction: column !important;
+        gap: 4px !important;
+    }
+
+    .apes-vd-hint {
+        text-align: left !important;
+    }
+}
