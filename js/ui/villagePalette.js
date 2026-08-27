@@ -129,9 +129,6 @@
 
         const numeric = Number(value);
         if (!Number.isFinite(numeric) || numeric <= 0) return null;
-
-        // Travian commonly uses Unix seconds. Millisecond timestamps are also
-        // accepted so the UI remains tolerant of model changes.
         return numeric < 100000000000 ? numeric * 1000 : numeric;
     }
 
@@ -160,13 +157,11 @@
 
     function formatInteger(value) {
         const number = Number(value);
-        return Number.isFinite(number)
-            ? Math.round(number).toLocaleString()
-            : '0';
+        return Number.isFinite(number) ? Math.round(number).toLocaleString() : '0';
     }
 
     function hasMeaningfulData(value, depth = 0) {
-        if (value === null || value === undefined || depth > 5) return false;
+        if (value === null || value === undefined || depth > 6) return false;
         if (typeof value === 'boolean') return value;
         if (typeof value === 'number') return value !== 0;
         if (typeof value === 'string') return value.trim() !== '' && value !== '0';
@@ -180,12 +175,12 @@
         return false;
     }
 
-    function collectObjects(value, predicate, limit = 12) {
+    function collectObjects(value, predicate, limit = 16) {
         const results = [];
         const seen = new WeakSet();
 
         function walk(node, depth = 0) {
-            if (results.length >= limit || node === null || node === undefined || depth > 7) return;
+            if (results.length >= limit || node === null || node === undefined || depth > 8) return;
             if (typeof node !== 'object') return;
             if (seen.has(node)) return;
             seen.add(node);
@@ -193,11 +188,8 @@
             if (predicate(node)) results.push(node);
             if (results.length >= limit) return;
 
-            if (Array.isArray(node)) {
-                node.forEach(item => walk(item, depth + 1));
-            } else {
-                Object.values(node).forEach(item => walk(item, depth + 1));
-            }
+            if (Array.isArray(node)) node.forEach(item => walk(item, depth + 1));
+            else Object.values(node).forEach(item => walk(item, depth + 1));
         }
 
         walk(value);
@@ -208,15 +200,34 @@
         if (!object || typeof object !== 'object') return null;
         const keys = [
             'endTime', 'finishTime', 'finishedAt', 'finishAt', 'completionTime',
-            'completeAt', 'timeFinished', 'end', 'until', 'doneAt'
+            'completeAt', 'timeFinished', 'end', 'until', 'doneAt', 'finish'
         ];
         for (const key of keys) {
-            if (object[key] !== undefined) {
-                const timestamp = asTimestamp(object[key]);
-                if (timestamp) return timestamp;
-            }
+            if (object[key] === undefined) continue;
+            const timestamp = asTimestamp(object[key]);
+            if (timestamp) return timestamp;
         }
         return null;
+    }
+
+    function localUnitIndex(tribeId, rawIndex) {
+        let id = Math.trunc(Number(rawIndex));
+        if (!Number.isFinite(id)) return null;
+        if (id === 0) return 1;
+
+        const tribe = Number(tribeId);
+        if (id >= 1 && id <= 10) return id;
+        if (tribe >= 1 && tribe <= 3) {
+            const base = (tribe - 1) * 10;
+            if (id > base && id <= base + 10) return id - base;
+        }
+        return id;
+    }
+
+    function unitName(tribeId, rawIndex) {
+        const index = localUnitIndex(tribeId, rawIndex);
+        if (index === null) return `Unit ${rawIndex}`;
+        return UNIT_NAMES[Number(tribeId)]?.[index - 1] || `Unit ${rawIndex}`;
     }
 
     function buildingLookup(village) {
@@ -232,11 +243,17 @@
         const direct = asNumber(
             item?.buildingType ??
             item?.buildingTypeId ??
+            item?.building?.buildingType ??
             item?.type
         );
         if (direct !== null && BUILDING_NAMES[direct]) return direct;
 
-        const locationId = asNumber(item?.locationId ?? item?.buildingLocationId);
+        const locationId = asNumber(
+            item?.locationId ??
+            item?.buildingLocationId ??
+            item?.location ??
+            item?.building?.locationId
+        );
         if (locationId !== null) {
             return asNumber(buildingLookup(village).get(String(locationId))?.buildingType);
         }
@@ -245,132 +262,213 @@
 
     function constructionEntries(village) {
         const queue = village?.buildingQueue;
-        if (!queue) return [];
-
-        const candidates = collectObjects(queue?.queues ?? queue, item => {
-            if (!item || Array.isArray(item)) return false;
-            const hasBuilding = [
-                'buildingType', 'buildingTypeId', 'locationId', 'buildingLocationId'
-            ].some(key => item[key] !== undefined);
-            const hasQueueSignal = [
-                'lvl', 'level', 'lvlNext', 'targetLevel', 'endTime', 'finishTime',
-                'finishedAt', 'completionTime', 'duration', 'startTime'
-            ].some(key => item[key] !== undefined);
-            return hasBuilding && hasQueueSignal;
-        }, 8);
-
+        const entries = [];
         const seen = new Set();
-        return candidates.map(item => {
-            const type = buildingTypeForQueueItem(item, village);
-            const location = asNumber(item?.locationId ?? item?.buildingLocationId);
-            const level = asNumber(
-                item?.targetLevel ??
-                item?.lvlNext ??
-                item?.level ??
-                item?.lvl
-            );
-            const end = findEndTime(item);
+
+        if (queue) {
+            const candidates = collectObjects(queue?.queues ?? queue, item => {
+                if (!item || Array.isArray(item)) return false;
+                const keys = Object.keys(item);
+                const hasIdentity = keys.some(key => /buildingType|buildingTypeId|buildingId|locationId|buildingLocationId|location/i.test(key));
+                const hasQueueSignal = keys.some(key => /lvl|level|target|finish|end|duration|start|queue|state/i.test(key));
+                return hasIdentity && hasQueueSignal;
+            }, 16);
+
+            for (const item of candidates) {
+                const type = buildingTypeForQueueItem(item, village);
+                const location = asNumber(
+                    item?.locationId ??
+                    item?.buildingLocationId ??
+                    item?.location ??
+                    item?.building?.locationId
+                );
+                const level = asNumber(
+                    item?.targetLevel ??
+                    item?.lvlNext ??
+                    item?.levelNext ??
+                    item?.level ??
+                    item?.lvl
+                );
+                const end = findEndTime(item);
+                const label = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
+                const key = `${type ?? ''}|${location ?? ''}|${level ?? ''}|${end ?? ''}`;
+                if (seen.has(key)) continue;
+                seen.add(key);
+                entries.push({ label, level, end, source: 'queue' });
+            }
+        }
+
+        for (const building of village?.buildings || []) {
+            if (!hasMeaningfulData(building?.inQueueEffects)) continue;
+            const type = asNumber(building?.buildingType);
+            const location = asNumber(building?.locationId);
+            const level = asNumber(building?.lvlNext);
             const label = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
-            const key = `${type || ''}|${location || ''}|${level || ''}|${end || ''}`;
-            if (seen.has(key)) return null;
+            const key = `${type ?? ''}|${location ?? ''}|${level ?? ''}`;
+            if ([...seen].some(existing => existing.startsWith(`${type ?? ''}|${location ?? ''}|`))) continue;
             seen.add(key);
-            return { label, level, end };
-        }).filter(Boolean);
+            entries.push({ label, level, end: null, source: 'building' });
+        }
+
+        return entries;
     }
 
     function constructionHtml(village) {
         const entries = constructionEntries(village);
-        if (!entries.length) {
-            return '<span class="apes-vd-idle">Idle</span>';
-        }
+        if (!entries.length) return '<span class="apes-vd-idle">Idle</span>';
 
-        return entries.slice(0, 2).map(entry => {
+        const tooltip = entries.map(entry => {
+            const level = entry.level !== null ? ` → Lv ${entry.level}` : '';
+            const remaining = entry.end ? ` — ${remainingText(entry.end)}` : '';
+            return `${entry.label}${level}${remaining}`;
+        }).join('\n');
+
+        return `<div class="apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">${entries.slice(0, 2).map(entry => {
             const level = entry.level !== null ? ` → Lv ${entry.level}` : '';
             const remaining = entry.end ? remainingText(entry.end) : '';
             return `
                 <span class="apes-vd-line">
-                    <strong>${escapeHtml(entry.label)}${escapeHtml(level)}</strong>
+                    <strong>${escapeHtml(entry.label + level)}</strong>
                     ${remaining ? `<small>${escapeHtml(remaining)}</small>` : ''}
                 </span>
             `;
-        }).join('');
+        }).join('')}</div>`;
     }
 
-    function unitName(tribeId, rawIndex) {
-        let index = Number(rawIndex);
-        if (!Number.isFinite(index)) return `Unit ${rawIndex}`;
-        if (index <= 0) index += 1;
-        const names = UNIT_NAMES[Number(tribeId)];
-        return names?.[index - 1] || `Unit ${index}`;
+    function addUnitCount(map, tribeId, rawId, amount) {
+        const numericAmount = asNumber(amount);
+        const localIndex = localUnitIndex(tribeId, rawId);
+        if (numericAmount === null || numericAmount <= 0 || localIndex === null || localIndex < 1 || localIndex > 10) return;
+        map.set(localIndex, (map.get(localIndex) || 0) + numericAmount);
+    }
+
+    function primitiveUnitCounts(root, tribeId) {
+        const totals = new Map();
+        const seen = new WeakSet();
+
+        function walk(node, depth = 0) {
+            if (node === null || node === undefined || depth > 7) return;
+
+            if (Array.isArray(node)) {
+                const primitiveArray = node.every(value => value === null || ['number', 'string'].includes(typeof value));
+                if (primitiveArray) {
+                    node.forEach((value, index) => addUnitCount(totals, tribeId, index + 1, value));
+                    return;
+                }
+                node.forEach(value => walk(value, depth + 1));
+                return;
+            }
+
+            if (typeof node !== 'object') return;
+            if (seen.has(node)) return;
+            seen.add(node);
+
+            for (const [key, value] of Object.entries(node)) {
+                if (/^\d+$/.test(key) && ['number', 'string'].includes(typeof value)) {
+                    addUnitCount(totals, tribeId, Number(key), value);
+                } else if (value && typeof value === 'object') {
+                    walk(value, depth + 1);
+                }
+            }
+        }
+
+        walk(root);
+        return totals;
     }
 
     function unitQueueEntries(village) {
         const queue = village?.unitQueue;
         if (!queue) return [];
 
+        const entries = [];
+        const seen = new Set();
         const candidates = collectObjects(queue?.unitsInQueue ?? queue, item => {
             if (!item || Array.isArray(item)) return false;
-            return [
-                'unitType', 'unitTypeId', 'unitId', 'unit', 'unitIndex', 'amount',
-                'count', 'quantity', 'remaining', 'endTime', 'finishTime'
-            ].some(key => item[key] !== undefined);
-        }, 10);
+            const keys = Object.keys(item);
+            return keys.some(key => /unitType|unitTypeId|unitId|unitIndex|amount|count|quantity|remaining|finish|end/i.test(key));
+        }, 14);
 
-        return candidates.map(item => {
-            const unitIndex = asNumber(
-                item?.unitType ?? item?.unitTypeId ?? item?.unitId ?? item?.unit ?? item?.unitIndex
+        for (const item of candidates) {
+            const rawUnit = asNumber(
+                item?.unitType ??
+                item?.unitTypeId ??
+                item?.unitId ??
+                item?.unit ??
+                item?.unitIndex
             );
             const amount = asNumber(
-                item?.amount ?? item?.count ?? item?.quantity ?? item?.remaining ?? item?.units
+                item?.amount ??
+                item?.count ??
+                item?.quantity ??
+                item?.remaining ??
+                (typeof item?.units === 'number' ? item.units : null)
             );
             const buildingType = asNumber(item?.buildingType ?? item?.buildingTypeId);
-            return {
-                label: unitIndex !== null ? unitName(village?.tribeId, unitIndex) : 'Troops',
+            const localIndex = rawUnit !== null ? localUnitIndex(village?.tribeId, rawUnit) : null;
+            const key = `${localIndex ?? ''}|${amount ?? ''}|${buildingType ?? ''}|${findEndTime(item) ?? ''}`;
+            if (seen.has(key)) continue;
+            seen.add(key);
+            entries.push({
+                rawUnit,
+                localIndex,
+                label: rawUnit !== null ? unitName(village?.tribeId, rawUnit) : 'Troops',
                 amount,
                 building: BUILDING_NAMES[buildingType] || '',
                 end: findEndTime(item)
-            };
-        });
-    }
+            });
+        }
 
-    function countNumbers(value, depth = 0) {
-        if (value === null || value === undefined || depth > 6) return 0;
-        if (typeof value === 'number') return value > 0 ? value : 0;
-        if (typeof value === 'string') {
-            const number = Number(value);
-            return Number.isFinite(number) && number > 0 ? number : 0;
+        if (!entries.length) {
+            const totals = primitiveUnitCounts(queue?.unitsInQueue, village?.tribeId);
+            totals.forEach((amount, localIndex) => {
+                entries.push({
+                    rawUnit: localIndex,
+                    localIndex,
+                    label: unitName(village?.tribeId, localIndex),
+                    amount,
+                    building: '',
+                    end: null
+                });
+            });
         }
-        if (Array.isArray(value)) return value.reduce((sum, item) => sum + countNumbers(item, depth + 1), 0);
-        if (typeof value === 'object') {
-            return Object.entries(value).reduce((sum, [key, item]) => {
-                if (/villageId|buildingType|unitType|unitId|start|end|time|duration/i.test(key)) return sum;
-                return sum + countNumbers(item, depth + 1);
-            }, 0);
-        }
-        return 0;
+
+        return entries.filter(entry => entry.amount === null || entry.amount > 0);
     }
 
     function trainingHtml(village) {
         const entries = unitQueueEntries(village);
-        if (entries.length) {
-            return entries.slice(0, 2).map(entry => {
-                const amount = entry.amount !== null ? `${formatInteger(entry.amount)} ` : '';
-                const prefix = entry.building ? `${entry.building}: ` : '';
-                const remaining = entry.end ? remainingText(entry.end) : '';
-                return `
-                    <span class="apes-vd-line">
-                        <strong>${escapeHtml(prefix + amount + entry.label)}</strong>
-                        ${remaining ? `<small>${escapeHtml(remaining)}</small>` : ''}
-                    </span>
-                `;
-            }).join('');
+        if (!entries.length) return '<span class="apes-vd-idle">Idle</span>';
+
+        const total = entries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
+        const details = entries.map(entry => {
+            const building = entry.building ? `${entry.building}: ` : '';
+            const amount = entry.amount !== null ? `${formatInteger(entry.amount)} ` : '';
+            const remaining = entry.end ? ` — ${remainingText(entry.end)}` : '';
+            return `${building}${amount}${entry.label}${remaining}`;
+        });
+        const title = details.join('\n');
+
+        if (entries.length === 1) {
+            const entry = entries[0];
+            const amount = entry.amount !== null ? `${formatInteger(entry.amount)} ` : '';
+            return `
+                <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(title)}">
+                    <strong>${escapeHtml(amount + entry.label)}</strong>
+                    ${entry.building ? `<small>${escapeHtml(entry.building)}</small>` : ''}
+                </span>
+            `;
         }
 
-        const fallbackCount = countNumbers(village?.unitQueue?.unitsInQueue);
-        if (fallbackCount > 0) {
-            return `<span class="apes-vd-line"><strong>${escapeHtml(formatInteger(fallbackCount))} queued</strong></span>`;
-        }
-        return '<span class="apes-vd-idle">Idle</span>';
+        const primary = entries.slice(0, 2)
+            .map(entry => `${entry.amount !== null ? formatInteger(entry.amount) + ' ' : ''}${entry.label}`)
+            .join(' · ');
+
+        return `
+            <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(title)}">
+                <strong>${escapeHtml(total > 0 ? `${formatInteger(total)} queued` : 'Training active')}</strong>
+                <small>${escapeHtml(primary)}</small>
+            </span>
+        `;
     }
 
     function smithyHtml(village) {
@@ -381,25 +479,28 @@
 
         const candidates = collectObjects(queue?.buildingTypes ?? queue, item => {
             if (!item || Array.isArray(item)) return false;
-            return [
-                'unitType', 'unitTypeId', 'unitId', 'unit', 'unitIndex',
-                'level', 'lvl', 'lvlNext', 'targetLevel', 'endTime', 'finishTime'
-            ].some(key => item[key] !== undefined);
-        }, 4);
+            return Object.keys(item).some(key => /unitType|unitTypeId|unitId|unitIndex|level|lvl|target|finish|end/i.test(key));
+        }, 6);
 
         if (!candidates.length) {
             return '<span class="apes-vd-line"><strong>Upgrade active</strong></span>';
         }
 
         const item = candidates[0];
-        const unitIndex = asNumber(
-            item?.unitType ?? item?.unitTypeId ?? item?.unitId ?? item?.unit ?? item?.unitIndex
+        const rawUnit = asNumber(
+            item?.unitType ??
+            item?.unitTypeId ??
+            item?.unitId ??
+            item?.unit ??
+            item?.unitIndex
         );
-        const level = asNumber(item?.targetLevel ?? item?.lvlNext ?? item?.level ?? item?.lvl);
+        const level = asNumber(item?.targetLevel ?? item?.lvlNext ?? item?.levelNext ?? item?.level ?? item?.lvl);
         const end = findEndTime(item);
-        const label = unitIndex !== null ? unitName(village?.tribeId, unitIndex) : 'Smithy upgrade';
+        const label = rawUnit !== null ? unitName(village?.tribeId, rawUnit) : 'Smithy upgrade';
+        const tooltip = `${label}${level !== null ? ` → Lv ${level}` : ''}${end ? ` — ${remainingText(end)}` : ''}`;
+
         return `
-            <span class="apes-vd-line">
+            <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">
                 <strong>${escapeHtml(label)}${level !== null ? ` → Lv ${escapeHtml(level)}` : ''}</strong>
                 ${end ? `<small>${escapeHtml(remainingText(end))}</small>` : ''}
             </span>
@@ -461,8 +562,10 @@
         for (const troop of village?.stationaryTroops || []) {
             if (Number.isFinite(ownPlayerId) && Number(troop?.playerId) !== ownPlayerId) continue;
             const counts = normaliseUnitCounts(troop?.units);
-            counts.forEach((amount, index) => {
-                totals.set(index, (totals.get(index) || 0) + amount);
+            counts.forEach((amount, rawIndex) => {
+                const localIndex = localUnitIndex(village?.tribeId, rawIndex);
+                if (localIndex === null || localIndex < 1 || localIndex > 10) return;
+                totals.set(localIndex, (totals.get(localIndex) || 0) + amount);
             });
         }
 
@@ -485,7 +588,7 @@
             .join('\n');
 
         return `
-            <span class="apes-vd-line" title="${escapeHtml(tooltip)}">
+            <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">
                 <strong>${escapeHtml(formatInteger(summary.total))} troops</strong>
                 ${primary ? `<small>${escapeHtml(primary)}</small>` : ''}
             </span>
@@ -530,8 +633,15 @@
                 closeDashboard();
                 return;
             }
-            const villageButton = event.target.closest('[data-village-id]');
-            if (villageButton) openVillage(villageButton.dataset.villageId);
+            const villageControl = event.target.closest('[data-village-id]');
+            if (villageControl) openVillage(villageControl.dataset.villageId);
+        });
+
+        overlay.addEventListener('keydown', event => {
+            const villageControl = event.target.closest?.('[data-village-id]');
+            if (!villageControl || !['Enter', ' '].includes(event.key)) return;
+            event.preventDefault();
+            openVillage(villageControl.dataset.villageId);
         });
 
         return overlay;
@@ -566,14 +676,14 @@
 
             return `
                 <div class="apes-vd-row${isActive ? ' current' : ''}">
-                    <button class="apes-vd-village" type="button" data-village-id="${escapeHtml(villageId)}" title="Switch to ${escapeHtml(village.name)}">
+                    <div class="apes-vd-village" role="button" tabindex="0" data-village-id="${escapeHtml(villageId)}" title="Switch to ${escapeHtml(village.name)}">
                         <span class="apes-vd-village-name">${escapeHtml(village.name)}</span>
                         <span class="apes-vd-village-meta">
                             ${coordinates ? `<small>${escapeHtml(coordinates)}</small>` : ''}
                             ${Number.isFinite(Number(village.population)) ? `<small>${escapeHtml(formatInteger(village.population))} pop</small>` : ''}
                             ${badges}
                         </span>
-                    </button>
+                    </div>
                     <div class="apes-vd-cell">${constructionHtml(village)}</div>
                     <div class="apes-vd-cell">${trainingHtml(village)}</div>
                     <div class="apes-vd-cell">${smithyHtml(village)}</div>
@@ -585,10 +695,7 @@
     }
 
     function requestSnapshot() {
-        window.postMessage({
-            source: UI_SOURCE,
-            type: REQUEST_TYPE
-        }, window.location.origin);
+        window.postMessage({ source: UI_SOURCE, type: REQUEST_TYPE }, window.location.origin);
     }
 
     function startRefresh() {
@@ -642,9 +749,7 @@
         const checkbox = document.getElementById('qol-chk-village-palette');
         const row = checkbox?.closest('.qol-keybind-item');
         const label = row?.querySelector('.qol-keybind-action');
-        if (label && label.textContent !== 'Village Dashboard') {
-            label.textContent = 'Village Dashboard';
-        }
+        if (label && label.textContent !== 'Village Dashboard') label.textContent = 'Village Dashboard';
     }
 
     window.addEventListener('message', event => {
