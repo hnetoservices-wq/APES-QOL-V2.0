@@ -1,8 +1,9 @@
 /**
- * APES QoL v2 — Village Palette
+ * APES QoL v2 — Village Dashboard
  *
- * Passively remembers villages as the player visits them. Hold H outside
- * typing fields to open a radial village switcher; release H to close it.
+ * Press H to toggle a borderless, windowless dashboard for every owned
+ * village. Data comes from Travian's existing MAIN-world cache via
+ * villageDashboardBridge.js; this feature never navigates villages to scan.
  */
 
 (() => {
@@ -13,19 +14,79 @@
 
     const OVERLAY_ID = 'apes-v2-village-overlay';
     const SETTING_KEY = 'keybind_villagePalette';
-    const STORAGE_KEY = `apes_village_palette_${window.location.hostname}`;
-    const HOLD_DELAY = 180;
-    const ITEMS_PER_RING = 8;
-    const FIRST_RING_RADIUS = 150;
-    const MIN_ITEM_DISTANCE = 126;
-    const RING_GAP = 120;
+    const UI_SOURCE = 'APES_QOL_VILLAGE_DASHBOARD_UI';
+    const BRIDGE_SOURCE = 'APES_QOL_VILLAGE_DASHBOARD_BRIDGE';
+    const REQUEST_TYPE = 'REQUEST_SNAPSHOT';
+    const RESPONSE_TYPE = 'VILLAGE_SNAPSHOT';
+    const REFRESH_MS = 2500;
 
-    let villages = loadVillages();
-    let currentVillageId = '';
-    let lastCapturedSignature = '';
-    let holdTimer = null;
-    let villageKeyHeld = false;
-    let captureTimers = [];
+    const BUILDING_NAMES = Object.freeze({
+        1: 'Woodcutter',
+        2: 'Clay Pit',
+        3: 'Iron Mine',
+        4: 'Cropland',
+        5: 'Sawmill',
+        6: 'Brickyard',
+        7: 'Iron Foundry',
+        8: 'Grain Mill',
+        9: 'Bakery',
+        10: 'Warehouse',
+        11: 'Granary',
+        12: 'Smithy',
+        14: 'Tournament Square',
+        15: 'Main Building',
+        16: 'Rally Point',
+        17: 'Marketplace',
+        18: 'Embassy',
+        19: 'Barracks',
+        20: 'Stable',
+        21: 'Workshop',
+        22: 'Academy',
+        23: 'Cranny',
+        24: 'Town Hall',
+        25: 'Residence',
+        26: 'Palace',
+        27: 'Treasury',
+        28: 'Trade Office',
+        29: 'Great Barracks',
+        30: 'Great Stable',
+        31: 'City Wall',
+        32: 'Earth Wall',
+        33: 'Palisade',
+        34: 'Stonemason',
+        35: 'Brewery',
+        36: 'Trapper',
+        37: "Hero's Mansion",
+        38: 'Great Warehouse',
+        39: 'Great Granary',
+        40: 'Wonder of the World',
+        41: 'Horse Drinking Trough'
+    });
+
+    const UNIT_NAMES = Object.freeze({
+        1: [
+            'Legionnaire', 'Praetorian', 'Imperian', 'Equites Legati',
+            'Equites Imperatoris', 'Equites Caesaris', 'Battering Ram',
+            'Fire Catapult', 'Senator', 'Settler'
+        ],
+        2: [
+            'Clubswinger', 'Spearman', 'Axeman', 'Scout', 'Paladin',
+            'Teutonic Knight', 'Ram', 'Catapult', 'Chief', 'Settler'
+        ],
+        3: [
+            'Phalanx', 'Swordsman', 'Pathfinder', 'Theutates Thunder',
+            'Druidrider', 'Haeduan', 'Ram', 'Trebuchet', 'Chieftain', 'Settler'
+        ]
+    });
+
+    let snapshot = {
+        generatedAt: 0,
+        playerId: null,
+        activeVillageId: '',
+        villages: []
+    };
+    let refreshTimer = null;
+    let retryTimer = null;
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -34,233 +95,6 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
-    }
-
-    function loadVillages() {
-        try {
-            const parsed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
-            if (!Array.isArray(parsed)) return [];
-            return parsed
-                .filter(village => /^\d+$/.test(String(village?.id || '')))
-                .map(village => ({
-                    id: String(village.id),
-                    name: String(village.name || `Village ${village.id}`),
-                    firstSeen: Number(village.firstSeen) || Date.now(),
-                    lastSeen: Number(village.lastSeen) || Date.now()
-                }));
-        } catch (_error) {
-            return [];
-        }
-    }
-
-    function saveVillages() {
-        try {
-            localStorage.setItem(STORAGE_KEY, JSON.stringify(villages));
-        } catch (error) {
-            console.warn('[APES Village Palette] Could not save villages.', error);
-        }
-    }
-
-    function villageIdFromUrl() {
-        return String(window.location.hash || '')
-            .match(/(?:^|\/)villId:(\d+)/i)?.[1] || '';
-    }
-
-    function currentVillageName() {
-        const contextName = APES.context?.getVillageName?.();
-        const domName = document.querySelector(
-            '.currentVillageName .dropdownHead .selectedItem .villageEntry, ' +
-            '#villageList .dropdownHead .selectedItem .villageEntry, ' +
-            '.dropdownHead .selectedItem .villageEntry'
-        )?.textContent;
-        const name = String(
-            contextName && contextName !== 'Unknown village'
-                ? contextName
-                : domName || ''
-        ).replace(/\s+/g, ' ').trim();
-        return name === 'Unknown village' ? '' : name;
-    }
-
-    function captureCurrentVillage() {
-        const id = villageIdFromUrl();
-        if (!id) return;
-
-        currentVillageId = id;
-        const name = currentVillageName();
-        const signature = `${id}|${name}`;
-        if (signature === lastCapturedSignature) return;
-        lastCapturedSignature = signature;
-
-        const existing = villages.find(village => village.id === id);
-        if (existing) {
-            if (name && existing.name !== name) existing.name = name;
-            existing.lastSeen = Date.now();
-        } else {
-            villages.push({
-                id,
-                name: name || `Village ${id}`,
-                firstSeen: Date.now(),
-                lastSeen: Date.now()
-            });
-        }
-        saveVillages();
-
-        if (document.getElementById(OVERLAY_ID)?.classList.contains('open')) {
-            renderRadial();
-        }
-    }
-
-    function scheduleCapture() {
-        captureTimers.forEach(timer => window.clearTimeout(timer));
-        captureTimers = [0, 250, 700].map(delay =>
-            window.setTimeout(captureCurrentVillage, delay)
-        );
-    }
-
-    function sortedVillages() {
-        return [...villages].sort((first, second) => {
-            if (first.id === currentVillageId) return -1;
-            if (second.id === currentVillageId) return 1;
-            return first.name.localeCompare(second.name, undefined, {
-                numeric: true,
-                sensitivity: 'base'
-            });
-        });
-    }
-
-    function getRingRadius(itemCount, ringIndex) {
-        const minimumRadius = itemCount > 1
-            ? MIN_ITEM_DISTANCE / (2 * Math.sin(Math.PI / itemCount))
-            : 0;
-        return Math.max(FIRST_RING_RADIUS + ringIndex * RING_GAP, minimumRadius);
-    }
-
-    function getPosition(index, entries) {
-        const ringIndex = Math.floor(index / ITEMS_PER_RING);
-        const ringStart = ringIndex * ITEMS_PER_RING;
-        const ringItems = entries.slice(ringStart, ringStart + ITEMS_PER_RING);
-        const positionInRing = index - ringStart;
-        const angle = -Math.PI / 2 + (Math.PI * 2 * positionInRing) / ringItems.length;
-        const radius = getRingRadius(ringItems.length, ringIndex);
-        return {
-            x: Math.cos(angle) * radius,
-            y: Math.sin(angle) * radius
-        };
-    }
-
-    function villageIcon() {
-        return `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M3 11.5 12 4l9 7.5"></path>
-                <path d="M5.5 10v10h13V10M9 20v-6h6v6"></path>
-            </svg>
-        `;
-    }
-
-    function mountRadial() {
-        let overlay = document.getElementById(OVERLAY_ID);
-        if (overlay) return overlay;
-
-        overlay = document.createElement('div');
-        overlay.id = OVERLAY_ID;
-        overlay.setAttribute('aria-hidden', 'true');
-        overlay.innerHTML = `
-            <div class="apes-v2-radial" role="dialog" aria-modal="true" aria-label="Village wheel">
-                <div class="apes-v2-radial-center">
-                    <span class="apes-v2-radial-logo">APES</span>
-                    <span class="apes-v2-radial-feature">
-                        <strong class="apes-v2-radial-feature-name">Village Wheel</strong>
-                    </span>
-                </div>
-                <div class="apes-v2-radial-items"></div>
-            </div>
-        `;
-        document.body.appendChild(overlay);
-
-        overlay.addEventListener('click', event => {
-            if (event.target === overlay) {
-                closeRadial();
-                return;
-            }
-            const item = event.target.closest('[data-village-id]');
-            if (item) openVillage(item.dataset.villageId);
-        });
-
-        overlay.addEventListener('pointerover', event => {
-            const item = event.target.closest('[data-village-id]');
-            const center = overlay.querySelector('.apes-v2-radial-feature-name');
-            if (item && center) center.textContent = item.dataset.label;
-        });
-
-        overlay.addEventListener('pointerout', event => {
-            const item = event.target.closest('[data-village-id]');
-            if (item && !item.contains(event.relatedTarget)) {
-                const center = overlay.querySelector('.apes-v2-radial-feature-name');
-                if (center) center.textContent = 'Village Wheel';
-            }
-        });
-
-        return overlay;
-    }
-
-    function renderRadial() {
-        captureCurrentVillage();
-        const overlay = mountRadial();
-        const radial = overlay.querySelector('.apes-v2-radial');
-        const items = overlay.querySelector('.apes-v2-radial-items');
-        const entries = sortedVillages();
-        const rings = Math.max(1, Math.ceil(entries.length / ITEMS_PER_RING));
-        const lastRingStart = (rings - 1) * ITEMS_PER_RING;
-        const lastRingCount = Math.min(
-            ITEMS_PER_RING,
-            Math.max(1, entries.length - lastRingStart)
-        );
-        const furthestRadius = getRingRadius(lastRingCount, rings - 1);
-        radial.style.setProperty('--apes-radial-size', `${furthestRadius * 2 + 130}px`);
-
-        if (!entries.length) {
-            items.innerHTML = '<div class="apes-v2-radial-empty">Visit a village once to add it here.</div>';
-            return;
-        }
-
-        items.innerHTML = entries.map((village, index) => {
-            const position = getPosition(index, entries);
-            const isCurrent = village.id === currentVillageId;
-            return `
-                <div
-                    class="apes-v2-radial-item${isCurrent ? ' current' : ''}"
-                    data-village-id="${escapeHtml(village.id)}"
-                    data-label="${escapeHtml(village.name)}"
-                    role="button"
-                    tabindex="0"
-                    title="${escapeHtml(village.name)}${isCurrent ? ' · Current village' : ''}"
-                    style="--apes-x:${position.x.toFixed(2)}px;--apes-y:${position.y.toFixed(2)}px;"
-                >
-                    <span class="apes-v2-radial-icon">${villageIcon()}</span>
-                    <span class="apes-v2-radial-label">${escapeHtml(village.name)}</span>
-                </div>
-            `;
-        }).join('');
-    }
-
-    function openVillage(villageId) {
-        if (!/^\d+$/.test(String(villageId || ''))) return;
-        closeRadial();
-        window.location.hash = `#/page:village/villId:${villageId}`;
-    }
-
-    function openRadial() {
-        renderRadial();
-        APES.ui.closeOtherTools('villagePalette');
-        const overlay = mountRadial();
-        overlay.classList.add('open');
-        overlay.setAttribute('aria-hidden', 'false');
-    }
-
-    function closeRadial() {
-        const overlay = document.getElementById(OVERLAY_ID);
-        overlay?.classList.remove('open');
-        overlay?.setAttribute('aria-hidden', 'true');
     }
 
     function enabled() {
@@ -275,11 +109,553 @@
         return event.code === 'KeyH' || String(event.key || '').toLowerCase() === 'h';
     }
 
-    function clearHoldTimer() {
-        if (holdTimer === null) return;
-        window.clearTimeout(holdTimer);
-        holdTimer = null;
+    function currentVillageIdFromUrl() {
+        return String(window.location.hash || '')
+            .match(/(?:^|\/)villId:(\d+)/i)?.[1] || '';
     }
+
+    function asNumber(value) {
+        const number = Number(value);
+        return Number.isFinite(number) ? number : null;
+    }
+
+    function asTimestamp(value) {
+        if (value === null || value === undefined || value === '') return null;
+
+        if (typeof value === 'string' && !/^\d+(?:\.\d+)?$/.test(value.trim())) {
+            const parsed = Date.parse(value);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        const numeric = Number(value);
+        if (!Number.isFinite(numeric) || numeric <= 0) return null;
+
+        // Travian commonly uses Unix seconds. Millisecond timestamps are also
+        // accepted so the UI remains tolerant of model changes.
+        return numeric < 100000000000 ? numeric * 1000 : numeric;
+    }
+
+    function formatDurationMilliseconds(milliseconds) {
+        if (!Number.isFinite(milliseconds)) return '';
+        if (milliseconds <= 0) return 'ready';
+
+        let seconds = Math.ceil(milliseconds / 1000);
+        const days = Math.floor(seconds / 86400);
+        seconds %= 86400;
+        const hours = Math.floor(seconds / 3600);
+        seconds %= 3600;
+        const minutes = Math.floor(seconds / 60);
+        seconds %= 60;
+
+        const hh = String(hours).padStart(2, '0');
+        const mm = String(minutes).padStart(2, '0');
+        const ss = String(seconds).padStart(2, '0');
+        return days > 0 ? `${days}d ${hh}:${mm}:${ss}` : `${hh}:${mm}:${ss}`;
+    }
+
+    function remainingText(value) {
+        const timestamp = asTimestamp(value);
+        return timestamp ? formatDurationMilliseconds(timestamp - Date.now()) : '';
+    }
+
+    function formatInteger(value) {
+        const number = Number(value);
+        return Number.isFinite(number)
+            ? Math.round(number).toLocaleString()
+            : '0';
+    }
+
+    function hasMeaningfulData(value, depth = 0) {
+        if (value === null || value === undefined || depth > 5) return false;
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'number') return value !== 0;
+        if (typeof value === 'string') return value.trim() !== '' && value !== '0';
+        if (Array.isArray(value)) return value.some(item => hasMeaningfulData(item, depth + 1));
+        if (typeof value === 'object') {
+            return Object.entries(value).some(([key, child]) => {
+                if (/villageId|tribeId|freeSlots|canUse/i.test(key)) return false;
+                return hasMeaningfulData(child, depth + 1);
+            });
+        }
+        return false;
+    }
+
+    function collectObjects(value, predicate, limit = 12) {
+        const results = [];
+        const seen = new WeakSet();
+
+        function walk(node, depth = 0) {
+            if (results.length >= limit || node === null || node === undefined || depth > 7) return;
+            if (typeof node !== 'object') return;
+            if (seen.has(node)) return;
+            seen.add(node);
+
+            if (predicate(node)) results.push(node);
+            if (results.length >= limit) return;
+
+            if (Array.isArray(node)) {
+                node.forEach(item => walk(item, depth + 1));
+            } else {
+                Object.values(node).forEach(item => walk(item, depth + 1));
+            }
+        }
+
+        walk(value);
+        return results;
+    }
+
+    function findEndTime(object) {
+        if (!object || typeof object !== 'object') return null;
+        const keys = [
+            'endTime', 'finishTime', 'finishedAt', 'finishAt', 'completionTime',
+            'completeAt', 'timeFinished', 'end', 'until', 'doneAt'
+        ];
+        for (const key of keys) {
+            if (object[key] !== undefined) {
+                const timestamp = asTimestamp(object[key]);
+                if (timestamp) return timestamp;
+            }
+        }
+        return null;
+    }
+
+    function buildingLookup(village) {
+        const byLocation = new Map();
+        for (const building of village?.buildings || []) {
+            const locationId = asNumber(building?.locationId);
+            if (locationId !== null) byLocation.set(String(locationId), building);
+        }
+        return byLocation;
+    }
+
+    function buildingTypeForQueueItem(item, village) {
+        const direct = asNumber(
+            item?.buildingType ??
+            item?.buildingTypeId ??
+            item?.type
+        );
+        if (direct !== null && BUILDING_NAMES[direct]) return direct;
+
+        const locationId = asNumber(item?.locationId ?? item?.buildingLocationId);
+        if (locationId !== null) {
+            return asNumber(buildingLookup(village).get(String(locationId))?.buildingType);
+        }
+        return direct;
+    }
+
+    function constructionEntries(village) {
+        const queue = village?.buildingQueue;
+        if (!queue) return [];
+
+        const candidates = collectObjects(queue?.queues ?? queue, item => {
+            if (!item || Array.isArray(item)) return false;
+            const hasBuilding = [
+                'buildingType', 'buildingTypeId', 'locationId', 'buildingLocationId'
+            ].some(key => item[key] !== undefined);
+            const hasQueueSignal = [
+                'lvl', 'level', 'lvlNext', 'targetLevel', 'endTime', 'finishTime',
+                'finishedAt', 'completionTime', 'duration', 'startTime'
+            ].some(key => item[key] !== undefined);
+            return hasBuilding && hasQueueSignal;
+        }, 8);
+
+        const seen = new Set();
+        return candidates.map(item => {
+            const type = buildingTypeForQueueItem(item, village);
+            const location = asNumber(item?.locationId ?? item?.buildingLocationId);
+            const level = asNumber(
+                item?.targetLevel ??
+                item?.lvlNext ??
+                item?.level ??
+                item?.lvl
+            );
+            const end = findEndTime(item);
+            const label = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
+            const key = `${type || ''}|${location || ''}|${level || ''}|${end || ''}`;
+            if (seen.has(key)) return null;
+            seen.add(key);
+            return { label, level, end };
+        }).filter(Boolean);
+    }
+
+    function constructionHtml(village) {
+        const entries = constructionEntries(village);
+        if (!entries.length) {
+            return '<span class="apes-vd-idle">Idle</span>';
+        }
+
+        return entries.slice(0, 2).map(entry => {
+            const level = entry.level !== null ? ` → Lv ${entry.level}` : '';
+            const remaining = entry.end ? remainingText(entry.end) : '';
+            return `
+                <span class="apes-vd-line">
+                    <strong>${escapeHtml(entry.label)}${escapeHtml(level)}</strong>
+                    ${remaining ? `<small>${escapeHtml(remaining)}</small>` : ''}
+                </span>
+            `;
+        }).join('');
+    }
+
+    function unitName(tribeId, rawIndex) {
+        let index = Number(rawIndex);
+        if (!Number.isFinite(index)) return `Unit ${rawIndex}`;
+        if (index <= 0) index += 1;
+        const names = UNIT_NAMES[Number(tribeId)];
+        return names?.[index - 1] || `Unit ${index}`;
+    }
+
+    function unitQueueEntries(village) {
+        const queue = village?.unitQueue;
+        if (!queue) return [];
+
+        const candidates = collectObjects(queue?.unitsInQueue ?? queue, item => {
+            if (!item || Array.isArray(item)) return false;
+            return [
+                'unitType', 'unitTypeId', 'unitId', 'unit', 'unitIndex', 'amount',
+                'count', 'quantity', 'remaining', 'endTime', 'finishTime'
+            ].some(key => item[key] !== undefined);
+        }, 10);
+
+        return candidates.map(item => {
+            const unitIndex = asNumber(
+                item?.unitType ?? item?.unitTypeId ?? item?.unitId ?? item?.unit ?? item?.unitIndex
+            );
+            const amount = asNumber(
+                item?.amount ?? item?.count ?? item?.quantity ?? item?.remaining ?? item?.units
+            );
+            const buildingType = asNumber(item?.buildingType ?? item?.buildingTypeId);
+            return {
+                label: unitIndex !== null ? unitName(village?.tribeId, unitIndex) : 'Troops',
+                amount,
+                building: BUILDING_NAMES[buildingType] || '',
+                end: findEndTime(item)
+            };
+        });
+    }
+
+    function countNumbers(value, depth = 0) {
+        if (value === null || value === undefined || depth > 6) return 0;
+        if (typeof value === 'number') return value > 0 ? value : 0;
+        if (typeof value === 'string') {
+            const number = Number(value);
+            return Number.isFinite(number) && number > 0 ? number : 0;
+        }
+        if (Array.isArray(value)) return value.reduce((sum, item) => sum + countNumbers(item, depth + 1), 0);
+        if (typeof value === 'object') {
+            return Object.entries(value).reduce((sum, [key, item]) => {
+                if (/villageId|buildingType|unitType|unitId|start|end|time|duration/i.test(key)) return sum;
+                return sum + countNumbers(item, depth + 1);
+            }, 0);
+        }
+        return 0;
+    }
+
+    function trainingHtml(village) {
+        const entries = unitQueueEntries(village);
+        if (entries.length) {
+            return entries.slice(0, 2).map(entry => {
+                const amount = entry.amount !== null ? `${formatInteger(entry.amount)} ` : '';
+                const prefix = entry.building ? `${entry.building}: ` : '';
+                const remaining = entry.end ? remainingText(entry.end) : '';
+                return `
+                    <span class="apes-vd-line">
+                        <strong>${escapeHtml(prefix + amount + entry.label)}</strong>
+                        ${remaining ? `<small>${escapeHtml(remaining)}</small>` : ''}
+                    </span>
+                `;
+            }).join('');
+        }
+
+        const fallbackCount = countNumbers(village?.unitQueue?.unitsInQueue);
+        if (fallbackCount > 0) {
+            return `<span class="apes-vd-line"><strong>${escapeHtml(formatInteger(fallbackCount))} queued</strong></span>`;
+        }
+        return '<span class="apes-vd-idle">Idle</span>';
+    }
+
+    function smithyHtml(village) {
+        const queue = village?.smithyQueue;
+        if (!queue || !hasMeaningfulData(queue?.buildingTypes ?? queue)) {
+            return '<span class="apes-vd-idle">Idle</span>';
+        }
+
+        const candidates = collectObjects(queue?.buildingTypes ?? queue, item => {
+            if (!item || Array.isArray(item)) return false;
+            return [
+                'unitType', 'unitTypeId', 'unitId', 'unit', 'unitIndex',
+                'level', 'lvl', 'lvlNext', 'targetLevel', 'endTime', 'finishTime'
+            ].some(key => item[key] !== undefined);
+        }, 4);
+
+        if (!candidates.length) {
+            return '<span class="apes-vd-line"><strong>Upgrade active</strong></span>';
+        }
+
+        const item = candidates[0];
+        const unitIndex = asNumber(
+            item?.unitType ?? item?.unitTypeId ?? item?.unitId ?? item?.unit ?? item?.unitIndex
+        );
+        const level = asNumber(item?.targetLevel ?? item?.lvlNext ?? item?.level ?? item?.lvl);
+        const end = findEndTime(item);
+        const label = unitIndex !== null ? unitName(village?.tribeId, unitIndex) : 'Smithy upgrade';
+        return `
+            <span class="apes-vd-line">
+                <strong>${escapeHtml(label)}${level !== null ? ` → Lv ${escapeHtml(level)}` : ''}</strong>
+                ${end ? `<small>${escapeHtml(remainingText(end))}</small>` : ''}
+            </span>
+        `;
+    }
+
+    function celebrationHtml(village) {
+        const type = Number(village?.celebrationType);
+        const end = asTimestamp(village?.celebrationEnd);
+        const active = end && end > Date.now();
+
+        if (!active && !hasMeaningfulData(village?.celebrations)) {
+            return '<span class="apes-vd-idle">None</span>';
+        }
+
+        const name = type === 1
+            ? 'Small celebration'
+            : type === 2
+                ? 'Great celebration'
+                : 'Celebration';
+
+        return `
+            <span class="apes-vd-line">
+                <strong>${escapeHtml(name)}</strong>
+                ${end ? `<small>${escapeHtml(remainingText(end))}</small>` : ''}
+            </span>
+        `;
+    }
+
+    function normaliseUnitCounts(units) {
+        const counts = new Map();
+
+        if (Array.isArray(units)) {
+            units.forEach((value, index) => {
+                const amount = asNumber(value);
+                if (amount !== null && amount > 0) counts.set(index + 1, (counts.get(index + 1) || 0) + amount);
+            });
+            return counts;
+        }
+
+        if (!units || typeof units !== 'object') return counts;
+
+        Object.entries(units).forEach(([key, value]) => {
+            const amount = asNumber(value);
+            if (amount === null || amount <= 0) return;
+            const match = String(key).match(/(\d+)/);
+            const index = match ? Number(match[1]) : Number(key);
+            if (!Number.isFinite(index)) return;
+            counts.set(index, (counts.get(index) || 0) + amount);
+        });
+
+        return counts;
+    }
+
+    function troopSummary(village) {
+        const totals = new Map();
+        const ownPlayerId = Number(snapshot?.playerId);
+
+        for (const troop of village?.stationaryTroops || []) {
+            if (Number.isFinite(ownPlayerId) && Number(troop?.playerId) !== ownPlayerId) continue;
+            const counts = normaliseUnitCounts(troop?.units);
+            counts.forEach((amount, index) => {
+                totals.set(index, (totals.get(index) || 0) + amount);
+            });
+        }
+
+        const entries = [...totals.entries()]
+            .filter(([, amount]) => amount > 0)
+            .sort((a, b) => b[1] - a[1]);
+        const total = entries.reduce((sum, [, amount]) => sum + amount, 0);
+        return { total, entries };
+    }
+
+    function troopsHtml(village) {
+        const summary = troopSummary(village);
+        if (!summary.total) return '<span class="apes-vd-idle">0 troops</span>';
+
+        const primary = summary.entries.slice(0, 2)
+            .map(([index, amount]) => `${formatInteger(amount)} ${unitName(village?.tribeId, index)}`)
+            .join(' · ');
+        const tooltip = summary.entries
+            .map(([index, amount]) => `${formatInteger(amount)} ${unitName(village?.tribeId, index)}`)
+            .join('\n');
+
+        return `
+            <span class="apes-vd-line" title="${escapeHtml(tooltip)}">
+                <strong>${escapeHtml(formatInteger(summary.total))} troops</strong>
+                ${primary ? `<small>${escapeHtml(primary)}</small>` : ''}
+            </span>
+        `;
+    }
+
+    function mountDashboard() {
+        let overlay = document.getElementById(OVERLAY_ID);
+        if (overlay) return overlay;
+
+        overlay = document.createElement('div');
+        overlay.id = OVERLAY_ID;
+        overlay.setAttribute('aria-hidden', 'true');
+        overlay.innerHTML = `
+            <div class="apes-v2-village-dashboard" role="dialog" aria-modal="true" aria-label="Village dashboard">
+                <div class="apes-vd-heading">
+                    <div class="apes-vd-brand">
+                        <span>APES</span>
+                        <strong>Village Dashboard</strong>
+                    </div>
+                    <div class="apes-vd-hint">H / Esc to close · Click a village to switch</div>
+                </div>
+                <div class="apes-vd-table-wrap">
+                    <div class="apes-vd-header">
+                        <span>Village</span>
+                        <span>Construction</span>
+                        <span>Training</span>
+                        <span>Smithy</span>
+                        <span>Celebration</span>
+                        <span>Troops</span>
+                    </div>
+                    <div class="apes-vd-body">
+                        <div class="apes-vd-loading">Reading Travian village cache…</div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.addEventListener('click', event => {
+            if (event.target === overlay) {
+                closeDashboard();
+                return;
+            }
+            const villageButton = event.target.closest('[data-village-id]');
+            if (villageButton) openVillage(villageButton.dataset.villageId);
+        });
+
+        return overlay;
+    }
+
+    function renderDashboard() {
+        const overlay = mountDashboard();
+        const body = overlay.querySelector('.apes-vd-body');
+        if (!body) return;
+
+        const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
+        if (!villages.length) {
+            body.innerHTML = `
+                <div class="apes-vd-loading">
+                    ${snapshot?.error ? escapeHtml(snapshot.error) : 'Waiting for Travian village cache…'}
+                </div>
+            `;
+            return;
+        }
+
+        const activeId = String(snapshot.activeVillageId || currentVillageIdFromUrl());
+        body.innerHTML = villages.map(village => {
+            const villageId = String(village.villageId || '');
+            const isActive = villageId === activeId || village.isActive;
+            const badges = [
+                village.isMainVillage ? '<span class="apes-vd-badge">Capital</span>' : '',
+                village.isTown ? '<span class="apes-vd-badge">Town</span>' : ''
+            ].filter(Boolean).join('');
+            const coordinates = Number.isFinite(Number(village.x)) && Number.isFinite(Number(village.y))
+                ? `(${village.x}|${village.y})`
+                : '';
+
+            return `
+                <div class="apes-vd-row${isActive ? ' current' : ''}">
+                    <button class="apes-vd-village" type="button" data-village-id="${escapeHtml(villageId)}" title="Switch to ${escapeHtml(village.name)}">
+                        <span class="apes-vd-village-name">${escapeHtml(village.name)}</span>
+                        <span class="apes-vd-village-meta">
+                            ${coordinates ? `<small>${escapeHtml(coordinates)}</small>` : ''}
+                            ${Number.isFinite(Number(village.population)) ? `<small>${escapeHtml(formatInteger(village.population))} pop</small>` : ''}
+                            ${badges}
+                        </span>
+                    </button>
+                    <div class="apes-vd-cell">${constructionHtml(village)}</div>
+                    <div class="apes-vd-cell">${trainingHtml(village)}</div>
+                    <div class="apes-vd-cell">${smithyHtml(village)}</div>
+                    <div class="apes-vd-cell">${celebrationHtml(village)}</div>
+                    <div class="apes-vd-cell">${troopsHtml(village)}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function requestSnapshot() {
+        window.postMessage({
+            source: UI_SOURCE,
+            type: REQUEST_TYPE
+        }, window.location.origin);
+    }
+
+    function startRefresh() {
+        stopRefresh();
+        requestSnapshot();
+        refreshTimer = window.setInterval(requestSnapshot, REFRESH_MS);
+        retryTimer = window.setTimeout(() => {
+            if (!snapshot?.villages?.length && isOpen()) requestSnapshot();
+        }, 350);
+    }
+
+    function stopRefresh() {
+        if (refreshTimer !== null) window.clearInterval(refreshTimer);
+        if (retryTimer !== null) window.clearTimeout(retryTimer);
+        refreshTimer = null;
+        retryTimer = null;
+    }
+
+    function isOpen() {
+        return document.getElementById(OVERLAY_ID)?.classList.contains('open') || false;
+    }
+
+    function openDashboard() {
+        APES.ui.closeOtherTools('villagePalette');
+        const overlay = mountDashboard();
+        overlay.classList.add('open');
+        overlay.setAttribute('aria-hidden', 'false');
+        renderDashboard();
+        startRefresh();
+    }
+
+    function closeDashboard() {
+        stopRefresh();
+        const overlay = document.getElementById(OVERLAY_ID);
+        overlay?.classList.remove('open');
+        overlay?.setAttribute('aria-hidden', 'true');
+    }
+
+    function toggleDashboard() {
+        if (isOpen()) closeDashboard();
+        else openDashboard();
+    }
+
+    function openVillage(villageId) {
+        if (!/^\d+$/.test(String(villageId || ''))) return;
+        closeDashboard();
+        window.location.hash = `#/page:village/villId:${villageId}`;
+    }
+
+    function syncMenuLabel() {
+        const checkbox = document.getElementById('qol-chk-village-palette');
+        const row = checkbox?.closest('.qol-keybind-item');
+        const label = row?.querySelector('.qol-keybind-action');
+        if (label && label.textContent !== 'Village Dashboard') {
+            label.textContent = 'Village Dashboard';
+        }
+    }
+
+    window.addEventListener('message', event => {
+        if (event.source !== window) return;
+        if (event.data?.source !== BRIDGE_SOURCE) return;
+        if (event.data?.type !== RESPONSE_TYPE) return;
+        if (!event.data?.payload || typeof event.data.payload !== 'object') return;
+
+        snapshot = event.data.payload;
+        if (isOpen()) renderDashboard();
+    });
 
     window.addEventListener('keydown', event => {
         if (
@@ -294,53 +670,40 @@
 
         event.preventDefault();
         event.stopImmediatePropagation();
-        if (event.repeat || villageKeyHeld) return;
-
-        villageKeyHeld = true;
-        clearHoldTimer();
-        holdTimer = window.setTimeout(() => {
-            holdTimer = null;
-            if (villageKeyHeld) openRadial();
-        }, HOLD_DELAY);
-    }, true);
-
-    window.addEventListener('keyup', event => {
-        if (!isVillageKey(event) || !villageKeyHeld) return;
-        event.preventDefault();
-        event.stopImmediatePropagation();
-        villageKeyHeld = false;
-        clearHoldTimer();
-        closeRadial();
+        if (event.repeat) return;
+        toggleDashboard();
     }, true);
 
     window.addEventListener('keydown', event => {
-        if (event.key !== 'Escape') return;
-        villageKeyHeld = false;
-        clearHoldTimer();
-        closeRadial();
+        if (event.key !== 'Escape' || !isOpen()) return;
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeDashboard();
     }, true);
 
-    window.addEventListener('blur', () => {
-        villageKeyHeld = false;
-        clearHoldTimer();
-        closeRadial();
+    window.addEventListener('hashchange', () => {
+        if (isOpen()) requestSnapshot();
     });
 
-    window.addEventListener('hashchange', scheduleCapture);
     window.addEventListener('qol_close_others', event => {
-        if (event.detail?.source !== 'villagePalette') closeRadial();
+        if (event.detail?.source !== 'villagePalette') closeDashboard();
     });
+
     window.addEventListener('qol_setting_changed', event => {
-        if (event.detail?.key === SETTING_KEY && !event.detail.enabled) closeRadial();
+        if (event.detail?.key === SETTING_KEY && !event.detail.enabled) closeDashboard();
     });
+
+    const menuObserver = new MutationObserver(syncMenuLabel);
+    menuObserver.observe(document.documentElement, { childList: true, subtree: true });
 
     window.APES_VILLAGE_PALETTE = Object.freeze({
-        open: openRadial,
-        close: closeRadial,
-        getVillages: () => sortedVillages().map(village => ({ ...village }))
+        open: openDashboard,
+        close: closeDashboard,
+        toggle: toggleDashboard,
+        refresh: requestSnapshot,
+        getVillages: () => (snapshot?.villages || []).map(village => ({ ...village }))
     });
 
-    mountRadial();
-    scheduleCapture();
-    window.setInterval(captureCurrentVillage, 1200);
+    mountDashboard();
+    syncMenuLabel();
 })();
