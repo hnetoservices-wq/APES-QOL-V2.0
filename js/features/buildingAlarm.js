@@ -14,6 +14,7 @@ function initBuildingAlarm() {
     const FEATURE_KEY = 'buildingAlarm';
     const STORAGE_KEY = 'qol_building_alarms';
     const PANEL_ID = 'qol-building-alarm-panel';
+    const TOOLBAR_BUTTON_ID = 'qol-building-alarm-toggle-btn';
     const STYLE_ID = 'qol-building-alarm-styles';
     const BUTTON_CLASS = 'qol-building-alarm-button';
     const WARNING_SECONDS = 5 * 60;
@@ -360,6 +361,42 @@ function initBuildingAlarm() {
         const style = document.createElement('style');
         style.id = STYLE_ID;
         style.textContent = `
+            #${TOOLBAR_BUTTON_ID} {
+                position: fixed !important;
+                display: none;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 30px !important;
+                height: 30px !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                border: 2px solid var(--qol-accent) !important;
+                border-radius: 50% !important;
+                background: var(--qol-accent-soft) !important;
+                color: var(--qol-accent) !important;
+                box-shadow: 0 2px 4px rgba(0,0,0,.22) !important;
+                cursor: pointer !important;
+                user-select: none !important;
+                box-sizing: border-box !important;
+                z-index: 9999 !important;
+            }
+
+            #${TOOLBAR_BUTTON_ID}:hover {
+                transform: scale(1.08) !important;
+                background: #f7f5f0 !important;
+            }
+
+            #${TOOLBAR_BUTTON_ID} svg {
+                width: 17px !important;
+                height: 17px !important;
+                fill: none !important;
+                stroke: currentColor !important;
+                stroke-width: 1.8 !important;
+                stroke-linecap: round !important;
+                stroke-linejoin: round !important;
+                pointer-events: none !important;
+            }
+
             body.qol-building-alarm-enabled
             .queueContainer
             .detailsHeader
@@ -1095,6 +1132,59 @@ function initBuildingAlarm() {
         return panel;
     }
 
+    function toggleAlarmPanel() {
+        const panel = mountPanel();
+        const isHidden = window.getComputedStyle(panel).display === 'none';
+
+        if (isHidden) {
+            window.dispatchEvent(new CustomEvent(
+                'qol_close_others',
+                { detail: { source: FEATURE_KEY } }
+            ));
+            renderPanel(true);
+        } else {
+            panel.style.setProperty('display', 'none', 'important');
+        }
+    }
+
+    function mountToolbarButton() {
+        let button = document.getElementById(TOOLBAR_BUTTON_ID);
+        if (button) {
+            return button;
+        }
+
+        button = document.createElement('div');
+        button.id = TOOLBAR_BUTTON_ID;
+        button.title = 'Building Alarms';
+        button.setAttribute('role', 'button');
+        button.setAttribute('tabindex', '0');
+        button.setAttribute('aria-label', 'Open Building Alarms');
+        button.innerHTML = `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+                <circle cx="12" cy="13" r="7"></circle>
+                <path d="M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6"></path>
+            </svg>
+        `;
+
+        button.addEventListener('click', event => {
+            event.preventDefault();
+            event.stopPropagation();
+            toggleAlarmPanel();
+        });
+        button.addEventListener('keydown', event => {
+            if (event.key !== 'Enter' && event.key !== ' ') {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            toggleAlarmPanel();
+        });
+
+        document.body.appendChild(button);
+        window.qolRepositionAllButtons?.();
+        return button;
+    }
+
     function renderPanel(open = false) {
         const panel = mountPanel();
         const list = panel.querySelector(
@@ -1727,13 +1817,20 @@ function initBuildingAlarm() {
             document
                 .getElementById(PANEL_ID)
                 ?.remove();
+            const toolbarButton = document.getElementById(
+                TOOLBAR_BUTTON_ID
+            );
+            if (toolbarButton) {
+                toolbarButton.remove();
+                window.qolRepositionAllButtons?.();
+            }
             return;
         }
-
         document.body.classList.add(
             'qol-building-alarm-enabled'
         );
 
+        mountToolbarButton();
         const panel = mountPanel();
 
         if (panel.dataset.qolAlarmRendered !== 'true') {
@@ -1755,6 +1852,22 @@ function initBuildingAlarm() {
             }
 
             refresh();
+        }
+    );
+
+    window.addEventListener(
+        'qol_close_others',
+        event => {
+            if (event.detail?.source === FEATURE_KEY) {
+                return;
+            }
+            document
+                .getElementById(PANEL_ID)
+                ?.style.setProperty(
+                    'display',
+                    'none',
+                    'important'
+                );
         }
     );
 
