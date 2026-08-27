@@ -1,9 +1,8 @@
 /**
  * APES QoL v2 — Village Dashboard
  *
- * Press H to toggle a borderless, windowless dashboard for every owned
- * village. Data comes from Travian's existing MAIN-world cache via
- * villageDashboardBridge.js; this feature never navigates villages to scan.
+ * Press H to toggle a borderless dashboard for every owned village.
+ * Data comes from Travian's MAIN-world cache via villageDashboardBridge.js.
  */
 
 (() => {
@@ -60,7 +59,15 @@
         38: 'Great Warehouse',
         39: 'Great Granary',
         40: 'Wonder of the World',
-        41: 'Horse Drinking Trough'
+        41: 'Horse Drinking Trough',
+        46: 'Healing Tent'
+    });
+
+    const BUILDING_SHORT_NAMES = Object.freeze({
+        1: 'Wood',
+        2: 'Clay',
+        3: 'Iron',
+        4: 'Crop'
     });
 
     const UNIT_NAMES = Object.freeze({
@@ -100,7 +107,7 @@
     function enabled() {
         try {
             return localStorage.getItem(`qol_${SETTING_KEY}`) !== 'false';
-        } catch (_error) {
+        } catch (_) {
             return true;
         }
     }
@@ -121,12 +128,10 @@
 
     function asTimestamp(value) {
         if (value === null || value === undefined || value === '') return null;
-
         if (typeof value === 'string' && !/^\d+(?:\.\d+)?$/.test(value.trim())) {
             const parsed = Date.parse(value);
             return Number.isFinite(parsed) ? parsed : null;
         }
-
         const numeric = Number(value);
         if (!Number.isFinite(numeric) || numeric <= 0) return null;
         return numeric < 100000000000 ? numeric * 1000 : numeric;
@@ -181,8 +186,7 @@
 
         function walk(node, depth = 0) {
             if (results.length >= limit || node === null || node === undefined || depth > 8) return;
-            if (typeof node !== 'object') return;
-            if (seen.has(node)) return;
+            if (typeof node !== 'object' || seen.has(node)) return;
             seen.add(node);
 
             if (predicate(node)) results.push(node);
@@ -239,6 +243,15 @@
         return byLocation;
     }
 
+    function queueLocation(item) {
+        return asNumber(
+            item?.locationId ??
+            item?.buildingLocationId ??
+            item?.location ??
+            item?.building?.locationId
+        );
+    }
+
     function buildingTypeForQueueItem(item, village) {
         const direct = asNumber(
             item?.buildingType ??
@@ -248,66 +261,84 @@
         );
         if (direct !== null && BUILDING_NAMES[direct]) return direct;
 
-        const locationId = asNumber(
-            item?.locationId ??
-            item?.buildingLocationId ??
-            item?.location ??
-            item?.building?.locationId
-        );
+        const locationId = queueLocation(item);
         if (locationId !== null) {
             return asNumber(buildingLookup(village).get(String(locationId))?.buildingType);
         }
         return direct;
     }
 
+    function targetBuildingLevel(item, village, locationId) {
+        const direct = asNumber(
+            item?.targetLevel ??
+            item?.lvlNext ??
+            item?.levelNext ??
+            item?.targetLvl ??
+            item?.level ??
+            item?.lvl
+        );
+        if (direct !== null) return direct;
+
+        if (locationId !== null) {
+            const building = buildingLookup(village).get(String(locationId));
+            const next = asNumber(building?.lvlNext);
+            if (next !== null) return next;
+
+            const current = asNumber(building?.lvl);
+            if (current !== null && hasMeaningfulData(building?.inQueueEffects)) {
+                return current + 1;
+            }
+        }
+        return null;
+    }
+
     function constructionEntries(village) {
         const queue = village?.buildingQueue;
         const entries = [];
-        const seen = new Set();
+        const seenLocations = new Set();
 
         if (queue) {
             const candidates = collectObjects(queue?.queues ?? queue, item => {
                 if (!item || Array.isArray(item)) return false;
                 const keys = Object.keys(item);
-                const hasIdentity = keys.some(key => /buildingType|buildingTypeId|buildingId|locationId|buildingLocationId|location/i.test(key));
-                const hasQueueSignal = keys.some(key => /lvl|level|target|finish|end|duration|start|queue|state/i.test(key));
+                const hasIdentity = keys.some(key =>
+                    /buildingType|buildingTypeId|buildingId|locationId|buildingLocationId|location/i.test(key)
+                );
+                const hasQueueSignal = keys.some(key =>
+                    /lvl|level|target|finish|end|duration|start|queue|state/i.test(key)
+                );
                 return hasIdentity && hasQueueSignal;
             }, 16);
 
             for (const item of candidates) {
                 const type = buildingTypeForQueueItem(item, village);
-                const location = asNumber(
-                    item?.locationId ??
-                    item?.buildingLocationId ??
-                    item?.location ??
-                    item?.building?.locationId
-                );
-                const level = asNumber(
-                    item?.targetLevel ??
-                    item?.lvlNext ??
-                    item?.levelNext ??
-                    item?.level ??
-                    item?.lvl
-                );
+                const location = queueLocation(item);
+                const level = targetBuildingLevel(item, village, location);
                 const end = findEndTime(item);
-                const label = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
-                const key = `${type ?? ''}|${location ?? ''}|${level ?? ''}|${end ?? ''}`;
-                if (seen.has(key)) continue;
-                seen.add(key);
-                entries.push({ label, level, end, source: 'queue' });
+                const fullLabel = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
+                const label = BUILDING_SHORT_NAMES[type] || fullLabel;
+                const identity = location !== null ? `loc:${location}` : `type:${type}|level:${level}|end:${end}`;
+                if (seenLocations.has(identity)) continue;
+                seenLocations.add(identity);
+                entries.push({ type, label, fullLabel, level, end });
             }
         }
 
         for (const building of village?.buildings || []) {
             if (!hasMeaningfulData(building?.inQueueEffects)) continue;
+
             const type = asNumber(building?.buildingType);
             const location = asNumber(building?.locationId);
-            const level = asNumber(building?.lvlNext);
-            const label = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
-            const key = `${type ?? ''}|${location ?? ''}|${level ?? ''}`;
-            if ([...seen].some(existing => existing.startsWith(`${type ?? ''}|${location ?? ''}|`))) continue;
-            seen.add(key);
-            entries.push({ label, level, end: null, source: 'building' });
+            const identity = location !== null ? `loc:${location}` : `type:${type}`;
+            if (seenLocations.has(identity)) continue;
+            seenLocations.add(identity);
+
+            const fullLabel = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
+            const label = BUILDING_SHORT_NAMES[type] || fullLabel;
+            const next = asNumber(building?.lvlNext);
+            const current = asNumber(building?.lvl);
+            const level = next !== null ? next : current !== null ? current + 1 : null;
+            entries.push({ type, label, fullLabel, level, end: null });
         }
 
         return entries;
@@ -318,13 +349,13 @@
         if (!entries.length) return '<span class="apes-vd-idle">Idle</span>';
 
         const tooltip = entries.map(entry => {
-            const level = entry.level !== null ? ` → Lv ${entry.level}` : '';
+            const level = entry.level !== null ? ` → ${entry.level}` : '';
             const remaining = entry.end ? ` — ${remainingText(entry.end)}` : '';
-            return `${entry.label}${level}${remaining}`;
+            return `${entry.fullLabel}${level}${remaining}`;
         }).join('\n');
 
-        return `<div class="apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">${entries.slice(0, 2).map(entry => {
-            const level = entry.level !== null ? ` → Lv ${entry.level}` : '';
+        const visible = entries.slice(0, 2).map(entry => {
+            const level = entry.level !== null ? ` → ${entry.level}` : '';
             const remaining = entry.end ? remainingText(entry.end) : '';
             return `
                 <span class="apes-vd-line">
@@ -332,13 +363,21 @@
                     ${remaining ? `<small>${escapeHtml(remaining)}</small>` : ''}
                 </span>
             `;
-        }).join('')}</div>`;
+        }).join('');
+
+        return `<div class="apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">${visible}</div>`;
     }
 
     function addUnitCount(map, tribeId, rawId, amount) {
         const numericAmount = asNumber(amount);
         const localIndex = localUnitIndex(tribeId, rawId);
-        if (numericAmount === null || numericAmount <= 0 || localIndex === null || localIndex < 1 || localIndex > 10) return;
+        if (
+            numericAmount === null ||
+            numericAmount <= 0 ||
+            localIndex === null ||
+            localIndex < 1 ||
+            localIndex > 10
+        ) return;
         map.set(localIndex, (map.get(localIndex) || 0) + numericAmount);
     }
 
@@ -350,8 +389,10 @@
             if (node === null || node === undefined || depth > 7) return;
 
             if (Array.isArray(node)) {
-                const primitiveArray = node.every(value => value === null || ['number', 'string'].includes(typeof value));
-                if (primitiveArray) {
+                const primitives = node.every(value =>
+                    value === null || ['number', 'string'].includes(typeof value)
+                );
+                if (primitives) {
                     node.forEach((value, index) => addUnitCount(totals, tribeId, index + 1, value));
                     return;
                 }
@@ -359,8 +400,7 @@
                 return;
             }
 
-            if (typeof node !== 'object') return;
-            if (seen.has(node)) return;
+            if (typeof node !== 'object' || seen.has(node)) return;
             seen.add(node);
 
             for (const [key, value] of Object.entries(node)) {
@@ -384,8 +424,9 @@
         const seen = new Set();
         const candidates = collectObjects(queue?.unitsInQueue ?? queue, item => {
             if (!item || Array.isArray(item)) return false;
-            const keys = Object.keys(item);
-            return keys.some(key => /unitType|unitTypeId|unitId|unitIndex|amount|count|quantity|remaining|finish|end/i.test(key));
+            return Object.keys(item).some(key =>
+                /unitType|unitTypeId|unitId|unitIndex|amount|count|quantity|remaining|finish|end/i.test(key)
+            );
         }, 14);
 
         for (const item of candidates) {
@@ -405,16 +446,18 @@
             );
             const buildingType = asNumber(item?.buildingType ?? item?.buildingTypeId);
             const localIndex = rawUnit !== null ? localUnitIndex(village?.tribeId, rawUnit) : null;
-            const key = `${localIndex ?? ''}|${amount ?? ''}|${buildingType ?? ''}|${findEndTime(item) ?? ''}`;
+            const end = findEndTime(item);
+            const key = `${localIndex ?? ''}|${amount ?? ''}|${buildingType ?? ''}|${end ?? ''}`;
             if (seen.has(key)) continue;
             seen.add(key);
+
             entries.push({
                 rawUnit,
                 localIndex,
                 label: rawUnit !== null ? unitName(village?.tribeId, rawUnit) : 'Troops',
                 amount,
                 building: BUILDING_NAMES[buildingType] || '',
-                end: findEndTime(item)
+                end
             });
         }
 
@@ -479,7 +522,9 @@
 
         const candidates = collectObjects(queue?.buildingTypes ?? queue, item => {
             if (!item || Array.isArray(item)) return false;
-            return Object.keys(item).some(key => /unitType|unitTypeId|unitId|unitIndex|level|lvl|target|finish|end/i.test(key));
+            return Object.keys(item).some(key =>
+                /unitType|unitTypeId|unitId|unitIndex|level|lvl|target|finish|end/i.test(key)
+            );
         }, 6);
 
         if (!candidates.length) {
@@ -494,14 +539,22 @@
             item?.unit ??
             item?.unitIndex
         );
-        const level = asNumber(item?.targetLevel ?? item?.lvlNext ?? item?.levelNext ?? item?.level ?? item?.lvl);
+        const level = asNumber(
+            item?.targetLevel ??
+            item?.lvlNext ??
+            item?.levelNext ??
+            item?.targetLvl ??
+            item?.level ??
+            item?.lvl
+        );
         const end = findEndTime(item);
         const label = rawUnit !== null ? unitName(village?.tribeId, rawUnit) : 'Smithy upgrade';
-        const tooltip = `${label}${level !== null ? ` → Lv ${level}` : ''}${end ? ` — ${remainingText(end)}` : ''}`;
+        const display = `${label}${level !== null ? ` → ${level}` : ''}`;
+        const tooltip = `${display}${end ? ` — ${remainingText(end)}` : ''}`;
 
         return `
             <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">
-                <strong>${escapeHtml(label)}${level !== null ? ` → Lv ${escapeHtml(level)}` : ''}</strong>
+                <strong>${escapeHtml(display)}</strong>
                 ${end ? `<small>${escapeHtml(remainingText(end))}</small>` : ''}
             </span>
         `;
@@ -536,7 +589,9 @@
         if (Array.isArray(units)) {
             units.forEach((value, index) => {
                 const amount = asNumber(value);
-                if (amount !== null && amount > 0) counts.set(index + 1, (counts.get(index + 1) || 0) + amount);
+                if (amount !== null && amount > 0) {
+                    counts.set(index + 1, (counts.get(index + 1) || 0) + amount);
+                }
             });
             return counts;
         }
@@ -668,7 +723,7 @@
             const isActive = villageId === activeId || village.isActive;
             const badges = [
                 village.isMainVillage ? '<span class="apes-vd-badge">Capital</span>' : '',
-                village.isTown ? '<span class="apes-vd-badge">Town</span>' : ''
+                village.isTown ? '<span class="apes-vd-badge">City</span>' : ''
             ].filter(Boolean).join('');
             const coordinates = Number.isFinite(Number(village.x)) && Number.isFinite(Number(village.y))
                 ? `(${village.x}|${village.y})`
@@ -676,7 +731,9 @@
 
             return `
                 <div class="apes-vd-row${isActive ? ' current' : ''}">
-                    <div class="apes-vd-village" role="button" tabindex="0" data-village-id="${escapeHtml(villageId)}" title="Switch to ${escapeHtml(village.name)}">
+                    <div class="apes-vd-village" role="button" tabindex="0"
+                         data-village-id="${escapeHtml(villageId)}"
+                         title="Switch to ${escapeHtml(village.name)}">
                         <span class="apes-vd-village-name">${escapeHtml(village.name)}</span>
                         <span class="apes-vd-village-meta">
                             ${coordinates ? `<small>${escapeHtml(coordinates)}</small>` : ''}
@@ -749,7 +806,9 @@
         const checkbox = document.getElementById('qol-chk-village-palette');
         const row = checkbox?.closest('.qol-keybind-item');
         const label = row?.querySelector('.qol-keybind-action');
-        if (label && label.textContent !== 'Village Dashboard') label.textContent = 'Village Dashboard';
+        if (label && label.textContent !== 'Village Dashboard') {
+            label.textContent = 'Village Dashboard';
+        }
     }
 
     window.addEventListener('message', event => {
