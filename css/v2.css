@@ -1,13 +1,16 @@
 /* APES QoL v2 shared radial command UI */
 
 #apes-v2-command-overlay,
-#apes-v2-command-overlay * {
+#apes-v2-command-overlay *,
+#apes-v2-village-overlay,
+#apes-v2-village-overlay * {
     box-sizing: border-box !important;
     font-family: Arial, sans-serif !important;
     text-shadow: none !important;
 }
 
-#apes-v2-command-overlay {
+#apes-v2-command-overlay,
+#apes-v2-village-overlay {
     position: fixed !important;
     inset: 0 !important;
     z-index: 2147483645 !important;
@@ -24,7 +27,8 @@
     user-select: none !important;
 }
 
-#apes-v2-command-overlay.open {
+#apes-v2-command-overlay.open,
+#apes-v2-village-overlay.open {
     display: flex !important;
 }
 
@@ -170,6 +174,20 @@
         0 0 18px rgba(126, 205, 43, .72),
         inset 0 1px 0 rgba(241, 255, 207, .32) !important;
     transform: scale(1.12) !important;
+}
+
+#apes-v2-village-overlay .apes-v2-radial-item.current .apes-v2-radial-icon {
+    border-color: #8ed33f !important;
+    box-shadow:
+        0 0 0 2px rgba(131, 195, 55, .25),
+        0 0 15px rgba(126, 205, 43, .58),
+        inset 0 1px 0 rgba(241, 255, 207, .28) !important;
+}
+
+#apes-v2-village-overlay .apes-v2-radial-item.current .apes-v2-radial-label {
+    border-color: rgba(142, 211, 63, .75) !important;
+    color: #efffdc !important;
+    opacity: 1 !important;
 }
 
 .apes-v2-radial-icon svg {

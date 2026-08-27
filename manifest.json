@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL v2 Alpha",
-  "version": "2.0.0.20",
+  "version": "2.0.0.21",
   "description": "APES QoL v2 alpha for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -56,6 +56,7 @@
         "js/features/rallyPointScanner.js",
         "js/features/buildingAlarm.js",
         "js/ui/commandPalette.js",
+        "js/ui/villagePalette.js",
         "js/content.js"
       ],
       "css": [
@@ -80,5 +81,5 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-alpha.26"
+  "version_name": "2.0.0-alpha.27"
 }

@@ -188,7 +188,8 @@ const KEYBINDS = [
     { keys: ['C'], label: 'Open Chat Window', id: 'qol-chk-convos', key: 'keybind_conversations' },
     { keys: ['F'], label: 'Reports', id: 'qol-chk-reports', key: 'keybind_reports' },
     { keys: ['V'], label: 'Villages Overview', id: 'qol-chk-overview', key: 'keybind_villagesOverview' },
-    { keys: ['G'], label: 'Command Palette', id: 'qol-chk-command-palette', key: 'keybind_commandPalette' }
+    { keys: ['G'], label: 'Command Palette', id: 'qol-chk-command-palette', key: 'keybind_commandPalette' },
+    { keys: ['H'], label: 'Village Palette (Hold)', id: 'qol-chk-village-palette', key: 'keybind_villagePalette' }
 ];
 
 const TOOLBAR_ITEMS = [
