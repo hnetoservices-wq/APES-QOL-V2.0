@@ -2,20 +2,22 @@
 
 #apes-v2-village-overlay {
     padding: 28px !important;
-    overflow: auto !important;
+    overflow: hidden !important;
 }
 
 .apes-v2-village-dashboard {
     width: min(1180px, calc(100vw - 56px)) !important;
-    max-height: calc(100vh - 56px) !important;
+    max-height: min(790px, calc(100vh - 56px)) !important;
     display: flex !important;
     flex-direction: column !important;
     gap: 10px !important;
+    overflow: hidden !important;
     color: #fff6df !important;
     pointer-events: auto !important;
 }
 
 .apes-vd-heading {
+    flex: 0 0 auto !important;
     display: flex !important;
     align-items: flex-end !important;
     justify-content: space-between !important;
@@ -51,10 +53,36 @@
 }
 
 .apes-vd-table-wrap {
-    min-height: 120px !important;
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    max-height: calc(100vh - 118px) !important;
     overflow: auto !important;
     padding: 0 4px 6px !important;
+    overscroll-behavior: contain !important;
     scrollbar-width: thin !important;
+    scrollbar-color: rgba(206, 174, 100, .5) rgba(20, 20, 18, .24) !important;
+}
+
+.apes-vd-table-wrap::-webkit-scrollbar {
+    width: 8px !important;
+    height: 8px !important;
+}
+
+.apes-vd-table-wrap::-webkit-scrollbar-track {
+    background: rgba(20, 20, 18, .24) !important;
+    border-radius: 999px !important;
+}
+
+.apes-vd-table-wrap::-webkit-scrollbar-thumb {
+    border: 2px solid transparent !important;
+    border-radius: 999px !important;
+    background: rgba(206, 174, 100, .48) !important;
+    background-clip: padding-box !important;
+}
+
+.apes-vd-table-wrap::-webkit-scrollbar-thumb:hover {
+    background: rgba(226, 193, 116, .7) !important;
+    background-clip: padding-box !important;
 }
 
 .apes-vd-header,
@@ -67,11 +95,12 @@
 
 .apes-vd-header {
     position: sticky !important;
-    z-index: 4 !important;
+    z-index: 6 !important;
     top: 0 !important;
     padding: 5px 10px 7px !important;
-    background: rgba(12, 14, 14, .62) !important;
-    backdrop-filter: blur(6px) !important;
+    border-bottom: 1px solid rgba(199, 166, 97, .16) !important;
+    background: rgba(12, 14, 14, .9) !important;
+    backdrop-filter: blur(8px) !important;
     color: rgba(255, 246, 223, .72) !important;
     font-size: 9px !important;
     font-weight: 800 !important;
@@ -87,11 +116,13 @@
     display: flex !important;
     flex-direction: column !important;
     gap: 7px !important;
+    padding-top: 7px !important;
 }
 
 .apes-vd-row {
     position: relative !important;
     overflow: hidden !important;
+    flex: 0 0 auto !important;
     border: 1px solid rgba(199, 166, 97, .34) !important;
     border-radius: 8px !important;
     background:
@@ -148,7 +179,11 @@
     border-right: 0 !important;
 }
 
+/* This is intentionally NOT a button. Travian has very broad button styles
+   which turn injected buttons into its lime native controls. */
 .apes-vd-village {
+    appearance: none !important;
+    -webkit-appearance: none !important;
     display: flex !important;
     align-items: flex-start !important;
     justify-content: center !important;
@@ -160,24 +195,29 @@
     border-left: 0 !important;
     border-radius: 0 !important;
     background: rgba(255, 255, 255, .025) !important;
+    background-image: none !important;
+    box-shadow: none !important;
     color: inherit !important;
     font: inherit !important;
     text-align: left !important;
     cursor: pointer !important;
     outline: none !important;
+    user-select: none !important;
 }
 
 .apes-vd-village:hover,
-.apes-vd-village:focus {
+.apes-vd-village:focus-visible {
     background: rgba(232, 195, 105, .08) !important;
+    box-shadow: inset 0 0 0 1px rgba(226, 193, 116, .15) !important;
 }
 
 .apes-vd-row.current .apes-vd-village:hover,
-.apes-vd-row.current .apes-vd-village:focus {
+.apes-vd-row.current .apes-vd-village:focus-visible {
     background: rgba(142, 211, 63, .07) !important;
 }
 
 .apes-vd-village-name {
+    display: block !important;
     max-width: 100% !important;
     overflow: hidden !important;
     color: #fff9e9 !important;
@@ -224,6 +264,12 @@
     flex-direction: column !important;
     gap: 4px !important;
     color: #eee7d8 !important;
+}
+
+.apes-vd-tooltip-target {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    cursor: help !important;
 }
 
 .apes-vd-line {
@@ -281,6 +327,10 @@
     .apes-v2-village-dashboard {
         width: calc(100vw - 32px) !important;
         max-height: calc(100vh - 32px) !important;
+    }
+
+    .apes-vd-table-wrap {
+        max-height: calc(100vh - 96px) !important;
     }
 
     .apes-vd-heading {
