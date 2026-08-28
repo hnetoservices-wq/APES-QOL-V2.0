@@ -1,7 +1,38 @@
-/* APES QoL — Building Alarm scroll-only refinement */
+/* APES QoL — Building Alarm scrolling/layout refinement */
 #qol-building-alarm-panel .qol-building-alarm-list {
+    display: flex !important;
+    flex-direction: column !important;
     height: min(390px, calc(100vh - 190px)) !important;
     max-height: min(390px, calc(100vh - 190px)) !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    overscroll-behavior: contain !important;
+}
+
+/* Ready constructions always receive as much height as their content needs,
+ * up to a generous share of the available alarm window. This keeps every
+ * currently actionable construction visible before the upcoming list. */
+#qol-building-alarm-panel .qol-building-alarm-section.ready {
+    flex: 0 1 auto !important;
+    max-height: 68% !important;
+    min-height: fit-content !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: var(--qol-scroll-thumb, #8a765e) #e7ded1 !important;
+}
+
+#qol-building-alarm-panel .qol-building-alarm-section.ready .qol-building-alarm-section-title {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+}
+
+/* The lower Set Alarms section takes the remaining space and is the primary
+ * scrolling region when the user has many future alarms. */
+#qol-building-alarm-panel .qol-building-alarm-section:not(.ready) {
+    flex: 1 1 auto !important;
+    min-height: 72px !important;
     overflow-y: auto !important;
     overflow-x: hidden !important;
     overscroll-behavior: contain !important;
@@ -9,15 +40,21 @@
     scrollbar-color: var(--qol-scroll-thumb, #8a765e) #e7ded1 !important;
 }
 
-#qol-building-alarm-panel .qol-building-alarm-list::-webkit-scrollbar {
+#qol-building-alarm-panel .qol-building-alarm-section:not(.ready) .qol-building-alarm-section-title {
+    position: sticky !important;
+    top: 0 !important;
+    z-index: 2 !important;
+}
+
+#qol-building-alarm-panel .qol-building-alarm-section::-webkit-scrollbar {
     width: 8px !important;
 }
 
-#qol-building-alarm-panel .qol-building-alarm-list::-webkit-scrollbar-track {
+#qol-building-alarm-panel .qol-building-alarm-section::-webkit-scrollbar-track {
     background: #e7ded1 !important;
 }
 
-#qol-building-alarm-panel .qol-building-alarm-list::-webkit-scrollbar-thumb {
+#qol-building-alarm-panel .qol-building-alarm-section::-webkit-scrollbar-thumb {
     border: 2px solid #e7ded1 !important;
     border-radius: 5px !important;
     background: var(--qol-scroll-thumb, #8a765e) !important;
