@@ -268,77 +268,101 @@
         return direct;
     }
 
-    function targetBuildingLevel(item, village, locationId) {
-        const direct = asNumber(
-            item?.targetLevel ??
-            item?.lvlNext ??
-            item?.levelNext ??
-            item?.targetLvl ??
-            item?.level ??
-            item?.lvl
-        );
-        if (direct !== null) return direct;
+    function constructionQueueItems(queue) {
+        const source = queue?.queues;
+        if (!source || typeof source !== 'object') return [];
 
-        if (locationId !== null) {
-            const building = buildingLookup(village).get(String(locationId));
-            const next = asNumber(building?.lvlNext);
-            if (next !== null) return next;
-
-            const current = asNumber(building?.lvl);
-            if (current !== null && hasMeaningfulData(building?.inQueueEffects)) {
-                return current + 1;
+        const items = [];
+        const pushBucket = bucket => {
+            if (!bucket) return;
+            if (Array.isArray(bucket)) {
+                bucket.forEach(item => {
+                    if (item && typeof item === 'object') items.push(item);
+                });
+                return;
             }
-        }
-        return null;
+            if (typeof bucket !== 'object') return;
+            if (queueLocation(bucket) !== null) {
+                items.push(bucket);
+                return;
+            }
+            Object.values(bucket).forEach(item => {
+                if (item && typeof item === 'object' && queueLocation(item) !== null) {
+                    items.push(item);
+                }
+            });
+        };
+
+        if (Array.isArray(source)) source.forEach(pushBucket);
+        else Object.values(source).forEach(pushBucket);
+        return items;
+    }
+
+    function explicitQueueTargetLevel(item) {
+        return asNumber(
+            item?.targetLevel ??
+            item?.targetLvl ??
+            item?.targetBuildingLevel ??
+            item?.levelTo ??
+            item?.toLevel
+        );
     }
 
     function constructionEntries(village) {
         const queue = village?.buildingQueue;
         const entries = [];
-        const seenLocations = new Set();
+        const buildings = buildingLookup(village);
+        const queuedPerLocation = new Map();
+        const locationsSeenInQueue = new Set();
+        const queueItems = constructionQueueItems(queue);
 
-        if (queue) {
-            const candidates = collectObjects(queue?.queues ?? queue, item => {
-                if (!item || Array.isArray(item)) return false;
-                const keys = Object.keys(item);
-                const hasIdentity = keys.some(key =>
-                    /buildingType|buildingTypeId|buildingId|locationId|buildingLocationId|location/i.test(key)
-                );
-                const hasQueueSignal = keys.some(key =>
-                    /lvl|level|target|finish|end|duration|start|queue|state/i.test(key)
-                );
-                return hasIdentity && hasQueueSignal;
-            }, 16);
+        for (const item of queueItems) {
+            const location = queueLocation(item);
+            const type = buildingTypeForQueueItem(item, village);
+            if (location === null && type === null) continue;
 
-            for (const item of candidates) {
-                const type = buildingTypeForQueueItem(item, village);
-                const location = queueLocation(item);
-                const level = targetBuildingLevel(item, village, location);
-                const end = findEndTime(item);
-                const fullLabel = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
-                const label = BUILDING_SHORT_NAMES[type] || fullLabel;
-                const identity = location !== null ? `loc:${location}` : `type:${type}|level:${level}|end:${end}`;
-                if (seenLocations.has(identity)) continue;
-                seenLocations.add(identity);
-                entries.push({ type, label, fullLabel, level, end });
+            const building = location !== null ? buildings.get(String(location)) : null;
+            const currentLevel = asNumber(building?.lvl);
+            const sequenceIndex = location !== null
+                ? (queuedPerLocation.get(String(location)) || 0)
+                : 0;
+
+            let level = null;
+            if (currentLevel !== null) {
+                level = currentLevel + sequenceIndex + 1;
+            } else {
+                level = explicitQueueTargetLevel(item);
+                if (level === null) {
+                    const itemLevel = asNumber(item?.level ?? item?.lvl);
+                    if (itemLevel !== null) level = itemLevel + 1;
+                }
             }
+
+            if (location !== null) {
+                queuedPerLocation.set(String(location), sequenceIndex + 1);
+                locationsSeenInQueue.add(String(location));
+            }
+
+            const end = findEndTime(item);
+            const fullLabel = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
+            const label = BUILDING_SHORT_NAMES[type] || fullLabel;
+            entries.push({ type, location, label, fullLabel, level, end });
         }
 
+        // Some Travian cache states expose only inQueueEffects for a building.
+        // Use that strictly as a fallback for locations absent from BuildingQueue.
         for (const building of village?.buildings || []) {
             if (!hasMeaningfulData(building?.inQueueEffects)) continue;
 
             const type = asNumber(building?.buildingType);
             const location = asNumber(building?.locationId);
-            const identity = location !== null ? `loc:${location}` : `type:${type}`;
-            if (seenLocations.has(identity)) continue;
-            seenLocations.add(identity);
+            if (location !== null && locationsSeenInQueue.has(String(location))) continue;
 
+            const current = asNumber(building?.lvl);
+            const level = current !== null ? current + 1 : null;
             const fullLabel = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
             const label = BUILDING_SHORT_NAMES[type] || fullLabel;
-            const next = asNumber(building?.lvlNext);
-            const current = asNumber(building?.lvl);
-            const level = next !== null ? next : current !== null ? current + 1 : null;
-            entries.push({ type, label, fullLabel, level, end: null });
+            entries.push({ type, location, label, fullLabel, level, end: null });
         }
 
         return entries;
