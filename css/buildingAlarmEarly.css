@@ -1,0 +1,43 @@
+/*
+ * APES QoL — Building Alarm early paint
+ *
+ * Romans can run one village-building and one resource-field construction at
+ * the same time. Paint their native per-row duration clocks as APES alarm
+ * clocks from first render, before buildingAlarm.js attaches behavior.
+ */
+
+html.qol-building-alarm-preenabled
+.detailsContent:has(.buildingMini.tribeId1)
+.detailsTime > i.symbol_clock_small_flat_black.duration:not(.qol-building-alarm-row-clock) {
+    position: relative !important;
+    display: inline-block !important;
+    width: 16px !important;
+    height: 16px !important;
+    margin: 0 3px 0 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    background: none !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    color: #7d2924 !important;
+    vertical-align: middle !important;
+}
+
+html.qol-building-alarm-preenabled
+.detailsContent:has(.buildingMini.tribeId1)
+.detailsTime > i.symbol_clock_small_flat_black.duration:not(.qol-building-alarm-row-clock)::before {
+    content: '' !important;
+    position: absolute !important;
+    inset: 0 !important;
+    display: block !important;
+    background-color: currentColor !important;
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
+    -webkit-mask-position: center !important;
+    -webkit-mask-repeat: no-repeat !important;
+    -webkit-mask-size: contain !important;
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
+    mask-position: center !important;
+    mask-repeat: no-repeat !important;
+    mask-size: contain !important;
+    pointer-events: none !important;
+}
