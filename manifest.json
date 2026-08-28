@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL v2 Alpha",
-  "version": "2.0.0.34",
+  "version": "2.0.0.35",
   "description": "APES QoL v2 alpha for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -78,7 +78,8 @@
         "css/style.css",
         "css/oasisScannerUI.css",
         "css/v2.css",
-        "css/villageDashboard.css"
+        "css/villageDashboard.css",
+        "css/buildingAlarmScroll.css"
       ],
       "run_at": "document_idle"
     }
@@ -97,5 +98,5 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-alpha.40"
+  "version_name": "2.0.0-alpha.41"
 }
