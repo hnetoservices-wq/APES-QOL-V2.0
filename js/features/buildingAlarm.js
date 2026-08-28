@@ -19,6 +19,9 @@ function initBuildingAlarm() {
     const CLOCK_CLASS = 'qol-building-alarm-native-clock';
     const WARNING_SECONDS = 5 * 60;
     const REFRESH_MS = 500;
+    const READY_HEADER_HEIGHT = 30;
+    const ALARM_ROW_HEIGHT = 46;
+    const READY_MAX_VISIBLE_ROWS = 3;
 
     let audioContext = null;
 
@@ -223,21 +226,21 @@ function initBuildingAlarm() {
 
             .qol-building-alarm-list{display:flex!important;flex-direction:column!important;height:min(390px,calc(100vh - 190px))!important;max-height:min(390px,calc(100vh - 190px))!important;min-height:0!important;padding:10px!important;gap:10px!important;overflow:hidden!important;overscroll-behavior:contain!important}
             .qol-building-alarm-section{overflow:hidden!important;border:1px solid #d7ccbc!important;border-radius:4px!important;background:#fff!important}
-            .qol-building-alarm-section.ready{flex:0 1 auto!important;max-height:68%!important;overflow-y:auto!important;overflow-x:hidden!important;scrollbar-width:thin!important;scrollbar-color:var(--qol-scroll-thumb,#8a765e) #e7ded1!important}
+            .qol-building-alarm-section.ready{flex:0 0 auto!important;overflow-x:hidden!important;scrollbar-width:thin!important;scrollbar-color:var(--qol-scroll-thumb,#8a765e) #e7ded1!important}
             .qol-building-alarm-section:not(.ready){flex:1 1 auto!important;min-height:72px!important;overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain!important;scrollbar-width:thin!important;scrollbar-color:var(--qol-scroll-thumb,#8a765e) #e7ded1!important}
             .qol-building-alarm-section::-webkit-scrollbar{width:8px!important}
             .qol-building-alarm-section::-webkit-scrollbar-track{background:#e7ded1!important}
             .qol-building-alarm-section::-webkit-scrollbar-thumb{border:2px solid #e7ded1!important;border-radius:5px!important;background:var(--qol-scroll-thumb,#8a765e)!important}
 
-            .qol-building-alarm-section-title{position:sticky!important;top:0!important;z-index:2!important;display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:30px!important;padding:6px 9px!important;border-bottom:1px solid #d7ccbc!important;background:#eee6da!important;color:#5e4a31!important;font-size:10px!important;font-weight:bold!important;text-transform:uppercase!important;letter-spacing:.25px!important}
+            .qol-building-alarm-section-title{position:sticky!important;top:0!important;z-index:2!important;display:flex!important;align-items:center!important;justify-content:space-between!important;min-height:30px!important;height:30px!important;padding:6px 9px!important;border-bottom:1px solid #d7ccbc!important;background:#eee6da!important;color:#5e4a31!important;font-size:10px!important;font-weight:bold!important;text-transform:uppercase!important;letter-spacing:.25px!important}
             .qol-building-alarm-section.ready .qol-building-alarm-section-title{background:#eaf2df!important;color:#416923!important}
             .qol-building-alarm-count{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:19px!important;height:19px!important;padding:0 5px!important;border-radius:10px!important;background:rgba(90,66,39,.12)!important;color:inherit!important;font-size:9px!important}
-            .qol-building-alarm-row{display:grid!important;grid-template-columns:minmax(92px,1fr) minmax(200px,1.8fr) minmax(120px,.9fr) 24px!important;align-items:center!important;gap:8px!important;min-height:46px!important;padding:7px 8px!important;border-bottom:1px solid #e3dbd0!important;background:#fff!important}
+            .qol-building-alarm-row{display:grid!important;grid-template-columns:minmax(92px,1fr) minmax(200px,1.8fr) minmax(120px,.9fr) 24px!important;align-items:center!important;gap:8px!important;height:46px!important;min-height:46px!important;padding:7px 8px!important;border-bottom:1px solid #e3dbd0!important;background:#fff!important}
             .qol-building-alarm-row:last-child{border-bottom:0!important}.qol-building-alarm-row.ready{background:#f5faef!important}
             .qol-building-alarm-village{overflow:hidden!important;color:#5a4227!important;font-size:10px!important;font-weight:bold!important;text-overflow:ellipsis!important;white-space:nowrap!important;cursor:pointer!important}.qol-building-alarm-village:hover{text-decoration:underline!important}
             .qol-building-alarm-building{color:#4a3b2a!important;font-size:10px!important}.qol-building-alarm-time{text-align:center!important;color:#6b5942!important;font-family:Consolas,monospace!important;font-size:9px!important;line-height:1.35!important}.qol-building-alarm-row.ready .qol-building-alarm-time{color:#416923!important;font-weight:bold!important}
             .qol-building-alarm-remove{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:22px!important;height:22px!important;border-radius:3px!important;color:#9a3b32!important;font-size:17px!important;cursor:pointer!important}.qol-building-alarm-remove:hover{background:#f5dfdc!important}
-            .qol-building-alarm-empty{padding:16px 12px!important;color:#83725d!important;font-size:10px!important;text-align:center!important;background:#fff!important}
+            .qol-building-alarm-empty{height:46px!important;min-height:46px!important;padding:16px 12px!important;color:#83725d!important;font-size:10px!important;text-align:center!important;background:#fff!important}
         `;
         (document.head || document.documentElement).appendChild(style);
     }
@@ -396,6 +399,27 @@ function initBuildingAlarm() {
         });
     }
 
+    function sizeReadySection(list, readyCount) {
+        const readySection = list.querySelector('.qol-building-alarm-section.ready');
+        if (!readySection) return;
+
+        const visibleRows = Math.max(
+            1,
+            Math.min(Number(readyCount) || 0, READY_MAX_VISIBLE_ROWS)
+        );
+        const height = READY_HEADER_HEIGHT + (ALARM_ROW_HEIGHT * visibleRows);
+
+        readySection.style.setProperty('flex', `0 0 ${height}px`, 'important');
+        readySection.style.setProperty('height', `${height}px`, 'important');
+        readySection.style.setProperty('min-height', `${height}px`, 'important');
+        readySection.style.setProperty('max-height', `${height}px`, 'important');
+        readySection.style.setProperty(
+            'overflow-y',
+            readyCount > READY_MAX_VISIBLE_ROWS ? 'auto' : 'hidden',
+            'important'
+        );
+    }
+
     function renderPanel(open = false) {
         const panel = mountPanel();
         const list = panel.querySelector('.qol-building-alarm-list');
@@ -434,6 +458,7 @@ function initBuildingAlarm() {
             </section>
         `;
 
+        sizeReadySection(list, readyAlarms.length);
         bindPanelRows(list);
 
         if (open) {
@@ -595,7 +620,6 @@ function initBuildingAlarm() {
         const construction = getConstructionData(contentRow);
         if (!construction) return;
 
-        // Capture identity before Travian removes/rebuilds the queue row.
         const village = getVillageData();
         const captured = {
             villageId: village.id,
