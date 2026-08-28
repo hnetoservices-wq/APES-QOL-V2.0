@@ -1,190 +1,23 @@
 /*
  * APES QoL — Building Alarm early paint
  *
- * Loaded at document_start so Travian's native construction icons never get
- * a painted frame before Building Alarm binds its controls.
- *
- * Non-Romans: pre-paint the shared construction header icon as APES alarm.
- * Romans: suppress the shared header and pre-paint each construction row's
- * duration clock at the exact same 18x18 geometry used by buildingAlarm.js.
+ * Do not replace or resize Travian construction icons. When Building Alarm is
+ * enabled, the native construction clock is the control. Before the behavior
+ * script binds, paint the native black clock red so there is no black/red
+ * transition on first render.
  */
-
-/* -------------------------------------------------------------------------
- * Shared construction header — initial APES paint
- *
- * This intentionally applies before we know whether a queue is Roman. If a
- * Roman row appears, the Roman rule below hides this header immediately.
- * That means the user can never see Travian's native hammer between states.
- * ---------------------------------------------------------------------- */
 html.qol-building-alarm-preenabled
 .queueContainer
-.detailsHeader
-.headerIcon:is(.feature_buildingQueue_medium_illu, .feature_buildingMaster_medium_illu) {
-    position: relative !important;
-    display: inline-block !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: none !important;
-    background-image: none !important;
-    box-shadow: none !important;
-    color: #7d2924 !important;
-    vertical-align: middle !important;
+.detailsContent
+.detailsTime > i.symbol_clock_small_flat_black.duration {
+    cursor: pointer !important;
+    filter: invert(20%) sepia(35%) saturate(1800%) hue-rotate(325deg) brightness(83%) contrast(91%) !important;
+    transition: filter .12s ease, transform .12s ease !important;
 }
 
 html.qol-building-alarm-preenabled
 .queueContainer
-.detailsHeader
-.headerIcon:is(.feature_buildingQueue_medium_illu, .feature_buildingMaster_medium_illu)::before {
-    content: none !important;
-    display: none !important;
-}
-
-html.qol-building-alarm-preenabled
-.queueContainer
-.detailsHeader
-.headerIcon:is(.feature_buildingQueue_medium_illu, .feature_buildingMaster_medium_illu)::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    display: block !important;
-    width: 18px !important;
-    height: 18px !important;
-    background-color: currentColor !important;
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
-    -webkit-mask-position: center !important;
-    -webkit-mask-repeat: no-repeat !important;
-    -webkit-mask-size: contain !important;
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
-    mask-position: center !important;
-    mask-repeat: no-repeat !important;
-    mask-size: contain !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-/* -------------------------------------------------------------------------
- * Roman shared header
- *
- * Romans receive independent row alarms, so the shared header has no alarm
- * action. Hide it the instant a Roman construction row exists. :has() is
- * evaluated as the Angular row is inserted, before our document_idle script.
- * ---------------------------------------------------------------------- */
-html.qol-building-alarm-preenabled
-.queueContainer:has(.detailsContent .buildingMini.tribeId1)
-.detailsHeader
-.headerIcon:is(.feature_buildingQueue_medium_illu, .feature_buildingMaster_medium_illu) {
-    visibility: hidden !important;
-}
-
-/* Keep the same result after buildingAlarm.js marks the container Roman. */
-html.qol-building-alarm-preenabled
-.queueContainer.qol-building-alarm-roman
-.detailsHeader
-.headerIcon {
-    visibility: hidden !important;
-}
-
-/* -------------------------------------------------------------------------
- * Roman per-construction alarm clocks — exact final geometry
- * ---------------------------------------------------------------------- */
-html.qol-building-alarm-preenabled
-.detailsContent:has(.buildingMini.tribeId1)
-.detailsTime > i.duration:is(.symbol_clock_small_flat_black, .symbol_clock_small_flat, .qol-building-alarm-row-clock) {
-    position: relative !important;
-    display: inline-block !important;
-    width: 18px !important;
-    height: 18px !important;
-    min-width: 18px !important;
-    flex: 0 0 18px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: none !important;
-    background-image: none !important;
-    box-shadow: none !important;
-    color: #7d2924 !important;
-    vertical-align: middle !important;
-}
-
-html.qol-building-alarm-preenabled
-.detailsContent:has(.buildingMini.tribeId1)
-.detailsTime > i.duration:is(.symbol_clock_small_flat_black, .symbol_clock_small_flat, .qol-building-alarm-row-clock)::before {
-    content: none !important;
-    display: none !important;
-}
-
-html.qol-building-alarm-preenabled
-.detailsContent:has(.buildingMini.tribeId1)
-.detailsTime > i.duration:is(.symbol_clock_small_flat_black, .symbol_clock_small_flat, .qol-building-alarm-row-clock)::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    display: block !important;
-    width: 18px !important;
-    height: 18px !important;
-    background-color: currentColor !important;
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
-    -webkit-mask-position: center !important;
-    -webkit-mask-repeat: no-repeat !important;
-    -webkit-mask-size: contain !important;
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
-    mask-position: center !important;
-    mask-repeat: no-repeat !important;
-    mask-size: contain !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
-}
-
-/* Once the JS removes Travian's symbol_clock class, preserve the exact same
- * dimensions and paint so binding the click handler causes zero visual shift. */
-html.qol-building-alarm-preenabled
-.queueContainer.qol-building-alarm-roman
-.detailsTime > i.qol-building-alarm-row-clock {
-    position: relative !important;
-    display: inline-block !important;
-    width: 18px !important;
-    height: 18px !important;
-    min-width: 18px !important;
-    flex: 0 0 18px !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    border: 0 !important;
-    background: none !important;
-    background-image: none !important;
-    box-shadow: none !important;
-    color: #7d2924 !important;
-    vertical-align: middle !important;
-}
-
-html.qol-building-alarm-preenabled
-.queueContainer.qol-building-alarm-roman
-.detailsTime > i.qol-building-alarm-row-clock::before {
-    content: none !important;
-    display: none !important;
-}
-
-html.qol-building-alarm-preenabled
-.queueContainer.qol-building-alarm-roman
-.detailsTime > i.qol-building-alarm-row-clock::after {
-    content: '' !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    display: block !important;
-    width: 18px !important;
-    height: 18px !important;
-    background-color: currentColor !important;
-    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
-    -webkit-mask-position: center !important;
-    -webkit-mask-repeat: no-repeat !important;
-    -webkit-mask-size: contain !important;
-    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cg fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='13' r='7'/%3E%3Cpath d='M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6'/%3E%3C/g%3E%3C/svg%3E") !important;
-    mask-position: center !important;
-    mask-repeat: no-repeat !important;
-    mask-size: contain !important;
-    transform: translate(-50%, -50%) !important;
-    pointer-events: none !important;
+.detailsContent
+.detailsTime > i.symbol_clock_small_flat_black.duration.qol-building-alarm-native-clock.active {
+    filter: invert(38%) sepia(28%) saturate(1030%) hue-rotate(46deg) brightness(84%) contrast(86%) !important;
 }
