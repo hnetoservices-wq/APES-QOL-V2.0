@@ -18,6 +18,10 @@ function initRallyPointEnhancer() {
     const STYLE_ID = 'qol-rp-enhancer-styles';
     const MOVEMENT_TYPE_STORAGE_KEY =
         'qol_rallyPointMovementTypes';
+    const VILLAGE_UI_SOURCE = 'APES_QOL_VILLAGE_DASHBOARD_UI';
+    const VILLAGE_BRIDGE_SOURCE = 'APES_QOL_VILLAGE_DASHBOARD_BRIDGE';
+    const VILLAGE_REQUEST_TYPE = 'REQUEST_SNAPSHOT';
+    const VILLAGE_RESPONSE_TYPE = 'VILLAGE_SNAPSHOT';
 
     const DEFAULT_MOVEMENT_TYPES = {
         attack: true,
@@ -895,6 +899,82 @@ function initRallyPointEnhancer() {
             playerName,
             villageName
         };
+    }
+
+    function getFallbackVillageCopyHeader() {
+        const context = getContextData();
+        const villageName =
+            window.APES?.context?.getVillageName?.() ||
+            context.villageName ||
+            'Current Village';
+
+        const villageElement =
+            document.querySelector(
+                '.currentVillageName .villageEntry, ' +
+                '.villageEntry.active, ' +
+                '.active .villageEntry'
+            );
+        const coordinateMatch = String(
+            villageElement?.textContent || ''
+        ).match(/\((-?\d+)\s*\|\s*(-?\d+)\)/);
+
+        return coordinateMatch
+            ? `${villageName} - (${coordinateMatch[1]}|${coordinateMatch[2]})`
+            : villageName;
+    }
+
+    function getCurrentVillageCopyHeader() {
+        return new Promise((resolve) => {
+            let settled = false;
+            const finish = (value) => {
+                if (settled) return;
+                settled = true;
+                window.removeEventListener('message', handleMessage);
+                resolve(value || getFallbackVillageCopyHeader());
+            };
+
+            const handleMessage = (event) => {
+                if (event.source !== window) return;
+                if (event.data?.source !== VILLAGE_BRIDGE_SOURCE) return;
+                if (event.data?.type !== VILLAGE_RESPONSE_TYPE) return;
+
+                const payload = event.data?.payload;
+                const activeId = String(payload?.activeVillageId || '');
+                const villages = Array.isArray(payload?.villages)
+                    ? payload.villages
+                    : [];
+                const village =
+                    villages.find((item) =>
+                        String(item?.villageId || '') === activeId
+                    ) ||
+                    villages.find((item) => item?.isActive === true);
+
+                if (!village) {
+                    finish(getFallbackVillageCopyHeader());
+                    return;
+                }
+
+                const name = String(village.name || '').trim() || 'Current Village';
+                const x = Number(village.x);
+                const y = Number(village.y);
+                finish(
+                    Number.isFinite(x) && Number.isFinite(y)
+                        ? `${name} - (${x}|${y})`
+                        : name
+                );
+            };
+
+            window.addEventListener('message', handleMessage);
+            window.postMessage({
+                source: VILLAGE_UI_SOURCE,
+                type: VILLAGE_REQUEST_TYPE
+            }, window.location.origin);
+
+            window.setTimeout(
+                () => finish(getFallbackVillageCopyHeader()),
+                400
+            );
+        });
     }
 
     function getRallyPointContainer() {
@@ -1884,7 +1964,7 @@ function initRallyPointEnhancer() {
             return;
         }
 
-        const output =
+        const movementOutput =
             compiledWaves
                 .map((wave) => {
                     return (
@@ -1896,6 +1976,10 @@ function initRallyPointEnhancer() {
                     );
                 })
                 .join('\n');
+        const villageHeader =
+            await getCurrentVillageCopyHeader();
+        const output =
+            `${villageHeader}\n${movementOutput}`;
 
         try {
             await navigator
