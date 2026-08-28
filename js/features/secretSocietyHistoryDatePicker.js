@@ -12,6 +12,7 @@
     const HISTORY_STORAGE_KEY = 'apes_secret_society_history_v1';
     const PANEL_ID = 'qol-ss-scanner-panel';
     const DIALOG_ID = 'qol-ss-compare-dialog';
+    const STYLE_ID = 'qol-ss-history-date-picker-styles';
 
     function enabled() {
         return typeof window.isQolEnabled !== 'function' ||
@@ -55,6 +56,67 @@
         return `<option value="${timestamp}">${label}</option>`;
     }
 
+    function injectStyles() {
+        if (document.getElementById(STYLE_ID)) return;
+
+        const style = document.createElement('style');
+        style.id = STYLE_ID;
+        style.textContent = `
+            #${DIALOG_ID} .qol-ss-compare-field{
+                display:flex!important;
+                flex-direction:column!important;
+                gap:4px!important;
+                min-width:0!important;
+            }
+
+            #${DIALOG_ID} select.qol-ss-compare-select,
+            #${DIALOG_ID} [data-compare-a],
+            #${DIALOG_ID} [data-compare-b]{
+                display:block!important;
+                position:static!important;
+                visibility:visible!important;
+                opacity:1!important;
+                pointer-events:auto!important;
+                width:100%!important;
+                min-width:180px!important;
+                height:30px!important;
+                min-height:30px!important;
+                margin:0!important;
+                padding:4px 28px 4px 8px!important;
+                border:1px solid #aa9372!important;
+                border-radius:4px!important;
+                background:#fff!important;
+                color:#432f1d!important;
+                font:9px Arial,Helvetica,sans-serif!important;
+                line-height:20px!important;
+                appearance:auto!important;
+                -webkit-appearance:menulist!important;
+                box-shadow:none!important;
+                transform:none!important;
+                clip:auto!important;
+                clip-path:none!important;
+            }
+
+            #${DIALOG_ID} select.qol-ss-compare-select option,
+            #${DIALOG_ID} [data-compare-a] option,
+            #${DIALOG_ID} [data-compare-b] option{
+                display:block!important;
+                background:#fff!important;
+                color:#432f1d!important;
+                font:10px Arial,Helvetica,sans-serif!important;
+            }
+
+            #${DIALOG_ID} select.qol-ss-compare-select:focus,
+            #${DIALOG_ID} [data-compare-a]:focus,
+            #${DIALOG_ID} [data-compare-b]:focus{
+                outline:none!important;
+                border-color:var(--qol-accent)!important;
+                box-shadow:0 0 0 1px var(--qol-accent-soft)!important;
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
     function resetComparisonResult(dialog) {
         const summary = dialog.querySelector('.qol-ss-compare-summary');
         const wrap = dialog.querySelector('.qol-ss-compare-table-wrap');
@@ -66,6 +128,8 @@
 
     function enhanceDialog(dialog) {
         if (!enabled() || !dialog || dialog.dataset.qolDatePickerBound === 'true') return;
+
+        injectStyles();
 
         const societyId = activeSocietyId();
         const snapshots = snapshotsForSociety(societyId);
@@ -121,6 +185,8 @@
             resetComparisonResult(dialog);
         }, true);
     }
+
+    injectStyles();
 
     const observer = new MutationObserver(() => {
         const dialog = document.getElementById(DIALOG_ID);
