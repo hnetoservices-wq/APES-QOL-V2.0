@@ -45,6 +45,56 @@
     letter-spacing: .2px !important;
 }
 
+.apes-vd-heading-actions {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: flex-end !important;
+    gap: 10px !important;
+    min-width: 0 !important;
+}
+
+.apes-vd-scan-btn {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 82px !important;
+    height: 26px !important;
+    margin: 0 !important;
+    padding: 0 10px !important;
+    border: 1px solid rgba(205, 174, 100, .7) !important;
+    border-radius: 5px !important;
+    background: rgba(72, 58, 35, .88) !important;
+    background-image: none !important;
+    box-shadow: inset 0 1px 0 rgba(255, 244, 211, .08), 0 2px 7px rgba(0, 0, 0, .2) !important;
+    color: #f4dfad !important;
+    font-family: Arial, sans-serif !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .35px !important;
+    cursor: pointer !important;
+    user-select: none !important;
+}
+
+.apes-vd-scan-btn:hover,
+.apes-vd-scan-btn:focus-visible {
+    border-color: rgba(232, 199, 119, .94) !important;
+    background: rgba(94, 73, 39, .94) !important;
+    color: #fff2cb !important;
+    outline: none !important;
+}
+
+.apes-vd-scan-btn.scanning {
+    border-color: rgba(142, 211, 63, .72) !important;
+    background: rgba(45, 72, 31, .88) !important;
+    color: #dfffc2 !important;
+    cursor: wait !important;
+    pointer-events: none !important;
+}
+
 .apes-vd-hint {
     color: rgba(255, 246, 223, .62) !important;
     font-size: 10px !important;
@@ -336,7 +386,13 @@
     .apes-vd-heading {
         align-items: flex-start !important;
         flex-direction: column !important;
-        gap: 4px !important;
+        gap: 6px !important;
+    }
+
+    .apes-vd-heading-actions {
+        align-items: flex-start !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
     }
 
     .apes-vd-hint {
