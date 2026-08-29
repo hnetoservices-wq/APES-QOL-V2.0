@@ -3,6 +3,7 @@
  *
  * Press H to toggle a borderless dashboard for every owned village.
  * Data comes from Travian's MAIN-world cache via villageDashboardBridge.js.
+ * Scan Now deliberately visits every owned village to refresh that cache.
  */
 
 (() => {
@@ -18,6 +19,8 @@
     const REQUEST_TYPE = 'REQUEST_SNAPSHOT';
     const RESPONSE_TYPE = 'VILLAGE_SNAPSHOT';
     const REFRESH_MS = 2500;
+    const SCAN_SETTLE_MS = 1100;
+    const SCAN_REFRESH_MS = 250;
 
     const BUILDING_NAMES = Object.freeze({
         1: 'Woodcutter',
@@ -86,6 +89,13 @@
         ]
     });
 
+    // Official Travian Kingdoms crop consumption per unit, local unit 1..10.
+    const UNIT_CROP_CONSUMPTION = Object.freeze({
+        1: [1, 1, 1, 2, 3, 4, 3, 6, 5, 1],
+        2: [1, 1, 1, 1, 2, 3, 3, 6, 4, 1],
+        3: [1, 1, 2, 2, 2, 3, 3, 6, 4, 1]
+    });
+
     let snapshot = {
         generatedAt: 0,
         playerId: null,
@@ -94,6 +104,8 @@
     };
     let refreshTimer = null;
     let retryTimer = null;
+    let scanInProgress = false;
+    let scanProgress = { current: 0, total: 0, returning: false };
 
     function escapeHtml(value) {
         return String(value ?? '')
@@ -102,6 +114,10 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    function sleep(milliseconds) {
+        return new Promise(resolve => window.setTimeout(resolve, milliseconds));
     }
 
     function enabled() {
@@ -234,6 +250,12 @@
         return UNIT_NAMES[Number(tribeId)]?.[index - 1] || `Unit ${rawIndex}`;
     }
 
+    function unitCropConsumption(tribeId, rawIndex) {
+        const index = localUnitIndex(tribeId, rawIndex);
+        if (index === null || index < 1 || index > 10) return 0;
+        return UNIT_CROP_CONSUMPTION[Number(tribeId)]?.[index - 1] ?? 0;
+    }
+
     function buildingLookup(village) {
         const byLocation = new Map();
         for (const building of village?.buildings || []) {
@@ -349,8 +371,6 @@
             entries.push({ type, location, label, fullLabel, level, end });
         }
 
-        // Some Travian cache states expose only inQueueEffects for a building.
-        // Use that strictly as a fallback for locations absent from BuildingQueue.
         for (const building of village?.buildings || []) {
             if (!hasMeaningfulData(building?.inQueueEffects)) continue;
 
@@ -652,26 +672,45 @@
             .filter(([, amount]) => amount > 0)
             .sort((a, b) => b[1] - a[1]);
         const total = entries.reduce((sum, [, amount]) => sum + amount, 0);
-        return { total, entries };
+        const cropPerHour = entries.reduce((sum, [index, amount]) => {
+            return sum + amount * unitCropConsumption(village?.tribeId, index);
+        }, 0);
+
+        return { total, cropPerHour, entries };
     }
 
     function troopsHtml(village) {
         const summary = troopSummary(village);
-        if (!summary.total) return '<span class="apes-vd-idle">0 troops</span>';
-
-        const primary = summary.entries.slice(0, 2)
-            .map(([index, amount]) => `${formatInteger(amount)} ${unitName(village?.tribeId, index)}`)
-            .join(' · ');
-        const tooltip = summary.entries
-            .map(([index, amount]) => `${formatInteger(amount)} ${unitName(village?.tribeId, index)}`)
-            .join('\n');
+        const tooltip = summary.entries.length
+            ? summary.entries.map(([index, amount]) => {
+                const crop = amount * unitCropConsumption(village?.tribeId, index);
+                return `${formatInteger(amount)} ${unitName(village?.tribeId, index)} — ${formatInteger(crop)} Crop/h`;
+            }).join('\n')
+            : 'No troops stationed here';
 
         return `
             <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">
-                <strong>${escapeHtml(formatInteger(summary.total))} troops</strong>
-                ${primary ? `<small>${escapeHtml(primary)}</small>` : ''}
+                <strong>${escapeHtml(formatInteger(summary.total))} Troops</strong>
+                <small>${escapeHtml(formatInteger(summary.cropPerHour))} Crop/h</small>
             </span>
         `;
+    }
+
+    function updateScanButton() {
+        const button = document.querySelector(`#${OVERLAY_ID} .apes-vd-scan-btn`);
+        if (!button) return;
+
+        if (scanInProgress) {
+            button.classList.add('scanning');
+            button.setAttribute('aria-disabled', 'true');
+            button.textContent = scanProgress.returning
+                ? 'Returning…'
+                : `Scanning ${scanProgress.current}/${scanProgress.total}`;
+        } else {
+            button.classList.remove('scanning');
+            button.setAttribute('aria-disabled', 'false');
+            button.textContent = 'Scan Now';
+        }
     }
 
     function mountDashboard() {
@@ -688,7 +727,10 @@
                         <span>APES</span>
                         <strong>Village Dashboard</strong>
                     </div>
-                    <div class="apes-vd-hint">H / Esc to close · Click a village to switch</div>
+                    <div class="apes-vd-heading-actions">
+                        <div class="apes-vd-scan-btn" role="button" tabindex="0" aria-disabled="false">Scan Now</div>
+                        <div class="apes-vd-hint">H / Esc to close · Click a village to switch</div>
+                    </div>
                 </div>
                 <div class="apes-vd-table-wrap">
                     <div class="apes-vd-header">
@@ -712,17 +754,34 @@
                 closeDashboard();
                 return;
             }
+
+            const scanButton = event.target.closest('.apes-vd-scan-btn');
+            if (scanButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                scanAllVillages();
+                return;
+            }
+
             const villageControl = event.target.closest('[data-village-id]');
-            if (villageControl) openVillage(villageControl.dataset.villageId);
+            if (villageControl && !scanInProgress) openVillage(villageControl.dataset.villageId);
         });
 
         overlay.addEventListener('keydown', event => {
+            const scanButton = event.target.closest?.('.apes-vd-scan-btn');
+            if (scanButton && ['Enter', ' '].includes(event.key)) {
+                event.preventDefault();
+                scanAllVillages();
+                return;
+            }
+
             const villageControl = event.target.closest?.('[data-village-id]');
-            if (!villageControl || !['Enter', ' '].includes(event.key)) return;
+            if (!villageControl || scanInProgress || !['Enter', ' '].includes(event.key)) return;
             event.preventDefault();
             openVillage(villageControl.dataset.villageId);
         });
 
+        updateScanButton();
         return overlay;
     }
 
@@ -730,6 +789,8 @@
         const overlay = mountDashboard();
         const body = overlay.querySelector('.apes-vd-body');
         if (!body) return;
+
+        updateScanButton();
 
         const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
         if (!villages.length) {
@@ -779,6 +840,76 @@
         window.postMessage({ source: UI_SOURCE, type: REQUEST_TYPE }, window.location.origin);
     }
 
+    async function waitForVillageNavigation(villageId, timeout = 5000) {
+        const deadline = Date.now() + timeout;
+        while (Date.now() < deadline) {
+            if (currentVillageIdFromUrl() === String(villageId)) return true;
+            await sleep(100);
+        }
+        return false;
+    }
+
+    async function scanAllVillages() {
+        if (scanInProgress) return;
+
+        const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
+        const ids = [...new Set(
+            villages
+                .map(village => String(village?.villageId || ''))
+                .filter(id => /^\d+$/.test(id))
+        )];
+        if (!ids.length) return;
+
+        const startVillageId = currentVillageIdFromUrl() || String(snapshot?.activeVillageId || '') || ids[0];
+        const orderedIds = ids.includes(startVillageId)
+            ? [startVillageId, ...ids.filter(id => id !== startVillageId)]
+            : ids;
+
+        scanInProgress = true;
+        scanProgress = { current: 0, total: orderedIds.length, returning: false };
+        updateScanButton();
+
+        try {
+            for (let index = 0; index < orderedIds.length; index += 1) {
+                const villageId = orderedIds[index];
+                scanProgress = {
+                    current: index + 1,
+                    total: orderedIds.length,
+                    returning: false
+                };
+                updateScanButton();
+
+                if (currentVillageIdFromUrl() !== villageId) {
+                    window.location.hash = `#/page:village/villId:${villageId}`;
+                }
+
+                await waitForVillageNavigation(villageId);
+                await sleep(SCAN_SETTLE_MS);
+                requestSnapshot();
+                await sleep(SCAN_REFRESH_MS);
+            }
+
+            if (/^\d+$/.test(startVillageId) && currentVillageIdFromUrl() !== startVillageId) {
+                scanProgress = {
+                    current: orderedIds.length,
+                    total: orderedIds.length,
+                    returning: true
+                };
+                updateScanButton();
+                window.location.hash = `#/page:village/villId:${startVillageId}`;
+                await waitForVillageNavigation(startVillageId);
+                await sleep(SCAN_SETTLE_MS);
+            }
+        } finally {
+            requestSnapshot();
+            await sleep(SCAN_REFRESH_MS);
+            scanInProgress = false;
+            scanProgress = { current: 0, total: 0, returning: false };
+            updateScanButton();
+            if (isOpen()) renderDashboard();
+        }
+    }
+
     function startRefresh() {
         stopRefresh();
         requestSnapshot();
@@ -821,7 +952,7 @@
     }
 
     function openVillage(villageId) {
-        if (!/^\d+$/.test(String(villageId || ''))) return;
+        if (scanInProgress || !/^\d+$/.test(String(villageId || ''))) return;
         closeDashboard();
         window.location.hash = `#/page:village/villId:${villageId}`;
     }
@@ -889,6 +1020,7 @@
         close: closeDashboard,
         toggle: toggleDashboard,
         refresh: requestSnapshot,
+        scan: scanAllVillages,
         getVillages: () => (snapshot?.villages || []).map(village => ({ ...village }))
     });
 
