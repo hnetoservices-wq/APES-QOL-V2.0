@@ -98,4 +98,79 @@ function initializeKeybinds() {
     }, true);
 }
 
+/**
+ * The responsive APES toolbar is the single source of truth for toolbar
+ * placement. CP Manager still performs a legacy maintenance pass that writes
+ * its own left/top/display styles. When both systems run between frames the
+ * CP icon can visibly jump. Reconcile those writes through the shared toolbar
+ * before the browser paints, without creating another feature module/file.
+ */
+function stabilizeCpManagerToolbarIcon() {
+    const BUTTON_ID = 'qol-cp-toggle-btn';
+    let watchedButton = null;
+    let styleObserver = null;
+    let correcting = false;
+
+    function applySharedToolbarLayout() {
+        if (correcting || typeof window.qolRepositionAllButtons !== 'function') {
+            return;
+        }
+
+        correcting = true;
+        try {
+            window.qolRepositionAllButtons();
+        } finally {
+            // Keep the guard active through the MutationObserver delivery
+            // caused by the shared toolbar's own style writes.
+            window.setTimeout(() => {
+                correcting = false;
+            }, 0);
+        }
+    }
+
+    function watchButton() {
+        const button = document.getElementById(BUTTON_ID);
+        if (!button || button === watchedButton) {
+            return;
+        }
+
+        styleObserver?.disconnect();
+        watchedButton = button;
+
+        styleObserver = new MutationObserver((mutations) => {
+            if (correcting) {
+                return;
+            }
+
+            const styleChanged = mutations.some((mutation) => (
+                mutation.type === 'attributes' &&
+                mutation.attributeName === 'style'
+            ));
+
+            if (styleChanged) {
+                applySharedToolbarLayout();
+            }
+        });
+
+        styleObserver.observe(button, {
+            attributes: true,
+            attributeFilter: ['style']
+        });
+
+        applySharedToolbarLayout();
+    }
+
+    watchButton();
+
+    const mountObserver = new MutationObserver(() => {
+        watchButton();
+    });
+
+    mountObserver.observe(document.documentElement, {
+        childList: true,
+        subtree: true
+    });
+}
+
 initializeKeybinds();
+stabilizeCpManagerToolbarIcon();
