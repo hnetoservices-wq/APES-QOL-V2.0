@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL v2 Alpha",
-  "version": "2.0.0.42",
+  "version": "2.0.0.43",
   "description": "APES QoL v2 alpha for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -85,5 +85,5 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-alpha.48"
+  "version_name": "2.0.0-alpha.49"
 }
