@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL v2 Alpha",
-  "version": "2.0.0.47",
+  "version": "2.0.0.48",
   "description": "APES QoL v2 alpha for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -51,6 +51,7 @@
         "js/features/distanceCalculator.js",
         "js/features/auctionHouseScanner.js",
         "js/features/cpManager.js",
+        "js/features/tradeRouteOptimizer.js",
         "js/features/resourceCapacityTimer.js",
         "js/features/visualTribeSkins.js",
         "js/features/secretSocietyScanner.js",
@@ -85,5 +86,5 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-alpha.53"
+  "version_name": "2.0.0-alpha.54"
 }
