@@ -70,6 +70,40 @@
         return output;
     }
 
+    function compactBuildingQueue(queue) {
+        const copied = safeCopy(queue) || null;
+        if (!copied || typeof copied !== 'object') return copied;
+
+        const queues = copied.queues;
+        if (!queues || typeof queues !== 'object') return copied;
+
+        const nowSeconds = Date.now() / 1000;
+        for (const bucket of Object.values(queues)) {
+            if (!Array.isArray(bucket)) continue;
+            for (const item of bucket) {
+                if (!item || typeof item !== 'object') continue;
+
+                const timeStart = asFiniteNumber(item.timeStart);
+                const finished = asFiniteNumber(item.finished);
+
+                // Travian's BuildingQueue uses `finished` as the real completion
+                // timestamp for an actively running construction. Future/master-
+                // builder entries can have timeStart=0 and an old `finished`
+                // value, so never expose those as a live countdown.
+                if (
+                    timeStart !== null &&
+                    timeStart > 0 &&
+                    finished !== null &&
+                    finished > nowSeconds
+                ) {
+                    item.finishTime = finished;
+                }
+            }
+        }
+
+        return copied;
+    }
+
     function extractIdsFromOwnCollection(cacheObject) {
         const ids = new Set();
         const raw = modelData(cacheObject, 'Collection:Village:own');
@@ -282,7 +316,7 @@
             celebrationEnd: safeCopy(village.celebrationEnd),
             culturePoints: asFiniteNumber(village.culturePoints),
             culturePointProduction: asFiniteNumber(village.culturePointProduction),
-            buildingQueue: safeCopy(modelData(cacheObject, `BuildingQueue:${villageId}`)),
+            buildingQueue: compactBuildingQueue(modelData(cacheObject, `BuildingQueue:${villageId}`)),
             unitQueue: safeCopy(modelData(cacheObject, `UnitQueue:${villageId}`)),
             smithyQueue: safeCopy(modelData(cacheObject, `UnitResearchQueue:${villageId}`)),
             buildings,
