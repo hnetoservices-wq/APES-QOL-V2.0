@@ -15,6 +15,7 @@
     const SCAN_OVERLAY_ID = 'qol-cp-scan-overlay';
 
     const MAIN_BUILDING_LOCATION = 27;
+    const MARKETPLACE_BUILDING_ID = 17;
     const TOWN_HALL_BUILDING_ID = 24;
     const MAX_VILLAGE_HOPS = 100;
     const DAY_MS = 86400000;
@@ -251,7 +252,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
 #${PANEL_ID},#${PLANNER_ID},#${TRADE_PLANNER_ID}{position:fixed!important;display:none;flex-direction:column!important;border:3px solid var(--qol-border)!important;border-radius:4px!important;background:#f7f5f0!important;color:#333!important;box-shadow:0 10px 30px rgba(0,0,0,.5)!important;overflow:hidden!important;z-index:999999!important}
 #${PANEL_ID}{width:560px!important;max-width:94vw!important;max-height:86vh!important}
 #${PLANNER_ID}{width:min(900px,96vw)!important;min-width:min(700px,96vw)!important;min-height:430px!important;max-width:96vw!important;max-height:90vh!important;resize:both!important;z-index:1000000!important}
-#${TRADE_PLANNER_ID}{width:min(1080px,96vw)!important;min-width:min(780px,96vw)!important;min-height:360px!important;max-width:96vw!important;max-height:90vh!important;resize:both!important;z-index:1000000!important}
+#${TRADE_PLANNER_ID}{width:min(1180px,96vw)!important;min-width:min(820px,96vw)!important;min-height:360px!important;max-width:96vw!important;max-height:90vh!important;resize:both!important;z-index:1000000!important}
 
 #${PANEL_ID} .qol-cp-header,#${PLANNER_ID} .qol-cp-planner-head,#${TRADE_PLANNER_ID} .qol-cp-trade-head{height:34px!important;padding:6px 10px!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-dark))!important;color:#f7f5f0!important;font-size:14px!important;font-weight:bold!important;display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;cursor:move!important;user-select:none!important}
 #${PANEL_ID} .qol-cp-close,#${PLANNER_ID} .qol-cp-planner-close,#${TRADE_PLANNER_ID} .qol-cp-trade-close{cursor:pointer!important;color:#fff!important;font-size:21px!important;font-weight:bold!important;line-height:1!important;padding:0 5px!important;border-radius:3px!important;background:rgba(0,0,0,.2)!important}
@@ -318,13 +319,14 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
 #${TRADE_PLANNER_ID} .qol-cp-trade-stat span{display:flex!important;align-items:center!important;gap:5px!important;color:#77654d!important;font-size:8px!important;font-weight:bold!important;text-transform:uppercase!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-stat strong{display:block!important;margin-top:2px!important;color:#3f3020!important;font-size:13px!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-table-wrap{overflow:auto!important;background:#fff!important;flex:1 1 auto!important;min-height:120px!important}
-#${TRADE_PLANNER_ID} .qol-cp-trade-table{min-width:1000px!important;table-layout:fixed!important}
+#${TRADE_PLANNER_ID} .qol-cp-trade-table{min-width:1110px!important;table-layout:fixed!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-table th:nth-child(1),#${TRADE_PLANNER_ID} .qol-cp-trade-table td:nth-child(1){width:150px!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-table th:nth-child(2),#${TRADE_PLANNER_ID} .qol-cp-trade-table td:nth-child(2){width:62px!important;text-align:center!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-table th:nth-child(3),#${TRADE_PLANNER_ID} .qol-cp-trade-table td:nth-child(3){width:105px!important;text-align:center!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-table th:nth-child(4),#${TRADE_PLANNER_ID} .qol-cp-trade-table td:nth-child(4){width:88px!important;text-align:center!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-table th:nth-child(n+5):nth-child(-n+8),#${TRADE_PLANNER_ID} .qol-cp-trade-table td:nth-child(n+5):nth-child(-n+8){width:140px!important;text-align:right!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-table th:nth-child(9),#${TRADE_PLANNER_ID} .qol-cp-trade-table td:nth-child(9){width:75px!important;text-align:center!important}
+#${TRADE_PLANNER_ID} .qol-cp-trade-table th:nth-child(10),#${TRADE_PLANNER_ID} .qol-cp-trade-table td:nth-child(10){width:110px!important;text-align:center!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-resource-head{text-align:center!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-select{display:inline-block!important;appearance:auto!important;-webkit-appearance:auto!important;height:27px!important;padding:3px 5px!important;border:1px solid #a99473!important;border-radius:3px!important;background:#fff!important;color:#493821!important;font-size:10px!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-celeb{width:92px!important}
@@ -337,6 +339,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
 #${TRADE_PLANNER_ID} .qol-cp-trade-resource[data-tone=negative] strong,#${TRADE_PLANNER_ID} .qol-cp-trade-resource[data-tone=negative] em{color:#9b2b26!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-resource[data-tone=neutral] strong,#${TRADE_PLANNER_ID} .qol-cp-trade-resource[data-tone=neutral] em{color:#8a6a25!important}
 #${TRADE_PLANNER_ID} .qol-cp-trade-missing{color:#9b2b26!important;font-size:9px!important;font-style:italic!important}
+#${TRADE_PLANNER_ID} .qol-cp-open-market-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:88px!important;height:25px!important;padding:3px 8px!important;border:1px solid var(--qol-action-border)!important;border-radius:3px!important;background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;font-size:9px!important;font-weight:bold!important;cursor:pointer!important;user-select:none!important}
+#${TRADE_PLANNER_ID} .qol-cp-open-market-btn:hover{filter:brightness(1.08)!important}
+#${TRADE_PLANNER_ID} .qol-cp-no-market{color:#9b2b26!important;font-size:9px!important;font-style:italic!important}
 .qol-cp-game-resource-icon{display:inline-block!important;width:18px!important;height:18px!important;min-width:18px!important;vertical-align:middle!important;background-repeat:no-repeat!important;transform:none!important}
 #${TRADE_PLANNER_ID} th .qol-cp-game-resource-icon{margin:auto!important}
 `;
@@ -403,7 +408,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     }
 
     function positionTradePlannerBesideMain(force = false) {
-        positionSecondaryBesideMain(document.getElementById(TRADE_PLANNER_ID), force, 1080, 560);
+        positionSecondaryBesideMain(document.getElementById(TRADE_PLANNER_ID), force, 1180, 560);
     }
 
     function makeDraggable(panel, handle, onMove) {
@@ -448,7 +453,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         const overlay = document.createElement('div');
         overlay.id = SCAN_OVERLAY_ID;
         overlay.style.cssText = 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;background:rgba(0,0,0,.7)!important;z-index:2147483646!important;display:flex!important;align-items:center!important;justify-content:center!important;color:white!important;font:700 15px Arial!important;flex-direction:column!important;gap:8px!important;text-align:center!important;cursor:wait!important;user-select:none!important;pointer-events:auto!important';
-        overlay.innerHTML = '<div>Scanning CP...</div><div class="qol-cp-scan-overlay-status" style="max-width:min(520px,80vw)!important;font-size:11px!important;font-weight:normal!important;color:#ddd!important;line-height:1.45!important">Starting CP scan...</div><div style="font-size:10px!important;font-weight:normal!important;color:#aaa!important">Please wait while APES checks your villages, Town Halls and resource production.</div>';
+        overlay.innerHTML = '<div>Scanning CP...</div><div class="qol-cp-scan-overlay-status" style="max-width:min(520px,80vw)!important;font-size:11px!important;font-weight:normal!important;color:#ddd!important;line-height:1.45!important">Starting CP scan...</div><div style="font-size:10px!important;font-weight:normal!important;color:#aaa!important">Please wait while APES checks your villages, Town Halls, Marketplaces and resource production.</div>';
         document.body.appendChild(overlay);
     }
 
@@ -630,10 +635,10 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         return latest;
     }
 
-    function readTownHallInCurrentVillage() {
+    function readBuildingInCurrentVillage(buildingId) {
         const view = document.getElementById('villageView');
         if (!view) return null;
-        const image = view.querySelector(`img.location.buildingId${TOWN_HALL_BUILDING_ID}`);
+        const image = view.querySelector(`img.location.buildingId${buildingId}`);
         if (!image) return null;
         const wrapper = image.closest('building-location');
         if (!wrapper) return null;
@@ -644,10 +649,25 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
             if (locationClass) location = Number.parseInt(locationClass.replace('buildingLocation', ''), 10);
         }
         return {
-            villageName: getCurrentVillageName(), villageId: getVillageIdFromHash(), hasTownHall: true,
-            level: Number.isFinite(level) ? level : 1, location: Number.isFinite(location) ? location : null,
-            celebrations: [], allCelebrations: [], busyUntilMs: null, cpPerDay: null, production: null
+            buildingId,
+            level: Number.isFinite(level) ? level : 1,
+            location: Number.isFinite(location) ? location : null
         };
+    }
+
+    function readTownHallInCurrentVillage() {
+        const townHall = readBuildingInCurrentVillage(TOWN_HALL_BUILDING_ID);
+        if (!townHall) return null;
+        return {
+            villageName: getCurrentVillageName(), villageId: getVillageIdFromHash(), hasTownHall: true,
+            level: townHall.level, location: townHall.location,
+            celebrations: [], allCelebrations: [], busyUntilMs: null, cpPerDay: null, production: null,
+            hasMarket: false, marketLevel: 0, marketLocation: null
+        };
+    }
+
+    function readMarketplaceInCurrentVillage() {
+        return readBuildingInCurrentVillage(MARKETPLACE_BUILDING_ID);
     }
 
     async function waitForTownHallContent(timeout = 5500) {
@@ -721,7 +741,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         let complete = false;
         openVillageBase();
         await sleep(300);
-        if (!await waitForVillageView()) throw new Error('The village view could not be loaded for Town Hall scanning.');
+        if (!await waitForVillageView()) throw new Error('The village view could not be loaded for Town Hall and Marketplace scanning.');
         for (let attempt = 0; attempt < MAX_VILLAGE_HOPS; attempt += 1) {
             const identity = getVillageIdentity();
             if (visited.has(identity)) { complete = identity === startingIdentity; break; }
@@ -730,13 +750,31 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
             await sleep(220);
             if (!await waitForVillageView()) break;
             const villageName = getCurrentVillageName();
-            setStatus(`Scanning Town Halls, celebrations and production: ${villageName} (${visited.size})...`, 'working');
+            setStatus(`Scanning Town Halls, Marketplaces, celebrations and production: ${villageName} (${visited.size})...`, 'working');
             const production = await waitForCurrentVillageProduction();
+            const marketplace = readMarketplaceInCurrentVillage();
             let village = readTownHallInCurrentVillage();
             if (!village) {
-                village = { villageName, villageId: getVillageIdFromHash(), hasTownHall: false, level: 0, location: null, celebrations: [], allCelebrations: [], busyUntilMs: null, cpPerDay: null, production };
+                village = {
+                    villageName,
+                    villageId: getVillageIdFromHash(),
+                    hasTownHall: false,
+                    level: 0,
+                    location: null,
+                    celebrations: [],
+                    allCelebrations: [],
+                    busyUntilMs: null,
+                    cpPerDay: null,
+                    production,
+                    hasMarket: Boolean(marketplace),
+                    marketLevel: marketplace?.level || 0,
+                    marketLocation: Number.isFinite(marketplace?.location) ? marketplace.location : null
+                };
             } else {
                 village.production = production;
+                village.hasMarket = Boolean(marketplace);
+                village.marketLevel = marketplace?.level || 0;
+                village.marketLocation = Number.isFinite(marketplace?.location) ? marketplace.location : null;
                 try {
                     await scanTownHallCelebrations(village, cpReadAtMs);
                     village.celebrations.forEach(event => celebrationEvents.push(event));
@@ -1099,6 +1137,20 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         planner.querySelector('.qol-cp-trade-speed').textContent = `Detected x${speedInfo.speed} · ${speedInfo.source}`;
     }
 
+    function openMarketTradeRoutes(village) {
+        const villageId = String(village?.villageId || '').trim();
+        const marketLocation = Number(village?.marketLocation);
+        if (!villageId || !Number.isFinite(marketLocation)) return;
+        document.getElementById(TRADE_PLANNER_ID)?.style.setProperty('display', 'none', 'important');
+        setVillageHash([
+            'page:village',
+            `villId:${villageId}`,
+            `location:${marketLocation}`,
+            'window:building',
+            'tab:TradeRoute'
+        ]);
+    }
+
     function renderTradePlanner() {
         if (!lastScanResult) return;
         const planner = mountTradePlannerPanel();
@@ -1107,15 +1159,32 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         const rows = lastScanResult.townHalls.villages
             .map((village, index) => ({ village, index }))
             .filter(({ village }) => village.hasTownHall)
-            .map(({ village, index }) => `<tr class="qol-cp-trade-row" data-index="${index}"><td title="${escapeHtml(village.villageName)}">${escapeHtml(village.villageName)}</td><td>TH ${village.level}</td><td><select class="qol-cp-trade-select qol-cp-trade-celeb"><option value="none">None</option><option value="small" selected>Small</option><option value="big"${village.level < 10 ? ' disabled' : ''}>Big</option></select></td><td class="qol-cp-trade-duration">-</td><td class="qol-cp-trade-wood"></td><td class="qol-cp-trade-clay"></td><td class="qol-cp-trade-iron"></td><td class="qol-cp-trade-crop"></td><td><select class="qol-cp-trade-select qol-cp-trade-frequency"><option value="1" selected>x1</option><option value="2">x2</option><option value="3">x3</option></select></td></tr>`)
+            .map(({ village, index }) => {
+                const marketCell = village.hasMarket && Number.isFinite(village.marketLocation)
+                    ? `<div class="qol-cp-open-market-btn" role="button" tabindex="0" data-market-index="${index}" title="Open Marketplace ${village.marketLevel || ''} at location ${village.marketLocation}">Open Market</div>`
+                    : '<span class="qol-cp-no-market">No Market</span>';
+                return `<tr class="qol-cp-trade-row" data-index="${index}"><td title="${escapeHtml(village.villageName)}">${escapeHtml(village.villageName)}</td><td>TH ${village.level}</td><td><select class="qol-cp-trade-select qol-cp-trade-celeb"><option value="none">None</option><option value="small" selected>Small</option><option value="big"${village.level < 10 ? ' disabled' : ''}>Big</option></select></td><td class="qol-cp-trade-duration">-</td><td class="qol-cp-trade-wood"></td><td class="qol-cp-trade-clay"></td><td class="qol-cp-trade-iron"></td><td class="qol-cp-trade-crop"></td><td><select class="qol-cp-trade-select qol-cp-trade-frequency"><option value="1" selected>x1</option><option value="2">x2</option><option value="3">x3</option></select></td><td>${marketCell}</td></tr>`;
+            })
             .join('');
 
         const resourceHeaders = RESOURCE_KEYS.map(key => `<th class="qol-cp-trade-resource-head" title="${RESOURCE_LABELS[key]}">${resourceIcon(key)}</th>`).join('');
         const summary = RESOURCE_KEYS.map(key => `<div class="qol-cp-trade-stat"><span>${resourceIcon(key)}<b>Disposable / h</b></span><strong class="qol-cp-trade-total-${key}">-</strong></div>`).join('');
 
-        planner.querySelector('.qol-cp-trade-body').innerHTML = `<div class="qol-cp-trade-note">APES reserves enough resources each hour to restart the selected celebration as soon as it ends. <strong>Free/h</strong> is what remains after that reserve. <strong>/ route</strong> divides the free amount by x1, x2 or x3 routes per hour. Negative values show the hourly import the village needs.</div><div class="qol-cp-trade-summary">${summary}</div><div class="qol-cp-trade-table-wrap"><table class="qol-cp-trade-table"><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th>Duration</th>${resourceHeaders}<th>Routes/h</th></tr></thead><tbody>${rows || '<tr><td colspan="9">No Town Halls detected.</td></tr>'}</tbody></table></div>`;
+        planner.querySelector('.qol-cp-trade-body').innerHTML = `<div class="qol-cp-trade-note">APES reserves enough resources each hour to restart the selected celebration as soon as it ends. <strong>Free/h</strong> is what remains after that reserve. <strong>/ route</strong> divides the free amount by x1, x2 or x3 routes per hour. Negative values show the hourly import the village needs.</div><div class="qol-cp-trade-summary">${summary}</div><div class="qol-cp-trade-table-wrap"><table class="qol-cp-trade-table"><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th>Duration</th>${resourceHeaders}<th>Routes/h</th><th>Plan Route</th></tr></thead><tbody>${rows || '<tr><td colspan="10">No Town Halls detected.</td></tr>'}</tbody></table></div>`;
         planner.querySelector('.qol-cp-trade-speed').textContent = `Detected x${speedInfo.speed} · ${speedInfo.source}`;
         planner.querySelectorAll('select').forEach(control => control.addEventListener('change', updateTradePlanner));
+        planner.querySelectorAll('.qol-cp-open-market-btn').forEach(button => {
+            const activate = event => {
+                event.preventDefault();
+                event.stopPropagation();
+                const village = lastScanResult?.townHalls?.villages?.[Number.parseInt(button.dataset.marketIndex || '', 10)];
+                openMarketTradeRoutes(village);
+            };
+            button.addEventListener('click', activate);
+            button.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') activate(event);
+            });
+        });
         planner.style.setProperty('display', 'flex', 'important');
         planner.dataset.userPositioned = 'false';
         requestAnimationFrame(() => { positionTradePlannerBesideMain(true); updateTradePlanner(); });
@@ -1158,7 +1227,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
             await sleep(250);
             const culture = await waitForCulturePointsOverview();
             if (!culture) throw new Error('The Culture Points overview opened, but CP/day could not be read.');
-            setStatus('Scanning all villages for Town Halls, celebrations and production...', 'working');
+            setStatus('Scanning all villages for Town Halls, Marketplaces, celebrations and production...', 'working');
             const townHalls = await scanAllVillages(requirement.readAtMs);
             attachVillageCp(townHalls.villages, culture);
             const prediction = buildPrediction(requirement.current, requirement.target, culture.total, townHalls.celebrationEvents, requirement.readAtMs);
@@ -1167,11 +1236,12 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
             lastScanResult = result;
             renderResult(result);
             const hallCount = townHalls.villages.filter(village => village.hasTownHall).length;
+            const marketCount = townHalls.villages.filter(village => village.hasMarket && Number.isFinite(village.marketLocation)).length;
             const productionCount = townHalls.villages.filter(village => RESOURCE_KEYS.every(key => Number.isFinite(village.production?.[key]))).length;
             const nextSlot = getNextExpansionSlot(result);
             setStatus(
                 townHalls.complete
-                    ? `CP scan complete. Next expansion is Slot ${nextSlot}. ${hallCount} Town Hall${hallCount === 1 ? '' : 's'} detected; production captured in ${productionCount}/${townHalls.scannedCount} villages. Ready to plan.`
+                    ? `CP scan complete. Next expansion is Slot ${nextSlot}. ${hallCount} Town Hall${hallCount === 1 ? '' : 's'} and ${marketCount} Marketplace${marketCount === 1 ? '' : 's'} detected; production captured in ${productionCount}/${townHalls.scannedCount} villages. Ready to plan.`
                     : `CP scan complete, but village scan may be incomplete (${townHalls.scannedCount} scanned).`,
                 townHalls.complete ? 'success' : 'error'
             );
@@ -1216,7 +1286,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         if (panel) return panel;
         panel = document.createElement('div');
         panel.id = PANEL_ID;
-        panel.innerHTML = `<div class="qol-cp-header"><span>CP Manager</span><span class="qol-cp-close" title="Close">&times;</span></div><div class="qol-cp-body"><div class="qol-cp-description">Scan CP progress, daily production, Town Halls, celebrations and village resource production. <strong>Plan CP</strong> projects future slots; <strong>Plan Trade Routes</strong> reserves enough resources to keep selected celebrations running continuously.</div><div class="qol-cp-controls"><div class="qol-cp-action-btn qol-cp-scan-btn" role="button" tabindex="0">Scan CP</div><div class="qol-cp-action-btn secondary qol-cp-plan-btn hidden" role="button" tabindex="0">Plan CP</div><div class="qol-cp-action-btn secondary qol-cp-trade-btn hidden" role="button" tabindex="0">Plan Trade Routes</div><div class="qol-cp-status" data-tone="neutral">Ready to scan.</div></div><div class="qol-cp-results"></div><div class="qol-cp-progress-box"><div class="qol-cp-progress-head"></div><div class="qol-cp-progress-track"><div class="qol-cp-progress-bar"></div></div></div><div class="qol-cp-townhalls qol-cp-box"></div><div class="qol-cp-celebrations"></div></div>`;
+        panel.innerHTML = `<div class="qol-cp-header"><span>CP Manager</span><span class="qol-cp-close" title="Close">&times;</span></div><div class="qol-cp-body"><div class="qol-cp-description">Scan CP progress, daily production, Town Halls, Marketplaces, celebrations and village resource production. <strong>Plan CP</strong> projects future slots; <strong>Plan Trade Routes</strong> reserves enough resources to keep selected celebrations running continuously and can open each village's scanned Marketplace.</div><div class="qol-cp-controls"><div class="qol-cp-action-btn qol-cp-scan-btn" role="button" tabindex="0">Scan CP</div><div class="qol-cp-action-btn secondary qol-cp-plan-btn hidden" role="button" tabindex="0">Plan CP</div><div class="qol-cp-action-btn secondary qol-cp-trade-btn hidden" role="button" tabindex="0">Plan Trade Routes</div><div class="qol-cp-status" data-tone="neutral">Ready to scan.</div></div><div class="qol-cp-results"></div><div class="qol-cp-progress-box"><div class="qol-cp-progress-head"></div><div class="qol-cp-progress-track"><div class="qol-cp-progress-bar"></div></div></div><div class="qol-cp-townhalls qol-cp-box"></div><div class="qol-cp-celebrations"></div></div>`;
         panel.querySelector('.qol-cp-close').addEventListener('click', event => {
             event.stopPropagation();
             panel.style.setProperty('display', 'none', 'important');
