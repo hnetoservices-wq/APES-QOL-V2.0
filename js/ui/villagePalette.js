@@ -3,7 +3,8 @@
  *
  * Press H to toggle a borderless dashboard for every owned village.
  * Data comes from Travian's MAIN-world cache via villageDashboardBridge.js.
- * Scan Now deliberately visits every owned village to refresh that cache.
+ * Scan Now deliberately visits every owned village to refresh that cache and
+ * persist useful building locations / exact construction finish timestamps.
  */
 
 (() => {
@@ -21,6 +22,8 @@
     const REFRESH_MS = 2500;
     const SCAN_SETTLE_MS = 1100;
     const SCAN_REFRESH_MS = 250;
+    const COUNTDOWN_REFRESH_MS = 1000;
+    const SCAN_STORAGE_VERSION = 1;
 
     const BUILDING_NAMES = Object.freeze({
         1: 'Woodcutter',
@@ -73,6 +76,14 @@
         4: 'Crop'
     });
 
+    const DASHBOARD_BUILDINGS = Object.freeze([
+        { type: 17, label: 'Market' },
+        { type: 19, label: 'Barracks' },
+        { type: 20, label: 'Stables' },
+        { type: 29, label: 'Greater Barracks' },
+        { type: 30, label: 'Greater Stables' }
+    ]);
+
     const UNIT_NAMES = Object.freeze({
         1: [
             'Legionnaire', 'Praetorian', 'Imperian', 'Equites Legati',
@@ -104,6 +115,7 @@
     };
     let refreshTimer = null;
     let retryTimer = null;
+    let countdownTimer = null;
     let scanInProgress = false;
     let scanProgress = { current: 0, total: 0, returning: false };
 
@@ -181,6 +193,103 @@
         return Number.isFinite(number) ? Math.round(number).toLocaleString() : '0';
     }
 
+    function scanStorageKey() {
+        const player = String(snapshot?.playerId ?? 'unknown');
+        return `apes_village_dashboard_scan_v${SCAN_STORAGE_VERSION}:${window.location.hostname}:${player}`;
+    }
+
+    function readScanStore() {
+        try {
+            const parsed = JSON.parse(localStorage.getItem(scanStorageKey()) || '{}');
+            return parsed && typeof parsed === 'object' ? parsed : {};
+        } catch (_) {
+            return {};
+        }
+    }
+
+    function writeScanStore(store) {
+        try {
+            localStorage.setItem(scanStorageKey(), JSON.stringify(store || {}));
+        } catch (error) {
+            console.warn('[APES Village Dashboard] Could not save scan data.', error);
+        }
+    }
+
+    function scannedVillage(villageId) {
+        return readScanStore()?.villages?.[String(villageId)] || null;
+    }
+
+    function saveScannedVillage(villageId, data) {
+        const store = readScanStore();
+        if (!store.villages || typeof store.villages !== 'object') store.villages = {};
+        store.villages[String(villageId)] = {
+            ...(store.villages[String(villageId)] || {}),
+            ...(data || {}),
+            scannedAt: Date.now()
+        };
+        writeScanStore(store);
+    }
+
+    function getLocationFromBuildingElement(image, wrapper) {
+        const fromId = String(image?.id || '').match(/^buildingImage(\d+)$/)?.[1];
+        if (fromId) return Number(fromId);
+        const locationClass = Array.from(wrapper?.classList || []).find(name => /^buildingLocation\d+$/.test(name));
+        if (locationClass) return Number(locationClass.replace('buildingLocation', ''));
+        const dataLocation = Number(wrapper?.getAttribute?.('data-location-id'));
+        return Number.isFinite(dataLocation) ? dataLocation : null;
+    }
+
+    function scanDashboardBuildingsFromDom() {
+        const view = document.getElementById('villageView');
+        if (!view) return [];
+        const found = [];
+
+        for (const definition of DASHBOARD_BUILDINGS) {
+            const image = view.querySelector(`img.location.buildingId${definition.type}`);
+            if (!image) continue;
+            const wrapper = image.closest('building-location');
+            const location = getLocationFromBuildingElement(image, wrapper);
+            if (!Number.isFinite(location)) continue;
+            const level = asNumber(wrapper?.querySelector('.buildingLevel')?.textContent?.trim());
+            found.push({
+                type: definition.type,
+                label: definition.label,
+                location,
+                level
+            });
+        }
+
+        return found;
+    }
+
+    function scanConstructionQueueFromDom() {
+        const rows = Array.from(document.querySelectorAll('.queueContainer .detailsContent'));
+        return rows.map(row => {
+            const countdown = row.querySelector('.detailsTime span[countdown]');
+            const progress = row.querySelector('.progressbar[finish-time]');
+            const finishAt = asNumber(
+                countdown?.getAttribute('countdown') ||
+                progress?.getAttribute('finish-time')
+            );
+            if (!Number.isFinite(finishAt)) return null;
+
+            const name = row.querySelector('.detailsInfo > div > span:first-child')
+                ?.textContent?.replace(/\s+/g, ' ').trim() || 'Construction';
+            const levelText = row.querySelector('.detailsInfo .levelText')
+                ?.textContent?.replace(/\s+/g, ' ').trim() || '';
+
+            return { name, levelText, finishAt };
+        }).filter(Boolean);
+    }
+
+    function captureCurrentVillageScan(villageId) {
+        if (!/^\d+$/.test(String(villageId || ''))) return;
+        saveScannedVillage(villageId, {
+            buildings: scanDashboardBuildingsFromDom(),
+            constructionQueue: scanConstructionQueueFromDom()
+        });
+    }
+
     function hasMeaningfulData(value, depth = 0) {
         if (value === null || value === undefined || depth > 6) return false;
         if (typeof value === 'boolean') return value;
@@ -220,7 +329,8 @@
         if (!object || typeof object !== 'object') return null;
         const keys = [
             'endTime', 'finishTime', 'finishedAt', 'finishAt', 'completionTime',
-            'completeAt', 'timeFinished', 'end', 'until', 'doneAt', 'finish'
+            'completeAt', 'timeFinished', 'end', 'until', 'doneAt', 'finish',
+            'finish-time', 'finishTimestamp', 'endTimestamp'
         ];
         for (const key of keys) {
             if (object[key] === undefined) continue;
@@ -337,6 +447,7 @@
         const queuedPerLocation = new Map();
         const locationsSeenInQueue = new Set();
         const queueItems = constructionQueueItems(queue);
+        const scannedQueue = scannedVillage(village?.villageId)?.constructionQueue || [];
 
         for (const item of queueItems) {
             const location = queueLocation(item);
@@ -365,10 +476,16 @@
                 locationsSeenInQueue.add(String(location));
             }
 
-            const end = findEndTime(item);
             const fullLabel = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
             const label = BUILDING_SHORT_NAMES[type] || fullLabel;
-            entries.push({ type, location, label, fullLabel, level, end });
+            entries.push({
+                type,
+                location,
+                label,
+                fullLabel,
+                level,
+                end: findEndTime(item)
+            });
         }
 
         for (const building of village?.buildings || []) {
@@ -385,6 +502,15 @@
             entries.push({ type, location, label, fullLabel, level, end: null });
         }
 
+        // Exact finish timestamps are easiest to obtain from Travian's rendered
+        // queue during Scan Now. Merge them by visual queue order when cache data
+        // does not expose a usable end timestamp.
+        entries.forEach((entry, index) => {
+            if (entry.end) return;
+            const scannedFinish = asTimestamp(scannedQueue[index]?.finishAt);
+            if (scannedFinish) entry.end = scannedFinish;
+        });
+
         return entries;
     }
 
@@ -400,11 +526,12 @@
 
         const visible = entries.slice(0, 2).map(entry => {
             const level = entry.level !== null ? ` → ${entry.level}` : '';
-            const remaining = entry.end ? remainingText(entry.end) : '';
+            const finishMs = asTimestamp(entry.end);
+            const remaining = finishMs ? remainingText(finishMs) : '';
             return `
-                <span class="apes-vd-line">
+                <span class="apes-vd-line apes-vd-construction-line">
                     <strong>${escapeHtml(entry.label + level)}</strong>
-                    ${remaining ? `<small>${escapeHtml(remaining)}</small>` : ''}
+                    ${remaining ? `<small class="apes-vd-countdown" data-finish-ms="${finishMs}">${escapeHtml(remaining)}</small>` : ''}
                 </span>
             `;
         }).join('');
@@ -696,6 +823,49 @@
         `;
     }
 
+    function dashboardBuildingEntries(village) {
+        const scanned = scannedVillage(village?.villageId)?.buildings;
+        if (Array.isArray(scanned) && scanned.length) {
+            return DASHBOARD_BUILDINGS.map(definition => {
+                const building = scanned.find(item => Number(item?.type) === definition.type);
+                return building && Number.isFinite(Number(building.location))
+                    ? { ...definition, location: Number(building.location), level: asNumber(building.level) }
+                    : null;
+            }).filter(Boolean);
+        }
+
+        return DASHBOARD_BUILDINGS.map(definition => {
+            const building = (village?.buildings || []).find(item => Number(item?.buildingType) === definition.type);
+            const location = asNumber(building?.locationId);
+            if (location === null) return null;
+            return { ...definition, location, level: asNumber(building?.lvl) };
+        }).filter(Boolean);
+    }
+
+    function buildingsHtml(village) {
+        const entries = dashboardBuildingEntries(village);
+        if (!entries.length) return '<span class="apes-vd-idle">None</span>';
+        const villageId = String(village?.villageId || '');
+        return `<ul class="apes-vd-building-list">${entries.map(entry => `
+            <li>
+                <span class="apes-vd-building-link" role="button" tabindex="0"
+                      data-building-village-id="${escapeHtml(villageId)}"
+                      data-building-location="${entry.location}"
+                      title="Open ${escapeHtml(entry.label)}${entry.level !== null ? ` level ${entry.level}` : ''}">
+                    ${escapeHtml(entry.label)}
+                </span>
+            </li>
+        `).join('')}</ul>`;
+    }
+
+    function updateConstructionCountdowns() {
+        document.querySelectorAll(`#${OVERLAY_ID} .apes-vd-countdown[data-finish-ms]`).forEach(element => {
+            const finishMs = Number(element.dataset.finishMs);
+            if (!Number.isFinite(finishMs)) return;
+            element.textContent = formatDurationMilliseconds(finishMs - Date.now());
+        });
+    }
+
     function updateScanButton() {
         const button = document.querySelector(`#${OVERLAY_ID} .apes-vd-scan-btn`);
         if (!button) return;
@@ -740,6 +910,7 @@
                         <span>Smithy</span>
                         <span>Celebration</span>
                         <span>Troops</span>
+                        <span>Buildings</span>
                     </div>
                     <div class="apes-vd-body">
                         <div class="apes-vd-loading">Reading Travian village cache…</div>
@@ -763,6 +934,17 @@
                 return;
             }
 
+            const buildingControl = event.target.closest('.apes-vd-building-link');
+            if (buildingControl && !scanInProgress) {
+                event.preventDefault();
+                event.stopPropagation();
+                openBuilding(
+                    buildingControl.dataset.buildingVillageId,
+                    buildingControl.dataset.buildingLocation
+                );
+                return;
+            }
+
             const villageControl = event.target.closest('[data-village-id]');
             if (villageControl && !scanInProgress) openVillage(villageControl.dataset.villageId);
         });
@@ -772,6 +954,16 @@
             if (scanButton && ['Enter', ' '].includes(event.key)) {
                 event.preventDefault();
                 scanAllVillages();
+                return;
+            }
+
+            const buildingControl = event.target.closest?.('.apes-vd-building-link');
+            if (buildingControl && !scanInProgress && ['Enter', ' '].includes(event.key)) {
+                event.preventDefault();
+                openBuilding(
+                    buildingControl.dataset.buildingVillageId,
+                    buildingControl.dataset.buildingLocation
+                );
                 return;
             }
 
@@ -831,9 +1023,11 @@
                     <div class="apes-vd-cell">${smithyHtml(village)}</div>
                     <div class="apes-vd-cell">${celebrationHtml(village)}</div>
                     <div class="apes-vd-cell">${troopsHtml(village)}</div>
+                    <div class="apes-vd-cell apes-vd-buildings-cell">${buildingsHtml(village)}</div>
                 </div>
             `;
         }).join('');
+        updateConstructionCountdowns();
     }
 
     function requestSnapshot() {
@@ -885,6 +1079,7 @@
 
                 await waitForVillageNavigation(villageId);
                 await sleep(SCAN_SETTLE_MS);
+                captureCurrentVillageScan(villageId);
                 requestSnapshot();
                 await sleep(SCAN_REFRESH_MS);
             }
@@ -899,6 +1094,7 @@
                 window.location.hash = `#/page:village/villId:${startVillageId}`;
                 await waitForVillageNavigation(startVillageId);
                 await sleep(SCAN_SETTLE_MS);
+                captureCurrentVillageScan(startVillageId);
             }
         } finally {
             requestSnapshot();
@@ -914,6 +1110,7 @@
         stopRefresh();
         requestSnapshot();
         refreshTimer = window.setInterval(requestSnapshot, REFRESH_MS);
+        countdownTimer = window.setInterval(updateConstructionCountdowns, COUNTDOWN_REFRESH_MS);
         retryTimer = window.setTimeout(() => {
             if (!snapshot?.villages?.length && isOpen()) requestSnapshot();
         }, 350);
@@ -922,8 +1119,10 @@
     function stopRefresh() {
         if (refreshTimer !== null) window.clearInterval(refreshTimer);
         if (retryTimer !== null) window.clearTimeout(retryTimer);
+        if (countdownTimer !== null) window.clearInterval(countdownTimer);
         refreshTimer = null;
         retryTimer = null;
+        countdownTimer = null;
     }
 
     function isOpen() {
@@ -955,6 +1154,15 @@
         if (scanInProgress || !/^\d+$/.test(String(villageId || ''))) return;
         closeDashboard();
         window.location.hash = `#/page:village/villId:${villageId}`;
+    }
+
+    function openBuilding(villageId, locationId) {
+        if (scanInProgress) return;
+        const village = String(villageId || '');
+        const location = String(locationId || '');
+        if (!/^\d+$/.test(village) || !/^\d+$/.test(location)) return;
+        closeDashboard();
+        window.location.hash = `#/page:village/villId:${village}/location:${location}/window:building`;
     }
 
     function syncMenuLabel() {
