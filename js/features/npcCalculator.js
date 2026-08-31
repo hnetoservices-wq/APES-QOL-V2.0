@@ -71,6 +71,7 @@
     let selectedTribe = 'romans';
     let selectedPassIndex = 0;
     let latestCalculation = null;
+    let keepOpenDuringMarketFill = false;
 
     function isEnabled() {
         return typeof window.isQolEnabled === 'function' ? window.isQolEnabled(FEATURE_KEY) === true : true;
@@ -503,9 +504,7 @@
                 progressed = true;
             });
 
-            if (!progressed) {
-                return { passes, impossible:true };
-            }
+            if (!progressed) return { passes, impossible:true };
             passes.push({ resources:used, allocations });
         }
 
@@ -585,18 +584,11 @@
             const target = distribution.target;
             const before = { ...stock };
             const after = {};
-            RESOURCE_KEYS.forEach(key => {
-                after[key] = Math.max(0, target[key] - pass.resources[key]);
-            });
+            RESOURCE_KEYS.forEach(key => { after[key] = Math.max(0, target[key] - pass.resources[key]); });
             stock = after;
             const allocations = pass.allocations.map(item => {
                 const entry = positiveEntries[item.entryIndex];
-                return {
-                    label: entry.label,
-                    mode: entry.mode,
-                    count: item.count,
-                    costs: entry.costs
-                };
+                return { label:entry.label, mode:entry.mode, count:item.count, costs:entry.costs };
             });
             return {
                 index,
@@ -646,7 +638,7 @@
     function renderSelectedPass() {
         const passes = latestCalculation?.execution?.passes || [];
         const pass = passes[selectedPassIndex] || null;
-        const action = panel?.querySelector('#qol-npc-market-copy');
+        const action = panel?.querySelector('#qol-npc-market-fill');
         const passNode = panel?.querySelector('#qol-npc-passes');
         if (passNode) {
             const count = passes.length || 1;
@@ -725,32 +717,83 @@
         return null;
     }
 
-    async function copyText(text) {
-        try {
-            await navigator.clipboard.writeText(text);
-            return true;
-        } catch (_) {
-            try {
-                const textarea = document.createElement('textarea');
-                textarea.value = text;
-                textarea.style.position = 'fixed';
-                textarea.style.opacity = '0';
-                document.body.appendChild(textarea);
-                textarea.select();
-                const ok = document.execCommand('copy');
-                textarea.remove();
-                return ok;
-            } catch (_) {
-                return false;
-            }
+    function sleep(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    function findNpcTraderInputs() {
+        const root = document.querySelector('.loadedTab.tabNpcTrade.currentTab .marketContent.npcTrader')
+            || document.querySelector('.loadedTab.tabNpcTrade.activeTab .marketContent.npcTrader')
+            || document.querySelector('.marketContent.npcTrader');
+        if (!root) return null;
+
+        const iconSelectors = {
+            wood: '.unit_wood_medium_illu',
+            clay: '.unit_clay_medium_illu',
+            iron: '.unit_iron_medium_illu',
+            crop: '.unit_crop_medium_illu'
+        };
+        const result = {};
+        RESOURCE_KEYS.forEach(key => {
+            const icon = root.querySelector(iconSelectors[key]);
+            const row = icon?.closest('tr');
+            const input = row?.querySelector('.resSlider .inputContainer input.value, .resSlider input.value, input.value');
+            if (input) result[key] = input;
+        });
+        return RESOURCE_KEYS.every(key => result[key]) ? result : null;
+    }
+
+    async function waitForNpcTraderInputs(timeoutMs = 6000) {
+        const started = Date.now();
+        while (Date.now() - started < timeoutMs) {
+            const inputs = findNpcTraderInputs();
+            if (inputs) return inputs;
+            await sleep(100);
         }
+        return null;
     }
 
-    function formatDistributionForClipboard(pass) {
-        return RESOURCE_KEYS.map(key => `${RESOURCE_META[key].label}: ${Math.round(pass.target[key] || 0)}`).join('\n');
+    function setNpcInputValue(input, value) {
+        const text = String(Math.max(0, Math.round(Number(value) || 0)));
+        const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
+        if (descriptor?.set) descriptor.set.call(input, text);
+        else input.value = text;
+        input.dispatchEvent(new Event('input', { bubbles:true }));
+        input.dispatchEvent(new Event('change', { bubbles:true }));
     }
 
-    async function openNpcMarketAndCopy() {
+    async function fillNpcTrader(pass) {
+        let inputs = await waitForNpcTraderInputs();
+        if (!inputs) return false;
+
+        for (const key of RESOURCE_KEYS) {
+            inputs = findNpcTraderInputs() || inputs;
+            const input = inputs[key];
+            if (!input) return false;
+            setNpcInputValue(input, pass.target[key]);
+            await sleep(45);
+        }
+
+        await sleep(120);
+        const verified = findNpcTraderInputs();
+        if (!verified) return false;
+        let matches = true;
+        RESOURCE_KEYS.forEach(key => {
+            const expected = Math.max(0, Math.round(Number(pass.target[key]) || 0));
+            const actual = parseInteger(verified[key]?.value);
+            if (actual !== expected) matches = false;
+        });
+        if (!matches) {
+            RESOURCE_KEYS.forEach(key => {
+                const input = verified[key];
+                if (input) setNpcInputValue(input, pass.target[key]);
+            });
+            await sleep(100);
+        }
+        return true;
+    }
+
+    async function openNpcMarketAndFill() {
         const pass = latestCalculation?.execution?.passes?.[selectedPassIndex];
         if (!pass) {
             setStatus('No NPC pass selected.', 'warning', 'Enter troop counts first.');
@@ -761,14 +804,29 @@
             setStatus('Could not identify the current village.', 'warning', 'Open the calculator from a village first.');
             return;
         }
-        const copied = await copyText(formatDistributionForClipboard(pass));
         const marketLocation = findMarketplaceLocation(villageId);
         if (!Number.isFinite(marketLocation)) {
-            setStatus(copied ? 'Distribution copied.' : 'Could not copy distribution.', 'warning', 'Marketplace location unknown. Run Account Operations Center Scan Now once.');
+            setStatus('Marketplace location unknown.', 'warning', 'Run Account Operations Center Scan Now once.');
             return;
         }
-        closePanel();
+
+        keepOpenDuringMarketFill = true;
+        panel?.classList.add('qol-open');
+        setStatus(`Opening Marketplace for Pass ${selectedPassIndex + 1}…`, 'neutral', 'APES will fill the four NPC values automatically.');
         location.hash = `#/page:village/villId:${villageId}/location:${marketLocation}/window:building/tab:NpcTrade`;
+
+        try {
+            const filled = await fillNpcTrader(pass);
+            panel?.classList.add('qol-open');
+            if (filled) {
+                setStatus(`Pass ${selectedPassIndex + 1} filled in NPC merchant.`, 'success', 'Review the four values, then Convert when ready.');
+            } else {
+                setStatus('NPC merchant opened, but APES could not fill the inputs.', 'warning', 'The Marketplace rendered differently than expected.');
+            }
+        } finally {
+            panel?.classList.add('qol-open');
+            keepOpenDuringMarketFill = false;
+        }
     }
 
     function updateCalculations() {
@@ -856,10 +914,10 @@
             setStatus(`${formatNumber(totalUnits)} troops · ${formatNumber(totalCost)} resources`, 'warning', 'No valid NPC pass plan available.');
         } else if (execution.passes.length > 1) {
             const blocked = RESOURCE_KEYS.filter(key => overflow[key] > 0).map(key => RESOURCE_META[key].label).join(', ');
-            setBanner(`Split across ${execution.passes.length} NPC passes${blocked ? ` · ${blocked} is the limiter` : ''}.`, 'warning', 'Select each pass below, copy it, NPC, train, then continue.');
+            setBanner(`Split across ${execution.passes.length} NPC passes${blocked ? ` · ${blocked} is the limiter` : ''}.`, 'warning', 'Select a pass, Open & Fill NPC, train it, then continue.');
             setStatus(`${formatNumber(totalUnits)} troops · ${formatNumber(totalCost)} resources`, 'warning', `${execution.passes.length} NPC passes planned.`);
         } else {
-            setBanner('Fits in one NPC pass.', 'success', 'The copied target is a complete valid NPC distribution.');
+            setBanner('Fits in one NPC pass.', 'success', 'The selected target is a complete valid NPC distribution.');
             setStatus(`${formatNumber(totalUnits)} troops · ${formatNumber(totalCost)} resources`, 'success', 'One NPC pass.');
         }
     }
@@ -893,7 +951,7 @@
   </div>
   <div class="qol-npc-summaries">
     <section class="qol-npc-summary stock"><div class="qol-npc-summary-head"><span>Village stock</span><span>Total <strong id="qol-npc-stock-total">0</strong></span></div><div class="qol-npc-resource-grid">${buildResourceCards('qol-npc-stock',true)}</div><div class="qol-npc-summary-foot"><span>After full plan: <strong id="qol-npc-remaining">0</strong></span><span>Troops: <strong id="qol-npc-units">0</strong></span></div></section>
-    <section class="qol-npc-summary npc"><div class="qol-npc-summary-head"><span>NPC target</span><span>Total <strong id="qol-npc-dist-total">0</strong></span></div><div class="qol-npc-resource-grid">${buildResourceCards('qol-npc-dist',false)}</div><div class="qol-npc-summary-foot"><span>Full plan: <strong id="qol-npc-plan-cost">0</strong> · One-pass overflow: <strong id="qol-npc-overflow">0</strong></span><div class="qol-npc-summary-actions"><span id="qol-npc-passes" class="qol-npc-pill good">1 pass</span><span id="qol-npc-market-copy" class="qol-npc-mini-action disabled" role="button" tabindex="0">Copy + Open NPC</span></div></div></section>
+    <section class="qol-npc-summary npc"><div class="qol-npc-summary-head"><span>NPC target</span><span>Total <strong id="qol-npc-dist-total">0</strong></span></div><div class="qol-npc-resource-grid">${buildResourceCards('qol-npc-dist',false)}</div><div class="qol-npc-summary-foot"><span>Full plan: <strong id="qol-npc-plan-cost">0</strong> · One-pass overflow: <strong id="qol-npc-overflow">0</strong></span><div class="qol-npc-summary-actions"><span id="qol-npc-passes" class="qol-npc-pill good">1 pass</span><span id="qol-npc-market-fill" class="qol-npc-mini-action disabled" role="button" tabindex="0">Open &amp; Fill NPC</span></div></div></section>
   </div>
   <div class="qol-npc-banner" data-tone="neutral"><div class="qol-npc-banner-main"><span class="qol-npc-banner-dot"></span><span class="qol-npc-banner-text">Build your troop plan.</span></div><span class="qol-npc-banner-sub">NPC targets update instantly.</span></div>
   <div class="qol-npc-pass-plan"><div class="qol-npc-pass-head"><span>Execution plan</span><div class="qol-npc-pass-tabs"></div></div><div class="qol-npc-pass-detail"></div></div>
@@ -919,7 +977,7 @@
             updateCalculations();
             setStatus('Village stock refreshed.', 'success', 'Storage capacities reread from the HUD.');
         });
-        bindActivation(panel.querySelector('#qol-npc-market-copy'), openNpcMarketAndCopy);
+        bindActivation(panel.querySelector('#qol-npc-market-fill'), openNpcMarketAndFill);
         bindActivation(panel.querySelector('#qol-npc-add'), addEntry);
         bindActivation(panel.querySelector('#qol-npc-clear'), clearPlan);
         panel.querySelector('#qol-npc-plan-body').appendChild(createRow(selectedTribe));
@@ -973,10 +1031,12 @@
         panel = null;
         toggleButton = null;
         latestCalculation = null;
+        keepOpenDuringMarketFill = false;
         window.qolRepositionAllButtons?.();
     }
 
     window.addEventListener('qol_close_others', event => {
+        if (keepOpenDuringMarketFill) return;
         if (event.detail?.source !== 'npcCalculator') closePanel();
     });
     window.addEventListener('qol_setting_changed', event => {
