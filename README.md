@@ -1,16 +1,27 @@
-# APES QoL v2
+# APES QoL 2.0
 
-APES QoL v2 is the current development line of the APES Travian Kingdoms browser extension.
+APES QoL 2.0 is the current generation of the APES Travian Kingdoms browser extension.
 
 The original v1 extension remains in its own repository. This repository contains the v2 architecture and the actively maintained feature set.
 
 ## Current phase
 
-**2.0.0 — Release hardening**
+**2.0.0-beta.1 — Public Beta**
 
-The manifest is the source of truth for the exact alpha/build number. The project has moved beyond the original foundation phase: shared core services, scoped storage, the responsive toolbar, Command Palette, Account Operations Center, backup/storage tools and the migrated feature set are already in place.
+APES QoL 2.0 is now feature-frozen for the first public beta. The core feature set, scoped storage, responsive toolbar, Command Palette, Account Operations Center, backup/storage tools and migrated gameplay features are in place.
 
-Current work should prioritize stability, storage safety, parser/navigation regression checks, stale-code cleanup and release metadata over adding large new features.
+Beta development should prioritize bug fixes, gameplay edge cases, storage safety, parser/navigation regressions and UI compatibility. Large new features should wait until after the beta stabilizes.
+
+The manifest is the source of truth for the exact installed build and beta number.
+
+## Beta expectations
+
+- Back up APES data before testing major changes or imports.
+- Report reproducible bugs with the feature name, expected result, actual result, server, browser and a screenshot or console error when available.
+- Pay particular attention to multi-page scanners, village switching, server/account switching, backup/restore and features that interact with Travian navigation.
+- A beta build may contain regressions that are not present in the stable v1 extension.
+
+See [Beta 1 release notes](docs/BETA_1_RELEASE_NOTES.md) for the public-beta scope and [release hardening checklist](docs/RELEASE_HARDENING_CHECKLIST.md) for the smoke-test matrix.
 
 ## v2 architecture goals
 
@@ -32,4 +43,4 @@ Current work should prioritize stability, storage safety, parser/navigation regr
 - Scanners must wait for confirmed rendered state before parsing or moving to the next page.
 - Shared UI must use APES-owned classes and controls.
 
-See [docs/V2_ARCHITECTURE.md](docs/V2_ARCHITECTURE.md) for implementation details and [docs/RELEASE_HARDENING_CHECKLIST.md](docs/RELEASE_HARDENING_CHECKLIST.md) for the pre-release smoke-test matrix.
+See [docs/V2_ARCHITECTURE.md](docs/V2_ARCHITECTURE.md) for implementation details.
