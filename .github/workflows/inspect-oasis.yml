@@ -1,0 +1,14 @@
+name: Inspect Oasis Scanner
+on:
+  push:
+    branches:
+      - main
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          grep -n -C 4 -E 'scannerName|Copy Setup|Your Section|overlap|selectedSection|Visual Aid|scannedOverlay|section.*overlay|tagTeam' js/features/oasisScanner.js | head -n 1200
