@@ -1,74 +1,91 @@
-/**
- * APES QoL v2 — Responsive Toolbar
- *
- * One container owns all visible toolbar geometry.
- *
- * Feature modules may continue creating their historical toolbar buttons and
- * attaching their existing click handlers. Those buttons are moved into a
- * hidden action depot before the browser paints. The visible toolbar uses
- * stable proxy controls that trigger the original buttons.
- *
- * This makes legacy per-feature left/top/right/display writes harmless: they
- * only affect hidden source buttons and can no longer cause visible overlap,
- * gaps or flicker.
- */
 (() => {
-    'use strict';
+  'use strict';
 
-    const HOST_ID = 'qol-responsive-toolbar';
-    const DEPOT_ID = 'qol-toolbar-source-depot';
-    const MENU_ID = 'qol-responsive-toolbar-menu';
-    const PROXY_PREFIX = 'qol-toolbar-proxy--';
-    const COG_SOURCE_ID = 'qol-cog-btn';
-    const MAX_EXPANDED_TOOLS = 8;
-
-    const NORMAL_SIZE = 30;
-    const NORMAL_GAP = 6;
-    const COMPACT_SIZE = 28;
-    const COMPACT_GAP = 4;
-    const VIEWPORT_GUTTER = 8;
-    const VILLAGE_GAP = 20;
-
-    const ITEMS = Object.freeze([
-        { id: 'qol-help-toggle-btn', label: 'Help', key: 'help' },
-        { id: 'qol-rally-point-toggle-btn', label: 'Rally Point Scanner', key: 'rallyPointParser' },
-        { id: 'qol-watchlist-toggle', label: 'Watchlists', key: 'watchlist' },
-        { id: 'qol-checklist-toggle-btn', label: 'Checklists', key: 'checklists' },
-        { id: 'qol-building-alarm-toggle-btn', label: 'Building Alarms', key: 'buildingAlarm' },
-        { id: 'qol-npc-calc-toggle-btn', label: 'NPC Calculator', key: 'npcCalculator' },
-        { id: 'qol-resource-planner-toggle-btn', label: 'Resource Upgrade Planner', key: 'resourceUpgradePlanner' },
-        { id: 'qol-distance-calc-toggle-btn', label: 'Distance & Arrival Calculator', key: 'distanceCalculator' },
-        { id: 'qol-oasis-toggle-btn', label: 'Oasis Scanner', key: 'oasisScanner' },
-        { id: 'qol-report-archive-toggle', label: 'Report Archive', key: 'reportArchive' },
-        { id: 'qol-cp-toggle-btn', label: 'CP Manager', key: 'cpManager' },
-        { id: 'qol-ss-scanner-toggle-btn', label: 'Secret Society Scanner', key: 'secretSocietyScanner' },
-        { id: 'qol-tribe-skins-toggle-btn', label: 'Visual Tribe Skin', key: 'visualTribeSkins' }
-    ]);
-
-    const ALL_SOURCE_IDS = Object.freeze([COG_SOURCE_ID, ...ITEMS.map(item => item.id)]);
-
-    let syncScheduled = false;
-    let toolbarCollapsed = false;
-    let observedVillageList = null;
-    let resizeObserver = null;
-
-    function enabled(key) {
-        if (typeof window.isQolEnabled === 'function') {
-            return window.isQolEnabled(key) === true;
-        }
-        try {
-            return localStorage.getItem(`qol_${key}`) !== 'false';
-        } catch (_) {
-            return true;
-        }
+  const HOST_ID = 'qol-responsive-toolbar';
+  const DEPOT_ID = 'qol-toolbar-source-depot';
+  const MENU_ID = 'qol-responsive-toolbar-menu';
+  const PROXY_PREFIX = 'qol-toolbar-proxy--';
+  const COG_SOURCE_ID = 'qol-cog-btn';
+  const MAX_EXPANDED_TOOLS = 8;
+  const NORMAL_SIZE = 30;
+  const NORMAL_GAP = 6;
+  const COMPACT_SIZE = 28;
+  const COMPACT_GAP = 4;
+  const VIEWPORT_GUTTER = 8;
+  const VILLAGE_GAP = 20;
+  const ITEMS = Object.freeze([{
+    id: 'qol-help-toggle-btn',
+    label: 'Help',
+    key: 'help'
+  }, {
+    id: 'qol-rally-point-toggle-btn',
+    label: 'Rally Point Scanner',
+    key: 'rallyPointParser'
+  }, {
+    id: 'qol-watchlist-toggle',
+    label: 'Watchlists',
+    key: 'watchlist'
+  }, {
+    id: 'qol-checklist-toggle-btn',
+    label: 'Checklists',
+    key: 'checklists'
+  }, {
+    id: 'qol-building-alarm-toggle-btn',
+    label: 'Building Alarms',
+    key: 'buildingAlarm'
+  }, {
+    id: 'qol-npc-calc-toggle-btn',
+    label: 'NPC Calculator',
+    key: 'npcCalculator'
+  }, {
+    id: 'qol-resource-planner-toggle-btn',
+    label: 'Resource Upgrade Planner',
+    key: 'resourceUpgradePlanner'
+  }, {
+    id: 'qol-distance-calc-toggle-btn',
+    label: 'Distance & Arrival Calculator',
+    key: 'distanceCalculator'
+  }, {
+    id: 'qol-oasis-toggle-btn',
+    label: 'Oasis Scanner',
+    key: 'oasisScanner'
+  }, {
+    id: 'qol-report-archive-toggle',
+    label: 'Report Archive',
+    key: 'reportArchive'
+  }, {
+    id: 'qol-cp-toggle-btn',
+    label: 'CP Manager',
+    key: 'cpManager'
+  }, {
+    id: 'qol-ss-scanner-toggle-btn',
+    label: 'Secret Society Scanner',
+    key: 'secretSocietyScanner'
+  }, {
+    id: 'qol-tribe-skins-toggle-btn',
+    label: 'Visual Tribe Skin',
+    key: 'visualTribeSkins'
+  }]);
+  const ALL_SOURCE_IDS = Object.freeze([COG_SOURCE_ID, ...ITEMS.map(item => item.id)]);
+  let syncScheduled = false;
+  let toolbarCollapsed = false;
+  let observedVillageList = null;
+  let resizeObserver = null;
+  function enabled(key) {
+    if (typeof window.isQolEnabled === 'function') {
+      return window.isQolEnabled(key) === true;
     }
-
-    function ensureStyles() {
-        if (document.getElementById('qol-responsive-toolbar-styles')) return;
-
-        const style = document.createElement('style');
-        style.id = 'qol-responsive-toolbar-styles';
-        style.textContent = `
+    try {
+      return localStorage.getItem(`qol_${key}`) !== 'false';
+    } catch (_) {
+      return true;
+    }
+  }
+  function ensureStyles() {
+    if (document.getElementById('qol-responsive-toolbar-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'qol-responsive-toolbar-styles';
+    style.textContent = `
             #${DEPOT_ID}{display:none!important;position:absolute!important;width:0!important;height:0!important;overflow:hidden!important;pointer-events:none!important}
 
             #${HOST_ID},#${HOST_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
@@ -233,198 +250,179 @@
             }
             #${MENU_ID} .qol-responsive-toolbar-arrow{color:#967d5b!important;font-size:11px!important}
         `;
-        (document.head || document.documentElement).appendChild(style);
+    (document.head || document.documentElement).appendChild(style);
+  }
+  function ensureDepot() {
+    let depot = document.getElementById(DEPOT_ID);
+    if (!depot) {
+      depot = document.createElement('div');
+      depot.id = DEPOT_ID;
+      depot.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(depot);
     }
-
-    function ensureDepot() {
-        let depot = document.getElementById(DEPOT_ID);
-        if (!depot) {
-            depot = document.createElement('div');
-            depot.id = DEPOT_ID;
-            depot.setAttribute('aria-hidden', 'true');
-            document.body.appendChild(depot);
-        }
-        return depot;
+    return depot;
+  }
+  function ensureHost() {
+    let host = document.getElementById(HOST_ID);
+    if (!host) {
+      host = document.createElement('div');
+      host.id = HOST_ID;
+      host.setAttribute('role', 'toolbar');
+      host.setAttribute('aria-label', 'APES QoL toolbar');
+      document.body.appendChild(host);
     }
-
-    function ensureHost() {
-        let host = document.getElementById(HOST_ID);
-        if (!host) {
-            host = document.createElement('div');
-            host.id = HOST_ID;
-            host.setAttribute('role', 'toolbar');
-            host.setAttribute('aria-label', 'APES QoL toolbar');
-            document.body.appendChild(host);
-        }
-        return host;
+    return host;
+  }
+  function ensureMenu() {
+    let menu = document.getElementById(MENU_ID);
+    if (!menu) {
+      menu = document.createElement('div');
+      menu.id = MENU_ID;
+      menu.setAttribute('role', 'menu');
+      document.body.appendChild(menu);
     }
-
-    function ensureMenu() {
-        let menu = document.getElementById(MENU_ID);
-        if (!menu) {
-            menu = document.createElement('div');
-            menu.id = MENU_ID;
-            menu.setAttribute('role', 'menu');
-            document.body.appendChild(menu);
-        }
-        return menu;
+    return menu;
+  }
+  function sourceFor(id) {
+    return document.getElementById(id);
+  }
+  function captureSources() {
+    const depot = ensureDepot();
+    ALL_SOURCE_IDS.forEach(id => {
+      const source = sourceFor(id);
+      if (!source || source.parentElement === depot) return;
+      if (source.closest(`#${HOST_ID},#${MENU_ID}`)) return;
+      depot.appendChild(source);
+    });
+  }
+  function triggerSource(id) {
+    const source = sourceFor(id);
+    if (!source) return false;
+    source.dispatchEvent(new MouseEvent('click', {
+      bubbles: true,
+      cancelable: true,
+      view: window,
+      button: 0
+    }));
+    return true;
+  }
+  function proxyId(sourceId) {
+    return `${PROXY_PREFIX}${sourceId}`;
+  }
+  function abbreviation(label) {
+    return String(label || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase() || '').join('') || '?';
+  }
+  function copySvgPresentation(source, proxy) {
+    const sourceSvg = source?.querySelector('svg');
+    const proxySvg = proxy?.querySelector('svg');
+    if (!sourceSvg || !proxySvg) return;
+    try {
+      const computed = getComputedStyle(sourceSvg);
+      ['fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'].forEach(property => {
+        const value = computed.getPropertyValue(property);
+        if (value) proxySvg.style.setProperty(property, value, 'important');
+      });
+    } catch (_) {}
+  }
+  function ensureProxy(host, source, sourceId, label, extraClass = '') {
+    const id = proxyId(sourceId);
+    let proxy = document.getElementById(id);
+    if (!proxy) {
+      proxy = document.createElement('div');
+      proxy.id = id;
+      proxy.className = `qol-toolbar-proxy ${extraClass}`.trim();
+      proxy.setAttribute('role', 'button');
+      proxy.setAttribute('tabindex', '0');
+      proxy.dataset.qolSourceId = sourceId;
+      const activate = event => {
+        event.preventDefault();
+        event.stopPropagation();
+        activateProxy(proxy);
+      };
+      proxy.addEventListener('click', activate);
+      proxy.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') activate(event);
+      });
+      host.appendChild(proxy);
     }
-
-    function sourceFor(id) {
-        return document.getElementById(id);
+    const sourceMarkup = String(source?.innerHTML || '').trim();
+    const markup = sourceMarkup || `<span>${abbreviation(label)}</span>`;
+    if (proxy.dataset.qolMarkup !== markup) {
+      proxy.innerHTML = markup;
+      proxy.dataset.qolMarkup = markup;
+      copySvgPresentation(source, proxy);
     }
-
-    function captureSources() {
-        const depot = ensureDepot();
-        ALL_SOURCE_IDS.forEach(id => {
-            const source = sourceFor(id);
-            if (!source || source.parentElement === depot) return;
-            if (source.closest(`#${HOST_ID},#${MENU_ID}`)) return;
-            depot.appendChild(source);
-        });
+    proxy.title = source?.title || label;
+    proxy.setAttribute('aria-label', source?.getAttribute('aria-label') || label);
+    proxy.classList.toggle('qol-toolbar-text-icon', !proxy.querySelector('svg,i,img'));
+    return proxy;
+  }
+  function activeItems() {
+    return ITEMS.filter(item => {
+      if (!enabled(item.key)) return false;
+      return Boolean(sourceFor(item.id));
+    });
+  }
+  function widthFor(toolCount, size, gap) {
+    const controls = 1 + toolCount;
+    return controls * size + Math.max(0, controls - 1) * gap;
+  }
+  function resolveLayout(villageRect, toolCount) {
+    if (toolCount > MAX_EXPANDED_TOOLS) {
+      return {
+        collapsed: true,
+        mode: 'normal',
+        width: NORMAL_SIZE
+      };
     }
-
-    function triggerSource(id) {
-        const source = sourceFor(id);
-        if (!source) return false;
-        source.dispatchEvent(new MouseEvent('click', {
-            bubbles: true,
-            cancelable: true,
-            view: window,
-            button: 0
-        }));
-        return true;
+    const start = villageRect.right + VILLAGE_GAP;
+    const normalWidth = widthFor(toolCount, NORMAL_SIZE, NORMAL_GAP);
+    if (start + normalWidth <= window.innerWidth - VIEWPORT_GUTTER) {
+      return {
+        collapsed: false,
+        mode: 'normal',
+        width: normalWidth
+      };
     }
-
-    function proxyId(sourceId) {
-        return `${PROXY_PREFIX}${sourceId}`;
+    const compactWidth = widthFor(toolCount, COMPACT_SIZE, COMPACT_GAP);
+    if (start + compactWidth <= window.innerWidth - VIEWPORT_GUTTER) {
+      return {
+        collapsed: false,
+        mode: 'compact',
+        width: compactWidth
+      };
     }
-
-    function abbreviation(label) {
-        return String(label || '?')
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map(part => part[0]?.toUpperCase() || '')
-            .join('') || '?';
-    }
-
-    function copySvgPresentation(source, proxy) {
-        const sourceSvg = source?.querySelector('svg');
-        const proxySvg = proxy?.querySelector('svg');
-        if (!sourceSvg || !proxySvg) return;
-
-        try {
-            const computed = getComputedStyle(sourceSvg);
-            ['fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin'].forEach(property => {
-                const value = computed.getPropertyValue(property);
-                if (value) proxySvg.style.setProperty(property, value, 'important');
-            });
-        } catch (_) {}
-    }
-
-    function ensureProxy(host, source, sourceId, label, extraClass = '') {
-        const id = proxyId(sourceId);
-        let proxy = document.getElementById(id);
-        if (!proxy) {
-            proxy = document.createElement('div');
-            proxy.id = id;
-            proxy.className = `qol-toolbar-proxy ${extraClass}`.trim();
-            proxy.setAttribute('role', 'button');
-            proxy.setAttribute('tabindex', '0');
-            proxy.dataset.qolSourceId = sourceId;
-
-            const activate = event => {
-                event.preventDefault();
-                event.stopPropagation();
-                activateProxy(proxy);
-            };
-            proxy.addEventListener('click', activate);
-            proxy.addEventListener('keydown', event => {
-                if (event.key === 'Enter' || event.key === ' ') activate(event);
-            });
-            host.appendChild(proxy);
-        }
-
-        const sourceMarkup = String(source?.innerHTML || '').trim();
-        const markup = sourceMarkup || `<span>${abbreviation(label)}</span>`;
-        if (proxy.dataset.qolMarkup !== markup) {
-            proxy.innerHTML = markup;
-            proxy.dataset.qolMarkup = markup;
-            copySvgPresentation(source, proxy);
-        }
-
-        proxy.title = source?.title || label;
-        proxy.setAttribute('aria-label', source?.getAttribute('aria-label') || label);
-        proxy.classList.toggle('qol-toolbar-text-icon', !proxy.querySelector('svg,i,img'));
-        return proxy;
-    }
-
-    function activeItems() {
-        return ITEMS.filter(item => {
-            if (!enabled(item.key)) return false;
-            return Boolean(sourceFor(item.id));
-        });
-    }
-
-    function widthFor(toolCount, size, gap) {
-        const controls = 1 + toolCount;
-        return controls * size + Math.max(0, controls - 1) * gap;
-    }
-
-    function resolveLayout(villageRect, toolCount) {
-        if (toolCount > MAX_EXPANDED_TOOLS) {
-            return { collapsed: true, mode: 'normal', width: NORMAL_SIZE };
-        }
-
-        const start = villageRect.right + VILLAGE_GAP;
-        const normalWidth = widthFor(toolCount, NORMAL_SIZE, NORMAL_GAP);
-        if (start + normalWidth <= window.innerWidth - VIEWPORT_GUTTER) {
-            return { collapsed: false, mode: 'normal', width: normalWidth };
-        }
-
-        const compactWidth = widthFor(toolCount, COMPACT_SIZE, COMPACT_GAP);
-        if (start + compactWidth <= window.innerWidth - VIEWPORT_GUTTER) {
-            return { collapsed: false, mode: 'compact', width: compactWidth };
-        }
-
-        return { collapsed: true, mode: 'normal', width: NORMAL_SIZE };
-    }
-
-    function setCompatibilityState(collapsed) {
-        toolbarCollapsed = collapsed;
-        window.qolToolbarCollapsed = collapsed;
-        document.body?.classList.toggle('qol-toolbar-collapsed', collapsed);
-        document.getElementById('qol-toolbar-dropdown')?.classList.remove('qol-open');
-    }
-
-    function closeMenu() {
-        document.getElementById(MENU_ID)?.classList.remove('qol-open');
-    }
-
-    function positionMenu(menu) {
-        const host = document.getElementById(HOST_ID);
-        if (!host) return;
-        const rect = host.getBoundingClientRect();
-        const width = menu.offsetWidth || 240;
-        const left = Math.max(VIEWPORT_GUTTER, Math.min(
-            rect.left,
-            window.innerWidth - width - VIEWPORT_GUTTER
-        ));
-        const below = rect.bottom + 8;
-        const menuHeight = menu.offsetHeight || 320;
-        const top = below + menuHeight <= window.innerHeight - VIEWPORT_GUTTER
-            ? below
-            : Math.max(VIEWPORT_GUTTER, rect.top - menuHeight - 8);
-
-        menu.style.setProperty('left', `${Math.round(left)}px`, 'important');
-        menu.style.setProperty('top', `${Math.round(top)}px`, 'important');
-    }
-
-    function openOverflowMenu() {
-        const menu = ensureMenu();
-        const items = activeItems();
-        menu.innerHTML = `
+    return {
+      collapsed: true,
+      mode: 'normal',
+      width: NORMAL_SIZE
+    };
+  }
+  function setCompatibilityState(collapsed) {
+    toolbarCollapsed = collapsed;
+    window.qolToolbarCollapsed = collapsed;
+    document.body?.classList.toggle('qol-toolbar-collapsed', collapsed);
+    document.getElementById('qol-toolbar-dropdown')?.classList.remove('qol-open');
+  }
+  function closeMenu() {
+    document.getElementById(MENU_ID)?.classList.remove('qol-open');
+  }
+  function positionMenu(menu) {
+    const host = document.getElementById(HOST_ID);
+    if (!host) return;
+    const rect = host.getBoundingClientRect();
+    const width = menu.offsetWidth || 240;
+    const left = Math.max(VIEWPORT_GUTTER, Math.min(rect.left, window.innerWidth - width - VIEWPORT_GUTTER));
+    const below = rect.bottom + 8;
+    const menuHeight = menu.offsetHeight || 320;
+    const top = below + menuHeight <= window.innerHeight - VIEWPORT_GUTTER ? below : Math.max(VIEWPORT_GUTTER, rect.top - menuHeight - 8);
+    menu.style.setProperty('left', `${Math.round(left)}px`, 'important');
+    menu.style.setProperty('top', `${Math.round(top)}px`, 'important');
+  }
+  function openOverflowMenu() {
+    const menu = ensureMenu();
+    const items = activeItems();
+    menu.innerHTML = `
             <div class="qol-responsive-toolbar-title">Enabled APES tools</div>
             ${items.map(item => `
                 <div class="qol-responsive-toolbar-item" data-qol-source-id="${item.id}" role="menuitem" tabindex="0">
@@ -435,217 +433,175 @@
                 <span>APES QoL Settings</span><span class="qol-responsive-toolbar-arrow">⚙</span>
             </div>
         `;
-
-        menu.querySelectorAll('[data-qol-source-id]').forEach(entry => {
-            const activate = event => {
-                event.preventDefault();
-                event.stopPropagation();
-                closeMenu();
-                triggerSource(entry.dataset.qolSourceId);
-            };
-            entry.addEventListener('click', activate);
-            entry.addEventListener('keydown', event => {
-                if (event.key === 'Enter' || event.key === ' ') activate(event);
-            });
-        });
-
-        const settings = menu.querySelector('[data-qol-settings="true"]');
-        const openSettings = event => {
-            event.preventDefault();
-            event.stopPropagation();
-            closeMenu();
-            triggerSource(COG_SOURCE_ID);
-        };
-        settings?.addEventListener('click', openSettings);
-        settings?.addEventListener('keydown', event => {
-            if (event.key === 'Enter' || event.key === ' ') openSettings(event);
-        });
-
-        menu.classList.add('qol-open');
-        requestAnimationFrame(() => positionMenu(menu));
-    }
-
-    function toggleOverflowMenu() {
-        const menu = ensureMenu();
-        if (menu.classList.contains('qol-open')) closeMenu();
-        else openOverflowMenu();
-    }
-
-    function activateProxy(proxy) {
-        const sourceId = proxy.dataset.qolSourceId;
-        if (sourceId === COG_SOURCE_ID && toolbarCollapsed) {
-            toggleOverflowMenu();
-            return;
-        }
-        triggerSource(sourceId);
-    }
-
-    function placeProxyAt(host, proxy, index) {
-        const current = host.children[index] || null;
-        if (current === proxy) return;
-        host.insertBefore(proxy, current);
-    }
-
-    function syncProxies(host, items) {
-        const cogSource = sourceFor(COG_SOURCE_ID);
-        if (!cogSource) return false;
-
-        const wanted = new Set();
-        let slot = 0;
-
-        const cog = ensureProxy(host, cogSource, COG_SOURCE_ID, 'APES QoL Settings', 'qol-toolbar-cog-proxy');
-        placeProxyAt(host, cog, slot++);
-        wanted.add(cog.id);
-
-        items.forEach(item => {
-            const source = sourceFor(item.id);
-            if (!source) return;
-            const proxy = ensureProxy(host, source, item.id, item.label, 'qol-toolbar-feature-proxy');
-            placeProxyAt(host, proxy, slot++);
-            wanted.add(proxy.id);
-        });
-
-        [...host.querySelectorAll('.qol-toolbar-proxy')].forEach(proxy => {
-            if (!wanted.has(proxy.id)) proxy.remove();
-        });
-        return true;
-    }
-
-    function syncVillageResizeObserver(villageList) {
-        if (observedVillageList === villageList) return;
-        resizeObserver?.disconnect();
-        observedVillageList = villageList || null;
-
-        if (!villageList || typeof ResizeObserver !== 'function') return;
-        resizeObserver = new ResizeObserver(scheduleSync);
-        resizeObserver.observe(villageList);
-    }
-
-    function hideToolbar(host) {
-        host.style.setProperty('display', 'none', 'important');
-        setCompatibilityState(false);
+    menu.querySelectorAll('[data-qol-source-id]').forEach(entry => {
+      const activate = event => {
+        event.preventDefault();
+        event.stopPropagation();
         closeMenu();
+        triggerSource(entry.dataset.qolSourceId);
+      };
+      entry.addEventListener('click', activate);
+      entry.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') activate(event);
+      });
+    });
+    const settings = menu.querySelector('[data-qol-settings="true"]');
+    const openSettings = event => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenu();
+      triggerSource(COG_SOURCE_ID);
+    };
+    settings?.addEventListener('click', openSettings);
+    settings?.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') openSettings(event);
+    });
+    menu.classList.add('qol-open');
+    requestAnimationFrame(() => positionMenu(menu));
+  }
+  function toggleOverflowMenu() {
+    const menu = ensureMenu();
+    if (menu.classList.contains('qol-open')) closeMenu();else openOverflowMenu();
+  }
+  function activateProxy(proxy) {
+    const sourceId = proxy.dataset.qolSourceId;
+    if (sourceId === COG_SOURCE_ID && toolbarCollapsed) {
+      toggleOverflowMenu();
+      return;
     }
-
-    function syncToolbar() {
-        syncScheduled = false;
-        ensureStyles();
-        captureSources();
-
-        const host = ensureHost();
-        const villageList = document.getElementById('villageList');
-        syncVillageResizeObserver(villageList);
-
-        const rect = villageList?.getBoundingClientRect();
-        if (!villageList || !rect || rect.width <= 0 || rect.height <= 0) {
-            hideToolbar(host);
-            return;
-        }
-
-        const items = activeItems();
-        if (!syncProxies(host, items)) {
-            hideToolbar(host);
-            return;
-        }
-
-        const layout = resolveLayout(rect, items.length);
-        setCompatibilityState(layout.collapsed);
-
-        host.classList.toggle('qol-toolbar-collapsed-host', layout.collapsed);
-        host.classList.toggle('qol-toolbar-compact', layout.mode === 'compact');
-        host.style.setProperty('--qol-toolbar-size', `${layout.mode === 'compact' ? COMPACT_SIZE : NORMAL_SIZE}px`, 'important');
-        host.style.setProperty('--qol-toolbar-gap', `${layout.mode === 'compact' ? COMPACT_GAP : NORMAL_GAP}px`, 'important');
-
-        const left = Math.max(
-            VIEWPORT_GUTTER,
-            Math.min(rect.right + VILLAGE_GAP, window.innerWidth - layout.width - VIEWPORT_GUTTER)
-        );
-        const size = layout.mode === 'compact' ? COMPACT_SIZE : NORMAL_SIZE;
-        const top = Math.max(
-            VIEWPORT_GUTTER,
-            Math.min(rect.top + 4, window.innerHeight - size - VIEWPORT_GUTTER)
-        );
-
-        host.style.setProperty('left', `${Math.round(left)}px`, 'important');
-        host.style.setProperty('top', `${Math.round(top)}px`, 'important');
-        host.style.setProperty('display', 'flex', 'important');
-
-        const cog = document.getElementById(proxyId(COG_SOURCE_ID));
-        if (cog) {
-            cog.title = layout.collapsed
-                ? `APES QoL tools (${items.length})`
-                : 'APES QoL Settings';
-            cog.setAttribute('aria-label', cog.title);
-        }
-
-        if (!layout.collapsed) closeMenu();
-        else if (document.getElementById(MENU_ID)?.classList.contains('qol-open')) {
-            requestAnimationFrame(() => positionMenu(document.getElementById(MENU_ID)));
-        }
+    triggerSource(sourceId);
+  }
+  function placeProxyAt(host, proxy, index) {
+    const current = host.children[index] || null;
+    if (current === proxy) return;
+    host.insertBefore(proxy, current);
+  }
+  function syncProxies(host, items) {
+    const cogSource = sourceFor(COG_SOURCE_ID);
+    if (!cogSource) return false;
+    const wanted = new Set();
+    let slot = 0;
+    const cog = ensureProxy(host, cogSource, COG_SOURCE_ID, 'APES QoL Settings', 'qol-toolbar-cog-proxy');
+    placeProxyAt(host, cog, slot++);
+    wanted.add(cog.id);
+    items.forEach(item => {
+      const source = sourceFor(item.id);
+      if (!source) return;
+      const proxy = ensureProxy(host, source, item.id, item.label, 'qol-toolbar-feature-proxy');
+      placeProxyAt(host, proxy, slot++);
+      wanted.add(proxy.id);
+    });
+    [...host.querySelectorAll('.qol-toolbar-proxy')].forEach(proxy => {
+      if (!wanted.has(proxy.id)) proxy.remove();
+    });
+    return true;
+  }
+  function syncVillageResizeObserver(villageList) {
+    if (observedVillageList === villageList) return;
+    resizeObserver?.disconnect();
+    observedVillageList = villageList || null;
+    if (!villageList || typeof ResizeObserver !== 'function') return;
+    resizeObserver = new ResizeObserver(scheduleSync);
+    resizeObserver.observe(villageList);
+  }
+  function hideToolbar(host) {
+    host.style.setProperty('display', 'none', 'important');
+    setCompatibilityState(false);
+    closeMenu();
+  }
+  function syncToolbar() {
+    syncScheduled = false;
+    ensureStyles();
+    captureSources();
+    const host = ensureHost();
+    const villageList = document.getElementById('villageList');
+    syncVillageResizeObserver(villageList);
+    const rect = villageList?.getBoundingClientRect();
+    if (!villageList || !rect || rect.width <= 0 || rect.height <= 0) {
+      hideToolbar(host);
+      return;
     }
-
-    function scheduleSync() {
-        if (syncScheduled) return;
-        syncScheduled = true;
-        requestAnimationFrame(syncToolbar);
+    const items = activeItems();
+    if (!syncProxies(host, items)) {
+      hideToolbar(host);
+      return;
     }
-
-    function captureAndSchedule() {
-        // Capture happens in the MutationObserver microtask, before the next
-        // paint, so a newly mounted legacy source button is never visible.
-        captureSources();
-        scheduleSync();
+    const layout = resolveLayout(rect, items.length);
+    setCompatibilityState(layout.collapsed);
+    host.classList.toggle('qol-toolbar-collapsed-host', layout.collapsed);
+    host.classList.toggle('qol-toolbar-compact', layout.mode === 'compact');
+    host.style.setProperty('--qol-toolbar-size', `${layout.mode === 'compact' ? COMPACT_SIZE : NORMAL_SIZE}px`, 'important');
+    host.style.setProperty('--qol-toolbar-gap', `${layout.mode === 'compact' ? COMPACT_GAP : NORMAL_GAP}px`, 'important');
+    const left = Math.max(VIEWPORT_GUTTER, Math.min(rect.right + VILLAGE_GAP, window.innerWidth - layout.width - VIEWPORT_GUTTER));
+    const size = layout.mode === 'compact' ? COMPACT_SIZE : NORMAL_SIZE;
+    const top = Math.max(VIEWPORT_GUTTER, Math.min(rect.top + 4, window.innerHeight - size - VIEWPORT_GUTTER));
+    host.style.setProperty('left', `${Math.round(left)}px`, 'important');
+    host.style.setProperty('top', `${Math.round(top)}px`, 'important');
+    host.style.setProperty('display', 'flex', 'important');
+    const cog = document.getElementById(proxyId(COG_SOURCE_ID));
+    if (cog) {
+      cog.title = layout.collapsed ? `APES QoL tools (${items.length})` : 'APES QoL Settings';
+      cog.setAttribute('aria-label', cog.title);
     }
-
-    function init() {
-        ensureStyles();
-        ensureDepot();
-        ensureHost();
-        ensureMenu();
-        captureSources();
-
-        // Feature modules may request a toolbar refresh, but they never receive
-        // geometry ownership. The visible row is laid out only by this host.
-        window.qolRepositionAllButtons = scheduleSync;
-        window.qolRefreshToolbar = scheduleSync;
-
-        const observer = new MutationObserver(captureAndSchedule);
-        observer.observe(document.documentElement, {
-            childList: true,
-            subtree: true
-        });
-
-        window.addEventListener('resize', scheduleSync, { passive: true });
-        window.addEventListener('scroll', scheduleSync, { passive: true });
-        window.addEventListener('hashchange', scheduleSync);
-        window.addEventListener('qol_setting_changed', scheduleSync);
-        window.addEventListener('qol_theme_changed', scheduleSync);
-
-        document.addEventListener('click', event => {
-            const menu = document.getElementById(MENU_ID);
-            if (!menu?.classList.contains('qol-open')) return;
-            if (event.target.closest(`#${MENU_ID},#${HOST_ID}`)) return;
-            closeMenu();
-        }, true);
-
-        document.addEventListener('keydown', event => {
-            if (event.key !== 'Escape') return;
-            const menu = document.getElementById(MENU_ID);
-            if (!menu?.classList.contains('qol-open')) return;
-            closeMenu();
-            event.preventDefault();
-            event.stopImmediatePropagation();
-        }, true);
-
-        syncToolbar();
-        window.setTimeout(scheduleSync, 100);
-        window.setTimeout(scheduleSync, 500);
-        window.setTimeout(scheduleSync, 1500);
+    if (!layout.collapsed) closeMenu();else if (document.getElementById(MENU_ID)?.classList.contains('qol-open')) {
+      requestAnimationFrame(() => positionMenu(document.getElementById(MENU_ID)));
     }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init, { once: true });
-    } else {
-        init();
-    }
+  }
+  function scheduleSync() {
+    if (syncScheduled) return;
+    syncScheduled = true;
+    requestAnimationFrame(syncToolbar);
+  }
+  function captureAndSchedule() {
+    captureSources();
+    scheduleSync();
+  }
+  function init() {
+    ensureStyles();
+    ensureDepot();
+    ensureHost();
+    ensureMenu();
+    captureSources();
+    window.qolRepositionAllButtons = scheduleSync;
+    window.qolRefreshToolbar = scheduleSync;
+    const observer = new MutationObserver(captureAndSchedule);
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true
+    });
+    window.addEventListener('resize', scheduleSync, {
+      passive: true
+    });
+    window.addEventListener('scroll', scheduleSync, {
+      passive: true
+    });
+    window.addEventListener('hashchange', scheduleSync);
+    window.addEventListener('qol_setting_changed', scheduleSync);
+    window.addEventListener('qol_theme_changed', scheduleSync);
+    document.addEventListener('click', event => {
+      const menu = document.getElementById(MENU_ID);
+      if (!menu?.classList.contains('qol-open')) return;
+      if (event.target.closest(`#${MENU_ID},#${HOST_ID}`)) return;
+      closeMenu();
+    }, true);
+    document.addEventListener('keydown', event => {
+      if (event.key !== 'Escape') return;
+      const menu = document.getElementById(MENU_ID);
+      if (!menu?.classList.contains('qol-open')) return;
+      closeMenu();
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    }, true);
+    syncToolbar();
+    window.setTimeout(scheduleSync, 100);
+    window.setTimeout(scheduleSync, 500);
+    window.setTimeout(scheduleSync, 1500);
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, {
+      once: true
+    });
+  } else {
+    init();
+  }
 })();

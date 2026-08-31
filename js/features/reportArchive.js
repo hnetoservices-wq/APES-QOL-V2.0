@@ -1,625 +1,246 @@
-/**
- * APES QoL Extension
- * Module: Report Archive
- *
- * Archives opened Travian reports in custom folders and displays them in a
- * compact APES-owned viewer. Existing reports saved by older versions remain
- * compatible and are converted to the compact view when opened.
- */
+(function () {
+  'use strict';
 
-(function() {
-    'use strict';
-
-    const FEATURE_KEY = 'reportArchive';
-    const STORAGE_KEY = `qol_report_archive_${window.location.hostname}`;
-    const ALL_FOLDER_ID = '__all__';
-    const DEFAULT_FOLDER_ID = '__unfiled__';
-    const STYLE_ID = 'qol-report-archive-styles';
-
-    let archive = createEmptyArchive();
-    let toolbarButton = null;
-    let archivePanel = null;
-    let reportObserver = null;
-    let integrationObserver = null;
-    let integrationScheduled = false;
-    let scanScheduled = false;
-    let activeFolderId = ALL_FOLDER_ID;
-    let activeReportId = null;
-    let pendingReportId = null;
-    let featureStarted = false;
-    let draggedFolderId = null;
-    let suppressFolderClick = false;
-    let searchMode = 'name';
-    let searchQuery = '';
-
-    function createEmptyArchive() {
-        return {
-            version: 2,
-            updatedAt: 0,
-            folders: [],
-            reports: []
-        };
+  const FEATURE_KEY = 'reportArchive';
+  const STORAGE_KEY = `qol_report_archive_${window.location.hostname}`;
+  const ALL_FOLDER_ID = '__all__';
+  const DEFAULT_FOLDER_ID = '__unfiled__';
+  const STYLE_ID = 'qol-report-archive-styles';
+  let archive = createEmptyArchive();
+  let toolbarButton = null;
+  let archivePanel = null;
+  let reportObserver = null;
+  let integrationObserver = null;
+  let integrationScheduled = false;
+  let scanScheduled = false;
+  let activeFolderId = ALL_FOLDER_ID;
+  let activeReportId = null;
+  let pendingReportId = null;
+  let featureStarted = false;
+  let draggedFolderId = null;
+  let suppressFolderClick = false;
+  let searchMode = 'name';
+  let searchQuery = '';
+  function createEmptyArchive() {
+    return {
+      version: 2,
+      updatedAt: 0,
+      folders: [],
+      reports: []
+    };
+  }
+  function isEnabled() {
+    return !window.isQolEnabled || window.isQolEnabled(FEATURE_KEY);
+  }
+  function bindControl(element, callback) {
+    if (!element) return;
+    element.addEventListener('click', callback);
+    element.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') {
+        return;
+      }
+      event.preventDefault();
+      callback(event);
+    });
+  }
+  function ensureMenuIntegration() {
+    const checkbox = document.querySelector('#qol-advanced-feature-grid #qol-chk-report-archive');
+    if (checkbox) checkbox.checked = isEnabled();
+  }
+  function installToolbarPositionHook() {
+    if (window.__qolReportArchivePositionHooked) {
+      return;
     }
-
-    function isEnabled() {
-        return (
-            !window.isQolEnabled ||
-            window.isQolEnabled(FEATURE_KEY)
-        );
+    if (typeof window.qolRepositionAllButtons !== 'function') {
+      return;
     }
-
-    function bindControl(element, callback) {
-        if (!element) return;
-
-        element.addEventListener(
-            'click',
-            callback
-        );
-
-        element.addEventListener(
-            'keydown',
-            event => {
-                if (
-                    event.key !== 'Enter' &&
-                    event.key !== ' '
-                ) {
-                    return;
-                }
-
-                event.preventDefault();
-                callback(event);
-            }
-        );
+    const originalReposition = window.qolRepositionAllButtons;
+    window.qolRepositionAllButtons = function (...args) {
+      const result = originalReposition.apply(this, args);
+      requestAnimationFrame(positionToolbarButton);
+      return result;
+    };
+    window.__qolReportArchivePositionHooked = true;
+  }
+  function positionToolbarButton() {
+    const button = document.getElementById('qol-report-archive-toggle');
+    if (!button) return;
+    const villageList = document.getElementById('villageList');
+    if (!villageList || !isEnabled()) {
+      button.style.setProperty('display', 'none', 'important');
+      return;
     }
-
-    function ensureMenuIntegration() {
-        const checkbox = document.querySelector(
-            '#qol-advanced-feature-grid #qol-chk-report-archive'
-        );
-        if (checkbox) checkbox.checked = isEnabled();
+    const villageRect = villageList.getBoundingClientRect();
+    if (villageRect.width <= 0 || villageRect.height <= 0) {
+      button.style.setProperty('display', 'none', 'important');
+      return;
     }
-
-    function installToolbarPositionHook() {
-        if (
-            window
-                .__qolReportArchivePositionHooked
-        ) {
+    const otherButtonIds = ['qol-cog-btn', 'qol-help-toggle-btn', 'qol-rally-point-toggle-btn', 'qol-watchlist-toggle', 'qol-checklist-toggle-btn', 'qol-npc-calc-toggle-btn', 'qol-oasis-toggle-btn'];
+    let nextLeft = villageRect.right + 20;
+    otherButtonIds.forEach(id => {
+      const candidate = document.getElementById(id);
+      if (!candidate || window.getComputedStyle(candidate).display === 'none') {
+        return;
+      }
+      const rect = candidate.getBoundingClientRect();
+      if (rect.width > 0) {
+        nextLeft = Math.max(nextLeft, rect.right + 6);
+      }
+    });
+    const importantStyles = {
+      position: 'fixed',
+      left: `${nextLeft}px`,
+      top: `${villageRect.top + 4}px`,
+      width: '30px',
+      height: '30px',
+      display: 'flex',
+      'z-index': '9999'
+    };
+    Object.entries(importantStyles).forEach(([property, value]) => {
+      button.style.setProperty(property, value, 'important');
+    });
+  }
+  function scheduleIntegration() {
+    if (integrationScheduled) {
+      return;
+    }
+    integrationScheduled = true;
+    requestAnimationFrame(() => {
+      integrationScheduled = false;
+      ensureMenuIntegration();
+      installToolbarPositionHook();
+      positionToolbarButton();
+    });
+  }
+  function makeId(prefix) {
+    return `${prefix}_` + `${Date.now().toString(36)}_` + `${Math.random().toString(36).slice(2, 9)}`;
+  }
+  function normalizeArchive(value) {
+    const source = value && typeof value === 'object' ? value : createEmptyArchive();
+    return {
+      version: 2,
+      updatedAt: Number.isFinite(Number(source.updatedAt)) ? Number(source.updatedAt) : 0,
+      folders: Array.isArray(source.folders) ? source.folders : [],
+      reports: Array.isArray(source.reports) ? source.reports : []
+    };
+  }
+  function getArchiveFreshness(value) {
+    const normalized = normalizeArchive(value);
+    const folderTimes = normalized.folders.flatMap(folder => [Number(folder.createdAt) || 0, Number(folder.updatedAt) || 0]);
+    const reportTimes = normalized.reports.flatMap(report => [Number(report.savedAt) || 0, Number(report.updatedAt) || 0]);
+    return Math.max(Number(normalized.updatedAt) || 0, 0, ...folderTimes, ...reportTimes);
+  }
+  function selectNewestArchive(extensionArchive, fallbackArchive) {
+    const extensionValue = normalizeArchive(extensionArchive);
+    const fallbackValue = normalizeArchive(fallbackArchive);
+    return getArchiveFreshness(fallbackValue) > getArchiveFreshness(extensionValue) ? fallbackValue : extensionValue;
+  }
+  function canUseExtensionStorage() {
+    try {
+      return Boolean(typeof chrome !== 'undefined' && chrome.storage?.local && typeof chrome.storage.local.get === 'function' && typeof chrome.storage.local.set === 'function');
+    } catch (error) {
+      return false;
+    }
+  }
+  function getExtensionRuntimeError() {
+    try {
+      return chrome.runtime?.lastError || null;
+    } catch (error) {
+      return error;
+    }
+  }
+  function loadLocalFallback() {
+    try {
+      return normalizeArchive(JSON.parse(localStorage.getItem(STORAGE_KEY) || 'null'));
+    } catch (error) {
+      console.warn('[APES Report Archive] ' + 'Could not load fallback storage:', error);
+      return createEmptyArchive();
+    }
+  }
+  function loadArchive() {
+    return new Promise(resolve => {
+      const fallbackArchive = loadLocalFallback();
+      if (!canUseExtensionStorage()) {
+        resolve(fallbackArchive);
+        return;
+      }
+      try {
+        chrome.storage.local.get([STORAGE_KEY], result => {
+          const error = getExtensionRuntimeError();
+          if (error) {
+            console.warn('[APES Report Archive] ' + 'Could not load extension storage:', error.message);
+            resolve(fallbackArchive);
             return;
-        }
-
-        if (
-            typeof window
-                .qolRepositionAllButtons !==
-            'function'
-        ) {
-            return;
-        }
-
-        const originalReposition =
-            window.qolRepositionAllButtons;
-
-        window.qolRepositionAllButtons =
-            function(...args) {
-                const result =
-                    originalReposition
-                        .apply(
-                            this,
-                            args
-                        );
-
-                requestAnimationFrame(
-                    positionToolbarButton
-                );
-
-                return result;
-            };
-
-        window
-            .__qolReportArchivePositionHooked =
-            true;
-    }
-
-    function positionToolbarButton() {
-        const button =
-            document.getElementById(
-                'qol-report-archive-toggle'
-            );
-
-        if (!button) return;
-
-        const villageList =
-            document.getElementById(
-                'villageList'
-            );
-
-        if (
-            !villageList ||
-            !isEnabled()
-        ) {
-            button.style.setProperty(
-                'display',
-                'none',
-                'important'
-            );
-
-            return;
-        }
-
-        const villageRect =
-            villageList
-                .getBoundingClientRect();
-
-        if (
-            villageRect.width <= 0 ||
-            villageRect.height <= 0
-        ) {
-            button.style.setProperty(
-                'display',
-                'none',
-                'important'
-            );
-
-            return;
-        }
-
-        const otherButtonIds = [
-            'qol-cog-btn',
-            'qol-help-toggle-btn',
-            'qol-rally-point-toggle-btn',
-            'qol-watchlist-toggle',
-            'qol-checklist-toggle-btn',
-            'qol-npc-calc-toggle-btn',
-            'qol-oasis-toggle-btn'
-        ];
-
-        let nextLeft =
-            villageRect.right + 20;
-
-        otherButtonIds.forEach(
-            id => {
-                const candidate =
-                    document
-                        .getElementById(
-                            id
-                        );
-
-                if (
-                    !candidate ||
-                    window
-                        .getComputedStyle(
-                            candidate
-                        )
-                        .display ===
-                        'none'
-                ) {
-                    return;
-                }
-
-                const rect =
-                    candidate
-                        .getBoundingClientRect();
-
-                if (rect.width > 0) {
-                    nextLeft =
-                        Math.max(
-                            nextLeft,
-                            rect.right + 6
-                        );
-                }
-            }
-        );
-
-        const importantStyles = {
-            position:
-                'fixed',
-            left:
-                `${nextLeft}px`,
-            top:
-                `${villageRect.top + 4}px`,
-            width:
-                '30px',
-            height:
-                '30px',
-            display:
-                'flex',
-            'z-index':
-                '9999'
-        };
-
-        Object.entries(
-            importantStyles
-        ).forEach(
-            ([property, value]) => {
-                button.style
-                    .setProperty(
-                        property,
-                        value,
-                        'important'
-                    );
-            }
-        );
-    }
-
-    function scheduleIntegration() {
-        if (integrationScheduled) {
-            return;
-        }
-
-        integrationScheduled = true;
-
-        requestAnimationFrame(() => {
-            integrationScheduled = false;
-
-            ensureMenuIntegration();
-            installToolbarPositionHook();
-            positionToolbarButton();
+          }
+          resolve(selectNewestArchive(result?.[STORAGE_KEY], fallbackArchive));
         });
-    }
-
-    function makeId(prefix) {
-        return (
-            `${prefix}_` +
-            `${Date.now().toString(36)}_` +
-            `${Math.random()
-                .toString(36)
-                .slice(2, 9)}`
-        );
-    }
-
-    function normalizeArchive(value) {
-        const source =
-            value &&
-            typeof value === 'object'
-                ? value
-                : createEmptyArchive();
-
-        return {
-            version: 2,
-
-            updatedAt:
-                Number.isFinite(
-                    Number(
-                        source.updatedAt
-                    )
-                )
-                    ? Number(
-                        source.updatedAt
-                    )
-                    : 0,
-
-            folders:
-                Array.isArray(
-                    source.folders
-                )
-                    ? source.folders
-                    : [],
-
-            reports:
-                Array.isArray(
-                    source.reports
-                )
-                    ? source.reports
-                    : []
-        };
-    }
-
-    function getArchiveFreshness(value) {
-        const normalized =
-            normalizeArchive(value);
-
-        const folderTimes =
-            normalized.folders
-                .flatMap(folder => [
-                    Number(
-                        folder.createdAt
-                    ) || 0,
-
-                    Number(
-                        folder.updatedAt
-                    ) || 0
-                ]);
-
-        const reportTimes =
-            normalized.reports
-                .flatMap(report => [
-                    Number(
-                        report.savedAt
-                    ) || 0,
-
-                    Number(
-                        report.updatedAt
-                    ) || 0
-                ]);
-
-        return Math.max(
-            Number(
-                normalized.updatedAt
-            ) || 0,
-            0,
-            ...folderTimes,
-            ...reportTimes
-        );
-    }
-
-    function selectNewestArchive(
-        extensionArchive,
-        fallbackArchive
-    ) {
-        const extensionValue =
-            normalizeArchive(
-                extensionArchive
-            );
-
-        const fallbackValue =
-            normalizeArchive(
-                fallbackArchive
-            );
-
-        return (
-            getArchiveFreshness(
-                fallbackValue
-            ) >
-            getArchiveFreshness(
-                extensionValue
-            )
-                ? fallbackValue
-                : extensionValue
-        );
-    }
-
-    function canUseExtensionStorage() {
-        try {
-            return Boolean(
-                typeof chrome !==
-                    'undefined' &&
-                chrome.storage?.local &&
-                typeof chrome
-                    .storage
-                    .local
-                    .get ===
-                    'function' &&
-                typeof chrome
-                    .storage
-                    .local
-                    .set ===
-                    'function'
-            );
-        } catch (error) {
-            return false;
+      } catch (error) {
+        console.warn('[APES Report Archive] ' + 'Extension storage is unavailable; ' + 'using recovery copy:', error.message);
+        resolve(fallbackArchive);
+      }
+    });
+  }
+  function saveArchive() {
+    return new Promise((resolve, reject) => {
+      archive.updatedAt = Date.now();
+      let fallbackError = null;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(archive));
+      } catch (error) {
+        fallbackError = error;
+        console.warn('[APES Report Archive] Could not update recovery copy:', error);
+      }
+      if (!canUseExtensionStorage()) {
+        if (fallbackError) {
+          reject(fallbackError);
+        } else {
+          resolve();
         }
-    }
-
-    function getExtensionRuntimeError() {
-        try {
-            return (
-                chrome.runtime
-                    ?.lastError ||
-                null
-            );
-        } catch (error) {
-            return error;
-        }
-    }
-
-    function loadLocalFallback() {
-        try {
-            return normalizeArchive(
-                JSON.parse(
-                    localStorage
-                        .getItem(
-                            STORAGE_KEY
-                        ) ||
-                    'null'
-                )
-            );
-        } catch (error) {
-            console.warn(
-                '[APES Report Archive] ' +
-                'Could not load fallback storage:',
-                error
-            );
-
-            return createEmptyArchive();
-        }
-    }
-
-    function loadArchive() {
-        return new Promise(
-            resolve => {
-                const fallbackArchive =
-                    loadLocalFallback();
-
-                if (
-                    !canUseExtensionStorage()
-                ) {
-                    resolve(
-                        fallbackArchive
-                    );
-
-                    return;
-                }
-
-                try {
-                    chrome.storage.local
-                        .get(
-                            [STORAGE_KEY],
-                            result => {
-                                const error =
-                                    getExtensionRuntimeError();
-
-                                if (error) {
-                                    console.warn(
-                                        '[APES Report Archive] ' +
-                                        'Could not load extension storage:',
-                                        error.message
-                                    );
-
-                                    resolve(
-                                        fallbackArchive
-                                    );
-
-                                    return;
-                                }
-
-                                resolve(
-                                    selectNewestArchive(
-                                        result?.[
-                                            STORAGE_KEY
-                                        ],
-                                        fallbackArchive
-                                    )
-                                );
-                            }
-                        );
-                } catch (error) {
-                    console.warn(
-                        '[APES Report Archive] ' +
-                        'Extension storage is unavailable; ' +
-                        'using recovery copy:',
-                        error.message
-                    );
-
-                    resolve(
-                        fallbackArchive
-                    );
-                }
-            }
-        );
-    }
-
-    function saveArchive() {
-        return new Promise((resolve, reject) => {
-            archive.updatedAt = Date.now();
-            let fallbackError = null;
-
-            try {
-                localStorage.setItem(
-                    STORAGE_KEY,
-                    JSON.stringify(archive)
-                );
-            } catch (error) {
-                fallbackError = error;
-
-                console.warn(
-                    '[APES Report Archive] Could not update recovery copy:',
-                    error
-                );
-            }
-
-            if (!canUseExtensionStorage()) {
-                if (fallbackError) {
-                    reject(fallbackError);
-                } else {
-                    resolve();
-                }
-
-                return;
-            }
-
-            try {
-                chrome.storage.local.set(
-                    {
-                        [STORAGE_KEY]:
-                            archive
-                    },
-                    () => {
-                        const error =
-                            getExtensionRuntimeError();
-
-                        if (!error) {
-                            resolve();
-                            return;
-                        }
-
-                        if (!fallbackError) {
-                            console.warn(
-                                '[APES Report Archive] ' +
-                                'Extension storage unavailable; ' +
-                                'change kept in recovery copy:',
-                                error.message
-                            );
-
-                            resolve();
-                            return;
-                        }
-
-                        reject(
-                            new Error(
-                                `${error.message}; ` +
-                                `recovery copy failed: ` +
-                                `${fallbackError.message}`
-                            )
-                        );
-                    }
-                );
-            } catch (error) {
-                if (!fallbackError) {
-                    console.warn(
-                        '[APES Report Archive] ' +
-                        'Extension context unavailable; ' +
-                        'change kept in recovery copy:',
-                        error.message
-                    );
-
-                    resolve();
-                    return;
-                }
-
-                reject(
-                    new Error(
-                        `${error.message}; ` +
-                        `recovery copy failed: ` +
-                        `${fallbackError.message}`
-                    )
-                );
-            }
+        return;
+      }
+      try {
+        chrome.storage.local.set({
+          [STORAGE_KEY]: archive
+        }, () => {
+          const error = getExtensionRuntimeError();
+          if (!error) {
+            resolve();
+            return;
+          }
+          if (!fallbackError) {
+            console.warn('[APES Report Archive] ' + 'Extension storage unavailable; ' + 'change kept in recovery copy:', error.message);
+            resolve();
+            return;
+          }
+          reject(new Error(`${error.message}; ` + `recovery copy failed: ` + `${fallbackError.message}`));
         });
-    }
-
-    function escapeHtml(value) {
-        return String(
-            value == null ? '' : value
-        )
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function normalizeText(value) {
-        return String(value || '')
-            .replace(
-                /[\u200e\u200f\u202a-\u202e]/g,
-                ''
-            )
-            .replace(/\s+/g, ' ')
-            .trim();
-    }
-
-    function hashText(value) {
-        let hash = 2166136261;
-        const text = String(value || '');
-
-        for (
-            let index = 0;
-            index < text.length;
-            index += 1
-        ) {
-            hash ^= text.charCodeAt(index);
-            hash = Math.imul(
-                hash,
-                16777619
-            );
+      } catch (error) {
+        if (!fallbackError) {
+          console.warn('[APES Report Archive] ' + 'Extension context unavailable; ' + 'change kept in recovery copy:', error.message);
+          resolve();
+          return;
         }
-
-        return (
-            hash >>> 0
-        ).toString(36);
+        reject(new Error(`${error.message}; ` + `recovery copy failed: ` + `${fallbackError.message}`));
+      }
+    });
+  }
+  function escapeHtml(value) {
+    return String(value == null ? '' : value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+  function normalizeText(value) {
+    return String(value || '').replace(/[\u200e\u200f\u202a-\u202e]/g, '').replace(/\s+/g, ' ').trim();
+  }
+  function hashText(value) {
+    let hash = 2166136261;
+    const text = String(value || '');
+    for (let index = 0; index < text.length; index += 1) {
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
     }
-
-    function toolbarIcon() {
-        return `
+    return (hash >>> 0).toString(36);
+  }
+  function toolbarIcon() {
+    return `
             <svg
                 viewBox="0 0 24 24"
                 aria-hidden="true"
@@ -641,13 +262,9 @@
                 ></path>
             </svg>
         `;
-    }
-
-    function reportSaveIcon(
-        isArchived
-    ) {
-        return isArchived
-            ? `
+  }
+  function reportSaveIcon(isArchived) {
+    return isArchived ? `
                 <svg
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -660,8 +277,7 @@
                         d="m7.8 13 2.6 2.6 5.8-6"
                     ></path>
                 </svg>
-            `
-            : `
+            ` : `
                 <svg
                     viewBox="0 0 24 24"
                     aria-hidden="true"
@@ -679,25 +295,14 @@
                     ></path>
                 </svg>
             `;
+  }
+  function injectStyles() {
+    if (document.getElementById(STYLE_ID)) {
+      return;
     }
-
-    function injectStyles() {
-        if (
-            document.getElementById(
-                STYLE_ID
-            )
-        ) {
-            return;
-        }
-
-        const style =
-            document.createElement(
-                'style'
-            );
-
-        style.id = STYLE_ID;
-
-        style.textContent = `
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
             #qol-report-archive-toggle {
                 position:fixed!important;
                 display:none;
@@ -1887,76 +1492,29 @@
                 }
             }
         `;
-
-        document.head.appendChild(style);
+    document.head.appendChild(style);
+  }
+  function buildToolbarButton() {
+    if (document.getElementById('qol-report-archive-toggle')) {
+      return;
     }
-
-    function buildToolbarButton() {
-        if (
-            document.getElementById(
-                'qol-report-archive-toggle'
-            )
-        ) {
-            return;
-        }
-
-        toolbarButton =
-            document.createElement(
-                'div'
-            );
-
-        toolbarButton.id =
-            'qol-report-archive-toggle';
-
-        toolbarButton.setAttribute(
-            'role',
-            'button'
-        );
-
-        toolbarButton.setAttribute(
-            'tabindex',
-            '0'
-        );
-
-        toolbarButton.setAttribute(
-            'aria-label',
-            'Open Report Archive'
-        );
-
-        toolbarButton.title =
-            'Report Archive';
-
-        toolbarButton.innerHTML =
-            toolbarIcon();
-
-        bindControl(
-            toolbarButton,
-            toggleArchivePanel
-        );
-
-        document.body.appendChild(
-            toolbarButton
-        );
+    toolbarButton = document.createElement('div');
+    toolbarButton.id = 'qol-report-archive-toggle';
+    toolbarButton.setAttribute('role', 'button');
+    toolbarButton.setAttribute('tabindex', '0');
+    toolbarButton.setAttribute('aria-label', 'Open Report Archive');
+    toolbarButton.title = 'Report Archive';
+    toolbarButton.innerHTML = toolbarIcon();
+    bindControl(toolbarButton, toggleArchivePanel);
+    document.body.appendChild(toolbarButton);
+  }
+  function buildArchivePanel() {
+    if (document.getElementById('qol-report-archive-panel')) {
+      return;
     }
-
-    function buildArchivePanel() {
-        if (
-            document.getElementById(
-                'qol-report-archive-panel'
-            )
-        ) {
-            return;
-        }
-
-        archivePanel =
-            document.createElement(
-                'div'
-            );
-
-        archivePanel.id =
-            'qol-report-archive-panel';
-
-        archivePanel.innerHTML = `
+    archivePanel = document.createElement('div');
+    archivePanel.id = 'qol-report-archive-panel';
+    archivePanel.innerHTML = `
             <div class="qol-ra-header">
                 <div class="qol-ra-header-title">
                     ${toolbarIcon()}
@@ -2097,620 +1655,216 @@
                 </div>
             </div>
         `;
-
-        document.body.appendChild(
-            archivePanel
-        );
-
-        makeDraggable(
-            archivePanel,
-            archivePanel.querySelector(
-                '.qol-ra-header'
-            )
-        );
-
-        bindControl(
-            archivePanel.querySelector(
-                '.qol-ra-close'
-            ),
-            closeArchivePanel
-        );
-
-        bindControl(
-            archivePanel.querySelector(
-                '.qol-ra-add-folder'
-            ),
-            () => openFolderPrompt()
-        );
-
-        bindControl(
-            archivePanel.querySelector(
-                '.qol-ra-detail-back'
-            ),
-            closeReportDetail
-        );
-
-        bindControl(
-            archivePanel.querySelector(
-                '.qol-ra-detail-prev'
-            ),
-            () => openAdjacentReport(-1)
-        );
-
-        bindControl(
-            archivePanel.querySelector(
-                '.qol-ra-detail-next'
-            ),
-            () => openAdjacentReport(1)
-        );
-
-        const searchModeControl =
-            archivePanel.querySelector(
-                '.qol-ra-search-mode'
-            );
-
-        const searchInput =
-            archivePanel.querySelector(
-                '.qol-ra-search-input'
-            );
-
-        const searchClear =
-            archivePanel.querySelector(
-                '.qol-ra-search-clear'
-            );
-
-        searchModeControl.value =
-            searchMode;
-
-        updateSearchControl();
-
-        searchModeControl.addEventListener(
-            'change',
-            event => {
-                searchMode =
-                    event.target.value ===
-                    'date'
-                        ? 'date'
-                        : 'name';
-
-                searchQuery = '';
-
-                updateSearchControl();
-                closeReportDetail();
-                renderReports();
-                searchInput.focus();
-            }
-        );
-
-        searchInput.addEventListener(
-            'input',
-            event => {
-                searchQuery =
-                    searchMode === 'date'
-                        ? event.target.value
-                        : normalizeText(
-                            event.target.value
-                        );
-
-                updateSearchClearControl();
-                closeReportDetail();
-                renderReports();
-            }
-        );
-
-        bindControl(
-            searchClear,
-            () => {
-                if (!searchQuery) return;
-
-                searchQuery = '';
-                searchInput.value = '';
-
-                updateSearchClearControl();
-                closeReportDetail();
-                renderReports();
-                searchInput.focus();
-            }
-        );
-
-        renderArchive();
+    document.body.appendChild(archivePanel);
+    makeDraggable(archivePanel, archivePanel.querySelector('.qol-ra-header'));
+    bindControl(archivePanel.querySelector('.qol-ra-close'), closeArchivePanel);
+    bindControl(archivePanel.querySelector('.qol-ra-add-folder'), () => openFolderPrompt());
+    bindControl(archivePanel.querySelector('.qol-ra-detail-back'), closeReportDetail);
+    bindControl(archivePanel.querySelector('.qol-ra-detail-prev'), () => openAdjacentReport(-1));
+    bindControl(archivePanel.querySelector('.qol-ra-detail-next'), () => openAdjacentReport(1));
+    const searchModeControl = archivePanel.querySelector('.qol-ra-search-mode');
+    const searchInput = archivePanel.querySelector('.qol-ra-search-input');
+    const searchClear = archivePanel.querySelector('.qol-ra-search-clear');
+    searchModeControl.value = searchMode;
+    updateSearchControl();
+    searchModeControl.addEventListener('change', event => {
+      searchMode = event.target.value === 'date' ? 'date' : 'name';
+      searchQuery = '';
+      updateSearchControl();
+      closeReportDetail();
+      renderReports();
+      searchInput.focus();
+    });
+    searchInput.addEventListener('input', event => {
+      searchQuery = searchMode === 'date' ? event.target.value : normalizeText(event.target.value);
+      updateSearchClearControl();
+      closeReportDetail();
+      renderReports();
+    });
+    bindControl(searchClear, () => {
+      if (!searchQuery) return;
+      searchQuery = '';
+      searchInput.value = '';
+      updateSearchClearControl();
+      closeReportDetail();
+      renderReports();
+      searchInput.focus();
+    });
+    renderArchive();
+  }
+  function updateSearchControl() {
+    if (!archivePanel) return;
+    const input = archivePanel.querySelector('.qol-ra-search-input');
+    if (!input) return;
+    input.type = searchMode === 'date' ? 'date' : 'text';
+    input.value = searchQuery;
+    input.placeholder = searchMode === 'date' ? '' : 'Type a name...';
+    input.setAttribute('aria-label', searchMode === 'date' ? 'Search reports by date' : 'Search reports by name');
+    updateSearchClearControl();
+  }
+  function updateSearchClearControl() {
+    if (!archivePanel) return;
+    const control = archivePanel.querySelector('.qol-ra-search-clear');
+    if (!control) return;
+    const disabled = !searchQuery;
+    control.classList.toggle('qol-ra-disabled', disabled);
+    control.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+  }
+  function makeDraggable(element, handle) {
+    let dragging = false;
+    let startX = 0;
+    let startY = 0;
+    let startLeft = 0;
+    let startTop = 0;
+    handle.addEventListener('pointerdown', event => {
+      if (event.target.closest('.qol-ra-close')) {
+        return;
+      }
+      const rect = element.getBoundingClientRect();
+      dragging = true;
+      startX = event.clientX;
+      startY = event.clientY;
+      startLeft = rect.left;
+      startTop = rect.top;
+      element.style.setProperty('left', `${rect.left}px`, 'important');
+      element.style.setProperty('top', `${rect.top}px`, 'important');
+      element.style.setProperty('transform', 'none', 'important');
+      handle.setPointerCapture(event.pointerId);
+      event.preventDefault();
+    });
+    handle.addEventListener('pointermove', event => {
+      if (!dragging) return;
+      const maxLeft = Math.max(0, window.innerWidth - element.offsetWidth);
+      const maxTop = Math.max(0, window.innerHeight - element.offsetHeight);
+      const nextLeft = Math.min(maxLeft, Math.max(0, startLeft + event.clientX - startX));
+      const nextTop = Math.min(maxTop, Math.max(0, startTop + event.clientY - startY));
+      element.style.setProperty('left', `${nextLeft}px`, 'important');
+      element.style.setProperty('top', `${nextTop}px`, 'important');
+    });
+    const stopDragging = event => {
+      if (!dragging) return;
+      dragging = false;
+      if (handle.hasPointerCapture(event.pointerId)) {
+        handle.releasePointerCapture(event.pointerId);
+      }
+    };
+    handle.addEventListener('pointerup', stopDragging);
+    handle.addEventListener('pointercancel', stopDragging);
+  }
+  function toggleArchivePanel() {
+    if (!archivePanel) return;
+    if (window.getComputedStyle(archivePanel).display !== 'none') {
+      closeArchivePanel();
+    } else {
+      openArchivePanel();
     }
-
-    function updateSearchControl() {
-        if (!archivePanel) return;
-
-        const input =
-            archivePanel.querySelector(
-                '.qol-ra-search-input'
-            );
-
-        if (!input) return;
-
-        input.type =
-            searchMode === 'date'
-                ? 'date'
-                : 'text';
-
-        input.value =
-            searchQuery;
-
-        input.placeholder =
-            searchMode === 'date'
-                ? ''
-                : 'Type a name...';
-
-        input.setAttribute(
-            'aria-label',
-            searchMode === 'date'
-                ? 'Search reports by date'
-                : 'Search reports by name'
-        );
-
-        updateSearchClearControl();
+  }
+  function openArchivePanel() {
+    if (!archivePanel) return;
+    window.dispatchEvent(new CustomEvent('qol_close_others', {
+      detail: {
+        source: 'reportArchive'
+      }
+    }));
+    closeReportDetail();
+    renderArchive();
+    archivePanel.style.setProperty('display', 'flex', 'important');
+  }
+  function closeArchivePanel() {
+    if (archivePanel) {
+      archivePanel.style.setProperty('display', 'none', 'important');
     }
-
-    function updateSearchClearControl() {
-        if (!archivePanel) return;
-
-        const control =
-            archivePanel.querySelector(
-                '.qol-ra-search-clear'
-            );
-
-        if (!control) return;
-
-        const disabled =
-            !searchQuery;
-
-        control.classList.toggle(
-            'qol-ra-disabled',
-            disabled
-        );
-
-        control.setAttribute(
-            'aria-disabled',
-            disabled
-                ? 'true'
-                : 'false'
-        );
+    closeReportDetail();
+  }
+  function getFolderName(folderId) {
+    if (folderId === ALL_FOLDER_ID) {
+      return 'All Reports';
     }
-
-    function makeDraggable(
-        element,
-        handle
-    ) {
-        let dragging = false;
-        let startX = 0;
-        let startY = 0;
-        let startLeft = 0;
-        let startTop = 0;
-
-        handle.addEventListener(
-            'pointerdown',
-            event => {
-                if (
-                    event.target.closest(
-                        '.qol-ra-close'
-                    )
-                ) {
-                    return;
-                }
-
-                const rect =
-                    element
-                        .getBoundingClientRect();
-
-                dragging = true;
-
-                startX =
-                    event.clientX;
-
-                startY =
-                    event.clientY;
-
-                startLeft =
-                    rect.left;
-
-                startTop =
-                    rect.top;
-
-                element.style.setProperty(
-                    'left',
-                    `${rect.left}px`,
-                    'important'
-                );
-
-                element.style.setProperty(
-                    'top',
-                    `${rect.top}px`,
-                    'important'
-                );
-
-                element.style.setProperty(
-                    'transform',
-                    'none',
-                    'important'
-                );
-
-                handle.setPointerCapture(
-                    event.pointerId
-                );
-
-                event.preventDefault();
-            }
-        );
-
-        handle.addEventListener(
-            'pointermove',
-            event => {
-                if (!dragging) return;
-
-                const maxLeft =
-                    Math.max(
-                        0,
-                        window.innerWidth -
-                        element.offsetWidth
-                    );
-
-                const maxTop =
-                    Math.max(
-                        0,
-                        window.innerHeight -
-                        element.offsetHeight
-                    );
-
-                const nextLeft =
-                    Math.min(
-                        maxLeft,
-                        Math.max(
-                            0,
-                            startLeft +
-                            event.clientX -
-                            startX
-                        )
-                    );
-
-                const nextTop =
-                    Math.min(
-                        maxTop,
-                        Math.max(
-                            0,
-                            startTop +
-                            event.clientY -
-                            startY
-                        )
-                    );
-
-                element.style.setProperty(
-                    'left',
-                    `${nextLeft}px`,
-                    'important'
-                );
-
-                element.style.setProperty(
-                    'top',
-                    `${nextTop}px`,
-                    'important'
-                );
-            }
-        );
-
-        const stopDragging =
-            event => {
-                if (!dragging) return;
-
-                dragging = false;
-
-                if (
-                    handle.hasPointerCapture(
-                        event.pointerId
-                    )
-                ) {
-                    handle.releasePointerCapture(
-                        event.pointerId
-                    );
-                }
-            };
-
-        handle.addEventListener(
-            'pointerup',
-            stopDragging
-        );
-
-        handle.addEventListener(
-            'pointercancel',
-            stopDragging
-        );
+    if (folderId === DEFAULT_FOLDER_ID || !folderId) {
+      return 'Default';
     }
-
-    function toggleArchivePanel() {
-        if (!archivePanel) return;
-
-        if (
-            window.getComputedStyle(
-                archivePanel
-            ).display !== 'none'
-        ) {
-            closeArchivePanel();
-        } else {
-            openArchivePanel();
-        }
+    return archive.folders.find(folder => {
+      return folder.id === folderId;
+    })?.name || 'Default';
+  }
+  function reportBelongsToFolder(report, folderId) {
+    if (folderId === ALL_FOLDER_ID) {
+      return true;
     }
-
-    function openArchivePanel() {
-        if (!archivePanel) return;
-
-        window.dispatchEvent(
-            new CustomEvent(
-                'qol_close_others',
-                {
-                    detail: {
-                        source:
-                            'reportArchive'
-                    }
-                }
-            )
-        );
-
-        closeReportDetail();
-        renderArchive();
-
-        archivePanel.style.setProperty(
-            'display',
-            'flex',
-            'important'
-        );
+    if (folderId === DEFAULT_FOLDER_ID) {
+      return !report.folderId || !archive.folders.some(folder => {
+        return folder.id === report.folderId;
+      });
     }
-
-    function closeArchivePanel() {
-        if (archivePanel) {
-            archivePanel.style.setProperty(
-                'display',
-                'none',
-                'important'
-            );
-        }
-
-        closeReportDetail();
+    return report.folderId === folderId;
+  }
+  function countFolderReports(folderId) {
+    return archive.reports.filter(report => {
+      return reportBelongsToFolder(report, folderId);
+    }).length;
+  }
+  function getVisibleReports() {
+    return archive.reports.filter(report => {
+      return reportBelongsToFolder(report, activeFolderId);
+    });
+  }
+  function formatSearchDate(report) {
+    const date = getReportDate(report);
+    if (!date) return '';
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-` + `${month}-` + `${day}`;
+  }
+  function reportMatchesSearch(report) {
+    if (!searchQuery) {
+      return true;
     }
-
-    function getFolderName(folderId) {
-        if (
-            folderId ===
-            ALL_FOLDER_ID
-        ) {
-            return 'All Reports';
-        }
-
-        if (
-            folderId ===
-                DEFAULT_FOLDER_ID ||
-            !folderId
-        ) {
-            return 'Default';
-        }
-
-        return (
-            archive.folders.find(
-                folder => {
-                    return (
-                        folder.id ===
-                        folderId
-                    );
-                }
-            )?.name ||
-            'Default'
-        );
+    if (searchMode === 'date') {
+      return formatSearchDate(report) === searchQuery;
     }
-
-    function reportBelongsToFolder(
-        report,
-        folderId
-    ) {
-        if (
-            folderId ===
-            ALL_FOLDER_ID
-        ) {
-            return true;
-        }
-
-        if (
-            folderId ===
-            DEFAULT_FOLDER_ID
-        ) {
-            return (
-                !report.folderId ||
-                !archive.folders.some(
-                    folder => {
-                        return (
-                            folder.id ===
-                            report.folderId
-                        );
-                    }
-                )
-            );
-        }
-
-        return (
-            report.folderId ===
-            folderId
-        );
-    }
-
-    function countFolderReports(folderId) {
-        return archive.reports.filter(
-            report => {
-                return reportBelongsToFolder(
-                    report,
-                    folderId
-                );
-            }
-        ).length;
-    }
-
-    function getVisibleReports() {
-        return archive.reports.filter(
-            report => {
-                return reportBelongsToFolder(
-                    report,
-                    activeFolderId
-                );
-            }
-        );
-    }
-
-    function formatSearchDate(report) {
-        const date =
-            getReportDate(report);
-
-        if (!date) return '';
-
-        const year =
-            date.getFullYear();
-
-        const month =
-            String(
-                date.getMonth() + 1
-            ).padStart(2, '0');
-
-        const day =
-            String(
-                date.getDate()
-            ).padStart(2, '0');
-
-        return (
-            `${year}-` +
-            `${month}-` +
-            `${day}`
-        );
-    }
-
-    function reportMatchesSearch(report) {
-        if (!searchQuery) {
-            return true;
-        }
-
-        if (
-            searchMode === 'date'
-        ) {
-            return (
-                formatSearchDate(
-                    report
-                ) ===
-                searchQuery
-            );
-        }
-
-        const needle =
-            searchQuery
-                .toLocaleLowerCase();
-
-        const searchableText = [
-            report.title,
-            report.headline,
-            report.sourcePlayer,
-            report.sourceVillage,
-            report.destPlayer,
-            report.destVillage
-        ]
-            .map(value => {
-                return normalizeText(
-                    value
-                ).toLocaleLowerCase();
-            })
-            .join(' ');
-
-        return searchableText
-            .includes(needle);
-    }
-
-    function getSortedVisibleReports() {
-        return getVisibleReports()
-            .filter(
-                reportMatchesSearch
-            )
-            .sort(
-                (a, b) => {
-                    return (
-                        (b.savedAt || 0) -
-                        (a.savedAt || 0)
-                    );
-                }
-            );
-    }
-
-    function renderArchive() {
-        if (!archivePanel) return;
-
-        renderFolders();
-        renderReports();
-    }
-
-    function renderFolders() {
-        const list =
-            archivePanel.querySelector(
-                '.qol-ra-folder-list'
-            );
-
-        if (!list) return;
-
-        const rows = [
-            {
-                id:
-                    ALL_FOLDER_ID,
-                name:
-                    'All Reports',
-                icon:
-                    '▣'
-            },
-
-            {
-                id:
-                    DEFAULT_FOLDER_ID,
-                name:
-                    'Default',
-                icon:
-                    '□'
-            },
-
-            ...archive.folders.map(
-                folder => ({
-                    ...folder,
-                    icon:
-                        '▰',
-                    custom:
-                        true
-                })
-            )
-        ];
-
-        list.innerHTML =
-            rows.map(row => {
-                return `
+    const needle = searchQuery.toLocaleLowerCase();
+    const searchableText = [report.title, report.headline, report.sourcePlayer, report.sourceVillage, report.destPlayer, report.destVillage].map(value => {
+      return normalizeText(value).toLocaleLowerCase();
+    }).join(' ');
+    return searchableText.includes(needle);
+  }
+  function getSortedVisibleReports() {
+    return getVisibleReports().filter(reportMatchesSearch).sort((a, b) => {
+      return (b.savedAt || 0) - (a.savedAt || 0);
+    });
+  }
+  function renderArchive() {
+    if (!archivePanel) return;
+    renderFolders();
+    renderReports();
+  }
+  function renderFolders() {
+    const list = archivePanel.querySelector('.qol-ra-folder-list');
+    if (!list) return;
+    const rows = [{
+      id: ALL_FOLDER_ID,
+      name: 'All Reports',
+      icon: '▣'
+    }, {
+      id: DEFAULT_FOLDER_ID,
+      name: 'Default',
+      icon: '□'
+    }, ...archive.folders.map(folder => ({
+      ...folder,
+      icon: '▰',
+      custom: true
+    }))];
+    list.innerHTML = rows.map(row => {
+      return `
                     <div
                         class="
                             qol-ra-folder-row
-                            ${
-                                row.id ===
-                                activeFolderId
-                                    ? 'qol-ra-active'
-                                    : ''
-                            }
+                            ${row.id === activeFolderId ? 'qol-ra-active' : ''}
                         "
                         data-folder-id="${escapeHtml(row.id)}"
-                        data-custom-folder="${
-                            row.custom
-                                ? 'true'
-                                : 'false'
-                        }"
-                        ${
-                            row.custom
-                                ? (
-                                    'draggable="true" ' +
-                                    'title="Drag to reorder"'
-                                )
-                                : ''
-                        }
+                        data-custom-folder="${row.custom ? 'true' : 'false'}"
+                        ${row.custom ? 'draggable="true" ' + 'title="Drag to reorder"' : ''}
                     >
                         <span class="qol-ra-folder-icon">
                             ${row.icon}
@@ -2723,9 +1877,7 @@
                             ${escapeHtml(row.name)}
                         </span>
 
-                        ${
-                            row.custom
-                                ? `
+                        ${row.custom ? `
                                     <span class="qol-ra-folder-tools">
                                         <span
                                             class="qol-ra-folder-tool"
@@ -2739,387 +1891,144 @@
                                             title="Delete folder"
                                         >×</span>
                                     </span>
-                                `
-                                : ''
-                        }
+                                ` : ''}
 
                         <span class="qol-ra-folder-count">
                             ${countFolderReports(row.id)}
                         </span>
                     </div>
                 `;
-            }).join('');
-
-        list.querySelectorAll(
-            '.qol-ra-folder-row'
-        ).forEach(row => {
-            row.addEventListener(
-                'click',
-                event => {
-                    if (
-                        suppressFolderClick
-                    ) {
-                        event.preventDefault();
-                        event.stopPropagation();
-
-                        return;
-                    }
-
-                    const action =
-                        event.target.closest(
-                            '[data-folder-action]'
-                        );
-
-                    const folderId =
-                        row.dataset.folderId;
-
-                    if (action) {
-                        event.stopPropagation();
-
-                        if (
-                            action.dataset
-                                .folderAction ===
-                            'rename'
-                        ) {
-                            openFolderPrompt(
-                                folderId
-                            );
-                        }
-
-                        if (
-                            action.dataset
-                                .folderAction ===
-                            'delete'
-                        ) {
-                            requestFolderDeletion(
-                                folderId
-                            );
-                        }
-
-                        return;
-                    }
-
-                    activeFolderId =
-                        folderId;
-
-                    closeReportDetail();
-                    renderArchive();
-                }
-            );
-
-            if (
-                row.dataset
-                    .customFolder !==
-                'true'
-            ) {
-                return;
-            }
-
-            row.addEventListener(
-                'dragstart',
-                event => {
-                    if (
-                        event.target.closest(
-                            '[data-folder-action]'
-                        )
-                    ) {
-                        event.preventDefault();
-                        return;
-                    }
-
-                    draggedFolderId =
-                        row.dataset.folderId;
-
-                    suppressFolderClick =
-                        true;
-
-                    row.classList.add(
-                        'qol-ra-dragging'
-                    );
-
-                    if (
-                        event.dataTransfer
-                    ) {
-                        event.dataTransfer
-                            .effectAllowed =
-                            'move';
-
-                        event.dataTransfer
-                            .setData(
-                                'text/plain',
-                                draggedFolderId
-                            );
-                    }
-                }
-            );
-
-            row.addEventListener(
-                'dragover',
-                event => {
-                    if (
-                        !draggedFolderId ||
-                        draggedFolderId ===
-                            row.dataset.folderId
-                    ) {
-                        return;
-                    }
-
-                    event.preventDefault();
-
-                    if (
-                        event.dataTransfer
-                    ) {
-                        event.dataTransfer
-                            .dropEffect =
-                            'move';
-                    }
-
-                    clearFolderDropMarkers(
-                        list
-                    );
-
-                    const rect =
-                        row
-                            .getBoundingClientRect();
-
-                    row.classList.add(
-                        event.clientY >=
-                        rect.top +
-                        rect.height / 2
-                            ? 'qol-ra-drop-after'
-                            : 'qol-ra-drop-before'
-                    );
-                }
-            );
-
-            row.addEventListener(
-                'drop',
-                async event => {
-                    if (
-                        !draggedFolderId ||
-                        draggedFolderId ===
-                            row.dataset.folderId
-                    ) {
-                        return;
-                    }
-
-                    event.preventDefault();
-
-                    const rect =
-                        row
-                            .getBoundingClientRect();
-
-                    const sourceFolderId =
-                        draggedFolderId;
-
-                    draggedFolderId =
-                        null;
-
-                    clearFolderDropMarkers(
-                        list
-                    );
-
-                    await reorderFolder(
-                        sourceFolderId,
-                        row.dataset.folderId,
-                        event.clientY >=
-                        rect.top +
-                        rect.height / 2
-                    );
-                }
-            );
-
-            row.addEventListener(
-                'dragend',
-                () => {
-                    draggedFolderId =
-                        null;
-
-                    row.classList.remove(
-                        'qol-ra-dragging'
-                    );
-
-                    clearFolderDropMarkers(
-                        list
-                    );
-
-                    setTimeout(() => {
-                        suppressFolderClick =
-                            false;
-                    }, 0);
-                }
-            );
-        });
-    }
-
-    function clearFolderDropMarkers(list) {
-        list.querySelectorAll(
-            '.qol-ra-drop-before,' +
-            '.qol-ra-drop-after'
-        ).forEach(row => {
-            row.classList.remove(
-                'qol-ra-drop-before',
-                'qol-ra-drop-after'
-            );
-        });
-    }
-
-    async function reorderFolder(
-        sourceFolderId,
-        targetFolderId,
-        insertAfter
-    ) {
-        const previousOrder = [
-            ...archive.folders
-        ];
-
-        const sourceIndex =
-            archive.folders.findIndex(
-                folder => {
-                    return (
-                        folder.id ===
-                        sourceFolderId
-                    );
-                }
-            );
-
-        if (sourceIndex < 0) {
-            return;
+    }).join('');
+    list.querySelectorAll('.qol-ra-folder-row').forEach(row => {
+      row.addEventListener('click', event => {
+        if (suppressFolderClick) {
+          event.preventDefault();
+          event.stopPropagation();
+          return;
         }
-
-        const [movedFolder] =
-            archive.folders.splice(
-                sourceIndex,
-                1
-            );
-
-        const targetIndex =
-            archive.folders.findIndex(
-                folder => {
-                    return (
-                        folder.id ===
-                        targetFolderId
-                    );
-                }
-            );
-
-        if (targetIndex < 0) {
-            archive.folders =
-                previousOrder;
-
-            return;
+        const action = event.target.closest('[data-folder-action]');
+        const folderId = row.dataset.folderId;
+        if (action) {
+          event.stopPropagation();
+          if (action.dataset.folderAction === 'rename') {
+            openFolderPrompt(folderId);
+          }
+          if (action.dataset.folderAction === 'delete') {
+            requestFolderDeletion(folderId);
+          }
+          return;
         }
-
-        archive.folders.splice(
-            targetIndex +
-            (insertAfter ? 1 : 0),
-            0,
-            movedFolder
-        );
-
-        try {
-            await saveArchive();
-            renderArchive();
-        } catch (error) {
-            archive.folders =
-                previousOrder;
-
-            renderArchive();
-
-            showToast(
-                `Folder order could not be saved: ${error.message}`,
-                'error'
-            );
+        activeFolderId = folderId;
+        closeReportDetail();
+        renderArchive();
+      });
+      if (row.dataset.customFolder !== 'true') {
+        return;
+      }
+      row.addEventListener('dragstart', event => {
+        if (event.target.closest('[data-folder-action]')) {
+          event.preventDefault();
+          return;
         }
+        draggedFolderId = row.dataset.folderId;
+        suppressFolderClick = true;
+        row.classList.add('qol-ra-dragging');
+        if (event.dataTransfer) {
+          event.dataTransfer.effectAllowed = 'move';
+          event.dataTransfer.setData('text/plain', draggedFolderId);
+        }
+      });
+      row.addEventListener('dragover', event => {
+        if (!draggedFolderId || draggedFolderId === row.dataset.folderId) {
+          return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) {
+          event.dataTransfer.dropEffect = 'move';
+        }
+        clearFolderDropMarkers(list);
+        const rect = row.getBoundingClientRect();
+        row.classList.add(event.clientY >= rect.top + rect.height / 2 ? 'qol-ra-drop-after' : 'qol-ra-drop-before');
+      });
+      row.addEventListener('drop', async event => {
+        if (!draggedFolderId || draggedFolderId === row.dataset.folderId) {
+          return;
+        }
+        event.preventDefault();
+        const rect = row.getBoundingClientRect();
+        const sourceFolderId = draggedFolderId;
+        draggedFolderId = null;
+        clearFolderDropMarkers(list);
+        await reorderFolder(sourceFolderId, row.dataset.folderId, event.clientY >= rect.top + rect.height / 2);
+      });
+      row.addEventListener('dragend', () => {
+        draggedFolderId = null;
+        row.classList.remove('qol-ra-dragging');
+        clearFolderDropMarkers(list);
+        setTimeout(() => {
+          suppressFolderClick = false;
+        }, 0);
+      });
+    });
+  }
+  function clearFolderDropMarkers(list) {
+    list.querySelectorAll('.qol-ra-drop-before,' + '.qol-ra-drop-after').forEach(row => {
+      row.classList.remove('qol-ra-drop-before', 'qol-ra-drop-after');
+    });
+  }
+  async function reorderFolder(sourceFolderId, targetFolderId, insertAfter) {
+    const previousOrder = [...archive.folders];
+    const sourceIndex = archive.folders.findIndex(folder => {
+      return folder.id === sourceFolderId;
+    });
+    if (sourceIndex < 0) {
+      return;
     }
-
-    function renderReports() {
-        const title =
-            archivePanel.querySelector(
-                '.qol-ra-main-title'
-            );
-
-        const subtitle =
-            archivePanel.querySelector(
-                '.qol-ra-main-subtitle'
-            );
-
-        const list =
-            archivePanel.querySelector(
-                '.qol-ra-report-list'
-            );
-
-        const folderReports =
-            getVisibleReports();
-
-        const reports =
-            getSortedVisibleReports();
-
-        title.textContent =
-            getFolderName(
-                activeFolderId
-            );
-
-        subtitle.textContent =
-            searchQuery
-                ? (
-                    `${reports.length} of ` +
-                    `${folderReports.length} ` +
-                    'archived reports'
-                )
-                : (
-                    `${reports.length} ` +
-                    `archived report${
-                        reports.length === 1
-                            ? ''
-                            : 's'
-                    }`
-                );
-
-        if (!reports.length) {
-            list.innerHTML = `
+    const [movedFolder] = archive.folders.splice(sourceIndex, 1);
+    const targetIndex = archive.folders.findIndex(folder => {
+      return folder.id === targetFolderId;
+    });
+    if (targetIndex < 0) {
+      archive.folders = previousOrder;
+      return;
+    }
+    archive.folders.splice(targetIndex + (insertAfter ? 1 : 0), 0, movedFolder);
+    try {
+      await saveArchive();
+      renderArchive();
+    } catch (error) {
+      archive.folders = previousOrder;
+      renderArchive();
+      showToast(`Folder order could not be saved: ${error.message}`, 'error');
+    }
+  }
+  function renderReports() {
+    const title = archivePanel.querySelector('.qol-ra-main-title');
+    const subtitle = archivePanel.querySelector('.qol-ra-main-subtitle');
+    const list = archivePanel.querySelector('.qol-ra-report-list');
+    const folderReports = getVisibleReports();
+    const reports = getSortedVisibleReports();
+    title.textContent = getFolderName(activeFolderId);
+    subtitle.textContent = searchQuery ? `${reports.length} of ` + `${folderReports.length} ` + 'archived reports' : `${reports.length} ` + `archived report${reports.length === 1 ? '' : 's'}`;
+    if (!reports.length) {
+      list.innerHTML = `
                 <div class="qol-ra-empty">
                     <div>
                         <strong>
-                            ${
-                                searchQuery
-                                    ? 'No matching reports found.'
-                                    : 'No reports saved here yet.'
-                            }
+                            ${searchQuery ? 'No matching reports found.' : 'No reports saved here yet.'}
                         </strong>
                     </div>
 
                     <div>
-                        ${
-                            searchQuery
-                                ? (
-                                    `Try another ${
-                                        searchMode === 'date'
-                                            ? 'date'
-                                            : 'name'
-                                    } or clear the search.`
-                                )
-                                : (
-                                    'Open a Travian report and use ' +
-                                    'the APES folder button beside ' +
-                                    'its report controls.'
-                                )
-                        }
+                        ${searchQuery ? `Try another ${searchMode === 'date' ? 'date' : 'name'} or clear the search.` : 'Open a Travian report and use ' + 'the APES folder button beside ' + 'its report controls.'}
                     </div>
                 </div>
             `;
-
-            return;
-        }
-
-        list.innerHTML =
-            reports.map(report => {
-                const titleText =
-                    report.title ||
-                    report.headline ||
-                    'Report';
-
-                return `
+      return;
+    }
+    list.innerHTML = reports.map(report => {
+      const titleText = report.title || report.headline || 'Report';
+      return `
                     <div
                         class="qol-ra-report-row"
                         data-report-id="${escapeHtml(report.id)}"
@@ -3175,397 +2084,143 @@
                         </div>
                     </div>
                 `;
-            }).join('');
-
-        list.querySelectorAll(
-            '[data-report-action]'
-        ).forEach(control => {
-            bindControl(
-                control,
-                event => {
-                    event.stopPropagation();
-
-                    const reportId =
-                        control
-                            .closest(
-                                '[data-report-id]'
-                            )
-                            ?.dataset
-                            .reportId;
-
-                    const report =
-                        archive.reports.find(
-                            item => {
-                                return (
-                                    item.id ===
-                                    reportId
-                                );
-                            }
-                        );
-
-                    if (!report) return;
-
-                    const action =
-                        control.dataset
-                            .reportAction;
-
-                    if (
-                        action === 'view'
-                    ) {
-                        openReportDetail(
-                            report
-                        );
-                    }
-
-                    if (
-                        action === 'move'
-                    ) {
-                        openFolderChooser(
-                            null,
-                            report
-                        );
-                    }
-
-                    if (
-                        action === 'delete'
-                    ) {
-                        requestReportDeletion(
-                            report
-                        );
-                    }
-                }
-            );
+    }).join('');
+    list.querySelectorAll('[data-report-action]').forEach(control => {
+      bindControl(control, event => {
+        event.stopPropagation();
+        const reportId = control.closest('[data-report-id]')?.dataset.reportId;
+        const report = archive.reports.find(item => {
+          return item.id === reportId;
         });
-    }
-
-    function getReportDate(report) {
-        const timestamp =
-            Number(
-                report.reportTime
-            );
-
-        const date =
-            timestamp
-                ? new Date(
-                    timestamp * 1000
-                )
-                : new Date(
-                    report.savedAt
-                );
-
-        return Number.isNaN(
-            date.getTime()
-        )
-            ? null
-            : date;
-    }
-
-    function formatReportDate(report) {
-        const date =
-            getReportDate(report);
-
-        if (!date) {
-            return 'Unknown report date';
+        if (!report) return;
+        const action = control.dataset.reportAction;
+        if (action === 'view') {
+          openReportDetail(report);
         }
-
-        return new Intl.DateTimeFormat(
-            undefined,
-            {
-                year:
-                    'numeric',
-                month:
-                    '2-digit',
-                day:
-                    '2-digit',
-                hour:
-                    '2-digit',
-                minute:
-                    '2-digit'
-            }
-        ).format(date);
+        if (action === 'move') {
+          openFolderChooser(null, report);
+        }
+        if (action === 'delete') {
+          requestReportDeletion(report);
+        }
+      });
+    });
+  }
+  function getReportDate(report) {
+    const timestamp = Number(report.reportTime);
+    const date = timestamp ? new Date(timestamp * 1000) : new Date(report.savedAt);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
+  function formatReportDate(report) {
+    const date = getReportDate(report);
+    if (!date) {
+      return 'Unknown report date';
     }
-
-    function formatReportDateParts(
-        report
-    ) {
-        const date =
-            getReportDate(report);
-
-        if (!date) {
-            return {
-                date:
-                    'Unknown',
-                time:
-                    'Unknown'
-            };
-        }
-
-        return {
-            date:
-                new Intl.DateTimeFormat(
-                    undefined,
-                    {
-                        year:
-                            'numeric',
-                        month:
-                            '2-digit',
-                        day:
-                            '2-digit'
-                    }
-                ).format(date),
-
-            time:
-                new Intl.DateTimeFormat(
-                    undefined,
-                    {
-                        hour:
-                            '2-digit',
-                        minute:
-                            '2-digit',
-                        second:
-                            '2-digit'
-                    }
-                ).format(date)
-        };
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit'
+    }).format(date);
+  }
+  function formatReportDateParts(report) {
+    const date = getReportDate(report);
+    if (!date) {
+      return {
+        date: 'Unknown',
+        time: 'Unknown'
+      };
     }
-
-    function formatSavedDate(timestamp) {
-        const date =
-            new Date(timestamp);
-
-        if (
-            Number.isNaN(
-                date.getTime()
-            )
-        ) {
-            return 'unknown';
-        }
-
-        return new Intl.DateTimeFormat(
-            undefined,
-            {
-                year:
-                    'numeric',
-                month:
-                    '2-digit',
-                day:
-                    '2-digit'
-            }
-        ).format(date);
+    return {
+      date: new Intl.DateTimeFormat(undefined, {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).format(date),
+      time: new Intl.DateTimeFormat(undefined, {
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+      }).format(date)
+    };
+  }
+  function formatSavedDate(timestamp) {
+    const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) {
+      return 'unknown';
     }
-
-    function formatReportType(value) {
-        const text =
-            normalizeText(
-                value || 'Report'
-            )
-                .replace(
-                    /^report/i,
-                    ''
-                )
-                .replace(
-                    /([a-z])([A-Z])/g,
-                    '$1 $2'
-                )
-                .replace(
-                    /[_-]+/g,
-                    ' '
-                )
-                .trim();
-
-        if (!text) {
-            return 'Battle report';
-        }
-
-        return text.replace(
-            /\b\w/g,
-            letter => {
-                return letter
-                    .toUpperCase();
-            }
-        );
+    return new Intl.DateTimeFormat(undefined, {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).format(date);
+  }
+  function formatReportType(value) {
+    const text = normalizeText(value || 'Report').replace(/^report/i, '').replace(/([a-z])([A-Z])/g, '$1 $2').replace(/[_-]+/g, ' ').trim();
+    if (!text) {
+      return 'Battle report';
     }
-
-    function sanitizeStoredHtml(html) {
-        const template =
-            document.createElement(
-                'template'
-            );
-
-        template.innerHTML =
-            String(html || '');
-
-        sanitizeSnapshot(
-            template.content
-        );
-
-        template.content
-            .querySelectorAll(
-                '.reportHeader,' +
-                '.reportCaption,' +
-                '.reportDate,' +
-                '.controlPanel,' +
-                '.inWindowPopupHeader'
-            )
-            .forEach(element => {
-                element.remove();
-            });
-
-        return template.innerHTML;
+    return text.replace(/\b\w/g, letter => {
+      return letter.toUpperCase();
+    });
+  }
+  function sanitizeStoredHtml(html) {
+    const template = document.createElement('template');
+    template.innerHTML = String(html || '');
+    sanitizeSnapshot(template.content);
+    template.content.querySelectorAll('.reportHeader,' + '.reportCaption,' + '.reportDate,' + '.controlPanel,' + '.inWindowPopupHeader').forEach(element => {
+      element.remove();
+    });
+    return template.innerHTML;
+  }
+  function extractCompactBodyHtml(root) {
+    if (!root) return '';
+    const reportBody = root.matches?.('.reportBody') ? root : root.querySelector?.('.reportBody');
+    if (reportBody) {
+      return sanitizeStoredHtml(reportBody.outerHTML);
     }
-
-    function extractCompactBodyHtml(root) {
-        if (!root) return '';
-
-        const reportBody =
-            root.matches?.(
-                '.reportBody'
-            )
-                ? root
-                : root.querySelector?.(
-                    '.reportBody'
-                );
-
-        if (reportBody) {
-            return sanitizeStoredHtml(
-                reportBody.outerHTML
-            );
-        }
-
-        const usefulSelectors = [
-            '.troopDetails',
-            '.troops',
-            '.troopList',
-            '.reportTroops',
-            '.resources',
-            '.reportResources',
-            '.additionalInformation',
-            '.reportInformation'
-        ];
-
-        const usefulNodes =
-            usefulSelectors.flatMap(
-                selector => [
-                    ...(
-                        root.querySelectorAll?.(
-                            selector
-                        ) || []
-                    )
-                ]
-            );
-
-        const uniqueNodes =
-            usefulNodes.filter(
-                (
-                    node,
-                    index,
-                    nodes
-                ) => {
-                    return !nodes.some(
-                        (
-                            other,
-                            otherIndex
-                        ) => {
-                            return (
-                                otherIndex <
-                                    index &&
-                                other.contains(
-                                    node
-                                )
-                            );
-                        }
-                    );
-                }
-            );
-
-        if (!uniqueNodes.length) {
-            return '';
-        }
-
-        return sanitizeStoredHtml(
-            uniqueNodes
-                .map(node => {
-                    return node.outerHTML;
-                })
-                .join('')
-        );
+    const usefulSelectors = ['.troopDetails', '.troops', '.troopList', '.reportTroops', '.resources', '.reportResources', '.additionalInformation', '.reportInformation'];
+    const usefulNodes = usefulSelectors.flatMap(selector => [...(root.querySelectorAll?.(selector) || [])]);
+    const uniqueNodes = usefulNodes.filter((node, index, nodes) => {
+      return !nodes.some((other, otherIndex) => {
+        return otherIndex < index && other.contains(node);
+      });
+    });
+    if (!uniqueNodes.length) {
+      return '';
     }
-
-    function getCompactBodyHtml(report) {
-        if (report.bodyHtml) {
-            return sanitizeStoredHtml(
-                report.bodyHtml
-            );
-        }
-
-        if (!report.snapshotHtml) {
-            return '';
-        }
-
-        const template =
-            document.createElement(
-                'template'
-            );
-
-        template.innerHTML =
-            report.snapshotHtml;
-
-        const bodyHtml =
-            extractCompactBodyHtml(
-                template.content
-            );
-
-        if (bodyHtml) {
-            report.bodyHtml =
-                bodyHtml;
-
-            report.updatedAt =
-                Date.now();
-
-            saveArchive().catch(
-                error => {
-                    console.warn(
-                        '[APES Report Archive] ' +
-                        'Could not cache compact report body:',
-                        error
-                    );
-                }
-            );
-        }
-
-        return bodyHtml;
+    return sanitizeStoredHtml(uniqueNodes.map(node => {
+      return node.outerHTML;
+    }).join(''));
+  }
+  function getCompactBodyHtml(report) {
+    if (report.bodyHtml) {
+      return sanitizeStoredHtml(report.bodyHtml);
     }
-
-    function buildCompactReportHtml(
-        report
-    ) {
-        const dateParts =
-            formatReportDateParts(
-                report
-            );
-
-        const bodyHtml =
-            getCompactBodyHtml(
-                report
-            );
-
-        const headline =
-            report.headline ||
-            'Report';
-
-        const result =
-            report.resultText ||
-            headline;
-
-        const sourcePlayer =
-            report.sourcePlayer ||
-            'Unknown attacker';
-
-        const destPlayer =
-            report.destPlayer ||
-            'Unknown defender';
-
-        return `
+    if (!report.snapshotHtml) {
+      return '';
+    }
+    const template = document.createElement('template');
+    template.innerHTML = report.snapshotHtml;
+    const bodyHtml = extractCompactBodyHtml(template.content);
+    if (bodyHtml) {
+      report.bodyHtml = bodyHtml;
+      report.updatedAt = Date.now();
+      saveArchive().catch(error => {
+        console.warn('[APES Report Archive] ' + 'Could not cache compact report body:', error);
+      });
+    }
+    return bodyHtml;
+  }
+  function buildCompactReportHtml(report) {
+    const dateParts = formatReportDateParts(report);
+    const bodyHtml = getCompactBodyHtml(report);
+    const headline = report.headline || 'Report';
+    const result = report.resultText || headline;
+    const sourcePlayer = report.sourcePlayer || 'Unknown attacker';
+    const destPlayer = report.destPlayer || 'Unknown defender';
+    return `
             <article class="qol-ra-compact-report">
                 <header class="qol-ra-compact-top">
                     <div>
@@ -3663,16 +2318,13 @@
                     </div>
 
                     <div class="qol-ra-compact-body">
-                        ${
-                            bodyHtml ||
-                            `
+                        ${bodyHtml || `
                                 <div class="qol-ra-compact-empty">
                                     This older archived report does
                                     not contain a reusable troop-and-loss
                                     body.
                                 </div>
-                            `
-                        }
+                            `}
                     </div>
                 </section>
 
@@ -3689,174 +2341,57 @@
                 </footer>
             </article>
         `;
+  }
+  function openReportDetail(report) {
+    if (!archivePanel || !report) {
+      return;
     }
-
-    function openReportDetail(report) {
-        if (
-            !archivePanel ||
-            !report
-        ) {
-            return;
-        }
-
-        activeReportId =
-            report.id;
-
-        const detail =
-            archivePanel.querySelector(
-                '.qol-ra-detail'
-            );
-
-        detail.querySelector(
-            '.qol-ra-detail-title'
-        ).textContent =
-            report.title ||
-            report.headline ||
-            'Report';
-
-        detail.querySelector(
-            '.qol-ra-snapshot-card'
-        ).innerHTML =
-            buildCompactReportHtml(
-                report
-            );
-
-        updateDetailNavigation();
-
-        detail.style.setProperty(
-            'display',
-            'flex',
-            'important'
-        );
-
-        detail.querySelector(
-            '.qol-ra-snapshot-host'
-        ).scrollTop = 0;
+    activeReportId = report.id;
+    const detail = archivePanel.querySelector('.qol-ra-detail');
+    detail.querySelector('.qol-ra-detail-title').textContent = report.title || report.headline || 'Report';
+    detail.querySelector('.qol-ra-snapshot-card').innerHTML = buildCompactReportHtml(report);
+    updateDetailNavigation();
+    detail.style.setProperty('display', 'flex', 'important');
+    detail.querySelector('.qol-ra-snapshot-host').scrollTop = 0;
+  }
+  function updateDetailNavigation() {
+    if (!archivePanel) return;
+    const reports = getSortedVisibleReports();
+    const index = reports.findIndex(report => {
+      return report.id === activeReportId;
+    });
+    const previous = archivePanel.querySelector('.qol-ra-detail-prev');
+    const next = archivePanel.querySelector('.qol-ra-detail-next');
+    const previousDisabled = index <= 0;
+    const nextDisabled = index < 0 || index >= reports.length - 1;
+    previous.classList.toggle('qol-ra-disabled', previousDisabled);
+    next.classList.toggle('qol-ra-disabled', nextDisabled);
+    previous.setAttribute('aria-disabled', previousDisabled ? 'true' : 'false');
+    next.setAttribute('aria-disabled', nextDisabled ? 'true' : 'false');
+  }
+  function openAdjacentReport(direction) {
+    const reports = getSortedVisibleReports();
+    const index = reports.findIndex(report => {
+      return report.id === activeReportId;
+    });
+    const target = reports[index + direction];
+    if (target) {
+      openReportDetail(target);
     }
-
-    function updateDetailNavigation() {
-        if (!archivePanel) return;
-
-        const reports =
-            getSortedVisibleReports();
-
-        const index =
-            reports.findIndex(
-                report => {
-                    return (
-                        report.id ===
-                        activeReportId
-                    );
-                }
-            );
-
-        const previous =
-            archivePanel.querySelector(
-                '.qol-ra-detail-prev'
-            );
-
-        const next =
-            archivePanel.querySelector(
-                '.qol-ra-detail-next'
-            );
-
-        const previousDisabled =
-            index <= 0;
-
-        const nextDisabled =
-            index < 0 ||
-            index >=
-            reports.length - 1;
-
-        previous.classList.toggle(
-            'qol-ra-disabled',
-            previousDisabled
-        );
-
-        next.classList.toggle(
-            'qol-ra-disabled',
-            nextDisabled
-        );
-
-        previous.setAttribute(
-            'aria-disabled',
-            previousDisabled
-                ? 'true'
-                : 'false'
-        );
-
-        next.setAttribute(
-            'aria-disabled',
-            nextDisabled
-                ? 'true'
-                : 'false'
-        );
-    }
-
-    function openAdjacentReport(
-        direction
-    ) {
-        const reports =
-            getSortedVisibleReports();
-
-        const index =
-            reports.findIndex(
-                report => {
-                    return (
-                        report.id ===
-                        activeReportId
-                    );
-                }
-            );
-
-        const target =
-            reports[
-                index + direction
-            ];
-
-        if (target) {
-            openReportDetail(target);
-        }
-    }
-
-    function closeReportDetail() {
-        if (!archivePanel) return;
-
-        const detail =
-            archivePanel.querySelector(
-                '.qol-ra-detail'
-            );
-
-        if (!detail) return;
-
-        activeReportId = null;
-
-        detail.style.setProperty(
-            'display',
-            'none',
-            'important'
-        );
-
-        detail.querySelector(
-            '.qol-ra-snapshot-card'
-        ).replaceChildren();
-    }
-
-    function createDialog(
-        title,
-        bodyHtml
-    ) {
-        closeDialogs();
-
-        const layer =
-            document.createElement(
-                'div'
-            );
-
-        layer.className =
-            'qol-ra-dialog-layer';
-
-        layer.innerHTML = `
+  }
+  function closeReportDetail() {
+    if (!archivePanel) return;
+    const detail = archivePanel.querySelector('.qol-ra-detail');
+    if (!detail) return;
+    activeReportId = null;
+    detail.style.setProperty('display', 'none', 'important');
+    detail.querySelector('.qol-ra-snapshot-card').replaceChildren();
+  }
+  function createDialog(title, bodyHtml) {
+    closeDialogs();
+    const layer = document.createElement('div');
+    layer.className = 'qol-ra-dialog-layer';
+    layer.innerHTML = `
             <div
                 class="qol-ra-dialog"
                 role="dialog"
@@ -3873,102 +2408,36 @@
                 <div class="qol-ra-dialog-actions"></div>
             </div>
         `;
-
-        layer.addEventListener(
-            'mousedown',
-            event => {
-                if (
-                    event.target === layer
-                ) {
-                    closeDialogs();
-                }
-            }
-        );
-
-        document.body.appendChild(
-            layer
-        );
-
-        return layer;
-    }
-
-    function addDialogControl(
-        layer,
-        label,
-        className,
-        callback
-    ) {
-        const control =
-            document.createElement(
-                'div'
-            );
-
-        control.className =
-            `qol-ra-control ${
-                className || ''
-            }`.trim();
-
-        control.setAttribute(
-            'role',
-            'button'
-        );
-
-        control.setAttribute(
-            'tabindex',
-            '0'
-        );
-
-        control.textContent =
-            label;
-
-        bindControl(
-            control,
-            callback
-        );
-
-        layer.querySelector(
-            '.qol-ra-dialog-actions'
-        ).appendChild(control);
-
-        return control;
-    }
-
-    function closeDialogs() {
-        document.querySelectorAll(
-            '.qol-ra-dialog-layer'
-        ).forEach(layer => {
-            layer.remove();
-        });
-    }
-
-    function openFolderPrompt(
-        folderId = null,
-        afterCreate = null
-    ) {
-        const existing =
-            folderId
-                ? archive.folders.find(
-                    folder => {
-                        return (
-                            folder.id ===
-                            folderId
-                        );
-                    }
-                )
-                : null;
-
-        const layer =
-            createDialog(
-                existing
-                    ? 'Rename Folder'
-                    : 'Create Folder',
-                `
+    layer.addEventListener('mousedown', event => {
+      if (event.target === layer) {
+        closeDialogs();
+      }
+    });
+    document.body.appendChild(layer);
+    return layer;
+  }
+  function addDialogControl(layer, label, className, callback) {
+    const control = document.createElement('div');
+    control.className = `qol-ra-control ${className || ''}`.trim();
+    control.setAttribute('role', 'button');
+    control.setAttribute('tabindex', '0');
+    control.textContent = label;
+    bindControl(control, callback);
+    layer.querySelector('.qol-ra-dialog-actions').appendChild(control);
+    return control;
+  }
+  function closeDialogs() {
+    document.querySelectorAll('.qol-ra-dialog-layer').forEach(layer => {
+      layer.remove();
+    });
+  }
+  function openFolderPrompt(folderId = null, afterCreate = null) {
+    const existing = folderId ? archive.folders.find(folder => {
+      return folder.id === folderId;
+    }) : null;
+    const layer = createDialog(existing ? 'Rename Folder' : 'Create Folder', `
                     <label>
-                        ${
-                            existing
-                                ? 'Folder name'
-                                : 'Name the new report folder'
-                        }
+                        ${existing ? 'Folder name' : 'Name the new report folder'}
 
                         <input
                             class="qol-ra-input"
@@ -3980,256 +2449,95 @@
                     </label>
 
                     <div class="qol-ra-dialog-error"></div>
-                `
-            );
-
-        const input =
-            layer.querySelector(
-                '.qol-ra-input'
-            );
-
-        const errorBox =
-            layer.querySelector(
-                '.qol-ra-dialog-error'
-            );
-
-        const submit =
-            async () => {
-                const name =
-                    normalizeText(
-                        input.value
-                    );
-
-                if (!name) {
-                    errorBox.textContent =
-                        'Enter a folder name.';
-
-                    input.focus();
-
-                    return;
-                }
-
-                const duplicate =
-                    archive.folders.some(
-                        folder => {
-                            return (
-                                folder.id !==
-                                    folderId &&
-                                folder.name
-                                    .toLowerCase() ===
-                                name.toLowerCase()
-                            );
-                        }
-                    );
-
-                if (duplicate) {
-                    errorBox.textContent =
-                        'A folder with this name already exists.';
-
-                    input.focus();
-
-                    return;
-                }
-
-                let savedFolder;
-
-                if (existing) {
-                    existing.name =
-                        name;
-
-                    existing.updatedAt =
-                        Date.now();
-
-                    savedFolder =
-                        existing;
-                } else {
-                    savedFolder = {
-                        id:
-                            makeId(
-                                'folder'
-                            ),
-                        name,
-                        createdAt:
-                            Date.now()
-                    };
-
-                    archive.folders.unshift(
-                        savedFolder
-                    );
-
-                    activeFolderId =
-                        savedFolder.id;
-                }
-
-                try {
-                    await saveArchive();
-
-                    closeDialogs();
-                    renderArchive();
-
-                    if (
-                        typeof afterCreate ===
-                        'function'
-                    ) {
-                        afterCreate(
-                            savedFolder
-                        );
-                    }
-                } catch (error) {
-                    errorBox.textContent =
-                        `Could not save: ${error.message}`;
-                }
-            };
-
-        addDialogControl(
-            layer,
-            'Cancel',
-            'qol-ra-secondary',
-            closeDialogs
-        );
-
-        addDialogControl(
-            layer,
-            existing
-                ? 'Save'
-                : 'Create',
-            '',
-            submit
-        );
-
-        input.addEventListener(
-            'keydown',
-            event => {
-                if (
-                    event.key === 'Enter'
-                ) {
-                    submit();
-                }
-
-                if (
-                    event.key === 'Escape'
-                ) {
-                    closeDialogs();
-                }
-            }
-        );
-
-        setTimeout(
-            () => input.focus(),
-            0
-        );
-    }
-
-    function requestFolderDeletion(
-        folderId
-    ) {
-        const folder =
-            archive.folders.find(
-                item => {
-                    return (
-                        item.id ===
-                        folderId
-                    );
-                }
-            );
-
-        if (!folder) return;
-
-        const count =
-            countFolderReports(
-                folderId
-            );
-
-        const message =
-            count
-                ? (
-                    `Delete “${escapeHtml(folder.name)}”? ` +
-                    `Its ${count} report${
-                        count === 1
-                            ? ''
-                            : 's'
-                    } will be moved to Default.`
-                )
-                : (
-                    `Delete “${escapeHtml(folder.name)}”?`
-                );
-
-        const layer =
-            createDialog(
-                'Delete Folder',
-                `<div>${message}</div>`
-            );
-
-        addDialogControl(
-            layer,
-            'Cancel',
-            'qol-ra-secondary',
-            closeDialogs
-        );
-
-        addDialogControl(
-            layer,
-            'Delete',
-            'qol-ra-danger',
-            async () => {
-                archive.reports.forEach(
-                    report => {
-                        if (
-                            report.folderId ===
-                            folderId
-                        ) {
-                            report.folderId =
-                                null;
-                        }
-                    }
-                );
-
-                archive.folders =
-                    archive.folders.filter(
-                        item => {
-                            return (
-                                item.id !==
-                                folderId
-                            );
-                        }
-                    );
-
-                if (
-                    activeFolderId ===
-                    folderId
-                ) {
-                    activeFolderId =
-                        DEFAULT_FOLDER_ID;
-                }
-
-                try {
-                    await saveArchive();
-
-                    closeDialogs();
-                    renderArchive();
-                    refreshOpenReportButton();
-                } catch (error) {
-                    showToast(
-                        `Folder could not be deleted: ${error.message}`,
-                        'error'
-                    );
-                }
-            }
-        );
-    }
-
-    function requestReportDeletion(
-        report
-    ) {
-        const title =
-            report.title ||
-            report.headline ||
-            'Report';
-
-        const layer =
-            createDialog(
-                'Delete Archived Report',
-                `
+                `);
+    const input = layer.querySelector('.qol-ra-input');
+    const errorBox = layer.querySelector('.qol-ra-dialog-error');
+    const submit = async () => {
+      const name = normalizeText(input.value);
+      if (!name) {
+        errorBox.textContent = 'Enter a folder name.';
+        input.focus();
+        return;
+      }
+      const duplicate = archive.folders.some(folder => {
+        return folder.id !== folderId && folder.name.toLowerCase() === name.toLowerCase();
+      });
+      if (duplicate) {
+        errorBox.textContent = 'A folder with this name already exists.';
+        input.focus();
+        return;
+      }
+      let savedFolder;
+      if (existing) {
+        existing.name = name;
+        existing.updatedAt = Date.now();
+        savedFolder = existing;
+      } else {
+        savedFolder = {
+          id: makeId('folder'),
+          name,
+          createdAt: Date.now()
+        };
+        archive.folders.unshift(savedFolder);
+        activeFolderId = savedFolder.id;
+      }
+      try {
+        await saveArchive();
+        closeDialogs();
+        renderArchive();
+        if (typeof afterCreate === 'function') {
+          afterCreate(savedFolder);
+        }
+      } catch (error) {
+        errorBox.textContent = `Could not save: ${error.message}`;
+      }
+    };
+    addDialogControl(layer, 'Cancel', 'qol-ra-secondary', closeDialogs);
+    addDialogControl(layer, existing ? 'Save' : 'Create', '', submit);
+    input.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        submit();
+      }
+      if (event.key === 'Escape') {
+        closeDialogs();
+      }
+    });
+    setTimeout(() => input.focus(), 0);
+  }
+  function requestFolderDeletion(folderId) {
+    const folder = archive.folders.find(item => {
+      return item.id === folderId;
+    });
+    if (!folder) return;
+    const count = countFolderReports(folderId);
+    const message = count ? `Delete “${escapeHtml(folder.name)}”? ` + `Its ${count} report${count === 1 ? '' : 's'} will be moved to Default.` : `Delete “${escapeHtml(folder.name)}”?`;
+    const layer = createDialog('Delete Folder', `<div>${message}</div>`);
+    addDialogControl(layer, 'Cancel', 'qol-ra-secondary', closeDialogs);
+    addDialogControl(layer, 'Delete', 'qol-ra-danger', async () => {
+      archive.reports.forEach(report => {
+        if (report.folderId === folderId) {
+          report.folderId = null;
+        }
+      });
+      archive.folders = archive.folders.filter(item => {
+        return item.id !== folderId;
+      });
+      if (activeFolderId === folderId) {
+        activeFolderId = DEFAULT_FOLDER_ID;
+      }
+      try {
+        await saveArchive();
+        closeDialogs();
+        renderArchive();
+        refreshOpenReportButton();
+      } catch (error) {
+        showToast(`Folder could not be deleted: ${error.message}`, 'error');
+      }
+    });
+  }
+  function requestReportDeletion(report) {
+    const title = report.title || report.headline || 'Report';
+    const layer = createDialog('Delete Archived Report', `
                     <div>
                         Delete
                         <strong>
@@ -4246,130 +2554,49 @@
                     >
                         This cannot be undone.
                     </div>
-                `
-            );
-
-        addDialogControl(
-            layer,
-            'Cancel',
-            'qol-ra-secondary',
-            closeDialogs
-        );
-
-        addDialogControl(
-            layer,
-            'Delete',
-            'qol-ra-danger',
-            async () => {
-                archive.reports =
-                    archive.reports.filter(
-                        item => {
-                            return (
-                                item.id !==
-                                report.id
-                            );
-                        }
-                    );
-
-                try {
-                    await saveArchive();
-
-                    closeDialogs();
-                    closeReportDetail();
-                    renderArchive();
-                    refreshOpenReportButton();
-
-                    showToast(
-                        'Archived report deleted.'
-                    );
-                } catch (error) {
-                    showToast(
-                        `Report could not be deleted: ${error.message}`,
-                        'error'
-                    );
-                }
-            }
-        );
-    }
-
-    function openFolderChooser(
-        capturedReport,
-        existingReport = null
-    ) {
-        const report =
-            existingReport ||
-            capturedReport;
-
-        if (!report) return;
-
-        const layer =
-            createDialog(
-                existingReport
-                    ? 'Move or Refresh Report'
-                    : 'Save Report',
-                `
+                `);
+    addDialogControl(layer, 'Cancel', 'qol-ra-secondary', closeDialogs);
+    addDialogControl(layer, 'Delete', 'qol-ra-danger', async () => {
+      archive.reports = archive.reports.filter(item => {
+        return item.id !== report.id;
+      });
+      try {
+        await saveArchive();
+        closeDialogs();
+        closeReportDetail();
+        renderArchive();
+        refreshOpenReportButton();
+        showToast('Archived report deleted.');
+      } catch (error) {
+        showToast(`Report could not be deleted: ${error.message}`, 'error');
+      }
+    });
+  }
+  function openFolderChooser(capturedReport, existingReport = null) {
+    const report = existingReport || capturedReport;
+    if (!report) return;
+    const layer = createDialog(existingReport ? 'Move or Refresh Report' : 'Save Report', `
                     <div>
-                        ${
-                            existingReport
-                                ? (
-                                    'Choose the destination folder. ' +
-                                    'Selecting a folder also refreshes ' +
-                                    'the saved report.'
-                                )
-                                : (
-                                    'Choose where this report ' +
-                                    'should be archived.'
-                                )
-                        }
+                        ${existingReport ? 'Choose the destination folder. ' + 'Selecting a folder also refreshes ' + 'the saved report.' : 'Choose where this report ' + 'should be archived.'}
                     </div>
 
                     <div class="qol-ra-choice-list"></div>
-                `
-            );
-
-        const choiceList =
-            layer.querySelector(
-                '.qol-ra-choice-list'
-            );
-
-        const currentFolderId =
-            existingReport
-                ? (
-                    existingReport.folderId ||
-                    DEFAULT_FOLDER_ID
-                )
-                : null;
-
-        const choices = [
-            {
-                id:
-                    DEFAULT_FOLDER_ID,
-                name:
-                    'Default'
-            },
-
-            ...archive.folders.map(
-                folder => ({
-                    id:
-                        folder.id,
-                    name:
-                        folder.name
-                })
-            )
-        ];
-
-        choiceList.innerHTML =
-            choices.map(folder => {
-                return `
+                `);
+    const choiceList = layer.querySelector('.qol-ra-choice-list');
+    const currentFolderId = existingReport ? existingReport.folderId || DEFAULT_FOLDER_ID : null;
+    const choices = [{
+      id: DEFAULT_FOLDER_ID,
+      name: 'Default'
+    }, ...archive.folders.map(folder => ({
+      id: folder.id,
+      name: folder.name
+    }))];
+    choiceList.innerHTML = choices.map(folder => {
+      return `
                     <div
                         class="
                             qol-ra-choice
-                            ${
-                                folder.id ===
-                                currentFolderId
-                                    ? 'qol-ra-selected'
-                                    : ''
-                            }
+                            ${folder.id === currentFolderId ? 'qol-ra-selected' : ''}
                         "
                         data-choice-id="${escapeHtml(folder.id)}"
                     >
@@ -4383,1043 +2610,302 @@
                         </span>
                     </div>
                 `;
-            }).join('');
-
-        choiceList.querySelectorAll(
-            '.qol-ra-choice'
-        ).forEach(choice => {
-            choice.setAttribute(
-                'role',
-                'button'
-            );
-
-            choice.setAttribute(
-                'tabindex',
-                '0'
-            );
-
-            bindControl(
-                choice,
-                () => {
-                    saveReportToFolder(
-                        capturedReport,
-                        existingReport,
-                        choice.dataset
-                            .choiceId
-                    );
-                }
-            );
-        });
-
-        addDialogControl(
-            layer,
-            'New Folder',
-            'qol-ra-secondary',
-            () => {
-                openFolderPrompt(
-                    null,
-                    folder => {
-                        saveReportToFolder(
-                            capturedReport,
-                            existingReport,
-                            folder.id
-                        );
-                    }
-                );
-            }
-        );
-
-        addDialogControl(
-            layer,
-            'Cancel',
-            'qol-ra-secondary',
-            closeDialogs
-        );
+    }).join('');
+    choiceList.querySelectorAll('.qol-ra-choice').forEach(choice => {
+      choice.setAttribute('role', 'button');
+      choice.setAttribute('tabindex', '0');
+      bindControl(choice, () => {
+        saveReportToFolder(capturedReport, existingReport, choice.dataset.choiceId);
+      });
+    });
+    addDialogControl(layer, 'New Folder', 'qol-ra-secondary', () => {
+      openFolderPrompt(null, folder => {
+        saveReportToFolder(capturedReport, existingReport, folder.id);
+      });
+    });
+    addDialogControl(layer, 'Cancel', 'qol-ra-secondary', closeDialogs);
+  }
+  async function saveReportToFolder(capturedReport, existingReport, selectedFolderId) {
+    const folderId = selectedFolderId === DEFAULT_FOLDER_ID ? null : selectedFolderId;
+    if (existingReport) {
+      existingReport.folderId = folderId;
+      existingReport.updatedAt = Date.now();
+      if (capturedReport) {
+        refreshStoredReport(existingReport, capturedReport);
+      }
+    } else {
+      const duplicate = findStoredReport(capturedReport);
+      if (duplicate) {
+        duplicate.folderId = folderId;
+        duplicate.updatedAt = Date.now();
+        refreshStoredReport(duplicate, capturedReport);
+      } else {
+        capturedReport.folderId = folderId;
+        archive.reports.push(capturedReport);
+      }
     }
-
-    async function saveReportToFolder(
-        capturedReport,
-        existingReport,
-        selectedFolderId
-    ) {
-        const folderId =
-            selectedFolderId ===
-            DEFAULT_FOLDER_ID
-                ? null
-                : selectedFolderId;
-
-        if (existingReport) {
-            existingReport.folderId =
-                folderId;
-
-            existingReport.updatedAt =
-                Date.now();
-
-            if (capturedReport) {
-                refreshStoredReport(
-                    existingReport,
-                    capturedReport
-                );
-            }
-        } else {
-            const duplicate =
-                findStoredReport(
-                    capturedReport
-                );
-
-            if (duplicate) {
-                duplicate.folderId =
-                    folderId;
-
-                duplicate.updatedAt =
-                    Date.now();
-
-                refreshStoredReport(
-                    duplicate,
-                    capturedReport
-                );
-            } else {
-                capturedReport.folderId =
-                    folderId;
-
-                archive.reports.push(
-                    capturedReport
-                );
-            }
+    try {
+      await saveArchive();
+      closeDialogs();
+      renderArchive();
+      refreshOpenReportButton(true);
+      showToast(existingReport ? `Report saved in ` + `${getFolderName(folderId)}.` : `Report archived in ` + `${getFolderName(folderId)}.`);
+    } catch (error) {
+      showToast(`Report could not be saved: ${error.message}`, 'error');
+    }
+  }
+  function refreshStoredReport(stored, captured) {
+    if (!stored || !captured) {
+      return;
+    }
+    const fields = ['sourceReportId', 'fingerprint', 'title', 'headline', 'reportType', 'reportTime', 'sourcePlayer', 'sourceVillage', 'destPlayer', 'destVillage', 'resultText', 'world', 'bodyHtml', 'snapshotHtml'];
+    fields.forEach(key => {
+      if (captured[key] !== undefined && captured[key] !== null) {
+        stored[key] = captured[key];
+      }
+    });
+  }
+  function showToast(message, type = 'success') {
+    document.querySelectorAll('.qol-ra-toast').forEach(toast => {
+      toast.remove();
+    });
+    const toast = document.createElement('div');
+    toast.className = `qol-ra-toast ${type === 'error' ? 'qol-ra-toast-error' : ''}`.trim();
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2800);
+  }
+  function getReportRoots() {
+    return [...document.querySelectorAll('#reportSingle .singleReport,' + '#reportSingle.reportWithoutOverlay,' + '#reportSingle .reportWithoutOverlay,' + '.reportWindow .singleReport')].filter((reportRoot, index, roots) => {
+      return roots.indexOf(reportRoot) === index && Boolean(reportRoot.querySelector('.reportHeader .controlPanel'));
+    });
+  }
+  function isVisibleReportRoot(reportRoot) {
+    if (!reportRoot.isConnected) {
+      return false;
+    }
+    const rect = reportRoot.getBoundingClientRect();
+    return rect.width > 0 && rect.height > 0 && window.getComputedStyle(reportRoot).visibility !== 'hidden';
+  }
+  function getOpenReportRoot() {
+    const roots = getReportRoots();
+    const visibleRoots = roots.filter(isVisibleReportRoot);
+    return visibleRoots[visibleRoots.length - 1] || roots[roots.length - 1] || null;
+  }
+  function getClosestReportRoot(element) {
+    return element?.closest('.singleReport,' + '#reportSingle.reportWithoutOverlay,' + '.reportWithoutOverlay') || null;
+  }
+  function clearTrackedReportIds() {
+    getReportRoots().forEach(reportRoot => {
+      delete reportRoot.dataset.qolArchiveReportId;
+    });
+  }
+  function trackReportOpening(event) {
+    const reportLink = event.target.closest('[clickable*="reportSingle"]');
+    if (reportLink) {
+      const clickable = reportLink.getAttribute('clickable') || '';
+      const match = clickable.match(/reportId['"]?\s*:\s*['"]([^'"]+)/i);
+      pendingReportId = match ? match[1] : null;
+      clearTrackedReportIds();
+      return;
+    }
+    const reportNavigation = event.target.closest('#reportSingle ' + '[clickable*="changeReport"]');
+    if (reportNavigation) {
+      pendingReportId = null;
+      const root = getClosestReportRoot(reportNavigation);
+      if (root) {
+        delete root.dataset.qolArchiveReportId;
+      }
+    }
+  }
+  function scheduleReportScan() {
+    if (scanScheduled || !featureStarted) {
+      return;
+    }
+    scanScheduled = true;
+    requestAnimationFrame(() => {
+      scanScheduled = false;
+      ensureReportSaveButton();
+    });
+  }
+  function ensureReportSaveButton() {
+    if (!isEnabled()) return;
+    const reportRoot = getOpenReportRoot();
+    if (!reportRoot) return;
+    if (pendingReportId && !reportRoot.dataset.qolArchiveReportId) {
+      reportRoot.dataset.qolArchiveReportId = pendingReportId;
+    }
+    const controlPanel = reportRoot.querySelector('.reportHeader .controlPanel');
+    if (!controlPanel) return;
+    if (window.getComputedStyle(controlPanel).position === 'static') {
+      controlPanel.style.setProperty('position', 'relative', 'important');
+    }
+    let control = controlPanel.querySelector('.qol-ra-report-save');
+    if (!control) {
+      control = document.createElement('div');
+      control.className = 'qol-ra-report-save';
+      control.setAttribute('role', 'button');
+      control.setAttribute('tabindex', '0');
+      bindControl(control, event => {
+        event.preventDefault();
+        event.stopPropagation();
+        handleOpenReportSave(getClosestReportRoot(control) || reportRoot);
+      });
+    }
+    if (control.parentElement !== controlPanel) {
+      controlPanel.appendChild(control);
+    }
+    updateReportSaveControl(control, reportRoot);
+    positionReportSaveControl(control, controlPanel);
+  }
+  function positionReportSaveControl(control, controlPanel) {
+    requestAnimationFrame(() => {
+      if (!control.isConnected || !controlPanel.isConnected) {
+        return;
+      }
+      const panelRect = controlPanel.getBoundingClientRect();
+      if (panelRect.width <= 0 || panelRect.height <= 0) {
+        return;
+      }
+      const possibleControls = [...controlPanel.querySelectorAll('.iconButton,' + '[clickable],' + '[role="button"]')].filter(candidate => {
+        if (candidate === control || control.contains(candidate) || candidate.contains(control) || candidate.classList.contains('favorite')) {
+          return false;
         }
-
-        try {
-            await saveArchive();
-
-            closeDialogs();
-            renderArchive();
-            refreshOpenReportButton(
-                true
-            );
-
-            showToast(
-                existingReport
-                    ? (
-                        `Report saved in ` +
-                        `${getFolderName(folderId)}.`
-                    )
-                    : (
-                        `Report archived in ` +
-                        `${getFolderName(folderId)}.`
-                    )
-            );
-        } catch (error) {
-            showToast(
-                `Report could not be saved: ${error.message}`,
-                'error'
-            );
-        }
+        const rect = candidate.getBoundingClientRect();
+        return rect.width >= 16 && rect.width <= 42 && rect.height >= 16 && rect.height <= 32 && rect.left >= panelRect.left + panelRect.width * 0.55 && rect.right <= panelRect.right + 1;
+      });
+      const anchorLeft = possibleControls.length ? Math.min(...possibleControls.map(candidate => {
+        return candidate.getBoundingClientRect().left;
+      })) : panelRect.right - 48;
+      const left = Math.max(0, Math.min(panelRect.width - 22, anchorLeft - panelRect.left - 26));
+      const top = Math.max(0, Math.round((panelRect.height - 22) / 2));
+      control.style.setProperty('left', `${Math.round(left)}px`, 'important');
+      control.style.setProperty('right', 'auto', 'important');
+      control.style.setProperty('top', `${top}px`, 'important');
+    });
+  }
+  function refreshOpenReportButton(pulse = false) {
+    const root = getOpenReportRoot();
+    const control = root?.querySelector('.qol-ra-report-save');
+    if (!root || !control) {
+      return;
     }
-
-    function refreshStoredReport(
-        stored,
-        captured
-    ) {
-        if (
-            !stored ||
-            !captured
-        ) {
-            return;
-        }
-
-        const fields = [
-            'sourceReportId',
-            'fingerprint',
-            'title',
-            'headline',
-            'reportType',
-            'reportTime',
-            'sourcePlayer',
-            'sourceVillage',
-            'destPlayer',
-            'destVillage',
-            'resultText',
-            'world',
-            'bodyHtml',
-            'snapshotHtml'
-        ];
-
-        fields.forEach(key => {
-            if (
-                captured[key] !==
-                    undefined &&
-                captured[key] !==
-                    null
-            ) {
-                stored[key] =
-                    captured[key];
-            }
-        });
+    updateReportSaveControl(control, root);
+    if (pulse && control.classList.contains('qol-ra-archived')) {
+      control.classList.remove('qol-ra-just-saved');
+      void control.offsetWidth;
+      control.classList.add('qol-ra-just-saved');
+      setTimeout(() => {
+        control.classList.remove('qol-ra-just-saved');
+      }, 750);
     }
-
-    function showToast(
-        message,
-        type = 'success'
-    ) {
-        document.querySelectorAll(
-            '.qol-ra-toast'
-        ).forEach(toast => {
-            toast.remove();
-        });
-
-        const toast =
-            document.createElement(
-                'div'
-            );
-
-        toast.className =
-            `qol-ra-toast ${
-                type === 'error'
-                    ? 'qol-ra-toast-error'
-                    : ''
-            }`.trim();
-
-        toast.textContent =
-            message;
-
-        document.body.appendChild(
-            toast
-        );
-
-        setTimeout(
-            () => toast.remove(),
-            2800
-        );
+  }
+  function updateReportSaveControl(control, reportRoot) {
+    const existing = findStoredReport(getReportIdentity(reportRoot));
+    const archivedState = existing ? 'true' : 'false';
+    control.classList.toggle('qol-ra-archived', Boolean(existing));
+    control.title = existing ? `Archived in ` + `${getFolderName(existing.folderId)} ` + '— click to move or refresh' : 'Save report to APES ' + 'Report Archive';
+    control.setAttribute('aria-label', control.title);
+    if (control.dataset.archived !== archivedState) {
+      control.dataset.archived = archivedState;
+      control.innerHTML = reportSaveIcon(Boolean(existing));
     }
-
-    function getReportRoots() {
-        return [
-            ...document.querySelectorAll(
-                '#reportSingle .singleReport,' +
-                '#reportSingle.reportWithoutOverlay,' +
-                '#reportSingle .reportWithoutOverlay,' +
-                '.reportWindow .singleReport'
-            )
-        ].filter(
-            (
-                reportRoot,
-                index,
-                roots
-            ) => {
-                return (
-                    roots.indexOf(
-                        reportRoot
-                    ) === index &&
-                    Boolean(
-                        reportRoot.querySelector(
-                            '.reportHeader .controlPanel'
-                        )
-                    )
-                );
-            }
-        );
+  }
+  function handleOpenReportSave(reportRoot) {
+    try {
+      const captured = captureReport(reportRoot);
+      const existing = findStoredReport(captured);
+      openFolderChooser(captured, existing || null);
+    } catch (error) {
+      console.error('[APES Report Archive] Capture failed:', error);
+      showToast(`This report could not be captured: ${error.message}`, 'error');
     }
-
-    function isVisibleReportRoot(
-        reportRoot
-    ) {
-        if (
-            !reportRoot.isConnected
-        ) {
-            return false;
-        }
-
-        const rect =
-            reportRoot
-                .getBoundingClientRect();
-
-        return (
-            rect.width > 0 &&
-            rect.height > 0 &&
-            window.getComputedStyle(
-                reportRoot
-            ).visibility !== 'hidden'
-        );
+  }
+  function getReportIdentity(reportRoot) {
+    const reportTimeNode = reportRoot.querySelector('.reportDate [i18ndt]');
+    const reportTime = Number.parseInt(reportTimeNode?.getAttribute('i18ndt'), 10) || null;
+    const sourcePlayer = normalizeText(reportRoot.querySelector('.playerBox.actionFrom ' + '.playerLink')?.textContent) || 'Unknown attacker';
+    const sourceVillage = normalizeText(reportRoot.querySelector('.playerBox.actionFrom ' + '.villageLink')?.textContent) || '';
+    const destPlayer = normalizeText(reportRoot.querySelector('.playerBox.actionTo ' + '.playerLink')?.textContent) || 'Unknown defender';
+    const destVillage = normalizeText(reportRoot.querySelector('.playerBox.actionTo ' + '.villageLink')?.textContent) || '';
+    const headline = normalizeText(reportRoot.querySelector('.reportCaption ' + '[ng-bind="reportHeadline"]')?.textContent) || normalizeText(reportRoot.querySelector('.reportCaption .content')?.textContent) || normalizeText(reportRoot.querySelector('.reportCaption')?.textContent) || 'Report';
+    const reportBody = reportRoot.querySelector('.reportBody');
+    const reportType = reportBody ? [...reportBody.classList].find(className => {
+      return className !== 'reportBody';
+    }) || 'report' : 'report';
+    const resultText = getReportResultText(reportRoot, headline);
+    const sourceReportId = reportRoot.dataset.qolArchiveReportId || null;
+    const fingerprintSource = [reportTime || '', sourcePlayer, sourceVillage, destPlayer, destVillage, headline, normalizeText(reportBody?.textContent || '').slice(0, 4000)].join('|');
+    return {
+      sourceReportId,
+      fingerprint: hashText(fingerprintSource),
+      reportTime,
+      sourcePlayer,
+      sourceVillage,
+      destPlayer,
+      destVillage,
+      headline,
+      reportType,
+      resultText
+    };
+  }
+  function getReportResultText(reportRoot, fallback) {
+    const selectors = ['.reportResult', '.resultText', '.reportOutcome', '[class*="reportResult"]', '[class*="outcome"]'];
+    for (const selector of selectors) {
+      const text = normalizeText(reportRoot.querySelector(selector)?.textContent);
+      if (text && text.length <= 160) {
+        return text;
+      }
     }
-
-    function getOpenReportRoot() {
-        const roots =
-            getReportRoots();
-
-        const visibleRoots =
-            roots.filter(
-                isVisibleReportRoot
-            );
-
-        return (
-            visibleRoots[
-                visibleRoots.length - 1
-            ] ||
-            roots[
-                roots.length - 1
-            ] ||
-            null
-        );
+    return fallback || 'Archived report';
+  }
+  function captureReport(reportRoot) {
+    const identity = getReportIdentity(reportRoot);
+    const clonedRoot = cloneReportWithCanvases(reportRoot);
+    sanitizeSnapshot(clonedRoot);
+    const direction = `${identity.sourcePlayer}${identity.sourceVillage ? ` (${identity.sourceVillage})` : ''} → ${identity.destPlayer}${identity.destVillage ? ` (${identity.destVillage})` : ''}`;
+    return {
+      id: makeId('report'),
+      ...identity,
+      title: `${identity.headline} — ${direction}`,
+      world: window.location.hostname,
+      savedAt: Date.now(),
+      updatedAt: Date.now(),
+      folderId: null,
+      bodyHtml: extractCompactBodyHtml(clonedRoot),
+      snapshotHtml: clonedRoot.outerHTML
+    };
+  }
+  function cloneReportWithCanvases(reportRoot) {
+    const clone = reportRoot.cloneNode(true);
+    const originalCanvases = [...reportRoot.querySelectorAll('canvas')];
+    const clonedCanvases = [...clone.querySelectorAll('canvas')];
+    clonedCanvases.forEach((clonedCanvas, index) => {
+      const originalCanvas = originalCanvases[index];
+      if (!originalCanvas) {
+        clonedCanvas.remove();
+        return;
+      }
+      try {
+        const image = document.createElement('img');
+        image.src = originalCanvas.toDataURL('image/png');
+        image.width = originalCanvas.width;
+        image.height = originalCanvas.height;
+        image.className = originalCanvas.className;
+        image.alt = '';
+        image.style.cssText = originalCanvas.style.cssText;
+        clonedCanvas.replaceWith(image);
+      } catch (error) {
+        clonedCanvas.remove();
+      }
+    });
+    return clone;
+  }
+  function sanitizeSnapshot(root) {
+    if (!root?.querySelectorAll) {
+      return;
     }
-
-    function getClosestReportRoot(
-        element
-    ) {
-        return (
-            element?.closest(
-                '.singleReport,' +
-                '#reportSingle.reportWithoutOverlay,' +
-                '.reportWithoutOverlay'
-            ) ||
-            null
-        );
-    }
-
-    function clearTrackedReportIds() {
-        getReportRoots().forEach(
-            reportRoot => {
-                delete reportRoot
-                    .dataset
-                    .qolArchiveReportId;
-            }
-        );
-    }
-
-    function trackReportOpening(event) {
-        const reportLink =
-            event.target.closest(
-                '[clickable*="reportSingle"]'
-            );
-
-        if (reportLink) {
-            const clickable =
-                reportLink.getAttribute(
-                    'clickable'
-                ) || '';
-
-            const match =
-                clickable.match(
-                    /reportId['"]?\s*:\s*['"]([^'"]+)/i
-                );
-
-            pendingReportId =
-                match
-                    ? match[1]
-                    : null;
-
-            clearTrackedReportIds();
-
-            return;
-        }
-
-        const reportNavigation =
-            event.target.closest(
-                '#reportSingle ' +
-                '[clickable*="changeReport"]'
-            );
-
-        if (reportNavigation) {
-            pendingReportId =
-                null;
-
-            const root =
-                getClosestReportRoot(
-                    reportNavigation
-                );
-
-            if (root) {
-                delete root
-                    .dataset
-                    .qolArchiveReportId;
-            }
-        }
-    }
-
-    function scheduleReportScan() {
-        if (
-            scanScheduled ||
-            !featureStarted
-        ) {
-            return;
-        }
-
-        scanScheduled = true;
-
-        requestAnimationFrame(() => {
-            scanScheduled = false;
-            ensureReportSaveButton();
-        });
-    }
-
-    function ensureReportSaveButton() {
-        if (!isEnabled()) return;
-
-        const reportRoot =
-            getOpenReportRoot();
-
-        if (!reportRoot) return;
-
-        if (
-            pendingReportId &&
-            !reportRoot.dataset
-                .qolArchiveReportId
-        ) {
-            reportRoot.dataset
-                .qolArchiveReportId =
-                pendingReportId;
-        }
-
-        const controlPanel =
-            reportRoot.querySelector(
-                '.reportHeader .controlPanel'
-            );
-
-        if (!controlPanel) return;
-
-        if (
-            window.getComputedStyle(
-                controlPanel
-            ).position === 'static'
-        ) {
-            controlPanel.style.setProperty(
-                'position',
-                'relative',
-                'important'
-            );
-        }
-
-        let control =
-            controlPanel.querySelector(
-                '.qol-ra-report-save'
-            );
-
-        if (!control) {
-            control =
-                document.createElement(
-                    'div'
-                );
-
-            control.className =
-                'qol-ra-report-save';
-
-            control.setAttribute(
-                'role',
-                'button'
-            );
-
-            control.setAttribute(
-                'tabindex',
-                '0'
-            );
-
-            bindControl(
-                control,
-                event => {
-                    event.preventDefault();
-                    event.stopPropagation();
-
-                    handleOpenReportSave(
-                        getClosestReportRoot(
-                            control
-                        ) ||
-                        reportRoot
-                    );
-                }
-            );
-        }
-
-        if (
-            control.parentElement !==
-            controlPanel
-        ) {
-            controlPanel.appendChild(
-                control
-            );
-        }
-
-        updateReportSaveControl(
-            control,
-            reportRoot
-        );
-
-        positionReportSaveControl(
-            control,
-            controlPanel
-        );
-    }
-
-    function positionReportSaveControl(
-        control,
-        controlPanel
-    ) {
-        requestAnimationFrame(() => {
-            if (
-                !control.isConnected ||
-                !controlPanel.isConnected
-            ) {
-                return;
-            }
-
-            const panelRect =
-                controlPanel
-                    .getBoundingClientRect();
-
-            if (
-                panelRect.width <= 0 ||
-                panelRect.height <= 0
-            ) {
-                return;
-            }
-
-            const possibleControls = [
-                ...controlPanel
-                    .querySelectorAll(
-                        '.iconButton,' +
-                        '[clickable],' +
-                        '[role="button"]'
-                    )
-            ].filter(candidate => {
-                if (
-                    candidate === control ||
-                    control.contains(
-                        candidate
-                    ) ||
-                    candidate.contains(
-                        control
-                    ) ||
-                    candidate.classList
-                        .contains(
-                            'favorite'
-                        )
-                ) {
-                    return false;
-                }
-
-                const rect =
-                    candidate
-                        .getBoundingClientRect();
-
-                return (
-                    rect.width >= 16 &&
-                    rect.width <= 42 &&
-                    rect.height >= 16 &&
-                    rect.height <= 32 &&
-                    rect.left >=
-                        panelRect.left +
-                        panelRect.width *
-                        0.55 &&
-                    rect.right <=
-                        panelRect.right +
-                        1
-                );
-            });
-
-            const anchorLeft =
-                possibleControls.length
-                    ? Math.min(
-                        ...possibleControls.map(
-                            candidate => {
-                                return candidate
-                                    .getBoundingClientRect()
-                                    .left;
-                            }
-                        )
-                    )
-                    : panelRect.right - 48;
-
-            const left =
-                Math.max(
-                    0,
-                    Math.min(
-                        panelRect.width -
-                            22,
-                        anchorLeft -
-                            panelRect.left -
-                            26
-                    )
-                );
-
-            const top =
-                Math.max(
-                    0,
-                    Math.round(
-                        (
-                            panelRect.height -
-                            22
-                        ) / 2
-                    )
-                );
-
-            control.style.setProperty(
-                'left',
-                `${Math.round(left)}px`,
-                'important'
-            );
-
-            control.style.setProperty(
-                'right',
-                'auto',
-                'important'
-            );
-
-            control.style.setProperty(
-                'top',
-                `${top}px`,
-                'important'
-            );
-        });
-    }
-
-    function refreshOpenReportButton(
-        pulse = false
-    ) {
-        const root =
-            getOpenReportRoot();
-
-        const control =
-            root?.querySelector(
-                '.qol-ra-report-save'
-            );
-
-        if (
-            !root ||
-            !control
-        ) {
-            return;
-        }
-
-        updateReportSaveControl(
-            control,
-            root
-        );
-
-        if (
-            pulse &&
-            control.classList.contains(
-                'qol-ra-archived'
-            )
-        ) {
-            control.classList.remove(
-                'qol-ra-just-saved'
-            );
-
-            void control.offsetWidth;
-
-            control.classList.add(
-                'qol-ra-just-saved'
-            );
-
-            setTimeout(() => {
-                control.classList.remove(
-                    'qol-ra-just-saved'
-                );
-            }, 750);
-        }
-    }
-
-    function updateReportSaveControl(
-        control,
-        reportRoot
-    ) {
-        const existing =
-            findStoredReport(
-                getReportIdentity(
-                    reportRoot
-                )
-            );
-
-        const archivedState =
-            existing
-                ? 'true'
-                : 'false';
-
-        control.classList.toggle(
-            'qol-ra-archived',
-            Boolean(existing)
-        );
-
-        control.title =
-            existing
-                ? (
-                    `Archived in ` +
-                    `${getFolderName(existing.folderId)} ` +
-                    '— click to move or refresh'
-                )
-                : (
-                    'Save report to APES ' +
-                    'Report Archive'
-                );
-
-        control.setAttribute(
-            'aria-label',
-            control.title
-        );
-
-        if (
-            control.dataset.archived !==
-            archivedState
-        ) {
-            control.dataset.archived =
-                archivedState;
-
-            control.innerHTML =
-                reportSaveIcon(
-                    Boolean(existing)
-                );
-        }
-    }
-
-    function handleOpenReportSave(
-        reportRoot
-    ) {
-        try {
-            const captured =
-                captureReport(
-                    reportRoot
-                );
-
-            const existing =
-                findStoredReport(
-                    captured
-                );
-
-            openFolderChooser(
-                captured,
-                existing || null
-            );
-        } catch (error) {
-            console.error(
-                '[APES Report Archive] Capture failed:',
-                error
-            );
-
-            showToast(
-                `This report could not be captured: ${error.message}`,
-                'error'
-            );
-        }
-    }
-
-    function getReportIdentity(
-        reportRoot
-    ) {
-        const reportTimeNode =
-            reportRoot.querySelector(
-                '.reportDate [i18ndt]'
-            );
-
-        const reportTime =
-            Number.parseInt(
-                reportTimeNode
-                    ?.getAttribute(
-                        'i18ndt'
-                    ),
-                10
-            ) || null;
-
-        const sourcePlayer =
-            normalizeText(
-                reportRoot.querySelector(
-                    '.playerBox.actionFrom ' +
-                    '.playerLink'
-                )?.textContent
-            ) ||
-            'Unknown attacker';
-
-        const sourceVillage =
-            normalizeText(
-                reportRoot.querySelector(
-                    '.playerBox.actionFrom ' +
-                    '.villageLink'
-                )?.textContent
-            ) ||
-            '';
-
-        const destPlayer =
-            normalizeText(
-                reportRoot.querySelector(
-                    '.playerBox.actionTo ' +
-                    '.playerLink'
-                )?.textContent
-            ) ||
-            'Unknown defender';
-
-        const destVillage =
-            normalizeText(
-                reportRoot.querySelector(
-                    '.playerBox.actionTo ' +
-                    '.villageLink'
-                )?.textContent
-            ) ||
-            '';
-
-        const headline =
-            normalizeText(
-                reportRoot.querySelector(
-                    '.reportCaption ' +
-                    '[ng-bind="reportHeadline"]'
-                )?.textContent
-            ) ||
-            normalizeText(
-                reportRoot.querySelector(
-                    '.reportCaption .content'
-                )?.textContent
-            ) ||
-            normalizeText(
-                reportRoot.querySelector(
-                    '.reportCaption'
-                )?.textContent
-            ) ||
-            'Report';
-
-        const reportBody =
-            reportRoot.querySelector(
-                '.reportBody'
-            );
-
-        const reportType =
-            reportBody
-                ? (
-                    [
-                        ...reportBody
-                            .classList
-                    ].find(
-                        className => {
-                            return (
-                                className !==
-                                'reportBody'
-                            );
-                        }
-                    ) ||
-                    'report'
-                )
-                : 'report';
-
-        const resultText =
-            getReportResultText(
-                reportRoot,
-                headline
-            );
-
-        const sourceReportId =
-            reportRoot.dataset
-                .qolArchiveReportId ||
-            null;
-
-        const fingerprintSource = [
-            reportTime || '',
-            sourcePlayer,
-            sourceVillage,
-            destPlayer,
-            destVillage,
-            headline,
-            normalizeText(
-                reportBody
-                    ?.textContent ||
-                ''
-            ).slice(0, 4000)
-        ].join('|');
-
-        return {
-            sourceReportId,
-
-            fingerprint:
-                hashText(
-                    fingerprintSource
-                ),
-
-            reportTime,
-            sourcePlayer,
-            sourceVillage,
-            destPlayer,
-            destVillage,
-            headline,
-            reportType,
-            resultText
-        };
-    }
-
-    function getReportResultText(
-        reportRoot,
-        fallback
-    ) {
-        const selectors = [
-            '.reportResult',
-            '.resultText',
-            '.reportOutcome',
-            '[class*="reportResult"]',
-            '[class*="outcome"]'
-        ];
-
-        for (
-            const selector
-            of selectors
-        ) {
-            const text =
-                normalizeText(
-                    reportRoot
-                        .querySelector(
-                            selector
-                        )
-                        ?.textContent
-                );
-
-            if (
-                text &&
-                text.length <= 160
-            ) {
-                return text;
-            }
-        }
-
-        return (
-            fallback ||
-            'Archived report'
-        );
-    }
-
-    function captureReport(reportRoot) {
-        const identity =
-            getReportIdentity(
-                reportRoot
-            );
-
-        const clonedRoot =
-            cloneReportWithCanvases(
-                reportRoot
-            );
-
-        sanitizeSnapshot(
-            clonedRoot
-        );
-
-        const direction =
-            `${identity.sourcePlayer}${
-                identity.sourceVillage
-                    ? ` (${identity.sourceVillage})`
-                    : ''
-            } → ${identity.destPlayer}${
-                identity.destVillage
-                    ? ` (${identity.destVillage})`
-                    : ''
-            }`;
-
-        return {
-            id:
-                makeId(
-                    'report'
-                ),
-
-            ...identity,
-
-            title:
-                `${identity.headline} — ${direction}`,
-
-            world:
-                window.location.hostname,
-
-            savedAt:
-                Date.now(),
-
-            updatedAt:
-                Date.now(),
-
-            folderId:
-                null,
-
-            bodyHtml:
-                extractCompactBodyHtml(
-                    clonedRoot
-                ),
-
-            snapshotHtml:
-                clonedRoot.outerHTML
-        };
-    }
-
-    function cloneReportWithCanvases(
-        reportRoot
-    ) {
-        const clone =
-            reportRoot.cloneNode(
-                true
-            );
-
-        const originalCanvases = [
-            ...reportRoot.querySelectorAll(
-                'canvas'
-            )
-        ];
-
-        const clonedCanvases = [
-            ...clone.querySelectorAll(
-                'canvas'
-            )
-        ];
-
-        clonedCanvases.forEach(
-            (
-                clonedCanvas,
-                index
-            ) => {
-                const originalCanvas =
-                    originalCanvases[
-                        index
-                    ];
-
-                if (!originalCanvas) {
-                    clonedCanvas.remove();
-                    return;
-                }
-
-                try {
-                    const image =
-                        document.createElement(
-                            'img'
-                        );
-
-                    image.src =
-                        originalCanvas
-                            .toDataURL(
-                                'image/png'
-                            );
-
-                    image.width =
-                        originalCanvas.width;
-
-                    image.height =
-                        originalCanvas.height;
-
-                    image.className =
-                        originalCanvas.className;
-
-                    image.alt = '';
-
-                    image.style.cssText =
-                        originalCanvas
-                            .style
-                            .cssText;
-
-                    clonedCanvas.replaceWith(
-                        image
-                    );
-                } catch (error) {
-                    clonedCanvas.remove();
-                }
-            }
-        );
-
-        return clone;
-    }
-
-    function sanitizeSnapshot(root) {
-        if (
-            !root?.querySelectorAll
-        ) {
-            return;
-        }
-
-        root.querySelectorAll(`
+    root.querySelectorAll(`
             .inWindowPopupHeader,
             .controlPanel,
             .qol-ra-report-save,
@@ -5433,366 +2919,143 @@
             select,
             button
         `).forEach(element => {
-            element.remove();
-        });
-
-        const comments = [];
-
-        const commentWalker =
-            document.createTreeWalker(
-                root,
-                NodeFilter.SHOW_COMMENT
-            );
-
-        while (
-            commentWalker.nextNode()
-        ) {
-            comments.push(
-                commentWalker.currentNode
-            );
-        }
-
-        comments.forEach(comment => {
-            comment.remove();
-        });
-
-        const elements = [];
-
-        if (
-            root.nodeType ===
-            Node.ELEMENT_NODE
-        ) {
-            elements.push(root);
-        }
-
-        elements.push(
-            ...root.querySelectorAll('*')
-        );
-
-        elements.forEach(element => {
-            [
-                ...element.attributes
-            ].forEach(attribute => {
-                const name =
-                    attribute.name
-                        .toLowerCase();
-
-                const shouldRemove =
-                    name.startsWith('on') ||
-                    name.startsWith('ng-') ||
-                    name.startsWith(
-                        'tooltip'
-                    ) ||
-                    name.startsWith(
-                        'data-qol'
-                    ) ||
-                    name === 'clickable' ||
-                    name ===
-                        'play-on-click' ||
-                    name ===
-                        'player-link' ||
-                    name ===
-                        'village-link' ||
-                    name === 'href' ||
-                    name === 'srcset';
-
-                if (shouldRemove) {
-                    element.removeAttribute(
-                        attribute.name
-                    );
-                }
-            });
-
-            element.classList.remove(
-                'clickable'
-            );
-
-            if (
-                element.tagName === 'A'
-            ) {
-                element.setAttribute(
-                    'aria-disabled',
-                    'true'
-                );
-
-                element.style.setProperty(
-                    'pointer-events',
-                    'none'
-                );
-            }
-        });
+      element.remove();
+    });
+    const comments = [];
+    const commentWalker = document.createTreeWalker(root, NodeFilter.SHOW_COMMENT);
+    while (commentWalker.nextNode()) {
+      comments.push(commentWalker.currentNode);
     }
-
-    function findStoredReport(
-        candidate
-    ) {
-        if (!candidate) return null;
-
-        return (
-            archive.reports.find(
-                report => {
-                    if (
-                        candidate.sourceReportId &&
-                        report.sourceReportId
-                    ) {
-                        return (
-                            candidate
-                                .sourceReportId ===
-                            report
-                                .sourceReportId
-                        );
-                    }
-
-                    return Boolean(
-                        candidate.fingerprint &&
-                        candidate.fingerprint ===
-                            report.fingerprint
-                    );
-                }
-            ) ||
-            null
-        );
+    comments.forEach(comment => {
+      comment.remove();
+    });
+    const elements = [];
+    if (root.nodeType === Node.ELEMENT_NODE) {
+      elements.push(root);
     }
-
-    function handleGlobalKeydown(event) {
-        if (
-            event.key !== 'Escape'
-        ) {
-            return;
+    elements.push(...root.querySelectorAll('*'));
+    elements.forEach(element => {
+      [...element.attributes].forEach(attribute => {
+        const name = attribute.name.toLowerCase();
+        const shouldRemove = name.startsWith('on') || name.startsWith('ng-') || name.startsWith('tooltip') || name.startsWith('data-qol') || name === 'clickable' || name === 'play-on-click' || name === 'player-link' || name === 'village-link' || name === 'href' || name === 'srcset';
+        if (shouldRemove) {
+          element.removeAttribute(attribute.name);
         }
-
-        if (
-            document.querySelector(
-                '.qol-ra-dialog-layer'
-            )
-        ) {
-            closeDialogs();
-            return;
-        }
-
-        const detail =
-            archivePanel
-                ?.querySelector(
-                    '.qol-ra-detail'
-                );
-
-        if (
-            detail &&
-            window.getComputedStyle(
-                detail
-            ).display !== 'none'
-        ) {
-            closeReportDetail();
-            return;
-        }
-
-        if (
-            archivePanel &&
-            window.getComputedStyle(
-                archivePanel
-            ).display !== 'none'
-        ) {
-            closeArchivePanel();
-        }
+      });
+      element.classList.remove('clickable');
+      if (element.tagName === 'A') {
+        element.setAttribute('aria-disabled', 'true');
+        element.style.setProperty('pointer-events', 'none');
+      }
+    });
+  }
+  function findStoredReport(candidate) {
+    if (!candidate) return null;
+    return archive.reports.find(report => {
+      if (candidate.sourceReportId && report.sourceReportId) {
+        return candidate.sourceReportId === report.sourceReportId;
+      }
+      return Boolean(candidate.fingerprint && candidate.fingerprint === report.fingerprint);
+    }) || null;
+  }
+  function handleGlobalKeydown(event) {
+    if (event.key !== 'Escape') {
+      return;
     }
-
-    async function startFeature() {
-        if (
-            featureStarted ||
-            !isEnabled()
-        ) {
-            return;
-        }
-
-        featureStarted = true;
-
-        injectStyles();
-
-        archive =
-            await loadArchive();
-
-        if (
-            !featureStarted ||
-            !isEnabled()
-        ) {
-            return;
-        }
-
-        buildToolbarButton();
-        buildArchivePanel();
-
-        document.addEventListener(
-            'click',
-            trackReportOpening,
-            true
-        );
-
-        document.addEventListener(
-            'keydown',
-            handleGlobalKeydown,
-            true
-        );
-
-        reportObserver =
-            new MutationObserver(
-                scheduleReportScan
-            );
-
-        reportObserver.observe(
-            document.body,
-            {
-                childList:
-                    true,
-                subtree:
-                    true
-            }
-        );
-
-        scheduleReportScan();
-
-        if (
-            typeof window
-                .qolRepositionAllButtons ===
-            'function'
-        ) {
-            window
-                .qolRepositionAllButtons();
-        }
+    if (document.querySelector('.qol-ra-dialog-layer')) {
+      closeDialogs();
+      return;
     }
-
-    function stopFeature() {
-        featureStarted = false;
-        pendingReportId = null;
-        activeReportId = null;
-
-        reportObserver?.disconnect();
-        reportObserver = null;
-
-        document.removeEventListener(
-            'click',
-            trackReportOpening,
-            true
-        );
-
-        document.removeEventListener(
-            'keydown',
-            handleGlobalKeydown,
-            true
-        );
-
-        document.querySelectorAll(
-            '.qol-ra-report-save'
-        ).forEach(control => {
-            control.remove();
-        });
-
-        closeDialogs();
-
-        toolbarButton?.remove();
-        archivePanel?.remove();
-
-        toolbarButton = null;
-        archivePanel = null;
-
-        if (
-            typeof window
-                .qolRepositionAllButtons ===
-            'function'
-        ) {
-            window
-                .qolRepositionAllButtons();
-        }
+    const detail = archivePanel?.querySelector('.qol-ra-detail');
+    if (detail && window.getComputedStyle(detail).display !== 'none') {
+      closeReportDetail();
+      return;
     }
-
-    window.addEventListener(
-        'qol_setting_changed',
-        event => {
-            if (
-                !event.detail ||
-                event.detail.key !==
-                    FEATURE_KEY
-            ) {
-                return;
-            }
-
-            const checkbox =
-                document.getElementById(
-                    'qol-chk-report-archive'
-                );
-
-            if (checkbox) {
-                checkbox.checked =
-                    Boolean(
-                        event.detail.enabled
-                    );
-            }
-
-            if (
-                event.detail.enabled
-            ) {
-                startFeature();
-            } else {
-                stopFeature();
-            }
-
-            scheduleIntegration();
-        }
-    );
-
-    function initializeModule() {
-        injectStyles();
-        ensureMenuIntegration();
-        installToolbarPositionHook();
-
-        integrationObserver =
-            new MutationObserver(
-                scheduleIntegration
-            );
-
-        integrationObserver.observe(
-            document.body,
-            {
-                childList:
-                    true,
-                subtree:
-                    true
-            }
-        );
-
-        window.addEventListener(
-            'resize',
-            positionToolbarButton
-        );
-
-        window.addEventListener(
-            'resize',
-            scheduleReportScan
-        );
-
-        window.addEventListener(
-            'scroll',
-            positionToolbarButton
-        );
-
-        if (isEnabled()) {
-            startFeature();
-        }
-
-        scheduleIntegration();
+    if (archivePanel && window.getComputedStyle(archivePanel).display !== 'none') {
+      closeArchivePanel();
     }
-
-    if (
-        document.readyState ===
-        'loading'
-    ) {
-        document.addEventListener(
-            'DOMContentLoaded',
-            initializeModule,
-            {
-                once: true
-            }
-        );
+  }
+  async function startFeature() {
+    if (featureStarted || !isEnabled()) {
+      return;
+    }
+    featureStarted = true;
+    injectStyles();
+    archive = await loadArchive();
+    if (!featureStarted || !isEnabled()) {
+      return;
+    }
+    buildToolbarButton();
+    buildArchivePanel();
+    document.addEventListener('click', trackReportOpening, true);
+    document.addEventListener('keydown', handleGlobalKeydown, true);
+    reportObserver = new MutationObserver(scheduleReportScan);
+    reportObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    scheduleReportScan();
+    if (typeof window.qolRepositionAllButtons === 'function') {
+      window.qolRepositionAllButtons();
+    }
+  }
+  function stopFeature() {
+    featureStarted = false;
+    pendingReportId = null;
+    activeReportId = null;
+    reportObserver?.disconnect();
+    reportObserver = null;
+    document.removeEventListener('click', trackReportOpening, true);
+    document.removeEventListener('keydown', handleGlobalKeydown, true);
+    document.querySelectorAll('.qol-ra-report-save').forEach(control => {
+      control.remove();
+    });
+    closeDialogs();
+    toolbarButton?.remove();
+    archivePanel?.remove();
+    toolbarButton = null;
+    archivePanel = null;
+    if (typeof window.qolRepositionAllButtons === 'function') {
+      window.qolRepositionAllButtons();
+    }
+  }
+  window.addEventListener('qol_setting_changed', event => {
+    if (!event.detail || event.detail.key !== FEATURE_KEY) {
+      return;
+    }
+    const checkbox = document.getElementById('qol-chk-report-archive');
+    if (checkbox) {
+      checkbox.checked = Boolean(event.detail.enabled);
+    }
+    if (event.detail.enabled) {
+      startFeature();
     } else {
-        initializeModule();
+      stopFeature();
     }
+    scheduleIntegration();
+  });
+  function initializeModule() {
+    injectStyles();
+    ensureMenuIntegration();
+    installToolbarPositionHook();
+    integrationObserver = new MutationObserver(scheduleIntegration);
+    integrationObserver.observe(document.body, {
+      childList: true,
+      subtree: true
+    });
+    window.addEventListener('resize', positionToolbarButton);
+    window.addEventListener('resize', scheduleReportScan);
+    window.addEventListener('scroll', positionToolbarButton);
+    if (isEnabled()) {
+      startFeature();
+    }
+    scheduleIntegration();
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializeModule, {
+      once: true
+    });
+  } else {
+    initializeModule();
+  }
 })();

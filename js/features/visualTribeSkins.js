@@ -1,219 +1,178 @@
-/**
- * APES QoL — Visual Tribe Skins
- *
- * Lets players display Village View buildings with Roman, Teuton, or Gaul
- * artwork. The selected skin is derived directly from Travian's current
- * building image URLs; no village or asset-catalogue scan is required.
- */
 (() => {
-    'use strict';
+  'use strict';
 
-    const FEATURE_KEY = 'visualTribeSkins';
-    const TOOLBAR_BUTTON_ID = 'qol-tribe-skins-toggle-btn';
-    const PANEL_ID = 'qol-tribe-skins-panel';
-    const SELECTION_KEY = 'apes_visual_tribe_skin_selection_v1';
-    const SKINS = Object.freeze({
-        roman: { name: 'Roman', prefix: 'r', mark: 'R' },
-        teuton: { name: 'Teuton', prefix: 't', mark: 'T' },
-        gaul: { name: 'Gaul', prefix: 'g', mark: 'G' }
+  const FEATURE_KEY = 'visualTribeSkins';
+  const TOOLBAR_BUTTON_ID = 'qol-tribe-skins-toggle-btn';
+  const PANEL_ID = 'qol-tribe-skins-panel';
+  const SELECTION_KEY = 'apes_visual_tribe_skin_selection_v1';
+  const SKINS = Object.freeze({
+    roman: {
+      name: 'Roman',
+      prefix: 'r',
+      mark: 'R'
+    },
+    teuton: {
+      name: 'Teuton',
+      prefix: 't',
+      mark: 'T'
+    },
+    gaul: {
+      name: 'Gaul',
+      prefix: 'g',
+      mark: 'G'
+    }
+  });
+  let observer = null;
+  let scheduled = false;
+  let sessionSelection = readSelection();
+  function enabled() {
+    return typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE_KEY);
+  }
+  function readSelection() {
+    try {
+      const saved = localStorage.getItem(SELECTION_KEY);
+      return Object.hasOwn(SKINS, saved) ? saved : '';
+    } catch (_) {
+      return '';
+    }
+  }
+  function getSelection() {
+    return sessionSelection;
+  }
+  function saveSelection(choice) {
+    if (!Object.hasOwn(SKINS, choice)) return;
+    sessionSelection = choice;
+    try {
+      localStorage.setItem(SELECTION_KEY, choice);
+    } catch (_) {}
+    applySelectedSkin();
+    refreshUi();
+  }
+  function cleanUrl(value) {
+    try {
+      const url = new URL(value, location.href);
+      url.search = '';
+      url.hash = '';
+      return url.href;
+    } catch (_) {
+      return String(value || '').split(/[?#]/)[0];
+    }
+  }
+  function buildingPath(value) {
+    try {
+      return new URL(value, location.href).pathname.match(/\/g(\d+)_([a-z])(\d+)\.png$/i);
+    } catch (_) {
+      return null;
+    }
+  }
+  function findBuildingLevel(image) {
+    const slotMatch = String(image.id || '').match(/buildingImage(\d+)/i);
+    const slotId = slotMatch?.[1];
+    const nearby = [image, image.parentElement, image.closest('[id*="location" i],[class*="location" i]'), slotId ? document.getElementById('buildingLevel' + slotId) : null, slotId ? document.getElementById('level' + slotId) : null].filter(Boolean);
+    const values = [];
+    nearby.forEach(element => {
+      values.push(element.getAttribute?.('data-level'), element.getAttribute?.('data-building-level'), element.getAttribute?.('aria-label'), element.getAttribute?.('title'));
+      element.querySelectorAll?.('[data-level],[data-building-level],[class*="level" i],[id*="level" i]').forEach(child => {
+        values.push(child.getAttribute('data-level'), child.getAttribute('data-building-level'), child.textContent);
+      });
     });
-
-    let observer = null;
-    let scheduled = false;
-    let sessionSelection = readSelection();
-
-    function enabled() {
-        return typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE_KEY);
+    for (const value of values) {
+      const match = String(value || '').match(/\b(?:level\s*)?([0-9]{1,2})\b/i);
+      if (match) return Number(match[1]);
     }
-
-    function readSelection() {
-        try {
-            const saved = localStorage.getItem(SELECTION_KEY);
-            return Object.hasOwn(SKINS, saved) ? saved : '';
-        } catch (_) {
-            return '';
-        }
+    return null;
+  }
+  function originalFor(image) {
+    const current = image.currentSrc || image.src;
+    const original = image.dataset.qolTribeSkinOriginal || '';
+    const applied = image.dataset.qolTribeSkinApplied || '';
+    if (!original || cleanUrl(current) !== cleanUrl(original) && cleanUrl(current) !== cleanUrl(applied)) {
+      image.dataset.qolTribeSkinOriginal = current;
+      delete image.dataset.qolTribeSkinApplied;
+      delete image.dataset.qolTribeSkinFailed;
+      return current;
     }
-
-    function getSelection() {
-        return sessionSelection;
+    return original;
+  }
+  function targetFor(image, choice) {
+    const skin = SKINS[choice];
+    if (!skin) return '';
+    const original = originalFor(image);
+    const match = buildingPath(original);
+    if (!match) return '';
+    const measuredLevel = findBuildingLevel(image);
+    const sourceTier = Number(match[3] || 0);
+    const level = Number.isInteger(measuredLevel) ? measuredLevel : sourceTier;
+    const tier = Math.max(0, Math.min(20, Math.floor(level / 10) * 10));
+    const target = new URL(original, location.href);
+    target.pathname = target.pathname.replace(/_([a-z])\d+(\.png)$/i, '_' + skin.prefix + String(tier).padStart(2, '0') + '$2');
+    target.search = '';
+    target.hash = '';
+    return target.href;
+  }
+  function restoreImage(image) {
+    const original = image.dataset.qolTribeSkinOriginal;
+    if (!original) return;
+    delete image.dataset.qolTribeSkinApplied;
+    delete image.dataset.qolTribeSkinFailed;
+    if (cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
+  }
+  function restoreOriginalSkins() {
+    document.querySelectorAll('img[data-qol-tribe-skin-original]').forEach(restoreImage);
+  }
+  function applyToImage(image, choice) {
+    const target = targetFor(image, choice);
+    if (!target) return;
+    const failed = image.dataset.qolTribeSkinFailed;
+    if (failed && cleanUrl(failed) === cleanUrl(target)) return;
+    if (cleanUrl(image.src) === cleanUrl(target)) {
+      image.dataset.qolTribeSkinApplied = target;
+      return;
     }
-
-    function saveSelection(choice) {
-        if (!Object.hasOwn(SKINS, choice)) return;
-        sessionSelection = choice;
-        try {
-            localStorage.setItem(SELECTION_KEY, choice);
-        } catch (_) {
-            // Keep the choice active for this page if storage is unavailable.
-        }
-        applySelectedSkin();
-        refreshUi();
+    const original = image.dataset.qolTribeSkinOriginal;
+    const fallback = () => {
+      image.dataset.qolTribeSkinFailed = target;
+      delete image.dataset.qolTribeSkinApplied;
+      if (original && cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
+    };
+    image.addEventListener('error', fallback, {
+      once: true
+    });
+    image.dataset.qolTribeSkinApplied = target;
+    image.src = target;
+  }
+  function applySelectedSkin() {
+    if (!enabled()) {
+      restoreOriginalSkins();
+      return;
     }
-
-    function cleanUrl(value) {
-        try {
-            const url = new URL(value, location.href);
-            url.search = '';
-            url.hash = '';
-            return url.href;
-        } catch (_) {
-            return String(value || '').split(/[?#]/)[0];
-        }
+    const choice = getSelection();
+    if (!choice) {
+      restoreOriginalSkins();
+      return;
     }
-
-    function buildingPath(value) {
-        try {
-            return new URL(value, location.href).pathname.match(/\/g(\d+)_([a-z])(\d+)\.png$/i);
-        } catch (_) {
-            return null;
-        }
-    }
-
-    function findBuildingLevel(image) {
-        const slotMatch = String(image.id || '').match(/buildingImage(\d+)/i);
-        const slotId = slotMatch?.[1];
-        const nearby = [
-            image,
-            image.parentElement,
-            image.closest('[id*="location" i],[class*="location" i]'),
-            slotId ? document.getElementById('buildingLevel' + slotId) : null,
-            slotId ? document.getElementById('level' + slotId) : null
-        ].filter(Boolean);
-
-        const values = [];
-        nearby.forEach(element => {
-            values.push(
-                element.getAttribute?.('data-level'),
-                element.getAttribute?.('data-building-level'),
-                element.getAttribute?.('aria-label'),
-                element.getAttribute?.('title')
-            );
-            element.querySelectorAll?.('[data-level],[data-building-level],[class*="level" i],[id*="level" i]').forEach(child => {
-                values.push(child.getAttribute('data-level'), child.getAttribute('data-building-level'), child.textContent);
-            });
-        });
-
-        for (const value of values) {
-            const match = String(value || '').match(/\b(?:level\s*)?([0-9]{1,2})\b/i);
-            if (match) return Number(match[1]);
-        }
-        return null;
-    }
-
-    function originalFor(image) {
-        const current = image.currentSrc || image.src;
-        const original = image.dataset.qolTribeSkinOriginal || '';
-        const applied = image.dataset.qolTribeSkinApplied || '';
-
-        // Travian can reuse an image element for another building. A URL that is
-        // neither our replacement nor the saved original becomes the new source.
-        if (!original || (cleanUrl(current) !== cleanUrl(original) && cleanUrl(current) !== cleanUrl(applied))) {
-            image.dataset.qolTribeSkinOriginal = current;
-            delete image.dataset.qolTribeSkinApplied;
-            delete image.dataset.qolTribeSkinFailed;
-            return current;
-        }
-        return original;
-    }
-
-    function targetFor(image, choice) {
-        const skin = SKINS[choice];
-        if (!skin) return '';
-
-        const original = originalFor(image);
-        const match = buildingPath(original);
-        if (!match) return '';
-
-        const measuredLevel = findBuildingLevel(image);
-        const sourceTier = Number(match[3] || 0);
-        const level = Number.isInteger(measuredLevel) ? measuredLevel : sourceTier;
-        const tier = Math.max(0, Math.min(20, Math.floor(level / 10) * 10));
-
-        const target = new URL(original, location.href);
-        target.pathname = target.pathname.replace(
-            /_([a-z])\d+(\.png)$/i,
-            '_' + skin.prefix + String(tier).padStart(2, '0') + '$2'
-        );
-        target.search = '';
-        target.hash = '';
-        return target.href;
-    }
-
-    function restoreImage(image) {
-        const original = image.dataset.qolTribeSkinOriginal;
-        if (!original) return;
-        delete image.dataset.qolTribeSkinApplied;
-        delete image.dataset.qolTribeSkinFailed;
-        if (cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
-    }
-
-    function restoreOriginalSkins() {
-        document.querySelectorAll('img[data-qol-tribe-skin-original]').forEach(restoreImage);
-    }
-
-    function applyToImage(image, choice) {
-        const target = targetFor(image, choice);
-        if (!target) return;
-
-        const failed = image.dataset.qolTribeSkinFailed;
-        if (failed && cleanUrl(failed) === cleanUrl(target)) return;
-        if (cleanUrl(image.src) === cleanUrl(target)) {
-            image.dataset.qolTribeSkinApplied = target;
-            return;
-        }
-
-        const original = image.dataset.qolTribeSkinOriginal;
-        const fallback = () => {
-            image.dataset.qolTribeSkinFailed = target;
-            delete image.dataset.qolTribeSkinApplied;
-            if (original && cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
-        };
-        image.addEventListener('error', fallback, { once: true });
-        image.dataset.qolTribeSkinApplied = target;
-        image.src = target;
-    }
-
-    function applySelectedSkin() {
-        if (!enabled()) {
-            restoreOriginalSkins();
-            return;
-        }
-
-        const choice = getSelection();
-        if (!choice) {
-            restoreOriginalSkins();
-            return;
-        }
-
-        document.querySelectorAll('img.location[src*="/layout/images/building/thumb/"]').forEach(image => {
-            applyToImage(image, choice);
-        });
-    }
-
-    function refreshUi() {
-        const panel = document.getElementById(PANEL_ID);
-        if (!panel) return;
-
-        const selected = getSelection();
-        panel.querySelectorAll('[data-skin]').forEach(control => {
-            const active = control.dataset.skin === selected;
-            control.classList.toggle('qol-active', active);
-            control.setAttribute('aria-pressed', String(active));
-        });
-
-        const current = panel.querySelector('.qol-tribe-skins-current');
-        if (!current) return;
-        current.textContent = selected
-            ? SKINS[selected].name + ' building skin is active.'
-            : 'Choose a tribe to apply its building skin.';
-    }
-
-    function injectStyles() {
-        if (document.getElementById('qol-tribe-skins-styles')) return;
-        const style = document.createElement('style');
-        style.id = 'qol-tribe-skins-styles';
-        style.textContent = `
+    document.querySelectorAll('img.location[src*="/layout/images/building/thumb/"]').forEach(image => {
+      applyToImage(image, choice);
+    });
+  }
+  function refreshUi() {
+    const panel = document.getElementById(PANEL_ID);
+    if (!panel) return;
+    const selected = getSelection();
+    panel.querySelectorAll('[data-skin]').forEach(control => {
+      const active = control.dataset.skin === selected;
+      control.classList.toggle('qol-active', active);
+      control.setAttribute('aria-pressed', String(active));
+    });
+    const current = panel.querySelector('.qol-tribe-skins-current');
+    if (!current) return;
+    current.textContent = selected ? SKINS[selected].name + ' building skin is active.' : 'Choose a tribe to apply its building skin.';
+  }
+  function injectStyles() {
+    if (document.getElementById('qol-tribe-skins-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'qol-tribe-skins-styles';
+    style.textContent = `
             #${TOOLBAR_BUTTON_ID}{position:fixed!important;display:none!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;margin:0!important;padding:0!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;color:var(--qol-accent-ink)!important;box-shadow:0 2px 4px rgba(0,0,0,.22)!important;cursor:pointer!important;user-select:none!important;box-sizing:border-box!important;z-index:9999!important;font:700 17px Arial,Helvetica,sans-serif!important;text-shadow:none!important}
             #${TOOLBAR_BUTTON_ID}:hover{transform:scale(1.08)!important;background:#f7f5f0!important}
             #${PANEL_ID},#${PANEL_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
@@ -236,45 +195,41 @@
             #${PANEL_ID} .qol-tribe-skins-note{margin:0!important;color:#89765d!important;font-size:8px!important;text-align:center!important}
             @media(max-width:430px){#${PANEL_ID} .qol-tribe-skins-choices{grid-template-columns:1fr!important}#${PANEL_ID} .qol-tribe-skins-choice{min-height:55px!important;flex-direction:row!important}}
         `;
-        document.head.appendChild(style);
+    document.head.appendChild(style);
+  }
+  function activate(element, handler) {
+    if (!element) return;
+    element.addEventListener('click', handler);
+    element.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      handler(event);
+    });
+  }
+  function injectUi() {
+    if (!enabled()) return;
+    injectStyles();
+    let button = document.getElementById(TOOLBAR_BUTTON_ID);
+    if (!button) {
+      button = document.createElement('div');
+      button.id = TOOLBAR_BUTTON_ID;
+      button.title = 'Visual Tribe Skin';
+      button.setAttribute('role', 'button');
+      button.setAttribute('tabindex', '0');
+      button.setAttribute('aria-label', 'Open Visual Tribe Skin');
+      button.textContent = '◈';
+      activate(button, event => {
+        event.preventDefault();
+        event.stopPropagation();
+        document.getElementById(PANEL_ID)?.classList.toggle('qol-tribe-skins-open');
+      });
+      document.body.appendChild(button);
     }
-
-    function activate(element, handler) {
-        if (!element) return;
-        element.addEventListener('click', handler);
-        element.addEventListener('keydown', event => {
-            if (event.key !== 'Enter' && event.key !== ' ') return;
-            event.preventDefault();
-            handler(event);
-        });
-    }
-
-    function injectUi() {
-        if (!enabled()) return;
-        injectStyles();
-
-        let button = document.getElementById(TOOLBAR_BUTTON_ID);
-        if (!button) {
-            button = document.createElement('div');
-            button.id = TOOLBAR_BUTTON_ID;
-            button.title = 'Visual Tribe Skin';
-            button.setAttribute('role', 'button');
-            button.setAttribute('tabindex', '0');
-            button.setAttribute('aria-label', 'Open Visual Tribe Skin');
-            button.textContent = '◈';
-            activate(button, event => {
-                event.preventDefault();
-                event.stopPropagation();
-                document.getElementById(PANEL_ID)?.classList.toggle('qol-tribe-skins-open');
-            });
-            document.body.appendChild(button);
-        }
-
-        let panel = document.getElementById(PANEL_ID);
-        if (!panel) {
-            panel = document.createElement('div');
-            panel.id = PANEL_ID;
-            panel.innerHTML = `
+    let panel = document.getElementById(PANEL_ID);
+    if (!panel) {
+      panel = document.createElement('div');
+      panel.id = PANEL_ID;
+      panel.innerHTML = `
                 <div class="qol-tribe-skins-header">
                     <span>Visual Tribe Skin</span>
                     <div class="qol-tribe-skins-close" data-close role="button" tabindex="0" aria-label="Close">×</div>
@@ -294,81 +249,71 @@
                     <p class="qol-tribe-skins-note">Your choice is saved in this browser and applies automatically. No village scan is needed.</p>
                 </div>
             `;
-            activate(panel.querySelector('[data-close]'), () => panel.classList.remove('qol-tribe-skins-open'));
-            panel.querySelectorAll('[data-skin]').forEach(control => {
-                activate(control, () => saveSelection(control.dataset.skin));
-            });
-            document.body.appendChild(panel);
-        }
-
-        panel.style.removeProperty('display');
-        refreshUi();
-        applySelectedSkin();
-        window.qolRepositionAllButtons?.();
+      activate(panel.querySelector('[data-close]'), () => panel.classList.remove('qol-tribe-skins-open'));
+      panel.querySelectorAll('[data-skin]').forEach(control => {
+        activate(control, () => saveSelection(control.dataset.skin));
+      });
+      document.body.appendChild(panel);
     }
-
-    function start() {
-        if (!enabled()) return;
-        injectUi();
+    panel.style.removeProperty('display');
+    refreshUi();
+    applySelectedSkin();
+    window.qolRepositionAllButtons?.();
+  }
+  function start() {
+    if (!enabled()) return;
+    injectUi();
+    applySelectedSkin();
+    if (observer) return;
+    observer = new MutationObserver(mutations => {
+      if (!enabled()) return;
+      const affectsBuildings = mutations.some(mutation => {
+        if (mutation.type === 'attributes') return mutation.target instanceof HTMLImageElement;
+        return [...mutation.addedNodes].some(node => node.nodeType === Node.ELEMENT_NODE && (node.matches?.('img.location') || node.querySelector?.('img.location')));
+      });
+      if (!affectsBuildings || scheduled) return;
+      scheduled = true;
+      requestAnimationFrame(() => {
+        scheduled = false;
         applySelectedSkin();
-        if (observer) return;
-
-        observer = new MutationObserver(mutations => {
-            if (!enabled()) return;
-            const affectsBuildings = mutations.some(mutation => {
-                if (mutation.type === 'attributes') return mutation.target instanceof HTMLImageElement;
-                return [...mutation.addedNodes].some(node =>
-                    node.nodeType === Node.ELEMENT_NODE
-                    && (node.matches?.('img.location') || node.querySelector?.('img.location'))
-                );
-            });
-            if (!affectsBuildings || scheduled) return;
-            scheduled = true;
-            requestAnimationFrame(() => {
-                scheduled = false;
-                applySelectedSkin();
-            });
-        });
-
-        observer.observe(document.documentElement, {
-            childList: true,
-            subtree: true,
-            attributes: true,
-            attributeFilter: ['src']
-        });
-    }
-
-    document.addEventListener('keydown', event => {
-        if (event.key !== 'Escape' || event.defaultPrevented) return;
-        document.getElementById(PANEL_ID)?.classList.remove('qol-tribe-skins-open');
+      });
     });
-
-    window.addEventListener('qol_setting_changed', event => {
-        if (event.detail?.key !== FEATURE_KEY) return;
-        if (event.detail.enabled) {
-            start();
-        } else {
-            document.getElementById(PANEL_ID)?.classList.remove('qol-tribe-skins-open');
-            document.getElementById(PANEL_ID)?.style.setProperty('display', 'none', 'important');
-            restoreOriginalSkins();
-        }
+    observer.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['src']
     });
-
-    window.APES_TRIBE_SKINS = Object.freeze({
-        get: getSelection,
-        set: saveSelection,
-        apply: applySelectedSkin,
-        restore: restoreOriginalSkins
-    });
-
-    const begin = () => {
-        start();
-        console.info('[APES Visual Tribe Skin] Ready. No village scan required.');
-    };
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', begin, { once: true });
+  }
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape' || event.defaultPrevented) return;
+    document.getElementById(PANEL_ID)?.classList.remove('qol-tribe-skins-open');
+  });
+  window.addEventListener('qol_setting_changed', event => {
+    if (event.detail?.key !== FEATURE_KEY) return;
+    if (event.detail.enabled) {
+      start();
     } else {
-        begin();
+      document.getElementById(PANEL_ID)?.classList.remove('qol-tribe-skins-open');
+      document.getElementById(PANEL_ID)?.style.setProperty('display', 'none', 'important');
+      restoreOriginalSkins();
     }
+  });
+  window.APES_TRIBE_SKINS = Object.freeze({
+    get: getSelection,
+    set: saveSelection,
+    apply: applySelectedSkin,
+    restore: restoreOriginalSkins
+  });
+  const begin = () => {
+    start();
+    console.info('[APES Visual Tribe Skin] Ready. No village scan required.');
+  };
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', begin, {
+      once: true
+    });
+  } else {
+    begin();
+  }
 })();

@@ -1,151 +1,130 @@
-/**
- * Travian QoL Extension
- * Module: Watchlist
- */
-
-(function() {
-    const MAX_TABS = 10;
-    const MAX_PLAYERS_PER_TAB = 50;
-
-    let watchlistContainer = null;
-    let watchlistToggleBtn = null;
-    let profileCheckInterval = null;
-
-    let watchlistTabs = [];
-    let activeTabId = 'tab_1';
-
-    function getStorageKey() {
-        return 'qol_watchlist_' + window.location.hostname;
+(function () {
+  const MAX_TABS = 10;
+  const MAX_PLAYERS_PER_TAB = 50;
+  let watchlistContainer = null;
+  let watchlistToggleBtn = null;
+  let profileCheckInterval = null;
+  let watchlistTabs = [];
+  let activeTabId = 'tab_1';
+  function getStorageKey() {
+    return 'qol_watchlist_' + window.location.hostname;
+  }
+  function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+  function numericValue(value) {
+    const normalized = String(value ?? '').replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '').replace(/[^\d-]/g, '');
+    if (!normalized || normalized === '-') return null;
+    const parsed = Number(normalized);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  const ICON_PATHS = Object.freeze({
+    people: '<circle cx="8" cy="7.5" r="3"></circle><circle cx="16.5" cy="9" r="2.5"></circle><path d="M2.5 20c.4-4.2 2.2-6.3 5.5-6.3s5.1 2.1 5.5 6.3"></path><path d="M13 15c3.8-.7 6.7 1.2 7.5 5"></path>',
+    castle: '<path d="M4 21V8h4V5h3v3h2V5h3v3h4v13"></path><path d="M3 21h18M8 21v-5h8v5M4 11h16"></path>',
+    house: '<path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v10h13V10M9 20v-6h6v6"></path>',
+    sword: '<path d="m5 19 4.5-4.5M7 21l-4-4 3-1 1-3 4 4-3 1-1 3Z"></path><path d="m10 14 8.5-8.5L21 3l-2.5 6L13 14.5"></path>'
+  });
+  function iconSvg(kind) {
+    return `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[kind] || ''}</svg>`;
+  }
+  function iconHtml(kind, label, extraClass = '') {
+    const classes = `qol-wl-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
+    const artwork = kind === 'swordCastle' ? `${iconSvg('sword')}${iconSvg('castle')}` : kind === 'swordHouse' ? `${iconSvg('sword')}${iconSvg('house')}` : iconSvg(kind);
+    return `<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? ' qol-wl-combo-icon' : ''}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${artwork}</span>`;
+  }
+  function changeDescriptor(value) {
+    const numeric = value == null || value === '' ? null : Number(value);
+    if (!Number.isFinite(numeric)) return {
+      tone: 'stationary',
+      arrow: '—',
+      amount: '—'
+    };
+    if (numeric > 0) return {
+      tone: 'positive',
+      arrow: '↗',
+      amount: Math.abs(numeric).toLocaleString()
+    };
+    if (numeric < 0) return {
+      tone: 'negative',
+      arrow: '↘',
+      amount: Math.abs(numeric).toLocaleString()
+    };
+    return {
+      tone: 'stationary',
+      arrow: '→',
+      amount: '0'
+    };
+  }
+  function changeMetricHtml(kind, label, value) {
+    const change = changeDescriptor(value);
+    return `<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
+  }
+  function changesHtml(entry) {
+    if (entry.villageChange == null && entry.populationChange == null) {
+      return '<span class="qol-wl-change qol-stationary">Baseline</span>';
     }
-
-    function delay(ms) {
-        return new Promise(resolve => setTimeout(resolve, ms));
+    return `${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
+  }
+  function navigateToGameRoute(route) {
+    let currentHash = window.location.hash || '#/';
+    let baseHash = currentHash.split(/\/window:|\/playerId:|\/profileTab:/)[0];
+    if (!baseHash || baseHash === '#') {
+      baseHash = '#/';
     }
-
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+    if (baseHash.endsWith('/')) {
+      baseHash = baseHash.slice(0, -1);
     }
-
-    function numericValue(value) {
-        const normalized = String(value ?? '')
-            .replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '')
-            .replace(/[^\d-]/g, '');
-        if (!normalized || normalized === '-') return null;
-        const parsed = Number(normalized);
-        return Number.isFinite(parsed) ? parsed : null;
+    let cleanRoute = route.startsWith('/') ? route.slice(1) : route;
+    let targetHash = baseHash + '/' + cleanRoute;
+    if (window.location.hash.includes('/window:') || window.location.hash.includes('/playerId:')) {
+      window.location.hash = baseHash;
+      setTimeout(() => {
+        window.location.hash = targetHash;
+      }, 50);
+    } else {
+      window.location.hash = targetHash;
     }
-
-    const ICON_PATHS = Object.freeze({
-        people: '<circle cx="8" cy="7.5" r="3"></circle><circle cx="16.5" cy="9" r="2.5"></circle><path d="M2.5 20c.4-4.2 2.2-6.3 5.5-6.3s5.1 2.1 5.5 6.3"></path><path d="M13 15c3.8-.7 6.7 1.2 7.5 5"></path>',
-        castle: '<path d="M4 21V8h4V5h3v3h2V5h3v3h4v13"></path><path d="M3 21h18M8 21v-5h8v5M4 11h16"></path>',
-        house: '<path d="M3 11.5 12 4l9 7.5"></path><path d="M5.5 10v10h13V10M9 20v-6h6v6"></path>',
-        sword: '<path d="m5 19 4.5-4.5M7 21l-4-4 3-1 1-3 4 4-3 1-1 3Z"></path><path d="m10 14 8.5-8.5L21 3l-2.5 6L13 14.5"></path>'
-    });
-
-    function iconSvg(kind) {
-        return `<svg viewBox="0 0 24 24" aria-hidden="true">${ICON_PATHS[kind] || ''}</svg>`;
-    }
-
-    function iconHtml(kind, label, extraClass = '') {
-        const classes = `qol-wl-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
-        const artwork = kind === 'swordCastle'
-            ? `${iconSvg('sword')}${iconSvg('castle')}`
-            : kind === 'swordHouse'
-                ? `${iconSvg('sword')}${iconSvg('house')}`
-                : iconSvg(kind);
-        return `<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? ' qol-wl-combo-icon' : ''}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${artwork}</span>`;
-    }
-
-    function changeDescriptor(value) {
-        const numeric = value == null || value === '' ? null : Number(value);
-        if (!Number.isFinite(numeric)) return { tone:'stationary', arrow:'—', amount:'—' };
-        if (numeric > 0) return { tone:'positive', arrow:'↗', amount:Math.abs(numeric).toLocaleString() };
-        if (numeric < 0) return { tone:'negative', arrow:'↘', amount:Math.abs(numeric).toLocaleString() };
-        return { tone:'stationary', arrow:'→', amount:'0' };
-    }
-
-    function changeMetricHtml(kind, label, value) {
-        const change = changeDescriptor(value);
-        return `<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
-    }
-
-    function changesHtml(entry) {
-        if (entry.villageChange == null && entry.populationChange == null) {
-            return '<span class="qol-wl-change qol-stationary">Baseline</span>';
+  }
+  function loadWatchlist() {
+    try {
+      const stored = localStorage.getItem(getStorageKey());
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          watchlistTabs = parsed;
+          activeTabId = watchlistTabs[0].id;
+          return;
         }
-        return `${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
+      }
+    } catch (e) {
+      console.error('QoL Watchlist: Failed to load stored data', e);
     }
-
-    function navigateToGameRoute(route) {
-        let currentHash = window.location.hash || '#/';
-        let baseHash = currentHash.split(/\/window:|\/playerId:|\/profileTab:/)[0];
-
-        if (!baseHash || baseHash === '#') {
-            baseHash = '#/';
-        }
-
-        if (baseHash.endsWith('/')) {
-            baseHash = baseHash.slice(0, -1);
-        }
-
-        let cleanRoute = route.startsWith('/') ? route.slice(1) : route;
-        let targetHash = baseHash + '/' + cleanRoute;
-
-        if (window.location.hash.includes('/window:') || window.location.hash.includes('/playerId:')) {
-            window.location.hash = baseHash;
-            setTimeout(() => {
-                window.location.hash = targetHash;
-            }, 50);
-        } else {
-            window.location.hash = targetHash;
-        }
+    watchlistTabs = [{
+      id: 'tab_1',
+      name: 'Tab 1',
+      entries: []
+    }];
+    activeTabId = 'tab_1';
+  }
+  function saveWatchlist() {
+    try {
+      localStorage.setItem(getStorageKey(), JSON.stringify(watchlistTabs));
+      window.dispatchEvent(new CustomEvent('qol_watchlist_changed'));
+    } catch (e) {
+      console.error('QoL Watchlist: Failed to save data', e);
     }
-
-    function loadWatchlist() {
-        try {
-            const stored = localStorage.getItem(getStorageKey());
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                if (Array.isArray(parsed) && parsed.length > 0) {
-                    watchlistTabs = parsed;
-                    activeTabId = watchlistTabs[0].id;
-                    return;
-                }
-            }
-        } catch (e) {
-            console.error('QoL Watchlist: Failed to load stored data', e);
-        }
-
-        watchlistTabs = [
-            { id: 'tab_1', name: 'Tab 1', entries: [] }
-        ];
-        activeTabId = 'tab_1';
-    }
-
-    function saveWatchlist() {
-        try {
-            localStorage.setItem(getStorageKey(), JSON.stringify(watchlistTabs));
-            window.dispatchEvent(new CustomEvent('qol_watchlist_changed'));
-        } catch (e) {
-            console.error('QoL Watchlist: Failed to save data', e);
-        }
-    }
-
-    function isWatchlistEnabled() {
-        return window.isQolEnabled && window.isQolEnabled('watchlist');
-    }
-
-    function injectStyles() {
-        if (document.getElementById('qol-watchlist-styles')) return;
-
-        const style = document.createElement('style');
-        style.id = 'qol-watchlist-styles';
-        style.textContent = `
+  }
+  function isWatchlistEnabled() {
+    return window.isQolEnabled && window.isQolEnabled('watchlist');
+  }
+  function injectStyles() {
+    if (document.getElementById('qol-watchlist-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'qol-watchlist-styles';
+    style.textContent = `
             #qol-watchlist-toggle {
                 position: fixed !important;
                 width: 30px !important;
@@ -582,126 +561,106 @@
                 background: linear-gradient(to bottom, #e4605d, #d43f3a) !important;
             }
         `;
-        document.head.appendChild(style);
+    document.head.appendChild(style);
+  }
+  function makeDraggable(element, handle) {
+    handle.addEventListener('pointerdown', e => {
+      if (e.target.closest('.qol-wl-close')) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const rect = element.getBoundingClientRect();
+      const initialLeft = rect.left;
+      const initialTop = rect.top;
+      element.style.transform = 'none';
+      element.style.left = initialLeft + 'px';
+      element.style.top = initialTop + 'px';
+      element.style.right = 'auto';
+      element.style.bottom = 'auto';
+      try {
+        handle.setPointerCapture(e.pointerId);
+      } catch (err) {}
+      function onPointerMove(moveEvent) {
+        moveEvent.preventDefault();
+        const dx = moveEvent.clientX - startX;
+        const dy = moveEvent.clientY - startY;
+        element.style.left = initialLeft + dx + 'px';
+        element.style.top = initialTop + dy + 'px';
+      }
+      function onPointerUp(upEvent) {
+        try {
+          handle.releasePointerCapture(upEvent.pointerId);
+        } catch (err) {}
+        handle.removeEventListener('pointermove', onPointerMove);
+        handle.removeEventListener('pointerup', onPointerUp);
+      }
+      handle.addEventListener('pointermove', onPointerMove);
+      handle.addEventListener('pointerup', onPointerUp);
+    });
+  }
+  function makeResizable(element) {
+    if (element.querySelector('.qol-resize-handle')) return;
+    const handle = document.createElement('div');
+    handle.className = 'qol-resize-handle';
+    element.appendChild(handle);
+    handle.addEventListener('pointerdown', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      const startWidth = element.offsetWidth;
+      const startHeight = element.offsetHeight;
+      const startX = e.clientX;
+      const startY = e.clientY;
+      try {
+        handle.setPointerCapture(e.pointerId);
+      } catch (err) {}
+      function onPointerMove(moveEvent) {
+        moveEvent.preventDefault();
+        const newWidth = Math.max(400, startWidth + (moveEvent.clientX - startX));
+        const newHeight = Math.max(200, startHeight + (moveEvent.clientY - startY));
+        element.style.setProperty('width', newWidth + 'px', 'important');
+        element.style.setProperty('height', newHeight + 'px', 'important');
+      }
+      function onPointerUp(upEvent) {
+        try {
+          handle.releasePointerCapture(upEvent.pointerId);
+        } catch (err) {}
+        handle.removeEventListener('pointermove', onPointerMove);
+        handle.removeEventListener('pointerup', onPointerUp);
+      }
+      handle.addEventListener('pointermove', onPointerMove);
+      handle.addEventListener('pointerup', onPointerUp);
+    });
+  }
+  function showToast(message, type = 'success') {
+    if (!watchlistContainer) return;
+    const existingToast = watchlistContainer.querySelector('.qol-wl-toast');
+    if (existingToast) existingToast.remove();
+    const toast = document.createElement('div');
+    toast.className = 'qol-wl-toast';
+    if (type === 'success') {
+      toast.style.backgroundColor = '#2e7d32';
+      toast.style.color = '#ffffff';
+    } else if (type === 'warning' || type === 'info') {
+      toast.style.backgroundColor = '#fbc02d';
+      toast.style.color = '#333333';
+    } else if (type === 'error' || type === 'danger') {
+      toast.style.backgroundColor = '#c62828';
+      toast.style.color = '#ffffff';
     }
-
-    function makeDraggable(element, handle) {
-        handle.addEventListener('pointerdown', (e) => {
-            if (e.target.closest('.qol-wl-close')) return;
-            e.preventDefault();
-            e.stopPropagation();
-
-            const startX = e.clientX;
-            const startY = e.clientY;
-            const rect = element.getBoundingClientRect();
-            const initialLeft = rect.left;
-            const initialTop = rect.top;
-
-            element.style.transform = 'none';
-            element.style.left = initialLeft + 'px';
-            element.style.top = initialTop + 'px';
-            element.style.right = 'auto';
-            element.style.bottom = 'auto';
-
-            try {
-                handle.setPointerCapture(e.pointerId);
-            } catch (err) {}
-
-            function onPointerMove(moveEvent) {
-                moveEvent.preventDefault();
-                const dx = moveEvent.clientX - startX;
-                const dy = moveEvent.clientY - startY;
-                element.style.left = (initialLeft + dx) + 'px';
-                element.style.top = (initialTop + dy) + 'px';
-            }
-
-            function onPointerUp(upEvent) {
-                try {
-                    handle.releasePointerCapture(upEvent.pointerId);
-                } catch (err) {}
-                handle.removeEventListener('pointermove', onPointerMove);
-                handle.removeEventListener('pointerup', onPointerUp);
-            }
-
-            handle.addEventListener('pointermove', onPointerMove);
-            handle.addEventListener('pointerup', onPointerUp);
-        });
-    }
-
-        function makeResizable(element) {
-        if (element.querySelector('.qol-resize-handle')) return;
-        const handle = document.createElement('div');
-        handle.className = 'qol-resize-handle';
-        element.appendChild(handle);
-
-        handle.addEventListener('pointerdown', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-
-            const startWidth = element.offsetWidth;
-            const startHeight = element.offsetHeight;
-            const startX = e.clientX;
-            const startY = e.clientY;
-
-            try {
-                handle.setPointerCapture(e.pointerId);
-            } catch (err) {}
-
-            function onPointerMove(moveEvent) {
-                moveEvent.preventDefault();
-                const newWidth = Math.max(400, startWidth + (moveEvent.clientX - startX));
-                const newHeight = Math.max(200, startHeight + (moveEvent.clientY - startY));
-                element.style.setProperty('width', newWidth + 'px', 'important');
-                element.style.setProperty('height', newHeight + 'px', 'important');
-            }
-
-            function onPointerUp(upEvent) {
-                try {
-                    handle.releasePointerCapture(upEvent.pointerId);
-                } catch (err) {}
-                handle.removeEventListener('pointermove', onPointerMove);
-                handle.removeEventListener('pointerup', onPointerUp);
-            }
-
-            handle.addEventListener('pointermove', onPointerMove);
-            handle.addEventListener('pointerup', onPointerUp);
-        });
-    }
-
-    function showToast(message, type = 'success') {
-        if (!watchlistContainer) return;
-        const existingToast = watchlistContainer.querySelector('.qol-wl-toast');
-        if (existingToast) existingToast.remove();
-
-        const toast = document.createElement('div');
-        toast.className = 'qol-wl-toast';
-
-        if (type === 'success') {
-            toast.style.backgroundColor = '#2e7d32';
-            toast.style.color = '#ffffff';
-        } else if (type === 'warning' || type === 'info') {
-            toast.style.backgroundColor = '#fbc02d';
-            toast.style.color = '#333333';
-        } else if (type === 'error' || type === 'danger') {
-            toast.style.backgroundColor = '#c62828';
-            toast.style.color = '#ffffff';
-        }
-
-        toast.textContent = message;
-        watchlistContainer.appendChild(toast);
-
-        setTimeout(() => {
-            toast.style.opacity = '0';
-            setTimeout(() => {
-                toast.remove();
-            }, 1000);
-        }, 2000);
-    }
-
-    function showCustomPrompt(title, message, defaultValue, callback) {
-        const overlay = document.createElement('div');
-        overlay.className = 'qol-modal-overlay';
-        overlay.innerHTML = `
+    toast.textContent = message;
+    watchlistContainer.appendChild(toast);
+    setTimeout(() => {
+      toast.style.opacity = '0';
+      setTimeout(() => {
+        toast.remove();
+      }, 1000);
+    }, 2000);
+  }
+  function showCustomPrompt(title, message, defaultValue, callback) {
+    const overlay = document.createElement('div');
+    overlay.className = 'qol-modal-overlay';
+    overlay.innerHTML = `
             <div class="qol-modal-box">
                 <div class="qol-modal-header">${title}</div>
                 <div class="qol-modal-body">
@@ -714,38 +673,32 @@
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
-
-        const input = overlay.querySelector('.qol-modal-input');
-        input.focus();
-        input.select();
-
-        const close = (val) => {
-            overlay.remove();
-            if (callback) callback(val);
-        };
-
-        overlay.querySelector('.qol-modal-confirm').addEventListener('click', () => {
-            close(input.value);
-        });
-
-        overlay.querySelector('.qol-modal-cancel').addEventListener('click', () => {
-            close(null);
-        });
-
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                close(input.value);
-            } else if (e.key === 'Escape') {
-                close(null);
-            }
-        });
-    }
-
-    function showCustomConfirm(title, message, callback) {
-        const overlay = document.createElement('div');
-        overlay.className = 'qol-modal-overlay';
-        overlay.innerHTML = `
+    document.body.appendChild(overlay);
+    const input = overlay.querySelector('.qol-modal-input');
+    input.focus();
+    input.select();
+    const close = val => {
+      overlay.remove();
+      if (callback) callback(val);
+    };
+    overlay.querySelector('.qol-modal-confirm').addEventListener('click', () => {
+      close(input.value);
+    });
+    overlay.querySelector('.qol-modal-cancel').addEventListener('click', () => {
+      close(null);
+    });
+    input.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        close(input.value);
+      } else if (e.key === 'Escape') {
+        close(null);
+      }
+    });
+  }
+  function showCustomConfirm(title, message, callback) {
+    const overlay = document.createElement('div');
+    overlay.className = 'qol-modal-overlay';
+    overlay.innerHTML = `
             <div class="qol-modal-box">
                 <div class="qol-modal-header">${title}</div>
                 <div class="qol-modal-body">
@@ -757,241 +710,199 @@
                 </div>
             </div>
         `;
-        document.body.appendChild(overlay);
-
-        const close = (val) => {
-            overlay.remove();
-            if (callback) callback(val);
-        };
-
-        overlay.querySelector('.qol-modal-confirm').addEventListener('click', () => {
-            close(true);
-        });
-
-        overlay.querySelector('.qol-modal-cancel').addEventListener('click', () => {
-            close(false);
-        });
-
-        overlay.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape') {
-                close(false);
-            }
-        });
+    document.body.appendChild(overlay);
+    const close = val => {
+      overlay.remove();
+      if (callback) callback(val);
+    };
+    overlay.querySelector('.qol-modal-confirm').addEventListener('click', () => {
+      close(true);
+    });
+    overlay.querySelector('.qol-modal-cancel').addEventListener('click', () => {
+      close(false);
+    });
+    overlay.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        close(false);
+      }
+    });
+  }
+  function scrapeOpenProfileData(playerId) {
+    const nameElement = document.querySelector('div.content[ng-if="!kingdomProfile"]') || document.querySelector('.playerProfile .playerName') || document.querySelector('.playerName');
+    const playerName = nameElement ? nameElement.textContent.trim() : 'Unknown';
+    let population = 'N/A';
+    let tribe = 'N/A';
+    const infoDivs = document.querySelectorAll('.contentBoxBody > div, .playerProfile div, div.content div');
+    infoDivs.forEach(div => {
+      const descSpan = div.querySelector('.desc');
+      const dataSpan = div.querySelector('.data');
+      if (descSpan && dataSpan) {
+        const descText = descSpan.textContent.trim();
+        const dataText = dataSpan.textContent.trim();
+        if (descText.toLowerCase().includes('population')) {
+          population = dataText;
+        } else if (descText.toLowerCase().includes('tribe')) {
+          tribe = dataText;
+        }
+      }
+    });
+    const villageRows = document.querySelectorAll('.playerVillages tr[ng-repeat*="village"]');
+    const villages = [];
+    let capital = null;
+    villageRows.forEach((row, index) => {
+      const nameTd = row.querySelector('td.name');
+      const link = row.querySelector('a.villageLink') || row.querySelector('a[href*="village"]') || row.querySelector('a');
+      const coordTd = row.querySelector('td.coordinates') || row.querySelector('.coordinateWrapper') || row.querySelector('.coordinates');
+      const isCapital = row.querySelector('i.village_main_small_flat_black, .icon-capital, .icon-main-village, [ng-if*="isMainVillage"], [ng-if*="isCapital"]') !== null;
+      let name = '';
+      if (link && (link.getAttribute('villagename') || link.textContent.trim())) {
+        name = link.getAttribute('villagename') || link.textContent.trim();
+      } else if (nameTd) {
+        name = nameTd.textContent.trim();
+      } else {
+        name = `Village ${index + 1}`;
+      }
+      let villageId = '';
+      if (link) {
+        villageId = link.getAttribute('villageid') || link.getAttribute('data-villageid') || '';
+      }
+      if (!villageId) {
+        villageId = `vil_${Date.now()}_${index}`;
+      }
+      let x = '',
+        y = '',
+        coordsFormatted = '';
+      if (coordTd) {
+        x = coordTd.getAttribute('x') || '';
+        y = coordTd.getAttribute('y') || '';
+        if (!x || !y) {
+          const xSpan = coordTd.querySelector('.coordinateX');
+          const ySpan = coordTd.querySelector('.coordinateY');
+          if (xSpan && ySpan) {
+            x = xSpan.textContent.replace(/[^\d-]/g, '');
+            y = ySpan.textContent.replace(/[^\d-]/g, '');
+          }
+        }
+        if (!x || !y) {
+          const match = coordTd.textContent.match(/(-?\d+)\s*\|\s*(-?\d+)/);
+          if (match) {
+            x = match[1];
+            y = match[2];
+          }
+        }
+      }
+      if (x && y) {
+        coordsFormatted = `(${x}|${y})`;
+      }
+      const villageObj = {
+        id: villageId,
+        name: name,
+        x: x,
+        y: y,
+        coords: coordsFormatted,
+        isCapital: isCapital
+      };
+      villages.push(villageObj);
+      if (isCapital) {
+        capital = villageObj;
+      }
+    });
+    if (!capital && villages.length > 0) {
+      capital = villages[0];
+      capital.isCapital = true;
+    } else if (capital) {
+      villages.forEach(v => {
+        v.isCapital = v === capital;
+      });
     }
-
-    function scrapeOpenProfileData(playerId) {
-        const nameElement = document.querySelector('div.content[ng-if="!kingdomProfile"]') || 
-                            document.querySelector('.playerProfile .playerName') ||
-                            document.querySelector('.playerName');
-        const playerName = nameElement ? nameElement.textContent.trim() : 'Unknown';
-
-        let population = 'N/A';
-        let tribe = 'N/A';
-
-        const infoDivs = document.querySelectorAll('.contentBoxBody > div, .playerProfile div, div.content div');
-        infoDivs.forEach(div => {
-            const descSpan = div.querySelector('.desc');
-            const dataSpan = div.querySelector('.data');
-            if (descSpan && dataSpan) {
-                const descText = descSpan.textContent.trim();
-                const dataText = dataSpan.textContent.trim();
-                if (descText.toLowerCase().includes('population')) {
-                    population = dataText;
-                } else if (descText.toLowerCase().includes('tribe')) {
-                    tribe = dataText;
-                }
-            }
-        });
-
-        const villageRows = document.querySelectorAll('.playerVillages tr[ng-repeat*="village"]');
-        const villages = [];
-        let capital = null;
-
-        villageRows.forEach((row, index) => {
-            const nameTd = row.querySelector('td.name');
-            const link = row.querySelector('a.villageLink') || row.querySelector('a[href*="village"]') || row.querySelector('a');
-            const coordTd = row.querySelector('td.coordinates') || row.querySelector('.coordinateWrapper') || row.querySelector('.coordinates');
-            
-            // Explicitly check for capital icon inside row
-            const isCapital = row.querySelector('i.village_main_small_flat_black, .icon-capital, .icon-main-village, [ng-if*="isMainVillage"], [ng-if*="isCapital"]') !== null;
-
-            // Extract Name
-            let name = '';
-            if (link && (link.getAttribute('villagename') || link.textContent.trim())) {
-                name = link.getAttribute('villagename') || link.textContent.trim();
-            } else if (nameTd) {
-                name = nameTd.textContent.trim();
-            } else {
-                name = `Village ${index + 1}`;
-            }
-
-            // Extract ID
-            let villageId = '';
-            if (link) {
-                villageId = link.getAttribute('villageid') || link.getAttribute('data-villageid') || '';
-            }
-            if (!villageId) {
-                villageId = `vil_${Date.now()}_${index}`;
-            }
-
-            // Extract Coords (X, Y)
-            let x = '', y = '', coordsFormatted = '';
-            if (coordTd) {
-                x = coordTd.getAttribute('x') || '';
-                y = coordTd.getAttribute('y') || '';
-
-                if (!x || !y) {
-                    const xSpan = coordTd.querySelector('.coordinateX');
-                    const ySpan = coordTd.querySelector('.coordinateY');
-                    if (xSpan && ySpan) {
-                        x = xSpan.textContent.replace(/[^\d-]/g, '');
-                        y = ySpan.textContent.replace(/[^\d-]/g, '');
-                    }
-                }
-
-                if (!x || !y) {
-                    // Match numbers separated by pipe, handling hidden unicode characters
-                    const match = coordTd.textContent.match(/(-?\d+)\s*\|\s*(-?\d+)/);
-                    if (match) {
-                        x = match[1];
-                        y = match[2];
-                    }
-                }
-            }
-
-            if (x && y) {
-                coordsFormatted = `(${x}|${y})`;
-            }
-
-            const villageObj = {
-                id: villageId,
-                name: name,
-                x: x,
-                y: y,
-                coords: coordsFormatted,
-                isCapital: isCapital
-            };
-
-            villages.push(villageObj);
-
-            if (isCapital) {
-                capital = villageObj;
-            }
-        });
-
-        // Ensure capital assignment logic
-        if (!capital && villages.length > 0) {
-            capital = villages[0];
-            capital.isCapital = true;
-        } else if (capital) {
-            // Make sure only the capital has isCapital = true if multiple or explicit
-            villages.forEach(v => {
-                v.isCapital = (v === capital);
-            });
-        }
-
-        return {
-            playerId: playerId,
-            playerName: playerName,
-            population: population,
-            tribe: tribe,
-            villages: villages,
-            capital: capital
-        };
+    return {
+      playerId: playerId,
+      playerName: playerName,
+      population: population,
+      tribe: tribe,
+      villages: villages,
+      capital: capital
+    };
+  }
+  function openWatchlistMenu(tabId) {
+    if (tabId) {
+      activeTabId = tabId;
     }
-
-    function openWatchlistMenu(tabId) {
-        if (tabId) {
-            activeTabId = tabId;
+    renderTabsUI();
+    renderTableUI();
+    if (watchlistContainer) {
+      const isHidden = window.getComputedStyle(watchlistContainer).display === 'none';
+      if (isHidden) {
+        const irBar = document.getElementById('qol-ir-action-bar');
+        if (irBar) irBar.style.setProperty('display', 'none', 'important');
+        const rpBar = document.getElementById('qol-rp-action-bar');
+        if (rpBar) rpBar.style.setProperty('display', 'none', 'important');
+        const cogBtn = document.getElementById('qol-cog-btn');
+        if (cogBtn) {
+          const rect = cogBtn.getBoundingClientRect();
+          watchlistContainer.style.setProperty('position', 'fixed', 'important');
+          watchlistContainer.style.setProperty('top', rect.bottom + 20 + 'px', 'important');
+          watchlistContainer.style.setProperty('left', rect.left + 'px', 'important');
+          watchlistContainer.style.setProperty('transform', 'none', 'important');
         }
-        renderTabsUI();
-        renderTableUI();
-
-        if (watchlistContainer) {
-            const isHidden = window.getComputedStyle(watchlistContainer).display === 'none';
-            if (isHidden) {
-                const irBar = document.getElementById('qol-ir-action-bar');
-                if (irBar) irBar.style.setProperty('display', 'none', 'important');
-                const rpBar = document.getElementById('qol-rp-action-bar');
-                if (rpBar) rpBar.style.setProperty('display', 'none', 'important');
-
-                const cogBtn = document.getElementById('qol-cog-btn');
-                if (cogBtn) {
-                    const rect = cogBtn.getBoundingClientRect();
-                    watchlistContainer.style.setProperty('position', 'fixed', 'important');
-                    watchlistContainer.style.setProperty('top', (rect.bottom + 20) + 'px', 'important');
-                    watchlistContainer.style.setProperty('left', rect.left + 'px', 'important');
-                    watchlistContainer.style.setProperty('transform', 'none', 'important');
-                }
-            }
-            watchlistContainer.style.display = 'block';
-        }
+      }
+      watchlistContainer.style.display = 'block';
     }
-
-    function addProfileToSpecificTab(tabId) {
-        const targetTab = watchlistTabs.find(t => t.id === tabId);
-        if (!targetTab) return;
-
-        const currentUrl = window.location.href;
-        const profileRegex = /playerId:(\d+)/;
-        const match = currentUrl.match(profileRegex);
-
-        if (!match) {
-            showToast("No player profile detected. Please open a player's profile first.", "error");
-            return;
-        }
-
-        const playerId = match[1];
-
-        if (targetTab.entries.some(entry => entry.playerId === playerId)) {
-            showToast(`This player is already in "${targetTab.name}".`, "warning");
-            openWatchlistMenu(targetTab.id);
-            return;
-        }
-
-        if (targetTab.entries.length >= MAX_PLAYERS_PER_TAB) {
-            showToast(`Maximum limit of ${MAX_PLAYERS_PER_TAB} players reached for "${targetTab.name}".`, "error");
-            return;
-        }
-
-        const scrapedData = scrapeOpenProfileData(playerId);
-
-        if (scrapedData.playerName && scrapedData.villages.length > 0) {
-            targetTab.entries.push({
-                id: 'entry_' + Date.now(),
-                playerId: scrapedData.playerId,
-                playerName: scrapedData.playerName,
-                population: scrapedData.population || 'N/A',
-                capital: scrapedData.capital,
-                villages: scrapedData.villages,
-                selected2ndId: '',
-                selected2ndCoords: '',
-                selected2ndX: '',
-                selected2ndY: '',
-                villageChange: null,
-                populationChange: null,
-                notes: ''
-            });
-
-            saveWatchlist();
-            showToast(`Added ${scrapedData.playerName} to "${targetTab.name}"`, "success");
-            openWatchlistMenu(targetTab.id);
-        } else {
-            showToast("Error: Profile detected, but could not parse villages or player name.", "error");
-        }
+  }
+  function addProfileToSpecificTab(tabId) {
+    const targetTab = watchlistTabs.find(t => t.id === tabId);
+    if (!targetTab) return;
+    const currentUrl = window.location.href;
+    const profileRegex = /playerId:(\d+)/;
+    const match = currentUrl.match(profileRegex);
+    if (!match) {
+      showToast("No player profile detected. Please open a player's profile first.", "error");
+      return;
     }
-
-    function toggleWatchlistDropdown(btn) {
-        const existingMenu = document.querySelector('.qol-wl-dropdown-menu');
-        if (existingMenu) {
-            existingMenu.remove();
-            return;
-        }
-
-        const rect = btn.getBoundingClientRect();
-        const menu = document.createElement('div');
-        menu.className = 'qol-wl-dropdown-menu';
-        menu.style.cssText = `
+    const playerId = match[1];
+    if (targetTab.entries.some(entry => entry.playerId === playerId)) {
+      showToast(`This player is already in "${targetTab.name}".`, "warning");
+      openWatchlistMenu(targetTab.id);
+      return;
+    }
+    if (targetTab.entries.length >= MAX_PLAYERS_PER_TAB) {
+      showToast(`Maximum limit of ${MAX_PLAYERS_PER_TAB} players reached for "${targetTab.name}".`, "error");
+      return;
+    }
+    const scrapedData = scrapeOpenProfileData(playerId);
+    if (scrapedData.playerName && scrapedData.villages.length > 0) {
+      targetTab.entries.push({
+        id: 'entry_' + Date.now(),
+        playerId: scrapedData.playerId,
+        playerName: scrapedData.playerName,
+        population: scrapedData.population || 'N/A',
+        capital: scrapedData.capital,
+        villages: scrapedData.villages,
+        selected2ndId: '',
+        selected2ndCoords: '',
+        selected2ndX: '',
+        selected2ndY: '',
+        villageChange: null,
+        populationChange: null,
+        notes: ''
+      });
+      saveWatchlist();
+      showToast(`Added ${scrapedData.playerName} to "${targetTab.name}"`, "success");
+      openWatchlistMenu(targetTab.id);
+    } else {
+      showToast("Error: Profile detected, but could not parse villages or player name.", "error");
+    }
+  }
+  function toggleWatchlistDropdown(btn) {
+    const existingMenu = document.querySelector('.qol-wl-dropdown-menu');
+    if (existingMenu) {
+      existingMenu.remove();
+      return;
+    }
+    const rect = btn.getBoundingClientRect();
+    const menu = document.createElement('div');
+    menu.className = 'qol-wl-dropdown-menu';
+    menu.style.cssText = `
             position: fixed !important;
             top: ${rect.bottom + 4}px !important;
             left: ${rect.left}px !important;
@@ -1006,92 +917,70 @@
             font-size: 11px !important;
             color: #333 !important;
         `;
-
-        watchlistTabs.forEach(tab => {
-            const item = document.createElement('div');
-            item.className = 'qol-wl-dropdown-item';
-            item.innerHTML = `<span>${escapeHtml(tab.name)}</span> <span style="font-size:10px; color:#777;">(${tab.entries.length}/${MAX_PLAYERS_PER_TAB})</span>`;
-
-            item.addEventListener('click', (e) => {
-                e.stopPropagation();
-                menu.remove();
-                addProfileToSpecificTab(tab.id);
-            });
-
-            menu.appendChild(item);
-        });
-
-        document.body.appendChild(menu);
-
-        const closeHandler = (e) => {
-            if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-                menu.remove();
-                document.removeEventListener('click', closeHandler);
-            }
-        };
-        setTimeout(() => {
-            document.addEventListener('click', closeHandler);
-        }, 10);
+    watchlistTabs.forEach(tab => {
+      const item = document.createElement('div');
+      item.className = 'qol-wl-dropdown-item';
+      item.innerHTML = `<span>${escapeHtml(tab.name)}</span> <span style="font-size:10px; color:#777;">(${tab.entries.length}/${MAX_PLAYERS_PER_TAB})</span>`;
+      item.addEventListener('click', e => {
+        e.stopPropagation();
+        menu.remove();
+        addProfileToSpecificTab(tab.id);
+      });
+      menu.appendChild(item);
+    });
+    document.body.appendChild(menu);
+    const closeHandler = e => {
+      if (!menu.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
+        menu.remove();
+        document.removeEventListener('click', closeHandler);
+      }
+    };
+    setTimeout(() => {
+      document.addEventListener('click', closeHandler);
+    }, 10);
+  }
+  function injectProfileWatchlistButton() {
+    if (!isWatchlistEnabled()) return;
+    document.querySelectorAll('.qol-wl-profile-wrapper').forEach(wrapper => {
+      if (!wrapper.closest('.contentBox.playerDescription')) {
+        wrapper.remove();
+      }
+    });
+    const header = document.querySelector('.contentBox.playerDescription > .contentBoxHeader');
+    if (!header) return;
+    if (header.querySelector('.qol-wl-profile-wrapper')) return;
+    const wrapper = document.createElement('span');
+    wrapper.className = 'qol-wl-profile-wrapper';
+    wrapper.style.cssText = 'display: inline-flex; align-items: center; vertical-align: middle; position: relative;';
+    const btn = document.createElement('div');
+    btn.className = 'qol-wl-profile-btn';
+    btn.innerHTML = `<span>Add Profile to Watchlist</span> <span style="font-size:9px;">▼</span>`;
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      e.preventDefault();
+      toggleWatchlistDropdown(btn);
+    });
+    wrapper.appendChild(btn);
+    const editIcon = header.querySelector('.action_edit_small_flat_black, .headerButton');
+    if (editIcon) {
+      header.insertBefore(wrapper, editIcon);
+    } else {
+      header.appendChild(wrapper);
     }
-
-    function injectProfileWatchlistButton() {
-        if (!isWatchlistEnabled()) return;
-
-        // Remove any watchlist buttons that were injected into non-player
-        // description panels by older versions of the feature.
-        document.querySelectorAll('.qol-wl-profile-wrapper').forEach(wrapper => {
-            if (!wrapper.closest('.contentBox.playerDescription')) {
-                wrapper.remove();
-            }
-        });
-
-        // Only the player's profile description should get the watchlist button.
-        const header = document.querySelector(
-            '.contentBox.playerDescription > .contentBoxHeader'
-        );
-
-        if (!header) return;
-        if (header.querySelector('.qol-wl-profile-wrapper')) return;
-
-        const wrapper = document.createElement('span');
-        wrapper.className = 'qol-wl-profile-wrapper';
-        wrapper.style.cssText = 'display: inline-flex; align-items: center; vertical-align: middle; position: relative;';
-
-        const btn = document.createElement('div');
-        btn.className = 'qol-wl-profile-btn';
-        btn.innerHTML = `<span>Add Profile to Watchlist</span> <span style="font-size:9px;">▼</span>`;
-
-        btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            e.preventDefault();
-            toggleWatchlistDropdown(btn);
-        });
-
-        wrapper.appendChild(btn);
-
-        const editIcon = header.querySelector('.action_edit_small_flat_black, .headerButton');
-        if (editIcon) {
-            header.insertBefore(wrapper, editIcon);
-        } else {
-            header.appendChild(wrapper);
-        }
+  }
+  async function updateCurrentWatchlist() {
+    const activeTab = watchlistTabs.find(t => t.id === activeTabId);
+    if (!activeTab || activeTab.entries.length === 0) {
+      showToast("No players in the current tab to update.", "warning");
+      return;
     }
-
-    async function updateCurrentWatchlist() {
-        const activeTab = watchlistTabs.find(t => t.id === activeTabId);
-        if (!activeTab || activeTab.entries.length === 0) {
-            showToast("No players in the current tab to update.", "warning");
-            return;
-        }
-
-        const entries = activeTab.entries;
-        const total = entries.length;
-        const originalHash = window.location.hash;
-        let updatedCount = 0;
-
-        const overlay = document.createElement('div');
-        overlay.id = 'qol-watchlist-overlay';
-        overlay.style.cssText = `
+    const entries = activeTab.entries;
+    const total = entries.length;
+    const originalHash = window.location.hash;
+    let updatedCount = 0;
+    const overlay = document.createElement('div');
+    overlay.id = 'qol-watchlist-overlay';
+    overlay.style.cssText = `
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
@@ -1109,198 +998,166 @@
             flex-direction: column !important;
             gap: 8px !important;
         `;
-        overlay.innerHTML = `
+    overlay.innerHTML = `
             <div>Updating Watchlist... (<span id="qol-update-progress">0</span> / ${total})</div>
             <div style="font-size: 11px; font-weight: normal; color: #ccc;">Please wait, this may take a few seconds...</div>
         `;
-        document.body.appendChild(overlay);
-
-        const progressEl = document.getElementById('qol-update-progress');
-
-        for (let i = 0; i < total; i++) {
-            const entry = entries[i];
-            if (progressEl) progressEl.textContent = (i + 1).toString();
-
-            navigateToGameRoute(`playerId:${entry.playerId}/profileTab:playerProfile/window:profile`);
-            await delay(1200);
-
-            const scrapedData = scrapeOpenProfileData(entry.playerId);
-            if (scrapedData && scrapedData.playerName && scrapedData.playerName !== 'Unknown' && scrapedData.villages.length > 0) {
-                const previousVillageCount = Array.isArray(entry.villages) ? entry.villages.length : null;
-                const previousPopulation = numericValue(entry.population);
-                const nextVillageCount = scrapedData.villages.length;
-                const nextPopulation = numericValue(scrapedData.population);
-
-                entry.villageChange = previousVillageCount == null ? null : nextVillageCount - previousVillageCount;
-                entry.populationChange = previousPopulation == null || nextPopulation == null
-                    ? null
-                    : nextPopulation - previousPopulation;
-                entry.playerName = scrapedData.playerName;
-                entry.population = scrapedData.population || 'N/A';
-                entry.capital = scrapedData.capital;
-                entry.villages = scrapedData.villages;
-                entry.lastUpdatedAt = Date.now();
-                updatedCount += 1;
-
-                if (entry.selected2ndId) {
-                    const stillExists = entry.villages.find(v => v.id === entry.selected2ndId);
-                    if (!stillExists) {
-                        entry.selected2ndId = '';
-                        entry.selected2ndCoords = '';
-                        entry.selected2ndX = '';
-                        entry.selected2ndY = '';
-                    } else {
-                        entry.selected2ndCoords = stillExists.coords;
-                        entry.selected2ndX = stillExists.x;
-                        entry.selected2ndY = stillExists.y;
-                    }
-                }
-            }
+    document.body.appendChild(overlay);
+    const progressEl = document.getElementById('qol-update-progress');
+    for (let i = 0; i < total; i++) {
+      const entry = entries[i];
+      if (progressEl) progressEl.textContent = (i + 1).toString();
+      navigateToGameRoute(`playerId:${entry.playerId}/profileTab:playerProfile/window:profile`);
+      await delay(1200);
+      const scrapedData = scrapeOpenProfileData(entry.playerId);
+      if (scrapedData && scrapedData.playerName && scrapedData.playerName !== 'Unknown' && scrapedData.villages.length > 0) {
+        const previousVillageCount = Array.isArray(entry.villages) ? entry.villages.length : null;
+        const previousPopulation = numericValue(entry.population);
+        const nextVillageCount = scrapedData.villages.length;
+        const nextPopulation = numericValue(scrapedData.population);
+        entry.villageChange = previousVillageCount == null ? null : nextVillageCount - previousVillageCount;
+        entry.populationChange = previousPopulation == null || nextPopulation == null ? null : nextPopulation - previousPopulation;
+        entry.playerName = scrapedData.playerName;
+        entry.population = scrapedData.population || 'N/A';
+        entry.capital = scrapedData.capital;
+        entry.villages = scrapedData.villages;
+        entry.lastUpdatedAt = Date.now();
+        updatedCount += 1;
+        if (entry.selected2ndId) {
+          const stillExists = entry.villages.find(v => v.id === entry.selected2ndId);
+          if (!stillExists) {
+            entry.selected2ndId = '';
+            entry.selected2ndCoords = '';
+            entry.selected2ndX = '';
+            entry.selected2ndY = '';
+          } else {
+            entry.selected2ndCoords = stillExists.coords;
+            entry.selected2ndX = stillExists.x;
+            entry.selected2ndY = stillExists.y;
+          }
         }
-
-        activeTab.updatedAt = Date.now();
-        saveWatchlist();
-        renderTableUI();
-        window.location.hash = originalHash;
-
-        overlay.remove();
-        showToast(`Updated ${updatedCount}/${total} players in "${activeTab.name}".`, updatedCount === total ? "success" : "warning");
+      }
     }
-
-    function renderTabsUI() {
-        const tabsContainer = document.querySelector('.qol-wl-tabs');
-        if (!tabsContainer) return;
-
-        tabsContainer.innerHTML = '';
-
-        watchlistTabs.forEach(tab => {
-            const tabDiv = document.createElement('div');
-            tabDiv.className = `qol-wl-tab ${tab.id === activeTabId ? 'active' : ''}`;
-            tabDiv.title = 'Double-click to rename tab (max 20 characters)';
-
-            const titleSpan = document.createElement('span');
-            titleSpan.textContent = tab.name;
-            tabDiv.appendChild(titleSpan);
-
-            if (watchlistTabs.length > 1) {
-                const closeTabSpan = document.createElement('span');
-                closeTabSpan.className = 'qol-wl-tab-close';
-                closeTabSpan.innerHTML = '&times;';
-                closeTabSpan.title = 'Delete Tab';
-                closeTabSpan.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    showCustomConfirm('Delete Tab', `Are you sure you want to delete tab "${tab.name}"?`, (confirmed) => {
-                        if (confirmed) {
-                            watchlistTabs = watchlistTabs.filter(t => t.id !== tab.id);
-                            if (activeTabId === tab.id) {
-                                activeTabId = watchlistTabs[0].id;
-                            }
-                            saveWatchlist();
-                            renderTabsUI();
-                            renderTableUI();
-                            showToast(`Tab "${tab.name}" deleted.`, "info");
-                        }
-                    });
-                });
-                tabDiv.appendChild(closeTabSpan);
+    activeTab.updatedAt = Date.now();
+    saveWatchlist();
+    renderTableUI();
+    window.location.hash = originalHash;
+    overlay.remove();
+    showToast(`Updated ${updatedCount}/${total} players in "${activeTab.name}".`, updatedCount === total ? "success" : "warning");
+  }
+  function renderTabsUI() {
+    const tabsContainer = document.querySelector('.qol-wl-tabs');
+    if (!tabsContainer) return;
+    tabsContainer.innerHTML = '';
+    watchlistTabs.forEach(tab => {
+      const tabDiv = document.createElement('div');
+      tabDiv.className = `qol-wl-tab ${tab.id === activeTabId ? 'active' : ''}`;
+      tabDiv.title = 'Double-click to rename tab (max 20 characters)';
+      const titleSpan = document.createElement('span');
+      titleSpan.textContent = tab.name;
+      tabDiv.appendChild(titleSpan);
+      if (watchlistTabs.length > 1) {
+        const closeTabSpan = document.createElement('span');
+        closeTabSpan.className = 'qol-wl-tab-close';
+        closeTabSpan.innerHTML = '&times;';
+        closeTabSpan.title = 'Delete Tab';
+        closeTabSpan.addEventListener('click', e => {
+          e.stopPropagation();
+          showCustomConfirm('Delete Tab', `Are you sure you want to delete tab "${tab.name}"?`, confirmed => {
+            if (confirmed) {
+              watchlistTabs = watchlistTabs.filter(t => t.id !== tab.id);
+              if (activeTabId === tab.id) {
+                activeTabId = watchlistTabs[0].id;
+              }
+              saveWatchlist();
+              renderTabsUI();
+              renderTableUI();
+              showToast(`Tab "${tab.name}" deleted.`, "info");
             }
-
-            tabDiv.addEventListener('click', () => {
-                if (activeTabId !== tab.id) {
-                    activeTabId = tab.id;
-                    renderTabsUI();
-                    renderTableUI();
-                }
-            });
-
-            tabDiv.addEventListener('dblclick', (e) => {
-                e.stopPropagation();
-                showCustomPrompt('Rename Tab', 'Enter new tab name (max 20 characters):', tab.name, (newName) => {
-                    if (newName !== null && newName.trim() !== '') {
-                        tab.name = newName.trim().slice(0, 20);
-                        saveWatchlist();
-                        renderTabsUI();
-                        renderTableUI();
-                        showToast(`Tab renamed to "${tab.name}".`, "success");
-                    }
-                });
-            });
-
-            tabsContainer.appendChild(tabDiv);
+          });
         });
-
-        if (watchlistTabs.length < MAX_TABS) {
-            const addTabBtn = document.createElement('div');
-            addTabBtn.className = 'qol-wl-tab qol-wl-tab-add';
-            addTabBtn.innerText = '+ Add Tab';
-            addTabBtn.addEventListener('click', () => {
-                const newTabNumber = watchlistTabs.length + 1;
-                const newTab = {
-                    id: 'tab_' + Date.now(),
-                    name: `Tab ${newTabNumber}`,
-                    entries: []
-                };
-                watchlistTabs.push(newTab);
-                activeTabId = newTab.id;
-                saveWatchlist();
-                renderTabsUI();
-                renderTableUI();
-                showToast(`Tab "${newTab.name}" created.`, "success");
-            });
-            tabsContainer.appendChild(addTabBtn);
+        tabDiv.appendChild(closeTabSpan);
+      }
+      tabDiv.addEventListener('click', () => {
+        if (activeTabId !== tab.id) {
+          activeTabId = tab.id;
+          renderTabsUI();
+          renderTableUI();
         }
+      });
+      tabDiv.addEventListener('dblclick', e => {
+        e.stopPropagation();
+        showCustomPrompt('Rename Tab', 'Enter new tab name (max 20 characters):', tab.name, newName => {
+          if (newName !== null && newName.trim() !== '') {
+            tab.name = newName.trim().slice(0, 20);
+            saveWatchlist();
+            renderTabsUI();
+            renderTableUI();
+            showToast(`Tab renamed to "${tab.name}".`, "success");
+          }
+        });
+      });
+      tabsContainer.appendChild(tabDiv);
+    });
+    if (watchlistTabs.length < MAX_TABS) {
+      const addTabBtn = document.createElement('div');
+      addTabBtn.className = 'qol-wl-tab qol-wl-tab-add';
+      addTabBtn.innerText = '+ Add Tab';
+      addTabBtn.addEventListener('click', () => {
+        const newTabNumber = watchlistTabs.length + 1;
+        const newTab = {
+          id: 'tab_' + Date.now(),
+          name: `Tab ${newTabNumber}`,
+          entries: []
+        };
+        watchlistTabs.push(newTab);
+        activeTabId = newTab.id;
+        saveWatchlist();
+        renderTabsUI();
+        renderTableUI();
+        showToast(`Tab "${newTab.name}" created.`, "success");
+      });
+      tabsContainer.appendChild(addTabBtn);
     }
-
-    function renderTableUI() {
-        const tbody = document.querySelector('#qol-wl-tbody');
-        const statusEl = document.querySelector('.qol-wl-status');
-        if (!tbody) return;
-
-        const activeTab = watchlistTabs.find(t => t.id === activeTabId) || watchlistTabs[0];
-
-        if (statusEl) {
-            const updated = activeTab.updatedAt ? ` · Updated ${new Date(activeTab.updatedAt).toLocaleString()}` : '';
-            statusEl.textContent = `${activeTab.name} · ${activeTab.entries.length}/${MAX_PLAYERS_PER_TAB} players${updated}`;
-        }
-
-        tbody.innerHTML = '';
-
-        if (activeTab.entries.length === 0) {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `<td colspan="8" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
-            tbody.appendChild(tr);
-            return;
-        }
-
-        activeTab.entries.forEach((entry, index) => {
-            const capitalName = entry.capital?.name || 'N/A';
-            const capitalTitle = entry.capital?.coords ? `Capital village ${entry.capital.coords}` : 'Capital village';
-            const capitalCoordsLink = (entry.capital && entry.capital.coords)
-                ? `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.capital.x)}/y:${escapeHtml(entry.capital.y)}" title="Send troops to ${escapeHtml(capitalName)}">${escapeHtml(entry.capital.coords)}</a>`
-                : '-';
-
-            const nonCapitalVillages = (entry.villages || []).filter(v => !v.isCapital);
-
-            let selectOptions = `<option value="">Select village…</option>`;
-            if (nonCapitalVillages.length > 0) {
-                nonCapitalVillages.forEach(v => {
-                    const selected = v.id === entry.selected2ndId ? 'selected' : '';
-                    selectOptions += `<option value="${escapeHtml(v.id)}" data-x="${escapeHtml(v.x)}" data-y="${escapeHtml(v.y)}" data-coords="${escapeHtml(v.coords)}" ${selected}>${escapeHtml(v.name)}</option>`;
-                });
-            } else {
-                selectOptions = `<option value="">No other village</option>`;
-            }
-
-            let send2ndLink = '-';
-            if (entry.selected2ndCoords) {
-                send2ndLink = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.selected2ndX)}/y:${escapeHtml(entry.selected2ndY)}" title="Send troops to selected village">${escapeHtml(entry.selected2ndCoords)}</a>`;
-            }
-
-            const population = numericValue(entry.population);
-            const populationText = population == null ? escapeHtml(entry.population || 'N/A') : population.toLocaleString();
-
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
+  }
+  function renderTableUI() {
+    const tbody = document.querySelector('#qol-wl-tbody');
+    const statusEl = document.querySelector('.qol-wl-status');
+    if (!tbody) return;
+    const activeTab = watchlistTabs.find(t => t.id === activeTabId) || watchlistTabs[0];
+    if (statusEl) {
+      const updated = activeTab.updatedAt ? ` · Updated ${new Date(activeTab.updatedAt).toLocaleString()}` : '';
+      statusEl.textContent = `${activeTab.name} · ${activeTab.entries.length}/${MAX_PLAYERS_PER_TAB} players${updated}`;
+    }
+    tbody.innerHTML = '';
+    if (activeTab.entries.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="8" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
+    activeTab.entries.forEach((entry, index) => {
+      const capitalName = entry.capital?.name || 'N/A';
+      const capitalTitle = entry.capital?.coords ? `Capital village ${entry.capital.coords}` : 'Capital village';
+      const capitalCoordsLink = entry.capital && entry.capital.coords ? `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.capital.x)}/y:${escapeHtml(entry.capital.y)}" title="Send troops to ${escapeHtml(capitalName)}">${escapeHtml(entry.capital.coords)}</a>` : '-';
+      const nonCapitalVillages = (entry.villages || []).filter(v => !v.isCapital);
+      let selectOptions = `<option value="">Select village…</option>`;
+      if (nonCapitalVillages.length > 0) {
+        nonCapitalVillages.forEach(v => {
+          const selected = v.id === entry.selected2ndId ? 'selected' : '';
+          selectOptions += `<option value="${escapeHtml(v.id)}" data-x="${escapeHtml(v.x)}" data-y="${escapeHtml(v.y)}" data-coords="${escapeHtml(v.coords)}" ${selected}>${escapeHtml(v.name)}</option>`;
+        });
+      } else {
+        selectOptions = `<option value="">No other village</option>`;
+      }
+      let send2ndLink = '-';
+      if (entry.selected2ndCoords) {
+        send2ndLink = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.selected2ndX)}/y:${escapeHtml(entry.selected2ndY)}" title="Send troops to selected village">${escapeHtml(entry.selected2ndCoords)}</a>`;
+      }
+      const population = numericValue(entry.population);
+      const populationText = population == null ? escapeHtml(entry.population || 'N/A') : population.toLocaleString();
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
                 <td>
                     <div class="qol-wl-player-cell">
                         <a href="javascript:void(0)" class="qol-route-link qol-wl-player-link" data-route="playerId:${escapeHtml(entry.playerId)}/profileTab:playerProfile/window:profile" title="Open ${escapeHtml(entry.playerName)}'s profile">${escapeHtml(entry.playerName)}</a>
@@ -1317,56 +1174,46 @@
                 <td>${changesHtml(entry)}</td>
                 <td><input type="text" class="qol-wl-note-input" value="${escapeHtml(entry.notes || '')}" placeholder="Add note…" aria-label="Notes for ${escapeHtml(entry.playerName)}"></td>
             `;
-
-            const selectEl = tr.querySelector('.qol-2nd-vil-select');
-            const send2ndCell = tr.querySelector('.qol-send-2nd-cell');
-
-            selectEl.addEventListener('change', (e) => {
-                const selectedOption = e.target.options[e.target.selectedIndex];
-                const coords = selectedOption.getAttribute('data-coords') || '';
-                const x = selectedOption.getAttribute('data-x') || '';
-                const y = selectedOption.getAttribute('data-y') || '';
-
-                entry.selected2ndId = e.target.value;
-                entry.selected2ndCoords = coords;
-                entry.selected2ndX = x;
-                entry.selected2ndY = y;
-
-                saveWatchlist();
-
-                if (coords) {
-                    send2ndCell.innerHTML = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(x)}/y:${escapeHtml(y)}" title="Send troops to selected village">${escapeHtml(coords)}</a>`;
-                } else {
-                    send2ndCell.innerHTML = '-';
-                }
-            });
-
-            const noteInput = tr.querySelector('.qol-wl-note-input');
-            noteInput.addEventListener('input', (e) => {
-                entry.notes = e.target.value;
-                saveWatchlist();
-            });
-
-            const delBtn = tr.querySelector('.qol-wl-del-entry');
-            delBtn.addEventListener('click', () => {
-                const removedPlayerName = entry.playerName;
-                activeTab.entries.splice(index, 1);
-                saveWatchlist();
-                renderTableUI();
-                showToast(`Removed ${removedPlayerName} from watchlist.`, "info");
-            });
-
-            tbody.appendChild(tr);
-        });
-    }
-
-    function buildWatchlistUI() {
-        if (document.getElementById('qol-watchlist-container')) return;
-
-        watchlistToggleBtn = document.createElement('div');
-        watchlistToggleBtn.id = 'qol-watchlist-toggle';
-        watchlistToggleBtn.title = 'Toggle Player Watchlist';
-        watchlistToggleBtn.innerHTML = `
+      const selectEl = tr.querySelector('.qol-2nd-vil-select');
+      const send2ndCell = tr.querySelector('.qol-send-2nd-cell');
+      selectEl.addEventListener('change', e => {
+        const selectedOption = e.target.options[e.target.selectedIndex];
+        const coords = selectedOption.getAttribute('data-coords') || '';
+        const x = selectedOption.getAttribute('data-x') || '';
+        const y = selectedOption.getAttribute('data-y') || '';
+        entry.selected2ndId = e.target.value;
+        entry.selected2ndCoords = coords;
+        entry.selected2ndX = x;
+        entry.selected2ndY = y;
+        saveWatchlist();
+        if (coords) {
+          send2ndCell.innerHTML = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(x)}/y:${escapeHtml(y)}" title="Send troops to selected village">${escapeHtml(coords)}</a>`;
+        } else {
+          send2ndCell.innerHTML = '-';
+        }
+      });
+      const noteInput = tr.querySelector('.qol-wl-note-input');
+      noteInput.addEventListener('input', e => {
+        entry.notes = e.target.value;
+        saveWatchlist();
+      });
+      const delBtn = tr.querySelector('.qol-wl-del-entry');
+      delBtn.addEventListener('click', () => {
+        const removedPlayerName = entry.playerName;
+        activeTab.entries.splice(index, 1);
+        saveWatchlist();
+        renderTableUI();
+        showToast(`Removed ${removedPlayerName} from watchlist.`, "info");
+      });
+      tbody.appendChild(tr);
+    });
+  }
+  function buildWatchlistUI() {
+    if (document.getElementById('qol-watchlist-container')) return;
+    watchlistToggleBtn = document.createElement('div');
+    watchlistToggleBtn.id = 'qol-watchlist-toggle';
+    watchlistToggleBtn.title = 'Toggle Player Watchlist';
+    watchlistToggleBtn.innerHTML = `
             <svg viewBox="0 0 24 24" style="fill:none !important; stroke:var(--qol-accent) !important; stroke-width:2 !important; stroke-linecap:round !important; stroke-linejoin:round !important;">
                 <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
                 <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
@@ -1374,32 +1221,25 @@
                 <path d="M9 16h6"></path>
             </svg>
         `;
-        
-        let isOpening = false;
-        watchlistToggleBtn.addEventListener('click', () => {
-            if (isOpening) return;
-            isOpening = true;
-            
-            const isHidden = window.getComputedStyle(watchlistContainer).display === 'none';
-            
-            if (isHidden) {
-                openWatchlistMenu();
-            } else {
-                watchlistContainer.style.display = 'none';
-            }
-            
-            setTimeout(() => {
-                isOpening = false;
-            }, 50);
-        });
-
-        document.body.appendChild(watchlistToggleBtn);
-
-        watchlistContainer = document.createElement('div');
-        watchlistContainer.id = 'qol-watchlist-container';
+    let isOpening = false;
+    watchlistToggleBtn.addEventListener('click', () => {
+      if (isOpening) return;
+      isOpening = true;
+      const isHidden = window.getComputedStyle(watchlistContainer).display === 'none';
+      if (isHidden) {
+        openWatchlistMenu();
+      } else {
         watchlistContainer.style.display = 'none';
-        
-        watchlistContainer.innerHTML = `
+      }
+      setTimeout(() => {
+        isOpening = false;
+      }, 50);
+    });
+    document.body.appendChild(watchlistToggleBtn);
+    watchlistContainer = document.createElement('div');
+    watchlistContainer.id = 'qol-watchlist-container';
+    watchlistContainer.style.display = 'none';
+    watchlistContainer.innerHTML = `
             <div class="qol-wl-header">
                 <span>Player Watchlist</span>
                 <span class="qol-wl-close" title="Close Watchlist">&times;</span>
@@ -1432,96 +1272,83 @@
                 </div>
             </div>
         `;
-
-        document.body.appendChild(watchlistContainer);
-
-        const headerEl = watchlistContainer.querySelector('.qol-wl-header');
-        makeDraggable(watchlistContainer, headerEl);
-        makeResizable(watchlistContainer);
-
-        watchlistContainer.querySelector('.qol-wl-close').addEventListener('click', () => {
-            watchlistContainer.style.display = 'none';
-        });
-
-        document.addEventListener('keydown', (e) => {
-            if (e.key === 'Escape' && watchlistContainer) {
-                watchlistContainer.style.display = 'none';
-            }
-        });
-
-        watchlistContainer.addEventListener('click', (e) => {
-            const link = e.target.closest('.qol-route-link');
-            if (link) {
-                e.preventDefault();
-                const route = link.getAttribute('data-route');
-                if (route) {
-                    navigateToGameRoute(route);
-                }
-            }
-        });
-
-        renderTabsUI();
-        renderTableUI();
-
-        const updateBtn = watchlistContainer.querySelector('#qol-wl-update-btn');
-        if (updateBtn) {
-            updateBtn.addEventListener('click', updateCurrentWatchlist);
-            updateBtn.addEventListener('keydown', (event) => {
-                if (event.key !== 'Enter' && event.key !== ' ') return;
-                event.preventDefault();
-                void updateCurrentWatchlist();
-            });
-        }
-    }
-
-    function destroyWatchlistUI() {
-        if (profileCheckInterval) {
-            clearInterval(profileCheckInterval);
-            profileCheckInterval = null;
-        }
-        document.querySelectorAll('.qol-wl-profile-wrapper').forEach(el => el.remove());
-        document.querySelectorAll('.qol-wl-dropdown-menu').forEach(el => el.remove());
-
-        if (watchlistContainer) {
-            watchlistContainer.remove();
-            watchlistContainer = null;
-        }
-        if (watchlistToggleBtn) {
-            watchlistToggleBtn.remove();
-            watchlistToggleBtn = null;
-        }
-    }
-
-    function init() {
-        if (isWatchlistEnabled()) {
-            loadWatchlist();
-            injectStyles();
-            buildWatchlistUI();
-            if (!profileCheckInterval) {
-                profileCheckInterval = setInterval(injectProfileWatchlistButton, 500);
-            }
-            if (typeof window.qolRepositionAllButtons === 'function') {
-                window.qolRepositionAllButtons();
-            }
-        } else {
-            destroyWatchlistUI();
-        }
-    }
-
-    window.addEventListener('qol_setting_changed', (e) => {
-        if (e.detail && e.detail.key === 'watchlist') {
-            if (e.detail.enabled) {
-                init();
-            } else {
-                destroyWatchlistUI();
-            }
-        }
+    document.body.appendChild(watchlistContainer);
+    const headerEl = watchlistContainer.querySelector('.qol-wl-header');
+    makeDraggable(watchlistContainer, headerEl);
+    makeResizable(watchlistContainer);
+    watchlistContainer.querySelector('.qol-wl-close').addEventListener('click', () => {
+      watchlistContainer.style.display = 'none';
     });
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
-    } else {
-        init();
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && watchlistContainer) {
+        watchlistContainer.style.display = 'none';
+      }
+    });
+    watchlistContainer.addEventListener('click', e => {
+      const link = e.target.closest('.qol-route-link');
+      if (link) {
+        e.preventDefault();
+        const route = link.getAttribute('data-route');
+        if (route) {
+          navigateToGameRoute(route);
+        }
+      }
+    });
+    renderTabsUI();
+    renderTableUI();
+    const updateBtn = watchlistContainer.querySelector('#qol-wl-update-btn');
+    if (updateBtn) {
+      updateBtn.addEventListener('click', updateCurrentWatchlist);
+      updateBtn.addEventListener('keydown', event => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        void updateCurrentWatchlist();
+      });
     }
-
+  }
+  function destroyWatchlistUI() {
+    if (profileCheckInterval) {
+      clearInterval(profileCheckInterval);
+      profileCheckInterval = null;
+    }
+    document.querySelectorAll('.qol-wl-profile-wrapper').forEach(el => el.remove());
+    document.querySelectorAll('.qol-wl-dropdown-menu').forEach(el => el.remove());
+    if (watchlistContainer) {
+      watchlistContainer.remove();
+      watchlistContainer = null;
+    }
+    if (watchlistToggleBtn) {
+      watchlistToggleBtn.remove();
+      watchlistToggleBtn = null;
+    }
+  }
+  function init() {
+    if (isWatchlistEnabled()) {
+      loadWatchlist();
+      injectStyles();
+      buildWatchlistUI();
+      if (!profileCheckInterval) {
+        profileCheckInterval = setInterval(injectProfileWatchlistButton, 500);
+      }
+      if (typeof window.qolRepositionAllButtons === 'function') {
+        window.qolRepositionAllButtons();
+      }
+    } else {
+      destroyWatchlistUI();
+    }
+  }
+  window.addEventListener('qol_setting_changed', e => {
+    if (e.detail && e.detail.key === 'watchlist') {
+      if (e.detail.enabled) {
+        init();
+      } else {
+        destroyWatchlistUI();
+      }
+    }
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 })();

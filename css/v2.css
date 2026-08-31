@@ -1,310 +1,280 @@
-/* APES QoL v2 shared radial command UI */
-
 #apes-v2-command-overlay,
 #apes-v2-command-overlay *,
 #apes-v2-village-overlay,
-#apes-v2-village-overlay * {
-    box-sizing: border-box !important;
-    font-family: Arial, sans-serif !important;
-    text-shadow: none !important;
+#apes-v2-village-overlay *{
+    box-sizing:border-box !important;
+    font-family:Arial, sans-serif !important;
+    text-shadow:none !important;
 }
 
 #apes-v2-command-overlay,
-#apes-v2-village-overlay {
-    position: fixed !important;
-    inset: 0 !important;
-    z-index: 2147483645 !important;
-    display: none !important;
-    align-items: center !important;
-    justify-content: center !important;
-    overflow: hidden !important;
-    background:
-        radial-gradient(circle at center,
+#apes-v2-village-overlay{
+    position:fixed !important;
+    inset:0 !important;
+    z-index:2147483645 !important;
+    display:none !important;
+    align-items:center !important;
+    justify-content:center !important;
+    overflow:hidden !important;
+    background:radial-gradient(circle at center,
             rgba(91, 74, 42, .18) 0,
             rgba(20, 24, 24, .46) 36%,
             rgba(9, 12, 13, .66) 100%) !important;
-    backdrop-filter: blur(2px) !important;
-    user-select: none !important;
+    backdrop-filter:blur(2px) !important;
+    user-select:none !important;
 }
 
 #apes-v2-command-overlay.open,
-#apes-v2-village-overlay.open {
-    display: flex !important;
+#apes-v2-village-overlay.open{
+    display:flex !important;
 }
 
-.apes-v2-radial {
-    --apes-radial-size: 430px;
-    position: relative !important;
-    width: var(--apes-radial-size) !important;
-    height: var(--apes-radial-size) !important;
-    max-width: calc(100vw - 24px) !important;
-    max-height: calc(100vh - 24px) !important;
+.apes-v2-radial{
+    --apes-radial-size:430px;
+    position:relative !important;
+    width:var(--apes-radial-size) !important;
+    height:var(--apes-radial-size) !important;
+    max-width:calc(100vw - 24px) !important;
+    max-height:calc(100vh - 24px) !important;
 }
 
 .apes-v2-radial::before,
-.apes-v2-radial::after {
-    content: "" !important;
-    position: absolute !important;
-    top: 50% !important;
-    left: 50% !important;
-    border-radius: 50% !important;
-    pointer-events: none !important;
-    transform: translate(-50%, -50%) !important;
+.apes-v2-radial::after{
+    content:"" !important;
+    position:absolute !important;
+    top:50% !important;
+    left:50% !important;
+    border-radius:50% !important;
+    pointer-events:none !important;
+    transform:translate(-50%, -50%) !important;
 }
 
-.apes-v2-radial::before {
-    width: 260px !important;
-    height: 260px !important;
-    border: 1px solid rgba(225, 190, 103, .34) !important;
-    box-shadow:
-        0 0 28px rgba(235, 194, 75, .16),
-        inset 0 0 28px rgba(235, 194, 75, .1) !important;
+.apes-v2-radial::before{
+    width:260px !important;
+    height:260px !important;
+    border:1px solid rgba(225, 190, 103, .34) !important;
+    box-shadow:0 0 28px rgba(235, 194, 75, .16), inset 0 0 28px rgba(235, 194, 75, .1) !important;
 }
 
-.apes-v2-radial::after {
-    width: 124px !important;
-    height: 124px !important;
-    border: 5px solid var(--qol-radial-ring) !important;
-    box-shadow:
-        0 0 8px var(--qol-radial-glow),
-        0 0 28px rgba(244, 212, 77, .82),
-        inset 0 0 20px rgba(244, 212, 77, .36) !important;
+.apes-v2-radial::after{
+    width:124px !important;
+    height:124px !important;
+    border:5px solid var(--qol-radial-ring) !important;
+    box-shadow:0 0 8px var(--qol-radial-glow), 0 0 28px rgba(244, 212, 77, .82), inset 0 0 20px rgba(244, 212, 77, .36) !important;
 }
 
-.apes-v2-radial-center {
-    position: absolute !important;
-    z-index: 2 !important;
-    top: 50% !important;
-    left: 50% !important;
-    display: grid !important;
-    grid-template-rows: 36px 72px !important;
-    align-items: stretch !important;
-    width: 108px !important;
-    height: 108px !important;
-    padding: 0 !important;
-    overflow: hidden !important;
-    border-radius: 50% !important;
-    background: var(--qol-radial-center) !important;
-    box-shadow: inset 0 0 24px rgba(0, 0, 0, .48) !important;
-    color: #fff6ce !important;
-    text-align: center !important;
-    pointer-events: none !important;
-    transform: translate(-50%, -50%) !important;
+.apes-v2-radial-center{
+    position:absolute !important;
+    z-index:2 !important;
+    top:50% !important;
+    left:50% !important;
+    display:grid !important;
+    grid-template-rows:36px 72px !important;
+    align-items:stretch !important;
+    width:108px !important;
+    height:108px !important;
+    padding:0 !important;
+    overflow:hidden !important;
+    border-radius:50% !important;
+    background:var(--qol-radial-center) !important;
+    box-shadow:inset 0 0 24px rgba(0, 0, 0, .48) !important;
+    color:#fff6ce !important;
+    text-align:center !important;
+    pointer-events:none !important;
+    transform:translate(-50%, -50%) !important;
 }
 
-.apes-v2-radial-logo {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    align-self: stretch !important;
-    padding-top: 8px !important;
-    color: var(--qol-radial-ring) !important;
-    font-size: 11px !important;
-    font-weight: 800 !important;
-    letter-spacing: 2px !important;
+.apes-v2-radial-logo{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    align-self:stretch !important;
+    padding-top:8px !important;
+    color:var(--qol-radial-ring) !important;
+    font-size:11px !important;
+    font-weight:800 !important;
+    letter-spacing:2px !important;
 }
 
-.apes-v2-radial-feature {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    align-self: stretch !important;
-    min-height: 0 !important;
-    padding: 2px 10px 10px !important;
+.apes-v2-radial-feature{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    align-self:stretch !important;
+    min-height:0 !important;
+    padding:2px 10px 10px !important;
 }
 
-.apes-v2-radial-feature-name {
-    display: block !important;
-    margin: 0 !important;
-    color: #fffaf0 !important;
-    font-size: 12px !important;
-    line-height: 1.15 !important;
-    text-align: center !important;
+.apes-v2-radial-feature-name{
+    display:block !important;
+    margin:0 !important;
+    color:#fffaf0 !important;
+    font-size:12px !important;
+    line-height:1.15 !important;
+    text-align:center !important;
 }
 
-.apes-v2-radial-items {
-    position: absolute !important;
-    inset: 0 !important;
+.apes-v2-radial-items{
+    position:absolute !important;
+    inset:0 !important;
 }
 
-.apes-v2-radial-item {
-    position: absolute !important;
-    z-index: 3 !important;
-    top: 50% !important;
-    left: 50% !important;
-    display: flex !important;
-    align-items: center !important;
-    flex-direction: column !important;
-    width: 104px !important;
-    border: 0 !important;
-    outline: 0 !important;
-    cursor: pointer !important;
-    transform:
-        translate(-50%, -50%)
-        translate(var(--apes-x), var(--apes-y)) !important;
+.apes-v2-radial-item{
+    position:absolute !important;
+    z-index:3 !important;
+    top:50% !important;
+    left:50% !important;
+    display:flex !important;
+    align-items:center !important;
+    flex-direction:column !important;
+    width:104px !important;
+    border:0 !important;
+    outline:0 !important;
+    cursor:pointer !important;
+    transform:translate(-50%, -50%) translate(var(--apes-x), var(--apes-y)) !important;
 }
 
-.apes-v2-radial-icon {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    width: 58px !important;
-    height: 58px !important;
-    border: 2px solid var(--qol-radial-border) !important;
-    border-radius: 9px !important;
-    background:
-        linear-gradient(145deg, var(--qol-radial-top) 0%, var(--qol-radial-mid) 64%, var(--qol-radial-bottom) 100%) !important;
-    box-shadow:
-        0 2px 4px rgba(0, 0, 0, .8),
-        inset 0 1px 0 rgba(255, 244, 196, .28) !important;
-    transition:
-        transform 100ms ease,
-        border-color 100ms ease,
-        box-shadow 100ms ease,
-        background 100ms ease !important;
+.apes-v2-radial-icon{
+    display:flex !important;
+    align-items:center !important;
+    justify-content:center !important;
+    width:58px !important;
+    height:58px !important;
+    border:2px solid var(--qol-radial-border) !important;
+    border-radius:9px !important;
+    background:linear-gradient(145deg, var(--qol-radial-top) 0%, var(--qol-radial-mid) 64%, var(--qol-radial-bottom) 100%) !important;
+    box-shadow:0 2px 4px rgba(0, 0, 0, .8), inset 0 1px 0 rgba(255, 244, 196, .28) !important;
+    transition:transform 100ms ease, border-color 100ms ease, box-shadow 100ms ease, background 100ms ease !important;
 }
 
 .apes-v2-radial-item:hover .apes-v2-radial-icon,
-.apes-v2-radial-item:focus .apes-v2-radial-icon {
-    border-color: #8ed33f !important;
-    background:
-        linear-gradient(145deg, #567c2e 0%, #293d1d 65%, #182511 100%) !important;
-    box-shadow:
-        0 0 0 2px rgba(131, 195, 55, .25),
-        0 0 18px rgba(126, 205, 43, .72),
-        inset 0 1px 0 rgba(241, 255, 207, .32) !important;
-    transform: scale(1.12) !important;
+.apes-v2-radial-item:focus .apes-v2-radial-icon{
+    border-color:#8ed33f !important;
+    background:linear-gradient(145deg, #567c2e 0%, #293d1d 65%, #182511 100%) !important;
+    box-shadow:0 0 0 2px rgba(131, 195, 55, .25), 0 0 18px rgba(126, 205, 43, .72), inset 0 1px 0 rgba(241, 255, 207, .32) !important;
+    transform:scale(1.12) !important;
 }
 
-#apes-v2-village-overlay .apes-v2-radial-item.current .apes-v2-radial-icon {
-    border-color: #8ed33f !important;
-    box-shadow:
-        0 0 0 2px rgba(131, 195, 55, .25),
-        0 0 15px rgba(126, 205, 43, .58),
-        inset 0 1px 0 rgba(241, 255, 207, .28) !important;
+#apes-v2-village-overlay .apes-v2-radial-item.current .apes-v2-radial-icon{
+    border-color:#8ed33f !important;
+    box-shadow:0 0 0 2px rgba(131, 195, 55, .25), 0 0 15px rgba(126, 205, 43, .58), inset 0 1px 0 rgba(241, 255, 207, .28) !important;
 }
 
-#apes-v2-village-overlay .apes-v2-radial-item.current .apes-v2-radial-label {
-    border-color: rgba(142, 211, 63, .75) !important;
-    color: #efffdc !important;
-    opacity: 1 !important;
+#apes-v2-village-overlay .apes-v2-radial-item.current .apes-v2-radial-label{
+    border-color:rgba(142, 211, 63, .75) !important;
+    color:#efffdc !important;
+    opacity:1 !important;
 }
 
-.apes-v2-radial-icon svg {
-    width: 34px !important;
-    height: 34px !important;
-    overflow: visible !important;
-    fill: none !important;
-    stroke: #fff3cf !important;
-    stroke-width: 1.65 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
+.apes-v2-radial-icon svg{
+    width:34px !important;
+    height:34px !important;
+    overflow:visible !important;
+    fill:none !important;
+    stroke:#fff3cf !important;
+    stroke-width:1.65 !important;
+    stroke-linecap:round !important;
+    stroke-linejoin:round !important;
 }
 
-.apes-v2-radial-icon svg text {
-    fill: #fff3cf !important;
-    stroke: none !important;
-    font-size: 5px !important;
-    font-weight: 800 !important;
+.apes-v2-radial-icon svg text{
+    fill:#fff3cf !important;
+    stroke:none !important;
+    font-size:5px !important;
+    font-weight:800 !important;
 }
 
-.apes-v2-radial-label {
-    max-width: 104px !important;
-    margin-top: 6px !important;
-    padding: 3px 6px !important;
-    overflow: hidden !important;
-    border: 1px solid rgba(198, 163, 95, .45) !important;
-    border-radius: 4px !important;
-    background: rgba(31, 23, 15, .88) !important;
-    color: #fff5dc !important;
-    font-size: 9px !important;
-    font-weight: 700 !important;
-    line-height: 1.15 !important;
-    opacity: .78 !important;
-    text-align: center !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
-    transition: opacity 100ms ease !important;
+.apes-v2-radial-label{
+    max-width:104px !important;
+    margin-top:6px !important;
+    padding:3px 6px !important;
+    overflow:hidden !important;
+    border:1px solid rgba(198, 163, 95, .45) !important;
+    border-radius:4px !important;
+    background:rgba(31, 23, 15, .88) !important;
+    color:#fff5dc !important;
+    font-size:9px !important;
+    font-weight:700 !important;
+    line-height:1.15 !important;
+    opacity:.78 !important;
+    text-align:center !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
+    transition:opacity 100ms ease !important;
 }
 
 .apes-v2-radial-item:hover .apes-v2-radial-label,
-.apes-v2-radial-item:focus .apes-v2-radial-label {
-    opacity: 1 !important;
+.apes-v2-radial-item:focus .apes-v2-radial-label{
+    opacity:1 !important;
 }
 
-.apes-v2-radial-empty {
-    position: absolute !important;
-    top: calc(50% + 82px) !important;
-    left: 50% !important;
-    width: 260px !important;
-    padding: 7px 10px !important;
-    border: 1px solid rgba(198, 163, 95, .5) !important;
-    border-radius: 4px !important;
-    background: rgba(31, 23, 15, .9) !important;
-    color: #fff5dc !important;
-    font-size: 10px !important;
-    text-align: center !important;
-    transform: translateX(-50%) !important;
+.apes-v2-radial-empty{
+    position:absolute !important;
+    top:calc(50% + 82px) !important;
+    left:50% !important;
+    width:260px !important;
+    padding:7px 10px !important;
+    border:1px solid rgba(198, 163, 95, .5) !important;
+    border-radius:4px !important;
+    background:rgba(31, 23, 15, .9) !important;
+    color:#fff5dc !important;
+    font-size:10px !important;
+    text-align:center !important;
+    transform:translateX(-50%) !important;
+}
+#qol-player-dossier .qol-pd-head-title{
+    flex:1 1 auto !important;
+    min-width:0 !important;
+    overflow:hidden !important;
 }
 
-/* Player Dossier header: prevent Travian/global SVG rules from expanding the icon. */
-#qol-player-dossier .qol-pd-head-title {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
+#qol-player-dossier .qol-pd-head-title > svg{
+    display:block !important;
+    flex:0 0 18px !important;
+    width:18px !important;
+    min-width:18px !important;
+    max-width:18px !important;
+    height:18px !important;
+    min-height:18px !important;
+    max-height:18px !important;
+    overflow:visible !important;
+    fill:none !important;
+    stroke:currentColor !important;
+    stroke-width:1.8 !important;
+    stroke-linecap:round !important;
+    stroke-linejoin:round !important;
 }
 
-#qol-player-dossier .qol-pd-head-title > svg {
-    display: block !important;
-    flex: 0 0 18px !important;
-    width: 18px !important;
-    min-width: 18px !important;
-    max-width: 18px !important;
-    height: 18px !important;
-    min-height: 18px !important;
-    max-height: 18px !important;
-    overflow: visible !important;
-    fill: none !important;
-    stroke: currentColor !important;
-    stroke-width: 1.8 !important;
-    stroke-linecap: round !important;
-    stroke-linejoin: round !important;
+#qol-player-dossier .qol-pd-head-title > span:last-child{
+    flex:1 1 auto !important;
+    min-width:0 !important;
+    overflow:hidden !important;
+    text-overflow:ellipsis !important;
+    white-space:nowrap !important;
 }
 
-#qol-player-dossier .qol-pd-head-title > span:last-child {
-    flex: 1 1 auto !important;
-    min-width: 0 !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-    white-space: nowrap !important;
+#qol-player-dossier .qol-pd-close{
+    flex:0 0 26px !important;
+    margin-left:8px !important;
 }
-
-#qol-player-dossier .qol-pd-close {
-    flex: 0 0 26px !important;
-    margin-left: 8px !important;
-}
-
-/* Player Dossier is launched from Secret Society Scanner only. */
 .contentBox.playerDescription > .contentBoxHeader .qol-pd-profile-open,
-#qol-watchlist-container .qol-pd-inline-open {
-    display: none !important;
+#qol-watchlist-container .qol-pd-inline-open{
+    display:none !important;
+}
+.contentBox.playerDescription > .contentBoxHeader .qol-wl-profile-wrapper{
+    display:inline-flex !important;
+    visibility:visible !important;
+    opacity:1 !important;
 }
 
-/* Native player profiles keep the original Watchlist action. */
-.contentBox.playerDescription > .contentBoxHeader .qol-wl-profile-wrapper {
-    display: inline-flex !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-}
-
-@media (max-width: 520px), (max-height: 520px) {
-    .apes-v2-radial {
-        transform: scale(.78) !important;
+@media (max-width: 520px), (max-height: 520px){
+    .apes-v2-radial{
+        transform:scale(.78) !important;
     }
 }
 
-@media (max-width: 390px), (max-height: 390px) {
-    .apes-v2-radial {
-        transform: scale(.62) !important;
+@media (max-width: 390px), (max-height: 390px){
+    .apes-v2-radial{
+        transform:scale(.62) !important;
     }
 }

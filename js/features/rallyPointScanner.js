@@ -1,93 +1,57 @@
-/**
- * APES QoL Unified Rally Point Scanner
- *
- * First-stage unification layer:
- * - One toolbar launcher and one APES window.
- * - Incomings, Outgoings, and Resources tabs.
- * - Reuses the proven parser controls and result views while the shared
- *   Rally Point traversal engine is prepared for a later extraction.
- */
-
 function initUnifiedRallyPointScanner() {
-    'use strict';
+  'use strict';
 
-    const FEATURE_KEY = 'rallyPointParser';
-    const PANEL_ID = 'qol-rally-point-scanner';
-    const TOGGLE_ID = 'qol-rally-point-toggle-btn';
-    const STYLE_ID = 'qol-rally-point-scanner-styles';
-    const SCAN_LOCK_ID = 'qol-rally-point-scan-lock';
-    const ACTIVE_TAB_STORAGE_KEY =
-        'qol_rallyPointActiveTab';
-    const MOVEMENT_TYPE_STORAGE_KEY =
-        'qol_rallyPointMovementTypes';
-    const OUTGOING_TYPE_STORAGE_KEY =
-        'qol_rallyPointOutgoingTypes';
-
-    const DEFAULT_MOVEMENT_TYPES = {
-        attack: true,
-        siege: true,
-        raid: false,
-        reinforcement: false
-    };
-
-    const DEFAULT_OUTGOING_TYPES = {
-        attack: true,
-        siege: true,
-        reinforcement: true,
-        merchant: true
-    };
-
-    let outgoingResults = [];
-    let outgoingScanning = false;
-
-    function isEnabled() {
-        if (
-            typeof window.isQolEnabled ===
-            'function'
-        ) {
-            return window.isQolEnabled(
-                FEATURE_KEY
-            ) === true;
-        }
-
-        return true;
+  const FEATURE_KEY = 'rallyPointParser';
+  const PANEL_ID = 'qol-rally-point-scanner';
+  const TOGGLE_ID = 'qol-rally-point-toggle-btn';
+  const STYLE_ID = 'qol-rally-point-scanner-styles';
+  const SCAN_LOCK_ID = 'qol-rally-point-scan-lock';
+  const ACTIVE_TAB_STORAGE_KEY = 'qol_rallyPointActiveTab';
+  const MOVEMENT_TYPE_STORAGE_KEY = 'qol_rallyPointMovementTypes';
+  const OUTGOING_TYPE_STORAGE_KEY = 'qol_rallyPointOutgoingTypes';
+  const DEFAULT_MOVEMENT_TYPES = {
+    attack: true,
+    siege: true,
+    raid: false,
+    reinforcement: false
+  };
+  const DEFAULT_OUTGOING_TYPES = {
+    attack: true,
+    siege: true,
+    reinforcement: true,
+    merchant: true
+  };
+  let outgoingResults = [];
+  let outgoingScanning = false;
+  function isEnabled() {
+    if (typeof window.isQolEnabled === 'function') {
+      return window.isQolEnabled(FEATURE_KEY) === true;
     }
-
-    function hideScanLock() {
-        document
-            .getElementById(SCAN_LOCK_ID)
-            ?.remove();
+    return true;
+  }
+  function hideScanLock() {
+    document.getElementById(SCAN_LOCK_ID)?.remove();
+  }
+  function updateScanLock(message) {
+    const status = document.querySelector(`#${SCAN_LOCK_ID} .qol-rally-scan-lock-status`);
+    if (status && message) {
+      status.textContent = message;
     }
-
-    function updateScanLock(message) {
-        const status =
-            document.querySelector(
-                `#${SCAN_LOCK_ID} .qol-rally-scan-lock-status`
-            );
-
-        if (status && message) {
-            status.textContent = message;
-        }
+  }
+  function showScanLock({
+    title = 'Scanning Rally Point...',
+    message = 'Please wait while APES checks the incoming pages.'
+  } = {}) {
+    hideScanLock();
+    if (!document.body) {
+      return;
     }
-
-    function showScanLock({
-        title = 'Scanning Rally Point...',
-        message = 'Please wait while APES checks the incoming pages.'
-    } = {}) {
-        hideScanLock();
-
-        if (!document.body) {
-            return;
-        }
-
-        const lock =
-            document.createElement('div');
-
-        lock.id = SCAN_LOCK_ID;
-        lock.setAttribute('role', 'status');
-        lock.setAttribute('aria-live', 'polite');
-        lock.setAttribute('aria-busy', 'true');
-        lock.style.cssText = `
+    const lock = document.createElement('div');
+    lock.id = SCAN_LOCK_ID;
+    lock.setAttribute('role', 'status');
+    lock.setAttribute('aria-live', 'polite');
+    lock.setAttribute('aria-busy', 'true');
+    lock.style.cssText = `
             position: fixed !important;
             top: 0 !important;
             left: 0 !important;
@@ -110,7 +74,7 @@ function initUnifiedRallyPointScanner() {
             pointer-events: auto !important;
             touch-action: none !important;
         `;
-        lock.innerHTML = `
+    lock.innerHTML = `
             <div class="qol-rally-scan-lock-title"></div>
             <div
                 class="qol-rally-scan-lock-status"
@@ -133,58 +97,30 @@ function initUnifiedRallyPointScanner() {
                 Keep this window open until the scan finishes.
             </div>
         `;
-
-        lock.querySelector(
-            '.qol-rally-scan-lock-title'
-        ).textContent = title;
-        lock.querySelector(
-            '.qol-rally-scan-lock-status'
-        ).textContent = message;
-
-        [
-            'pointerdown',
-            'pointermove',
-            'pointerup',
-            'mousemove',
-            'mousedown',
-            'mouseup',
-            'click',
-            'dblclick',
-            'contextmenu',
-            'wheel',
-            'touchstart',
-            'touchmove',
-            'touchend'
-        ].forEach((eventName) => {
-            lock.addEventListener(
-                eventName,
-                (event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                },
-                { passive: false }
-            );
-        });
-
-        document.body.appendChild(lock);
+    lock.querySelector('.qol-rally-scan-lock-title').textContent = title;
+    lock.querySelector('.qol-rally-scan-lock-status').textContent = message;
+    ['pointerdown', 'pointermove', 'pointerup', 'mousemove', 'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu', 'wheel', 'touchstart', 'touchmove', 'touchend'].forEach(eventName => {
+      lock.addEventListener(eventName, event => {
+        event.preventDefault();
+        event.stopPropagation();
+      }, {
+        passive: false
+      });
+    });
+    document.body.appendChild(lock);
+  }
+  window.qolRallyPointScanLock = {
+    show: showScanLock,
+    update: updateScanLock,
+    hide: hideScanLock
+  };
+  function injectStyles() {
+    if (document.getElementById(STYLE_ID)) {
+      return;
     }
-
-    window.qolRallyPointScanLock = {
-        show: showScanLock,
-        update: updateScanLock,
-        hide: hideScanLock
-    };
-
-    function injectStyles() {
-        if (document.getElementById(STYLE_ID)) {
-            return;
-        }
-
-        const style =
-            document.createElement('style');
-
-        style.id = STYLE_ID;
-        style.textContent = `
+    const style = document.createElement('style');
+    style.id = STYLE_ID;
+    style.textContent = `
             #qol-rp-action-bar,
             #qol-ir-action-bar,
             #qol-wm-toggle-btn,
@@ -545,663 +481,294 @@ function initUnifiedRallyPointScanner() {
                 }
             }
         `;
-
-        document.head.appendChild(style);
-    }
-
-    function readMovementTypes() {
-        const selectedTypes = {
-            ...DEFAULT_MOVEMENT_TYPES
-        };
-
-        try {
-            const storedValue =
-                localStorage.getItem(
-                    MOVEMENT_TYPE_STORAGE_KEY
-                );
-
-            if (storedValue) {
-                const parsedValue =
-                    JSON.parse(storedValue);
-
-                Object.keys(selectedTypes)
-                    .forEach((type) => {
-                        if (
-                            typeof parsedValue?.[type] ===
-                            'boolean'
-                        ) {
-                            selectedTypes[type] =
-                                parsedValue[type];
-                        }
-                    });
-            }
-        } catch (_) {
-            // Keep the default selection.
-        }
-
-        return selectedTypes;
-    }
-
-    function saveMovementTypes(selectedTypes) {
-        try {
-            localStorage.setItem(
-                MOVEMENT_TYPE_STORAGE_KEY,
-                JSON.stringify(selectedTypes)
-            );
-        } catch (_) {
-            // The current selection still works for this page session.
-        }
-    }
-
-    function escapeHtml(value) {
-        return String(value ?? '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
-    }
-
-    function readOutgoingTypes() {
-        const selectedTypes = {
-            ...DEFAULT_OUTGOING_TYPES
-        };
-
-        try {
-            const storedValue =
-                localStorage.getItem(
-                    OUTGOING_TYPE_STORAGE_KEY
-                );
-            const parsedValue = storedValue
-                ? JSON.parse(storedValue)
-                : null;
-
-            Object.keys(selectedTypes)
-                .forEach((type) => {
-                    if (
-                        typeof parsedValue?.[type] ===
-                        'boolean'
-                    ) {
-                        selectedTypes[type] =
-                            parsedValue[type];
-                    }
-                });
-        } catch (_) {
-            // Keep defaults.
-        }
-
-        return selectedTypes;
-    }
-
-    function saveOutgoingTypes(selectedTypes) {
-        try {
-            localStorage.setItem(
-                OUTGOING_TYPE_STORAGE_KEY,
-                JSON.stringify(selectedTypes)
-            );
-        } catch (_) {
-            // Persistence is optional.
-        }
-    }
-
-    function getOutgoingContainer() {
-        return document.querySelector(
-            '.tabOutgoing.currentTab, ' +
-            '.tabOutgoing.activeTab'
-        );
-    }
-
-    function getOutgoingNavigationContainer() {
-        const outgoingTab =
-            getOutgoingContainer();
-        const rallyPointRoot =
-            outgoingTab?.closest(
-                '.buildingDetails.rallypoint'
-            );
-
-        if (rallyPointRoot) {
-            return rallyPointRoot;
-        }
-
-        const selectors = [
-            '.buildingDetails.rallypoint',
-            '.rallyPoint',
-            '.movementsView',
-            '.buildingView[data-building-type="16"]',
-            '.buildingView',
-            '.windowContent',
-            '#windowContent'
-        ];
-
-        for (const selector of selectors) {
-            const element = document.querySelector(selector);
-
-            if (element && element.offsetHeight > 0) {
-                return element;
-            }
-        }
-
-        return getOutgoingContainer();
-    }
-
-    function getOutgoingRows(container) {
-        if (!container) {
-            return [];
-        }
-
-        return Array.from(
-            container.querySelectorAll(
-                'troop-details-rallypoint.movingTroops > ' +
-                '.troopsDetailContainer, ' +
-                '.movingTroops > .troopsDetailContainer'
-            )
-        );
-    }
-
-    function getOutgoingCategory(row) {
-        const titleText = String(
-            row.querySelector('.troopsTitle')
-                ?.textContent || ''
-        ).toLowerCase();
-        const iconClasses = String(
-            row.querySelector(
-                '.troopsTitle [class*="movement_"][class*="_small"]'
-            )?.className || ''
-        ).toLowerCase();
-        const value = `${titleText} ${iconClasses}`;
-
-        if (value.includes('siege')) {
-            return 'siege';
-        }
-
-        if (
-            value.includes('merchant') ||
-            value.includes('movement_trade')
-        ) {
-            return 'merchant';
-        }
-
-        if (
-            value.includes('reinforcement') ||
-            value.includes('support')
-        ) {
-            return 'reinforcement';
-        }
-
-        if (
-            titleText.includes('attack') ||
-            iconClasses.includes(
-                'movement_attack'
-            )
-        ) {
-            return 'attack';
-        }
-
-        return null;
-    }
-
-    function formatFinishTimestamp(value) {
-        const seconds = Number(value);
-
-        if (!Number.isFinite(seconds)) {
-            return '';
-        }
-
-        return new Date(seconds * 1000)
-            .toLocaleTimeString(
-                [],
-                {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    second: '2-digit',
-                    hour12: false
-                }
-            );
-    }
-
-    function getFinishTimestamp(element) {
-        if (!element) {
-            return '';
-        }
-
-        const directValue =
-            element.getAttribute(
-                'data-time-finish'
-            ) ||
-            element.dataset?.timeFinish;
-
-        if (directValue) {
-            return directValue;
-        }
-
-        const angularData = [
-            element.getAttribute('data'),
-            element.getAttribute('tooltip-data')
-        ].filter(Boolean).join(' ');
-        const match = angularData.match(
-            /timeFinish\s*:\s*(\d+)/i
-        );
-
-        return match ? match[1] : '';
-    }
-
-    function parseOutgoingRow(row) {
-        const category =
-            getOutgoingCategory(row);
-
-        if (!category) {
-            return null;
-        }
-
-        const playerElement =
-            row.querySelector(
-                '.troopsTitle .playerLink'
-            );
-        const villageElement =
-            row.querySelector(
-                '.troopsTitle .villageLink'
-            );
-        const countdownContainer =
-            row.querySelector(
-                '.countdownTo, ' +
-                '.countdownContainer'
-            );
-        const countdownElement =
-            countdownContainer?.querySelector(
-                '[countdown]'
-            );
-        const landingElement =
-            countdownContainer?.querySelector(
-                '[i18ndt]'
-            );
-        const finishTimestamp =
-            getFinishTimestamp(
-                countdownContainer
-            ) ||
-            landingElement?.getAttribute(
-                'i18ndt'
-            );
-
-        if (!villageElement || !countdownElement) {
-            return null;
-        }
-
-        const labels = {
-            attack: 'Attack',
-            siege: 'Siege',
-            reinforcement: 'Reinforcement',
-            merchant: 'Merchant'
-        };
-
-        return {
-            target:
-                playerElement?.textContent
-                    .trim() || 'Unknown',
-            targetVillage:
-                villageElement.textContent
-                    .trim() || 'Unknown',
-            type: labels[category],
-            category,
-            remaining:
-                countdownElement.textContent
-                    .trim() || '00:00:00',
-            landing:
-                landingElement?.textContent
-                    .trim() ||
-                formatFinishTimestamp(
-                    finishTimestamp
-                ) ||
-                'Unknown'
-        };
-    }
-
-    function getOutgoingSignature(container) {
-        return getOutgoingRows(container)
-            .map((row) => {
-                const icon = row.querySelector(
-                    '.troopsTitle [class*="movement_"]'
-                );
-                const finish = row.querySelector(
-                    '.countdownTo, .countdownContainer'
-                );
-
-                return [
-                    icon?.className || '',
-                    row.querySelector('.playerLink')
-                        ?.textContent || '',
-                    row.querySelector('.villageLink')
-                        ?.textContent || '',
-                    getFinishTimestamp(finish)
-                ].join('|');
-            })
-            .join('||');
-    }
-
-    function findOutgoingPaginationButton(type, container) {
-        if (!container) {
-            return null;
-        }
-
-        const exactClass = type === 'next'
-            ? 'nextPage'
-            : 'firstPage';
-        const exactControl = container.querySelector(
-            `.tg-pagination > ul > li.${exactClass}`
-        );
-
-        if (
-            exactControl &&
-            !exactControl.classList.contains('disabled') &&
-            (
-                exactControl.offsetWidth > 0 ||
-                exactControl.offsetHeight > 0
-            )
-        ) {
-            return exactControl;
-        }
-
-        const candidates = container.querySelectorAll(
-            'button, a, span, div, li, i, svg, ' +
-            '[class*="next"], [class*="pager"], ' +
-            '[class*="arrow"], [class*="page"]'
-        );
-
-        for (const element of candidates) {
-            if (
-                element.offsetWidth === 0 &&
-                element.offsetHeight === 0
-            ) {
-                continue;
-            }
-
-            if (
-                element.closest('.villageList') ||
-                element.closest('#sidebar') ||
-                element.closest('.navigation')
-            ) {
-                continue;
-            }
-
-            const className = typeof element.className === 'string'
-                ? element.className.toLowerCase()
-                : '';
-            const text = String(element.textContent || '')
-                .trim()
-                .toLowerCase();
-            const title = String(element.getAttribute('title') || '')
-                .toLowerCase();
-            const aria = String(element.getAttribute('aria-label') || '')
-                .toLowerCase();
-
-            if (
-                className.includes('disabled') ||
-                className.includes('inactive') ||
-                title.includes('village') ||
-                text.includes('village')
-            ) {
-                continue;
-            }
-
-            if (type === 'next') {
-                const matches =
-                    className.includes('next') ||
-                    className.includes('arrowright') ||
-                    className.includes('pageright') ||
-                    className.includes('forward') ||
-                    text === '>' ||
-                    text === '›' ||
-                    text === 'next' ||
-                    title.includes('next') ||
-                    aria.includes('next');
-
-                if (
-                    matches &&
-                    !text.includes('>>') &&
-                    !text.includes('»') &&
-                    !title.includes('last') &&
-                    !className.includes('last')
-                ) {
-                    return element.closest(
-                        'button, a, div[role="button"]'
-                    ) || element;
-                }
-            }
-
-            if (type === 'first') {
-                const matches =
-                    className.includes('first') ||
-                    className.includes('arrowleft') ||
-                    className.includes('pageleft') ||
-                    text === '<' ||
-                    text === '«' ||
-                    text === '<<' ||
-                    text === 'first' ||
-                    title.includes('first');
-
-                if (matches) {
-                    return element.closest(
-                        'button, a, div[role="button"]'
-                    ) || element;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    function getOutgoingCurrentPage(container) {
-        const currentPageControl = container?.querySelector(
-            '.tg-pagination li.number.disabled a, ' +
-            '.tg-pagination li.number.disabled'
-        );
-        const controlPage = Number.parseInt(
-            String(currentPageControl?.textContent || '')
-                .replace(/[^0-9]/g, ''),
-            10
-        );
-
-        if (Number.isFinite(controlPage)) {
-            return controlPage;
-        }
-
-        const hashPage = String(window.location.hash || '')
-            .match(/(?:^|\/)cp:(\d+)/i);
-
-        return hashPage
-            ? Number.parseInt(hashPage[1], 10)
-            : 1;
-    }
-
-    function triggerOutgoingPagination(element) {
-        if (!element) {
-            return;
-        }
-
-        try {
-            element.click();
-            return;
-        } catch (_) {
-            // Fall back to the complete pointer/mouse event sequence.
-        }
-
-        [
-            'pointerdown', 'mousedown', 'pointerup',
-            'mouseup', 'click'
-        ].forEach(eventType => {
-            element.dispatchEvent(new MouseEvent(eventType, {
-                bubbles: true,
-                cancelable: true,
-                view: window
-            }));
+    document.head.appendChild(style);
+  }
+  function readMovementTypes() {
+    const selectedTypes = {
+      ...DEFAULT_MOVEMENT_TYPES
+    };
+    try {
+      const storedValue = localStorage.getItem(MOVEMENT_TYPE_STORAGE_KEY);
+      if (storedValue) {
+        const parsedValue = JSON.parse(storedValue);
+        Object.keys(selectedTypes).forEach(type => {
+          if (typeof parsedValue?.[type] === 'boolean') {
+            selectedTypes[type] = parsedValue[type];
+          }
         });
-    }
-
-    async function sweepOutgoingVirtualScroll(container) {
-        const scrollable = container?.querySelector(
-            '.scrollPane, .scrollContentInnerWrapper, ' +
-            '.movementList, .overviewList'
-        ) || container;
-
-        if (
-            !scrollable ||
-            scrollable.scrollHeight <= scrollable.clientHeight
-        ) {
-            return;
+      }
+    } catch (_) {}
+    return selectedTypes;
+  }
+  function saveMovementTypes(selectedTypes) {
+    try {
+      localStorage.setItem(MOVEMENT_TYPE_STORAGE_KEY, JSON.stringify(selectedTypes));
+    } catch (_) {}
+  }
+  function escapeHtml(value) {
+    return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+  }
+  function readOutgoingTypes() {
+    const selectedTypes = {
+      ...DEFAULT_OUTGOING_TYPES
+    };
+    try {
+      const storedValue = localStorage.getItem(OUTGOING_TYPE_STORAGE_KEY);
+      const parsedValue = storedValue ? JSON.parse(storedValue) : null;
+      Object.keys(selectedTypes).forEach(type => {
+        if (typeof parsedValue?.[type] === 'boolean') {
+          selectedTypes[type] = parsedValue[type];
         }
-
-        const originalScroll = scrollable.scrollTop;
-        scrollable.scrollTop = scrollable.scrollHeight;
-        await new Promise(resolve => window.setTimeout(resolve, 150));
-        scrollable.scrollTop = originalScroll;
-        await new Promise(resolve => window.setTimeout(resolve, 100));
+      });
+    } catch (_) {}
+    return selectedTypes;
+  }
+  function saveOutgoingTypes(selectedTypes) {
+    try {
+      localStorage.setItem(OUTGOING_TYPE_STORAGE_KEY, JSON.stringify(selectedTypes));
+    } catch (_) {}
+  }
+  function getOutgoingContainer() {
+    return document.querySelector('.tabOutgoing.currentTab, ' + '.tabOutgoing.activeTab');
+  }
+  function getOutgoingNavigationContainer() {
+    const outgoingTab = getOutgoingContainer();
+    const rallyPointRoot = outgoingTab?.closest('.buildingDetails.rallypoint');
+    if (rallyPointRoot) {
+      return rallyPointRoot;
     }
-
-    function buildOutgoingHash(page = 1) {
-        let path = String(
-            window.location.hash || ''
-        ).replace(/^#\/?/, '');
-
-        if (
-            !path.includes('window:building') ||
-            !path.includes('location:32')
-        ) {
-            const villageMatch =
-                path.match(/villId:[^/]+/);
-
-            path =
-                'page:village/' +
-                (
-                    villageMatch
-                        ? `${villageMatch[0]}/`
-                        : ''
-                ) +
-                'location:32/window:building/' +
-                `cp:${page}/subtab:Outgoing`;
-
-            return path;
-        }
-
-        path = path.match(/cp:\d+/)
-            ? path.replace(
-                /cp:\d+/,
-                `cp:${page}`
-            )
-            : `${path}/cp:${page}`;
-
-        path = path.match(/subtab:[^/]+/)
-            ? path.replace(
-                /subtab:[^/]+/,
-                'subtab:Outgoing'
-            )
-            : `${path}/subtab:Outgoing`;
-
-        return path;
+    const selectors = ['.buildingDetails.rallypoint', '.rallyPoint', '.movementsView', '.buildingView[data-building-type="16"]', '.buildingView', '.windowContent', '#windowContent'];
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element && element.offsetHeight > 0) {
+        return element;
+      }
     }
-
-    async function waitForOutgoingRender(
-        previousSignature = null,
-        timeout = 10000,
-        minimumSettleTime = 900
-    ) {
-        const start = Date.now();
-        let stableSignature = null;
-        let stableChecks = 0;
-
-        while (Date.now() - start < timeout) {
-            const container =
-                getOutgoingContainer();
-
-            if (container) {
-                const signature =
-                    getOutgoingSignature(
-                        container
-                    );
-                const hasLoadedState =
-                    signature.length > 0 ||
-                    /Outbound troops|No troop/i
-                        .test(
-                            container.textContent || ''
-                        );
-
-                const isNewPage =
-                    previousSignature === null ||
-                    signature !== previousSignature;
-
-                if (hasLoadedState && isNewPage) {
-                    if (signature === stableSignature) {
-                        stableChecks += 1;
-                    } else {
-                        stableSignature = signature;
-                        stableChecks = 1;
-                    }
-
-                    if (
-                        Date.now() - start >= minimumSettleTime &&
-                        stableChecks >= 3
-                    ) {
-                        return container;
-                    }
-                } else {
-                    stableSignature = null;
-                    stableChecks = 0;
-                }
-            }
-
-            await new Promise(resolve => {
-                window.setTimeout(resolve, 200);
-            });
-        }
-
-        return null;
+    return getOutgoingContainer();
+  }
+  function getOutgoingRows(container) {
+    if (!container) {
+      return [];
     }
-
-    function renderOutgoingResults(view) {
-        const target = view?.querySelector(
-            '#qol-outgoing-table-target'
-        );
-        const count = view?.querySelector(
-            '#qol-outgoing-result-count'
-        );
-        const copyButton = view?.querySelector(
-            '#qol-outgoing-copy'
-        );
-        const clearButton = view?.querySelector(
-            '#qol-outgoing-clear'
-        );
-
-        if (!target || !count) {
-            return;
+    return Array.from(container.querySelectorAll('troop-details-rallypoint.movingTroops > ' + '.troopsDetailContainer, ' + '.movingTroops > .troopsDetailContainer'));
+  }
+  function getOutgoingCategory(row) {
+    const titleText = String(row.querySelector('.troopsTitle')?.textContent || '').toLowerCase();
+    const iconClasses = String(row.querySelector('.troopsTitle [class*="movement_"][class*="_small"]')?.className || '').toLowerCase();
+    const value = `${titleText} ${iconClasses}`;
+    if (value.includes('siege')) {
+      return 'siege';
+    }
+    if (value.includes('merchant') || value.includes('movement_trade')) {
+      return 'merchant';
+    }
+    if (value.includes('reinforcement') || value.includes('support')) {
+      return 'reinforcement';
+    }
+    if (titleText.includes('attack') || iconClasses.includes('movement_attack')) {
+      return 'attack';
+    }
+    return null;
+  }
+  function formatFinishTimestamp(value) {
+    const seconds = Number(value);
+    if (!Number.isFinite(seconds)) {
+      return '';
+    }
+    return new Date(seconds * 1000).toLocaleTimeString([], {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  }
+  function getFinishTimestamp(element) {
+    if (!element) {
+      return '';
+    }
+    const directValue = element.getAttribute('data-time-finish') || element.dataset?.timeFinish;
+    if (directValue) {
+      return directValue;
+    }
+    const angularData = [element.getAttribute('data'), element.getAttribute('tooltip-data')].filter(Boolean).join(' ');
+    const match = angularData.match(/timeFinish\s*:\s*(\d+)/i);
+    return match ? match[1] : '';
+  }
+  function parseOutgoingRow(row) {
+    const category = getOutgoingCategory(row);
+    if (!category) {
+      return null;
+    }
+    const playerElement = row.querySelector('.troopsTitle .playerLink');
+    const villageElement = row.querySelector('.troopsTitle .villageLink');
+    const countdownContainer = row.querySelector('.countdownTo, ' + '.countdownContainer');
+    const countdownElement = countdownContainer?.querySelector('[countdown]');
+    const landingElement = countdownContainer?.querySelector('[i18ndt]');
+    const finishTimestamp = getFinishTimestamp(countdownContainer) || landingElement?.getAttribute('i18ndt');
+    if (!villageElement || !countdownElement) {
+      return null;
+    }
+    const labels = {
+      attack: 'Attack',
+      siege: 'Siege',
+      reinforcement: 'Reinforcement',
+      merchant: 'Merchant'
+    };
+    return {
+      target: playerElement?.textContent.trim() || 'Unknown',
+      targetVillage: villageElement.textContent.trim() || 'Unknown',
+      type: labels[category],
+      category,
+      remaining: countdownElement.textContent.trim() || '00:00:00',
+      landing: landingElement?.textContent.trim() || formatFinishTimestamp(finishTimestamp) || 'Unknown'
+    };
+  }
+  function getOutgoingSignature(container) {
+    return getOutgoingRows(container).map(row => {
+      const icon = row.querySelector('.troopsTitle [class*="movement_"]');
+      const finish = row.querySelector('.countdownTo, .countdownContainer');
+      return [icon?.className || '', row.querySelector('.playerLink')?.textContent || '', row.querySelector('.villageLink')?.textContent || '', getFinishTimestamp(finish)].join('|');
+    }).join('||');
+  }
+  function findOutgoingPaginationButton(type, container) {
+    if (!container) {
+      return null;
+    }
+    const exactClass = type === 'next' ? 'nextPage' : 'firstPage';
+    const exactControl = container.querySelector(`.tg-pagination > ul > li.${exactClass}`);
+    if (exactControl && !exactControl.classList.contains('disabled') && (exactControl.offsetWidth > 0 || exactControl.offsetHeight > 0)) {
+      return exactControl;
+    }
+    const candidates = container.querySelectorAll('button, a, span, div, li, i, svg, ' + '[class*="next"], [class*="pager"], ' + '[class*="arrow"], [class*="page"]');
+    for (const element of candidates) {
+      if (element.offsetWidth === 0 && element.offsetHeight === 0) {
+        continue;
+      }
+      if (element.closest('.villageList') || element.closest('#sidebar') || element.closest('.navigation')) {
+        continue;
+      }
+      const className = typeof element.className === 'string' ? element.className.toLowerCase() : '';
+      const text = String(element.textContent || '').trim().toLowerCase();
+      const title = String(element.getAttribute('title') || '').toLowerCase();
+      const aria = String(element.getAttribute('aria-label') || '').toLowerCase();
+      if (className.includes('disabled') || className.includes('inactive') || title.includes('village') || text.includes('village')) {
+        continue;
+      }
+      if (type === 'next') {
+        const matches = className.includes('next') || className.includes('arrowright') || className.includes('pageright') || className.includes('forward') || text === '>' || text === '›' || text === 'next' || title.includes('next') || aria.includes('next');
+        if (matches && !text.includes('>>') && !text.includes('»') && !title.includes('last') && !className.includes('last')) {
+          return element.closest('button, a, div[role="button"]') || element;
         }
-
-        count.textContent =
-            `${outgoingResults.length} movement${
-                outgoingResults.length === 1
-                    ? ''
-                    : 's'
-            }`;
-
-        [copyButton, clearButton]
-            .forEach((button) => {
-                button?.style.setProperty(
-                    'display',
-                    outgoingResults.length > 0
-                        ? 'inline-flex'
-                        : 'none',
-                    'important'
-                );
-            });
-
-        if (outgoingResults.length === 0) {
-            target.innerHTML = `
+      }
+      if (type === 'first') {
+        const matches = className.includes('first') || className.includes('arrowleft') || className.includes('pageleft') || text === '<' || text === '«' || text === '<<' || text === 'first' || title.includes('first');
+        if (matches) {
+          return element.closest('button, a, div[role="button"]') || element;
+        }
+      }
+    }
+    return null;
+  }
+  function getOutgoingCurrentPage(container) {
+    const currentPageControl = container?.querySelector('.tg-pagination li.number.disabled a, ' + '.tg-pagination li.number.disabled');
+    const controlPage = Number.parseInt(String(currentPageControl?.textContent || '').replace(/[^0-9]/g, ''), 10);
+    if (Number.isFinite(controlPage)) {
+      return controlPage;
+    }
+    const hashPage = String(window.location.hash || '').match(/(?:^|\/)cp:(\d+)/i);
+    return hashPage ? Number.parseInt(hashPage[1], 10) : 1;
+  }
+  function triggerOutgoingPagination(element) {
+    if (!element) {
+      return;
+    }
+    try {
+      element.click();
+      return;
+    } catch (_) {}
+    ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(eventType => {
+      element.dispatchEvent(new MouseEvent(eventType, {
+        bubbles: true,
+        cancelable: true,
+        view: window
+      }));
+    });
+  }
+  async function sweepOutgoingVirtualScroll(container) {
+    const scrollable = container?.querySelector('.scrollPane, .scrollContentInnerWrapper, ' + '.movementList, .overviewList') || container;
+    if (!scrollable || scrollable.scrollHeight <= scrollable.clientHeight) {
+      return;
+    }
+    const originalScroll = scrollable.scrollTop;
+    scrollable.scrollTop = scrollable.scrollHeight;
+    await new Promise(resolve => window.setTimeout(resolve, 150));
+    scrollable.scrollTop = originalScroll;
+    await new Promise(resolve => window.setTimeout(resolve, 100));
+  }
+  function buildOutgoingHash(page = 1) {
+    let path = String(window.location.hash || '').replace(/^#\/?/, '');
+    if (!path.includes('window:building') || !path.includes('location:32')) {
+      const villageMatch = path.match(/villId:[^/]+/);
+      path = 'page:village/' + (villageMatch ? `${villageMatch[0]}/` : '') + 'location:32/window:building/' + `cp:${page}/subtab:Outgoing`;
+      return path;
+    }
+    path = path.match(/cp:\d+/) ? path.replace(/cp:\d+/, `cp:${page}`) : `${path}/cp:${page}`;
+    path = path.match(/subtab:[^/]+/) ? path.replace(/subtab:[^/]+/, 'subtab:Outgoing') : `${path}/subtab:Outgoing`;
+    return path;
+  }
+  async function waitForOutgoingRender(previousSignature = null, timeout = 10000, minimumSettleTime = 900) {
+    const start = Date.now();
+    let stableSignature = null;
+    let stableChecks = 0;
+    while (Date.now() - start < timeout) {
+      const container = getOutgoingContainer();
+      if (container) {
+        const signature = getOutgoingSignature(container);
+        const hasLoadedState = signature.length > 0 || /Outbound troops|No troop/i.test(container.textContent || '');
+        const isNewPage = previousSignature === null || signature !== previousSignature;
+        if (hasLoadedState && isNewPage) {
+          if (signature === stableSignature) {
+            stableChecks += 1;
+          } else {
+            stableSignature = signature;
+            stableChecks = 1;
+          }
+          if (Date.now() - start >= minimumSettleTime && stableChecks >= 3) {
+            return container;
+          }
+        } else {
+          stableSignature = null;
+          stableChecks = 0;
+        }
+      }
+      await new Promise(resolve => {
+        window.setTimeout(resolve, 200);
+      });
+    }
+    return null;
+  }
+  function renderOutgoingResults(view) {
+    const target = view?.querySelector('#qol-outgoing-table-target');
+    const count = view?.querySelector('#qol-outgoing-result-count');
+    const copyButton = view?.querySelector('#qol-outgoing-copy');
+    const clearButton = view?.querySelector('#qol-outgoing-clear');
+    if (!target || !count) {
+      return;
+    }
+    count.textContent = `${outgoingResults.length} movement${outgoingResults.length === 1 ? '' : 's'}`;
+    [copyButton, clearButton].forEach(button => {
+      button?.style.setProperty('display', outgoingResults.length > 0 ? 'inline-flex' : 'none', 'important');
+    });
+    if (outgoingResults.length === 0) {
+      target.innerHTML = `
                 <div class="qol-rp-empty">
                     <strong>No outgoing results yet.</strong>
                     <span>Choose the outgoing types, then select “Scan Outgoings”.</span>
                 </div>
             `;
-            return;
-        }
-
-        target.innerHTML = `
+      return;
+    }
+    target.innerHTML = `
             <table class="qol-rp-table">
                 <thead>
                     <tr>
@@ -1213,7 +780,7 @@ function initUnifiedRallyPointScanner() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${outgoingResults.map((movement) => `
+                    ${outgoingResults.map(movement => `
                         <tr>
                             <td>${escapeHtml(movement.target)}</td>
                             <td>${escapeHtml(movement.targetVillage)}</td>
@@ -1229,323 +796,143 @@ function initUnifiedRallyPointScanner() {
                 </tbody>
             </table>
         `;
+  }
+  function setOutgoingStatus(view, message, tone = 'neutral') {
+    const status = view?.querySelector('#qol-outgoing-status');
+    if (status) {
+      status.textContent = message;
+      status.dataset.tone = tone;
     }
-
-    function setOutgoingStatus(
-        view,
-        message,
-        tone = 'neutral'
-    ) {
-        const status = view?.querySelector(
-            '#qol-outgoing-status'
-        );
-
-        if (status) {
-            status.textContent = message;
-            status.dataset.tone = tone;
-        }
+  }
+  function updateOutgoingPicker(view) {
+    const selectedTypes = {};
+    view.querySelectorAll('[data-qol-outgoing-type]').forEach(control => {
+      const type = control.getAttribute('data-qol-outgoing-type');
+      selectedTypes[type] = control.checked === true;
+      control.setAttribute('aria-checked', control.checked ? 'true' : 'false');
+      control.querySelector('.qol-rally-checkbox')?.classList.toggle('checked', control.checked === true);
+    });
+    saveOutgoingTypes(selectedTypes);
+    const hasSelection = Object.values(selectedTypes).some(Boolean);
+    view.querySelector('#qol-outgoing-scan')?.classList.toggle('qol-action-disabled', !hasSelection);
+    view.querySelector('.qol-rally-movement-warning')?.classList.toggle('visible', !hasSelection);
+    return selectedTypes;
+  }
+  async function scanOutgoings(view) {
+    if (outgoingScanning) {
+      return;
     }
-
-    function updateOutgoingPicker(view) {
-        const selectedTypes = {};
-
-        view.querySelectorAll(
-            '[data-qol-outgoing-type]'
-        ).forEach((control) => {
-            const type = control.getAttribute(
-                'data-qol-outgoing-type'
-            );
-
-            selectedTypes[type] =
-                control.checked === true;
-            control.setAttribute(
-                'aria-checked',
-                control.checked ? 'true' : 'false'
-            );
-            control.querySelector(
-                '.qol-rally-checkbox'
-            )?.classList.toggle(
-                'checked',
-                control.checked === true
-            );
+    const selectedTypes = updateOutgoingPicker(view);
+    if (!Object.values(selectedTypes).some(Boolean)) {
+      setOutgoingStatus(view, 'Select at least one outgoing movement type.', 'error');
+      return;
+    }
+    outgoingScanning = true;
+    outgoingResults = [];
+    const scanButton = view.querySelector('#qol-outgoing-scan');
+    scanButton.textContent = 'Opening Rally Point...';
+    scanButton.classList.add('qol-action-disabled');
+    setOutgoingStatus(view, 'Opening Outgoing Rally Point...', 'working');
+    showScanLock({
+      title: 'Scanning Outgoings...',
+      message: 'Opening outgoing Rally Point page 1...'
+    });
+    try {
+      window.location.hash = buildOutgoingHash(1);
+      let container = await waitForOutgoingRender(null, 10000, 400);
+      if (!container) {
+        throw new Error('Outgoing Rally Point did not render.');
+      }
+      const firstButton = findOutgoingPaginationButton('first', getOutgoingNavigationContainer());
+      if (firstButton) {
+        updateScanLock('Returning to the first outgoing page...');
+        triggerOutgoingPagination(firstButton);
+        await new Promise(resolve => {
+          window.setTimeout(resolve, 800);
         });
-
-        saveOutgoingTypes(selectedTypes);
-
-        const hasSelection =
-            Object.values(selectedTypes)
-                .some(Boolean);
-
-        view.querySelector(
-            '#qol-outgoing-scan'
-        )?.classList.toggle(
-            'qol-action-disabled',
-            !hasSelection
-        );
-        view.querySelector(
-            '.qol-rally-movement-warning'
-        )?.classList.toggle(
-            'visible',
-            !hasSelection
-        );
-
-        return selectedTypes;
-    }
-
-    async function scanOutgoings(view) {
-        if (outgoingScanning) {
-            return;
+        container = getOutgoingContainer() || container;
+      }
+      let page = getOutgoingCurrentPage(getOutgoingNavigationContainer());
+      while (page <= 50 && outgoingScanning && isEnabled()) {
+        updateScanLock(`Scanning outgoing page ${page}...`);
+        setOutgoingStatus(view, `Scanning page ${page}...`, 'working');
+        container = getOutgoingContainer();
+        if (!container) {
+          break;
         }
-
-        const selectedTypes =
-            updateOutgoingPicker(view);
-
-        if (!Object.values(selectedTypes).some(Boolean)) {
-            setOutgoingStatus(
-                view,
-                'Select at least one outgoing movement type.',
-                'error'
-            );
-            return;
-        }
-
-        outgoingScanning = true;
-        outgoingResults = [];
-
-        const scanButton = view.querySelector(
-            '#qol-outgoing-scan'
-        );
-
-        scanButton.textContent =
-            'Opening Rally Point...';
-        scanButton.classList.add(
-            'qol-action-disabled'
-        );
-        setOutgoingStatus(
-            view,
-            'Opening Outgoing Rally Point...',
-            'working'
-        );
-        showScanLock({
-            title: 'Scanning Outgoings...',
-            message: 'Opening outgoing Rally Point page 1...'
+        await sweepOutgoingVirtualScroll(container);
+        const signature = getOutgoingSignature(container);
+        getOutgoingRows(container).forEach(row => {
+          const movement = parseOutgoingRow(row);
+          if (movement && selectedTypes[movement.category]) {
+            outgoingResults.push(movement);
+          }
         });
-
-        try {
-            window.location.hash = buildOutgoingHash(1);
-            let container = await waitForOutgoingRender(
-                null,
-                10000,
-                400
-            );
-
-            if (!container) {
-                throw new Error(
-                    'Outgoing Rally Point did not render.'
-                );
-            }
-
-            const firstButton = findOutgoingPaginationButton(
-                'first',
-                getOutgoingNavigationContainer()
-            );
-
-            if (firstButton) {
-                updateScanLock(
-                    'Returning to the first outgoing page...'
-                );
-                triggerOutgoingPagination(firstButton);
-                await new Promise(resolve => {
-                    window.setTimeout(resolve, 800);
-                });
-                container = getOutgoingContainer() || container;
-            }
-
-            let page = getOutgoingCurrentPage(
-                getOutgoingNavigationContainer()
-            );
-
-            while (
-                page <= 50 &&
-                outgoingScanning &&
-                isEnabled()
-            ) {
-                updateScanLock(
-                    `Scanning outgoing page ${page}...`
-                );
-                setOutgoingStatus(
-                    view,
-                    `Scanning page ${page}...`,
-                    'working'
-                );
-
-                container = getOutgoingContainer();
-
-                if (!container) {
-                    break;
-                }
-
-                await sweepOutgoingVirtualScroll(container);
-
-                const signature =
-                    getOutgoingSignature(
-                        container
-                    );
-
-                getOutgoingRows(container)
-                    .forEach((row) => {
-                        const movement =
-                            parseOutgoingRow(row);
-
-                        if (
-                            movement &&
-                            selectedTypes[
-                                movement.category
-                            ]
-                        ) {
-                            outgoingResults.push(
-                                movement
-                            );
-                        }
-                    });
-
-                const nextButton = findOutgoingPaginationButton(
-                    'next',
-                    getOutgoingNavigationContainer()
-                );
-
-                if (!nextButton) {
-                    break;
-                }
-
-                const navigationContainer =
-                    getOutgoingNavigationContainer();
-                const currentPage = getOutgoingCurrentPage(
-                    navigationContainer
-                );
-                triggerOutgoingPagination(nextButton);
-
-                let waited = 0;
-                let pageChanged = false;
-                let renderedPage = currentPage;
-                let pageAdvanceSeenAt = 0;
-
-                while (
-                    waited < 6000 &&
-                    outgoingScanning &&
-                    isEnabled()
-                ) {
-                    await new Promise(resolve => {
-                        window.setTimeout(resolve, 200);
-                    });
-                    waited += 200;
-
-                    const newNavigationContainer =
-                        getOutgoingNavigationContainer();
-                    const newPage = getOutgoingCurrentPage(
-                        newNavigationContainer
-                    );
-                    const newSignature = getOutgoingSignature(
-                        getOutgoingContainer()
-                    );
-                    const pageAdvanced =
-                        newPage > currentPage;
-                    const navigationAdvanced =
-                        pageAdvanced;
-
-                    if (
-                        navigationAdvanced &&
-                        pageAdvanceSeenAt === 0
-                    ) {
-                        pageAdvanceSeenAt = Date.now();
-                    }
-
-                    if (
-                        navigationAdvanced &&
-                        newSignature.length > 0 &&
-                        (
-                            newSignature !== signature ||
-                            Date.now() - pageAdvanceSeenAt >= 800
-                        )
-                    ) {
-                        pageChanged = true;
-                        renderedPage = pageAdvanced
-                            ? newPage
-                            : currentPage + 1;
-                        break;
-                    }
-                }
-
-                if (!pageChanged) {
-                    break;
-                }
-
-                await new Promise(resolve => {
-                    window.setTimeout(resolve, 500);
-                });
-
-                page = renderedPage;
-            }
-
-            renderOutgoingResults(view);
-            setOutgoingStatus(
-                view,
-                outgoingResults.length > 0
-                    ? `Scan complete. Found ${outgoingResults.length} outgoing movements.`
-                    : 'Scan complete. No matching outgoings found.',
-                'success'
-            );
-        } catch (error) {
-            console.error(
-                '[RallyPointScanner] Outgoing scan failed:',
-                error
-            );
-            renderOutgoingResults(view);
-            setOutgoingStatus(
-                view,
-                'The outgoing scan stopped unexpectedly.',
-                'error'
-            );
-        } finally {
-            outgoingScanning = false;
-            hideScanLock();
-            scanButton.textContent =
-                outgoingResults.length > 0
-                    ? 'Scan Again'
-                    : 'Scan Outgoings';
-            scanButton.classList.remove(
-                'qol-action-disabled'
-            );
-            updateOutgoingPicker(view);
+        const nextButton = findOutgoingPaginationButton('next', getOutgoingNavigationContainer());
+        if (!nextButton) {
+          break;
         }
+        const navigationContainer = getOutgoingNavigationContainer();
+        const currentPage = getOutgoingCurrentPage(navigationContainer);
+        triggerOutgoingPagination(nextButton);
+        let waited = 0;
+        let pageChanged = false;
+        let renderedPage = currentPage;
+        let pageAdvanceSeenAt = 0;
+        while (waited < 6000 && outgoingScanning && isEnabled()) {
+          await new Promise(resolve => {
+            window.setTimeout(resolve, 200);
+          });
+          waited += 200;
+          const newNavigationContainer = getOutgoingNavigationContainer();
+          const newPage = getOutgoingCurrentPage(newNavigationContainer);
+          const newSignature = getOutgoingSignature(getOutgoingContainer());
+          const pageAdvanced = newPage > currentPage;
+          const navigationAdvanced = pageAdvanced;
+          if (navigationAdvanced && pageAdvanceSeenAt === 0) {
+            pageAdvanceSeenAt = Date.now();
+          }
+          if (navigationAdvanced && newSignature.length > 0 && (newSignature !== signature || Date.now() - pageAdvanceSeenAt >= 800)) {
+            pageChanged = true;
+            renderedPage = pageAdvanced ? newPage : currentPage + 1;
+            break;
+          }
+        }
+        if (!pageChanged) {
+          break;
+        }
+        await new Promise(resolve => {
+          window.setTimeout(resolve, 500);
+        });
+        page = renderedPage;
+      }
+      renderOutgoingResults(view);
+      setOutgoingStatus(view, outgoingResults.length > 0 ? `Scan complete. Found ${outgoingResults.length} outgoing movements.` : 'Scan complete. No matching outgoings found.', 'success');
+    } catch (error) {
+      console.error('[RallyPointScanner] Outgoing scan failed:', error);
+      renderOutgoingResults(view);
+      setOutgoingStatus(view, 'The outgoing scan stopped unexpectedly.', 'error');
+    } finally {
+      outgoingScanning = false;
+      hideScanLock();
+      scanButton.textContent = outgoingResults.length > 0 ? 'Scan Again' : 'Scan Outgoings';
+      scanButton.classList.remove('qol-action-disabled');
+      updateOutgoingPicker(view);
     }
-
-    function mountOutgoingView(target) {
-        if (
-            !target ||
-            target.querySelector(
-                '#qol-rally-outgoing-view'
-            )
-        ) {
-            return;
-        }
-
-        const selectedTypes =
-            readOutgoingTypes();
-
-        target.innerHTML = `
+  }
+  function mountOutgoingView(target) {
+    if (!target || target.querySelector('#qol-rally-outgoing-view')) {
+      return;
+    }
+    const selectedTypes = readOutgoingTypes();
+    target.innerHTML = `
             <div id="qol-rally-outgoing-view" class="qol-rp-body">
                 <div class="qol-rp-description">
                     Open and scan every outgoing Rally Point page for the selected movement types, then copy the results in a share-ready format.
                 </div>
                 <div class="qol-rally-movement-picker">
                     <span class="qol-rally-movement-picker-title">Scan for</span>
-                    ${[
-                        ['attack', 'Attack'],
-                        ['siege', 'Siege'],
-                        ['reinforcement', 'Reinforcements'],
-                        ['merchant', 'Merchants']
-                    ].map(([type, label]) => `
+                    ${[['attack', 'Attack'], ['siege', 'Siege'], ['reinforcement', 'Reinforcements'], ['merchant', 'Merchants']].map(([type, label]) => `
                         <div
                             class="qol-rally-movement-option"
                             data-qol-outgoing-type="${type}"
@@ -1571,268 +958,107 @@ function initUnifiedRallyPointScanner() {
                 <div id="qol-outgoing-table-target" class="qol-rp-table-wrapper"></div>
             </div>
         `;
-
-        const view = target.querySelector(
-            '#qol-rally-outgoing-view'
-        );
-
-        view.querySelectorAll(
-            '[data-qol-outgoing-type]'
-        ).forEach((control) => {
-            const type = control.getAttribute(
-                'data-qol-outgoing-type'
-            );
-
-            control.checked =
-                selectedTypes[type] === true;
-
-            const toggle = () => {
-                if (outgoingScanning) {
-                    return;
-                }
-
-                control.checked =
-                    !control.checked;
-                updateOutgoingPicker(view);
-            };
-
-            control.addEventListener('click', toggle);
-            control.addEventListener(
-                'keydown',
-                (event) => {
-                    if (
-                        event.key === 'Enter' ||
-                        event.key === ' '
-                    ) {
-                        event.preventDefault();
-                        toggle();
-                    }
-                }
-            );
-        });
-
-        view.querySelector(
-            '#qol-outgoing-scan'
-        ).addEventListener(
-            'click',
-            () => scanOutgoings(view)
-        );
-
-        view.querySelector(
-            '#qol-outgoing-copy'
-        ).addEventListener(
-            'click',
-            async () => {
-                const output = outgoingResults
-                    .map((movement) => {
-                        return `${movement.type} to ${movement.target} at ${movement.targetVillage} in ${movement.remaining} at ${movement.landing}`;
-                    })
-                    .join('\n');
-
-                try {
-                    await navigator.clipboard
-                        .writeText(output);
-                    setOutgoingStatus(
-                        view,
-                        `Copied ${outgoingResults.length} outgoing movements.`,
-                        'success'
-                    );
-                } catch (_) {
-                    setOutgoingStatus(
-                        view,
-                        'Could not copy the outgoing results.',
-                        'error'
-                    );
-                }
-            }
-        );
-
-        view.querySelector(
-            '#qol-outgoing-clear'
-        ).addEventListener(
-            'click',
-            () => {
-                if (outgoingScanning) {
-                    return;
-                }
-
-                outgoingResults = [];
-                renderOutgoingResults(view);
-                setOutgoingStatus(
-                    view,
-                    'Ready.',
-                    'neutral'
-                );
-                view.querySelector(
-                    '#qol-outgoing-scan'
-                ).textContent =
-                    'Scan Outgoings';
-            }
-        );
-
+    const view = target.querySelector('#qol-rally-outgoing-view');
+    view.querySelectorAll('[data-qol-outgoing-type]').forEach(control => {
+      const type = control.getAttribute('data-qol-outgoing-type');
+      control.checked = selectedTypes[type] === true;
+      const toggle = () => {
+        if (outgoingScanning) {
+          return;
+        }
+        control.checked = !control.checked;
         updateOutgoingPicker(view);
-        renderOutgoingResults(view);
+      };
+      control.addEventListener('click', toggle);
+      control.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggle();
+        }
+      });
+    });
+    view.querySelector('#qol-outgoing-scan').addEventListener('click', () => scanOutgoings(view));
+    view.querySelector('#qol-outgoing-copy').addEventListener('click', async () => {
+      const output = outgoingResults.map(movement => {
+        return `${movement.type} to ${movement.target} at ${movement.targetVillage} in ${movement.remaining} at ${movement.landing}`;
+      }).join('\n');
+      try {
+        await navigator.clipboard.writeText(output);
+        setOutgoingStatus(view, `Copied ${outgoingResults.length} outgoing movements.`, 'success');
+      } catch (_) {
+        setOutgoingStatus(view, 'Could not copy the outgoing results.', 'error');
+      }
+    });
+    view.querySelector('#qol-outgoing-clear').addEventListener('click', () => {
+      if (outgoingScanning) {
+        return;
+      }
+      outgoingResults = [];
+      renderOutgoingResults(view);
+      setOutgoingStatus(view, 'Ready.', 'neutral');
+      view.querySelector('#qol-outgoing-scan').textContent = 'Scan Outgoings';
+    });
+    updateOutgoingPicker(view);
+    renderOutgoingResults(view);
+  }
+  function getActiveTab() {
+    try {
+      const storedValue = localStorage.getItem(ACTIVE_TAB_STORAGE_KEY);
+      if (storedValue === 'resources' || storedValue === 'incomings' || storedValue === 'outgoings') {
+        return storedValue;
+      }
+    } catch (_) {}
+    return 'incomings';
+  }
+  function activateTab(tabName) {
+    const panel = document.getElementById(PANEL_ID);
+    if (!panel) {
+      return;
     }
-
-    function getActiveTab() {
-        try {
-            const storedValue =
-                localStorage.getItem(
-                    ACTIVE_TAB_STORAGE_KEY
-                );
-
-            if (
-                storedValue === 'resources' ||
-                storedValue === 'incomings' ||
-                storedValue === 'outgoings'
-            ) {
-                return storedValue;
-            }
-        } catch (_) {
-            // Use the default tab.
-        }
-
-        return 'incomings';
+    panel.querySelectorAll('[data-qol-rally-tab]').forEach(tab => {
+      const isActive = tab.getAttribute('data-qol-rally-tab') === tabName;
+      tab.classList.toggle('active', isActive);
+      tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    });
+    panel.querySelectorAll('[data-qol-rally-panel]').forEach(tabPanel => {
+      const isActive = tabPanel.getAttribute('data-qol-rally-panel') === tabName;
+      tabPanel.classList.toggle('active', isActive);
+      tabPanel.hidden = !isActive;
+    });
+    try {
+      localStorage.setItem(ACTIVE_TAB_STORAGE_KEY, tabName);
+    } catch (_) {}
+  }
+  function updateMovementPickerState(picker) {
+    if (!picker) {
+      return;
     }
-
-    function activateTab(tabName) {
-        const panel =
-            document.getElementById(PANEL_ID);
-
-        if (!panel) {
-            return;
-        }
-
-        panel
-            .querySelectorAll('[data-qol-rally-tab]')
-            .forEach((tab) => {
-                const isActive =
-                    tab.getAttribute(
-                        'data-qol-rally-tab'
-                    ) === tabName;
-
-                tab.classList.toggle(
-                    'active',
-                    isActive
-                );
-                tab.setAttribute(
-                    'aria-selected',
-                    isActive ? 'true' : 'false'
-                );
-            });
-
-        panel
-            .querySelectorAll('[data-qol-rally-panel]')
-            .forEach((tabPanel) => {
-                const isActive =
-                    tabPanel.getAttribute(
-                        'data-qol-rally-panel'
-                    ) === tabName;
-
-                tabPanel.classList.toggle(
-                    'active',
-                    isActive
-                );
-                tabPanel.hidden = !isActive;
-            });
-
-        try {
-            localStorage.setItem(
-                ACTIVE_TAB_STORAGE_KEY,
-                tabName
-            );
-        } catch (_) {
-            // Tab persistence is optional.
-        }
+    const selectedTypes = {};
+    picker.querySelectorAll('[data-qol-rally-movement-type]').forEach(checkbox => {
+      checkbox.querySelector('.qol-rally-checkbox')?.classList.toggle('checked', checkbox.checked === true);
+      checkbox.setAttribute('aria-checked', checkbox.checked ? 'true' : 'false');
+      selectedTypes[checkbox.getAttribute('data-qol-rally-movement-type')] = checkbox.checked === true;
+    });
+    saveMovementTypes(selectedTypes);
+    const hasSelection = Object.values(selectedTypes).some(Boolean);
+    const parseButton = document.getElementById('qol-btn-merge');
+    const warning = picker.querySelector('.qol-rally-movement-warning');
+    parseButton?.classList.toggle('qol-action-disabled', !hasSelection);
+    parseButton?.setAttribute('aria-disabled', hasSelection ? 'false' : 'true');
+    warning?.classList.toggle('visible', !hasSelection);
+  }
+  function mountMovementPicker(body) {
+    if (!body || body.querySelector('.qol-rally-movement-picker')) {
+      return;
     }
-
-    function updateMovementPickerState(picker) {
-        if (!picker) {
-            return;
-        }
-
-        const selectedTypes = {};
-
-        picker
-            .querySelectorAll(
-                '[data-qol-rally-movement-type]'
-            )
-            .forEach((checkbox) => {
-                checkbox.querySelector(
-                    '.qol-rally-checkbox'
-                )
-                    ?.classList.toggle(
-                        'checked',
-                        checkbox.checked === true
-                    );
-                checkbox.setAttribute(
-                    'aria-checked',
-                    checkbox.checked ? 'true' : 'false'
-                );
-                selectedTypes[
-                    checkbox.getAttribute(
-                        'data-qol-rally-movement-type'
-                    )
-                ] = checkbox.checked === true;
-            });
-
-        saveMovementTypes(selectedTypes);
-
-        const hasSelection =
-            Object.values(selectedTypes)
-                .some(Boolean);
-
-        const parseButton =
-            document.getElementById(
-                'qol-btn-merge'
-            );
-
-        const warning =
-            picker.querySelector(
-                '.qol-rally-movement-warning'
-            );
-
-        parseButton?.classList.toggle(
-            'qol-action-disabled',
-            !hasSelection
-        );
-        parseButton?.setAttribute(
-            'aria-disabled',
-            hasSelection ? 'false' : 'true'
-        );
-        warning?.classList.toggle(
-            'visible',
-            !hasSelection
-        );
-    }
-
-    function mountMovementPicker(body) {
-        if (
-            !body ||
-            body.querySelector(
-                '.qol-rally-movement-picker'
-            )
-        ) {
-            return;
-        }
-
-        const selectedTypes =
-            readMovementTypes();
-        const picker =
-            document.createElement('div');
-
-        picker.className =
-            'qol-rally-movement-picker';
-        picker.innerHTML = `
+    const selectedTypes = readMovementTypes();
+    const picker = document.createElement('div');
+    picker.className = 'qol-rally-movement-picker';
+    picker.innerHTML = `
             <span class="qol-rally-movement-picker-title">
                 Scan for
             </span>
-            ${[
-                ['attack', 'Attack'],
-                ['siege', 'Siege'],
-                ['raid', 'Raid'],
-                ['reinforcement', 'Reinforcements']
-            ].map(([type, label]) => `
+            ${[['attack', 'Attack'], ['siege', 'Siege'], ['raid', 'Raid'], ['reinforcement', 'Reinforcements']].map(([type, label]) => `
                 <div
                     class="qol-rally-movement-option"
                     data-qol-rally-movement-type="${type}"
@@ -1848,385 +1074,133 @@ function initUnifiedRallyPointScanner() {
                 Select at least one type.
             </span>
         `;
-
-        const controls =
-            body.querySelector(
-                '.qol-rp-controls'
-            );
-
-        body.insertBefore(
-            picker,
-            controls || null
-        );
-
-        picker
-            .querySelectorAll(
-                '[data-qol-rally-movement-type]'
-            )
-            .forEach((control) => {
-                const type = control.getAttribute(
-                    'data-qol-rally-movement-type'
-                );
-
-                control.checked =
-                    selectedTypes[type] === true;
-
-                const toggleControl = () => {
-                    control.checked =
-                        !control.checked;
-
-                    updateMovementPickerState(
-                        picker
-                    );
-                };
-
-                control.addEventListener(
-                    'click',
-                    toggleControl
-                );
-                control.addEventListener(
-                    'keydown',
-                    (event) => {
-                        if (
-                            event.key === 'Enter' ||
-                            event.key === ' '
-                        ) {
-                            event.preventDefault();
-                            toggleControl();
-                        }
-                    }
-                );
-            });
-
-        updateMovementPickerState(
-            picker
-        );
-
-        const parseButton =
-            body.querySelector(
-                '#qol-btn-merge'
-            );
-
-        if (
-            parseButton &&
-            !parseButton.dataset
-                .qolMovementGuard
-        ) {
-            parseButton.dataset
-                .qolMovementGuard = 'true';
-
-            parseButton.addEventListener(
-                'click',
-                (event) => {
-                    const hasSelection =
-                        Array.from(
-                            picker.querySelectorAll(
-                                '[data-qol-rally-movement-type]'
-                            )
-                        ).some(
-                            checkbox =>
-                                checkbox.checked
-                        );
-
-                    if (!hasSelection) {
-                        event.preventDefault();
-                        event.stopImmediatePropagation();
-
-                        const status =
-                            document.getElementById(
-                                'qol-merge-status'
-                            );
-
-                        if (status) {
-                            status.textContent =
-                                'Select at least one incoming movement type.';
-                            status.dataset.tone =
-                                'error';
-                        }
-                    }
-                },
-                true
-            );
-        }
-
+    const controls = body.querySelector('.qol-rp-controls');
+    body.insertBefore(picker, controls || null);
+    picker.querySelectorAll('[data-qol-rally-movement-type]').forEach(control => {
+      const type = control.getAttribute('data-qol-rally-movement-type');
+      control.checked = selectedTypes[type] === true;
+      const toggleControl = () => {
+        control.checked = !control.checked;
         updateMovementPickerState(picker);
-    }
-
-    function adoptLegacyViews() {
-        const panel =
-            document.getElementById(PANEL_ID);
-
-        if (!panel) {
-            return;
+      };
+      control.addEventListener('click', toggleControl);
+      control.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleControl();
         }
-
-        const mappings = [
-            {
-                legacyPanelId:
-                    'qol-rp-action-bar',
-                bodySelector:
-                    '.qol-rp-body',
-                targetSelector:
-                    '[data-qol-rally-panel="incomings"]',
-                prepare:
-                    mountMovementPicker
-            },
-            {
-                legacyPanelId:
-                    'qol-ir-action-bar',
-                bodySelector:
-                    '.qol-ir-body',
-                targetSelector:
-                    '[data-qol-rally-panel="resources"]'
-            }
-        ];
-
-        mappings.forEach((mapping) => {
-            const legacyPanel =
-                document.getElementById(
-                    mapping.legacyPanelId
-                );
-            const target =
-                panel.querySelector(
-                    mapping.targetSelector
-                );
-
-            legacyPanel?.style.setProperty(
-                'display',
-                'none',
-                'important'
-            );
-
-            if (!target) {
-                return;
-            }
-
-            let body =
-                target.querySelector(
-                    mapping.bodySelector
-                );
-
-            if (!body && legacyPanel) {
-                body =
-                    legacyPanel.querySelector(
-                        mapping.bodySelector
-                    );
-
-                if (body) {
-                    target
-                        .querySelector(
-                            '.qol-rally-loading'
-                        )
-                        ?.remove();
-                    target.appendChild(body);
-                }
-            }
-
-            if (body && mapping.prepare) {
-                mapping.prepare(body);
-            }
-        });
-
-        mountOutgoingView(
-            panel.querySelector(
-                '[data-qol-rally-panel="outgoings"]'
-            )
-        );
-
-        [
-            'qol-wm-toggle-btn',
-            'qol-ir-toggle-btn'
-        ].forEach((id) => {
-            document
-                .getElementById(id)
-                ?.style.setProperty(
-                    'display',
-                    'none',
-                    'important'
-                );
-        });
-    }
-
-    function makeDraggable(element, handle) {
-        handle.addEventListener(
-            'pointerdown',
-            (event) => {
-                if (
-                    event.button !== 0 ||
-                    event.target.closest(
-                        '.qol-rally-scanner-close'
-                    )
-                ) {
-                    return;
-                }
-
-                event.preventDefault();
-
-                const rectangle =
-                    element.getBoundingClientRect();
-                const offsetX =
-                    event.clientX - rectangle.left;
-                const offsetY =
-                    event.clientY - rectangle.top;
-
-                function handlePointerMove(
-                    moveEvent
-                ) {
-                    const maximumLeft =
-                        Math.max(
-                            10,
-                            window.innerWidth -
-                                element.offsetWidth -
-                                10
-                        );
-                    const maximumTop =
-                        Math.max(
-                            10,
-                            window.innerHeight -
-                                element.offsetHeight -
-                                10
-                        );
-                    const left =
-                        Math.max(
-                            10,
-                            Math.min(
-                                moveEvent.clientX -
-                                    offsetX,
-                                maximumLeft
-                            )
-                        );
-                    const top =
-                        Math.max(
-                            10,
-                            Math.min(
-                                moveEvent.clientY -
-                                    offsetY,
-                                maximumTop
-                            )
-                        );
-
-                    element.style.setProperty(
-                        'left',
-                        `${left}px`,
-                        'important'
-                    );
-                    element.style.setProperty(
-                        'top',
-                        `${top}px`,
-                        'important'
-                    );
-                }
-
-                function handlePointerUp() {
-                    window.removeEventListener(
-                        'pointermove',
-                        handlePointerMove,
-                        true
-                    );
-                    window.removeEventListener(
-                        'pointerup',
-                        handlePointerUp,
-                        true
-                    );
-                }
-
-                window.addEventListener(
-                    'pointermove',
-                    handlePointerMove,
-                    true
-                );
-                window.addEventListener(
-                    'pointerup',
-                    handlePointerUp,
-                    true
-                );
-            }
-        );
-    }
-
-    function positionPanelUnderButton(panel) {
-        const button =
-            document.getElementById(TOGGLE_ID);
-
-        if (!button) {
-            return;
+      });
+    });
+    updateMovementPickerState(picker);
+    const parseButton = body.querySelector('#qol-btn-merge');
+    if (parseButton && !parseButton.dataset.qolMovementGuard) {
+      parseButton.dataset.qolMovementGuard = 'true';
+      parseButton.addEventListener('click', event => {
+        const hasSelection = Array.from(picker.querySelectorAll('[data-qol-rally-movement-type]')).some(checkbox => checkbox.checked);
+        if (!hasSelection) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const status = document.getElementById('qol-merge-status');
+          if (status) {
+            status.textContent = 'Select at least one incoming movement type.';
+            status.dataset.tone = 'error';
+          }
         }
-
-        const rectangle =
-            button.getBoundingClientRect();
-        const width =
-            panel.offsetWidth || 900;
-        const height =
-            panel.offsetHeight || 540;
-        const maximumLeft =
-            Math.max(
-                10,
-                window.innerWidth - width - 10
-            );
-        const maximumTop =
-            Math.max(
-                10,
-                window.innerHeight - height - 10
-            );
-        const left =
-            Math.max(
-                10,
-                Math.min(
-                    rectangle.left,
-                    maximumLeft
-                )
-            );
-        const top =
-            Math.max(
-                10,
-                Math.min(
-                    rectangle.bottom + 20,
-                    maximumTop
-                )
-            );
-
-        panel.style.setProperty(
-            'left',
-            `${left}px`,
-            'important'
-        );
-        panel.style.setProperty(
-            'top',
-            `${top}px`,
-            'important'
-        );
-        panel.style.setProperty(
-            'right',
-            'auto',
-            'important'
-        );
-        panel.style.setProperty(
-            'bottom',
-            'auto',
-            'important'
-        );
+      }, true);
     }
-
-    function mountPanel() {
-        let panel =
-            document.getElementById(PANEL_ID);
-
-        if (panel) {
-            return panel;
+    updateMovementPickerState(picker);
+  }
+  function adoptLegacyViews() {
+    const panel = document.getElementById(PANEL_ID);
+    if (!panel) {
+      return;
+    }
+    const mappings = [{
+      legacyPanelId: 'qol-rp-action-bar',
+      bodySelector: '.qol-rp-body',
+      targetSelector: '[data-qol-rally-panel="incomings"]',
+      prepare: mountMovementPicker
+    }, {
+      legacyPanelId: 'qol-ir-action-bar',
+      bodySelector: '.qol-ir-body',
+      targetSelector: '[data-qol-rally-panel="resources"]'
+    }];
+    mappings.forEach(mapping => {
+      const legacyPanel = document.getElementById(mapping.legacyPanelId);
+      const target = panel.querySelector(mapping.targetSelector);
+      legacyPanel?.style.setProperty('display', 'none', 'important');
+      if (!target) {
+        return;
+      }
+      let body = target.querySelector(mapping.bodySelector);
+      if (!body && legacyPanel) {
+        body = legacyPanel.querySelector(mapping.bodySelector);
+        if (body) {
+          target.querySelector('.qol-rally-loading')?.remove();
+          target.appendChild(body);
         }
-
-        panel =
-            document.createElement('div');
-        panel.id = PANEL_ID;
-        panel.setAttribute(
-            'role',
-            'dialog'
-        );
-        panel.setAttribute(
-            'aria-label',
-            'Rally Point Scanner'
-        );
-        panel.innerHTML = `
+      }
+      if (body && mapping.prepare) {
+        mapping.prepare(body);
+      }
+    });
+    mountOutgoingView(panel.querySelector('[data-qol-rally-panel="outgoings"]'));
+    ['qol-wm-toggle-btn', 'qol-ir-toggle-btn'].forEach(id => {
+      document.getElementById(id)?.style.setProperty('display', 'none', 'important');
+    });
+  }
+  function makeDraggable(element, handle) {
+    handle.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || event.target.closest('.qol-rally-scanner-close')) {
+        return;
+      }
+      event.preventDefault();
+      const rectangle = element.getBoundingClientRect();
+      const offsetX = event.clientX - rectangle.left;
+      const offsetY = event.clientY - rectangle.top;
+      function handlePointerMove(moveEvent) {
+        const maximumLeft = Math.max(10, window.innerWidth - element.offsetWidth - 10);
+        const maximumTop = Math.max(10, window.innerHeight - element.offsetHeight - 10);
+        const left = Math.max(10, Math.min(moveEvent.clientX - offsetX, maximumLeft));
+        const top = Math.max(10, Math.min(moveEvent.clientY - offsetY, maximumTop));
+        element.style.setProperty('left', `${left}px`, 'important');
+        element.style.setProperty('top', `${top}px`, 'important');
+      }
+      function handlePointerUp() {
+        window.removeEventListener('pointermove', handlePointerMove, true);
+        window.removeEventListener('pointerup', handlePointerUp, true);
+      }
+      window.addEventListener('pointermove', handlePointerMove, true);
+      window.addEventListener('pointerup', handlePointerUp, true);
+    });
+  }
+  function positionPanelUnderButton(panel) {
+    const button = document.getElementById(TOGGLE_ID);
+    if (!button) {
+      return;
+    }
+    const rectangle = button.getBoundingClientRect();
+    const width = panel.offsetWidth || 900;
+    const height = panel.offsetHeight || 540;
+    const maximumLeft = Math.max(10, window.innerWidth - width - 10);
+    const maximumTop = Math.max(10, window.innerHeight - height - 10);
+    const left = Math.max(10, Math.min(rectangle.left, maximumLeft));
+    const top = Math.max(10, Math.min(rectangle.bottom + 20, maximumTop));
+    panel.style.setProperty('left', `${left}px`, 'important');
+    panel.style.setProperty('top', `${top}px`, 'important');
+    panel.style.setProperty('right', 'auto', 'important');
+    panel.style.setProperty('bottom', 'auto', 'important');
+  }
+  function mountPanel() {
+    let panel = document.getElementById(PANEL_ID);
+    if (panel) {
+      return panel;
+    }
+    panel = document.createElement('div');
+    panel.id = PANEL_ID;
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Rally Point Scanner');
+    panel.innerHTML = `
             <div class="qol-rally-scanner-header">
                 <span class="qol-rally-scanner-title">
                     <span class="qol-rally-scanner-mark">⚔</span>
@@ -2293,105 +1267,46 @@ function initUnifiedRallyPointScanner() {
                 </section>
             </div>
         `;
-
-        document.body.appendChild(panel);
-
-        const header =
-            panel.querySelector(
-                '.qol-rally-scanner-header'
-            );
-        const closeButton =
-            panel.querySelector(
-                '.qol-rally-scanner-close'
-            );
-
-        makeDraggable(panel, header);
-
-        panel
-            .querySelectorAll(
-                '[data-qol-rally-tab]'
-            )
-            .forEach((tab) => {
-                const selectTab = () => {
-                    activateTab(
-                        tab.getAttribute(
-                            'data-qol-rally-tab'
-                        )
-                    );
-                };
-
-                tab.addEventListener(
-                    'click',
-                    selectTab
-                );
-                tab.addEventListener(
-                    'keydown',
-                    (event) => {
-                        if (
-                            event.key === 'Enter' ||
-                            event.key === ' '
-                        ) {
-                            event.preventDefault();
-                            selectTab();
-                        }
-                    }
-                );
-            });
-
-        const closePanel = () => {
-            panel.style.setProperty(
-                'display',
-                'none',
-                'important'
-            );
-        };
-
-        closeButton.addEventListener(
-            'click',
-            closePanel
-        );
-        closeButton.addEventListener(
-            'keydown',
-            (event) => {
-                if (
-                    event.key === 'Enter' ||
-                    event.key === ' '
-                ) {
-                    event.preventDefault();
-                    closePanel();
-                }
-            }
-        );
-
-        activateTab(getActiveTab());
-
-        return panel;
-    }
-
-    function mountToggleButton() {
-        let button =
-            document.getElementById(TOGGLE_ID);
-
-        if (button) {
-            return button;
+    document.body.appendChild(panel);
+    const header = panel.querySelector('.qol-rally-scanner-header');
+    const closeButton = panel.querySelector('.qol-rally-scanner-close');
+    makeDraggable(panel, header);
+    panel.querySelectorAll('[data-qol-rally-tab]').forEach(tab => {
+      const selectTab = () => {
+        activateTab(tab.getAttribute('data-qol-rally-tab'));
+      };
+      tab.addEventListener('click', selectTab);
+      tab.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          selectTab();
         }
-
-        button =
-            document.createElement('div');
-        button.id = TOGGLE_ID;
-        button.setAttribute(
-            'title',
-            'Rally Point Scanner'
-        );
-        button.setAttribute(
-            'role',
-            'button'
-        );
-        button.setAttribute(
-            'tabindex',
-            '0'
-        );
-        button.innerHTML = `
+      });
+    });
+    const closePanel = () => {
+      panel.style.setProperty('display', 'none', 'important');
+    };
+    closeButton.addEventListener('click', closePanel);
+    closeButton.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        closePanel();
+      }
+    });
+    activateTab(getActiveTab());
+    return panel;
+  }
+  function mountToggleButton() {
+    let button = document.getElementById(TOGGLE_ID);
+    if (button) {
+      return button;
+    }
+    button = document.createElement('div');
+    button.id = TOGGLE_ID;
+    button.setAttribute('title', 'Rally Point Scanner');
+    button.setAttribute('role', 'button');
+    button.setAttribute('tabindex', '0');
+    button.innerHTML = `
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M4 4l7 7"></path>
                 <path d="M13 13l7 7"></path>
@@ -2400,201 +1315,92 @@ function initUnifiedRallyPointScanner() {
                 <path d="M4 20l5-5"></path>
             </svg>
         `;
-
-        const togglePanel = (event) => {
-            event?.preventDefault();
-            event?.stopPropagation();
-
-            const panel =
-                document.getElementById(PANEL_ID);
-
-            if (!panel) {
-                return;
-            }
-
-            const isHidden =
-                window
-                    .getComputedStyle(panel)
-                    .display === 'none';
-
-            if (isHidden) {
-                window.dispatchEvent(
-                    new CustomEvent(
-                        'qol_close_others',
-                        {
-                            detail: {
-                                source:
-                                    'rallyScanner'
-                            }
-                        }
-                    )
-                );
-
-                adoptLegacyViews();
-                positionPanelUnderButton(panel);
-                panel.style.setProperty(
-                    'display',
-                    'flex',
-                    'important'
-                );
-            } else {
-                panel.style.setProperty(
-                    'display',
-                    'none',
-                    'important'
-                );
-            }
-        };
-
-        button.addEventListener(
-            'click',
-            togglePanel
-        );
-        button.addEventListener(
-            'keydown',
-            (event) => {
-                if (
-                    event.key === 'Enter' ||
-                    event.key === ' '
-                ) {
-                    togglePanel(event);
-                }
-            }
-        );
-
-        document.body.appendChild(button);
-
-        return button;
-    }
-
-    function destroyUI() {
-        hideScanLock();
-
-        document
-            .getElementById(PANEL_ID)
-            ?.remove();
-        document
-            .getElementById(TOGGLE_ID)
-            ?.remove();
-    }
-
-    function ensureUI() {
-        if (!document.body) {
-            return;
-        }
-
-        injectStyles();
-
-        if (!isEnabled()) {
-            destroyUI();
-            return;
-        }
-
-        mountPanel();
-        mountToggleButton();
+    const togglePanel = event => {
+      event?.preventDefault();
+      event?.stopPropagation();
+      const panel = document.getElementById(PANEL_ID);
+      if (!panel) {
+        return;
+      }
+      const isHidden = window.getComputedStyle(panel).display === 'none';
+      if (isHidden) {
+        window.dispatchEvent(new CustomEvent('qol_close_others', {
+          detail: {
+            source: 'rallyScanner'
+          }
+        }));
         adoptLegacyViews();
-
-        if (
-            typeof window
-                .qolRepositionAllButtons ===
-            'function'
-        ) {
-            window.qolRepositionAllButtons();
-        }
+        positionPanelUnderButton(panel);
+        panel.style.setProperty('display', 'flex', 'important');
+      } else {
+        panel.style.setProperty('display', 'none', 'important');
+      }
+    };
+    button.addEventListener('click', togglePanel);
+    button.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        togglePanel(event);
+      }
+    });
+    document.body.appendChild(button);
+    return button;
+  }
+  function destroyUI() {
+    hideScanLock();
+    document.getElementById(PANEL_ID)?.remove();
+    document.getElementById(TOGGLE_ID)?.remove();
+  }
+  function ensureUI() {
+    if (!document.body) {
+      return;
     }
-
-    window.addEventListener(
-        'qol_close_others',
-        (event) => {
-            if (
-                event.detail?.source ===
-                'rallyScanner'
-            ) {
-                return;
-            }
-
-            document
-                .getElementById(PANEL_ID)
-                ?.style.setProperty(
-                    'display',
-                    'none',
-                    'important'
-                );
-        }
-    );
-
-    window.addEventListener(
-        'qol_setting_changed',
-        (event) => {
-            if (
-                event.detail?.key !==
-                FEATURE_KEY
-            ) {
-                return;
-            }
-
-            if (event.detail.enabled) {
-                window.setTimeout(
-                    ensureUI,
-                    0
-                );
-            } else {
-                destroyUI();
-            }
-        }
-    );
-
-    document.addEventListener(
-        'keydown',
-        (event) => {
-            if (event.key !== 'Escape') {
-                return;
-            }
-
-            document
-                .getElementById(PANEL_ID)
-                ?.style.setProperty(
-                    'display',
-                    'none',
-                    'important'
-                );
-        },
-        true
-    );
-
-    window.addEventListener(
-        'resize',
-        () => {
-            const panel =
-                document.getElementById(PANEL_ID);
-
-            if (
-                panel &&
-                window
-                    .getComputedStyle(panel)
-                    .display !== 'none'
-            ) {
-                positionPanelUnderButton(panel);
-            }
-        }
-    );
-
-    if (
-        document.readyState === 'loading'
-    ) {
-        document.addEventListener(
-            'DOMContentLoaded',
-            ensureUI,
-            { once: true }
-        );
+    injectStyles();
+    if (!isEnabled()) {
+      destroyUI();
+      return;
+    }
+    mountPanel();
+    mountToggleButton();
+    adoptLegacyViews();
+    if (typeof window.qolRepositionAllButtons === 'function') {
+      window.qolRepositionAllButtons();
+    }
+  }
+  window.addEventListener('qol_close_others', event => {
+    if (event.detail?.source === 'rallyScanner') {
+      return;
+    }
+    document.getElementById(PANEL_ID)?.style.setProperty('display', 'none', 'important');
+  });
+  window.addEventListener('qol_setting_changed', event => {
+    if (event.detail?.key !== FEATURE_KEY) {
+      return;
+    }
+    if (event.detail.enabled) {
+      window.setTimeout(ensureUI, 0);
     } else {
-        ensureUI();
+      destroyUI();
     }
-
-    window.setInterval(
-        ensureUI,
-        1200
-    );
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') {
+      return;
+    }
+    document.getElementById(PANEL_ID)?.style.setProperty('display', 'none', 'important');
+  }, true);
+  window.addEventListener('resize', () => {
+    const panel = document.getElementById(PANEL_ID);
+    if (panel && window.getComputedStyle(panel).display !== 'none') {
+      positionPanelUnderButton(panel);
+    }
+  });
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', ensureUI, {
+      once: true
+    });
+  } else {
+    ensureUI();
+  }
+  window.setInterval(ensureUI, 1200);
 }
-
 initUnifiedRallyPointScanner();
