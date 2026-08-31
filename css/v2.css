@@ -285,9 +285,16 @@
 }
 
 /* Player Dossier is launched from Secret Society Scanner only. */
-.qol-pd-profile-open,
+.contentBox.playerDescription > .contentBoxHeader .qol-pd-profile-open,
 #qol-watchlist-container .qol-pd-inline-open {
     display: none !important;
+}
+
+/* Native player profiles keep the original Watchlist action. */
+.contentBox.playerDescription > .contentBoxHeader .qol-wl-profile-wrapper {
+    display: inline-flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
 }
 
 @media (max-width: 520px), (max-height: 520px) {
