@@ -247,6 +247,43 @@
     transform: translateX(-50%) !important;
 }
 
+/* Player Dossier header: prevent Travian/global SVG rules from expanding the icon. */
+#qol-player-dossier .qol-pd-head-title {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+}
+
+#qol-player-dossier .qol-pd-head-title > svg {
+    display: block !important;
+    flex: 0 0 18px !important;
+    width: 18px !important;
+    min-width: 18px !important;
+    max-width: 18px !important;
+    height: 18px !important;
+    min-height: 18px !important;
+    max-height: 18px !important;
+    overflow: visible !important;
+    fill: none !important;
+    stroke: currentColor !important;
+    stroke-width: 1.8 !important;
+    stroke-linecap: round !important;
+    stroke-linejoin: round !important;
+}
+
+#qol-player-dossier .qol-pd-head-title > span:last-child {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+#qol-player-dossier .qol-pd-close {
+    flex: 0 0 26px !important;
+    margin-left: 8px !important;
+}
+
 @media (max-width: 520px), (max-height: 520px) {
     .apes-v2-radial {
         transform: scale(.78) !important;
