@@ -24,7 +24,7 @@ function hasModifierKey(event) {
 }
 
 function initializeKeybinds() {
-    console.log('Travian QoL Extension: Modular Keybinds Initialized.');
+    console.log(`APES QoL ${window.APES?.version || 'v2'}: Modular keybinds initialized.`);
 
     window.addEventListener('keydown', (event) => {
         if (isUserTyping()) {
