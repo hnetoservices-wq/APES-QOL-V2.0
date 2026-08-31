@@ -98,37 +98,4 @@ function initializeKeybinds() {
     }, true);
 }
 
-/**
- * Toolbar policy only.
- *
- * menu.js remains the sole owner of physical toolbar placement. We only
- * replace its collapse decision here until the final menu registry cleanup:
- * keep up to eight enabled tools expanded when they physically fit, and use
- * the cog dropdown for nine or more tools (or a genuinely narrow viewport).
- *
- * Importantly, this code never writes toolbar left/top/display styles and
- * never observes toolbar style mutations. That avoids the previous feedback
- * loop where two layout systems alternated positions every frame.
- */
-function configureToolbarCollapsePolicy() {
-    if (typeof shouldCollapseToolbar !== 'function') {
-        window.setTimeout(configureToolbarCollapsePolicy, 50);
-        return;
-    }
-
-    shouldCollapseToolbar = function(villageRect, enabledCount) {
-        if (enabledCount > 8) return true;
-
-        const buttonSize = 30;
-        const buttonGap = 6;
-        const start = villageRect.right + 20;
-        const requiredWidth = buttonSize + enabledCount * (buttonSize + buttonGap);
-
-        return start + requiredWidth > window.innerWidth - 16;
-    };
-
-    window.qolRepositionAllButtons?.();
-}
-
 initializeKeybinds();
-configureToolbarCollapsePolicy();
