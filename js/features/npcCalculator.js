@@ -186,8 +186,8 @@
     function buildResourceCards(prefix, mode) {
         return RESOURCE_KEYS.map(key => {
             const extra = mode === 'stock'
-                ? `<div class="qol-npc-resource-sub"><span id="${prefix}-${key}-capacity">Cap —</span></div>`
-                : `<div class="qol-npc-resource-sub"><span id="${prefix}-${key}-required">Need 0</span><span id="${prefix}-${key}-overflow"></span></div>`;
+                ? `<div class="qol-npc-resource-meta"><span id="${prefix}-${key}-capacity">Cap —</span><span id="${prefix}-${key}-percent">—</span></div><div class="qol-npc-meter"><span id="${prefix}-${key}-meter"></span></div>`
+                : `<div class="qol-npc-resource-meta"><span id="${prefix}-${key}-required">Need 0</span><span id="${prefix}-${key}-overflow">Fits storage</span></div><div class="qol-npc-meter"><span id="${prefix}-${key}-meter"></span></div>`;
             return `<div class="qol-npc-resource-card" data-resource="${key}"><div class="qol-npc-resource-head">${resourceIcon(key)}<span>${RESOURCE_META[key].label}</span></div><strong id="${prefix}-${key}">0</strong>${extra}</div>`;
         }).join('');
     }
@@ -198,29 +198,76 @@
         style.id = STYLE_ID;
         style.textContent = `
 #${PANEL_ID},#${PANEL_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
-#${PANEL_ID}{position:fixed!important;display:none!important;flex-direction:column!important;width:min(900px,96vw)!important;min-width:min(680px,96vw)!important;height:min(610px,90vh)!important;min-height:460px!important;max-width:96vw!important;max-height:92vh!important;resize:both!important;overflow:hidden!important;z-index:1000000!important;border:3px solid var(--qol-border)!important;border-radius:6px!important;background:#f5f1e8!important;color:#3f3020!important;box-shadow:0 14px 38px rgba(0,0,0,.48)!important}
+#${PANEL_ID}{position:fixed!important;display:none!important;flex-direction:column!important;width:min(930px,96vw)!important;min-width:min(720px,96vw)!important;height:min(570px,88vh)!important;min-height:500px!important;max-width:96vw!important;max-height:92vh!important;resize:both!important;overflow:hidden!important;z-index:1000000!important;border:2px solid var(--qol-border)!important;border-radius:7px!important;background:#eee8dc!important;color:#3f3020!important;box-shadow:0 14px 38px rgba(0,0,0,.46)!important}
 #${PANEL_ID}.qol-open{display:flex!important}
-#${PANEL_ID} .qol-npc-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 38px!important;min-height:38px!important;padding:6px 10px 6px 12px!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-dark))!important;color:#fff!important;cursor:move!important;user-select:none!important;touch-action:none!important}
-#${PANEL_ID} .qol-npc-title{display:flex!important;align-items:center!important;gap:8px!important;font-size:14px!important;font-weight:800!important}#${PANEL_ID} .qol-npc-title small{font-size:8px!important;font-weight:600!important;color:#ded2bd!important;text-transform:uppercase!important;letter-spacing:.55px!important}
-#${PANEL_ID} .qol-npc-close{display:flex!important;align-items:center!important;justify-content:center!important;width:26px!important;height:26px!important;border-radius:4px!important;background:rgba(0,0,0,.22)!important;color:#fff!important;font-size:21px!important;font-weight:bold!important;cursor:pointer!important}
+#${PANEL_ID} .qol-npc-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 40px!important;min-height:40px!important;padding:6px 9px 6px 13px!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-dark))!important;color:#fff!important;cursor:move!important;user-select:none!important;touch-action:none!important}
+#${PANEL_ID} .qol-npc-title{display:flex!important;align-items:center!important;gap:9px!important;font-size:15px!important;font-weight:800!important;letter-spacing:.15px!important}
+#${PANEL_ID} .qol-npc-title small{display:inline-flex!important;align-items:center!important;height:18px!important;padding:2px 7px!important;border:1px solid rgba(255,255,255,.25)!important;border-radius:999px!important;background:rgba(0,0,0,.15)!important;color:#e8dec8!important;font-size:8px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.55px!important}
+#${PANEL_ID} .qol-npc-close{display:flex!important;align-items:center!important;justify-content:center!important;width:27px!important;height:27px!important;border-radius:4px!important;background:rgba(0,0,0,.22)!important;color:#fff!important;font-size:21px!important;font-weight:bold!important;cursor:pointer!important}
+#${PANEL_ID} .qol-npc-close:hover{background:rgba(255,255,255,.14)!important}
 #${PANEL_ID} .qol-npc-body{display:flex!important;flex-direction:column!important;gap:8px!important;flex:1 1 auto!important;min-height:0!important;padding:9px!important;overflow:hidden!important}
-#${PANEL_ID} .qol-npc-controls{display:grid!important;grid-template-columns:minmax(250px,1.15fr) 90px auto minmax(180px,1fr)!important;gap:8px!important;align-items:end!important;flex:0 0 auto!important;padding:8px!important;border:1px solid #d2c3aa!important;border-radius:4px!important;background:#fff!important}
-#${PANEL_ID} .qol-npc-field{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important;color:#715b3e!important;font-size:8px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.35px!important}
-#${PANEL_ID} .qol-npc-tribe-options{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:4px!important;min-width:0!important}
-#${PANEL_ID} .qol-npc-tribe-option{display:flex!important;align-items:center!important;justify-content:center!important;height:30px!important;padding:4px 7px!important;border:1px solid #a88e69!important;border-radius:3px!important;background:#f8f4ed!important;color:#5f4a31!important;font-size:10px!important;font-weight:800!important;cursor:pointer!important;user-select:none!important}
-#${PANEL_ID} .qol-npc-tribe-option:hover{background:#fffaf0!important}#${PANEL_ID} .qol-npc-tribe-option.active{border-color:var(--qol-action-border)!important;background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important}
-#${PANEL_ID} input[type=number]{display:block!important;visibility:visible!important;opacity:1!important;height:30px!important;margin:0!important;padding:4px 7px!important;border:1px solid #a88e69!important;border-radius:3px!important;background:#fff!important;color:#342719!important;font-size:11px!important;font-weight:700!important;text-align:center!important;box-shadow:none!important}
-#${PANEL_ID} .qol-npc-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;height:30px!important;padding:5px 11px!important;border:1px solid var(--qol-action-border)!important;border-radius:3px!important;background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;font-size:10px!important;font-weight:800!important;cursor:pointer!important;user-select:none!important;white-space:nowrap!important}#${PANEL_ID} .qol-npc-btn.secondary{background:linear-gradient(#fffdf8,#e8dece)!important;color:#5d472d!important;border-color:#9e8665!important}#${PANEL_ID} .qol-npc-btn.danger{background:linear-gradient(#d9605c,#b6322e)!important;border-color:#8e2421!important}
-#${PANEL_ID} .qol-npc-helper{align-self:center!important;color:#77654e!important;font-size:9px!important;line-height:1.35!important}#${PANEL_ID} .qol-npc-helper strong{color:#4d3823!important}
+#${PANEL_ID} .qol-npc-controls{display:grid!important;grid-template-columns:minmax(290px,1.2fr) 88px 112px minmax(210px,.95fr)!important;gap:9px!important;align-items:end!important;flex:0 0 auto!important;padding:9px 10px!important;border:1px solid #cdbb9f!important;border-radius:5px!important;background:#faf7f1!important}
+#${PANEL_ID} .qol-npc-field{display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0!important;color:#715b3e!important;font-size:8px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.38px!important}
+#${PANEL_ID} .qol-npc-tribe-options{display:grid!important;grid-template-columns:repeat(3,1fr)!important;gap:4px!important;min-width:0!important;padding:2px!important;border:1px solid #c9b89c!important;border-radius:5px!important;background:#eee5d7!important}
+#${PANEL_ID} .qol-npc-tribe-option{all:unset!important;box-sizing:border-box!important;display:flex!important;align-items:center!important;justify-content:center!important;height:29px!important;padding:4px 8px!important;border-radius:3px!important;background:#fbf8f2!important;color:#634f35!important;font-size:10px!important;font-weight:800!important;text-align:center!important;cursor:pointer!important;user-select:none!important}
+#${PANEL_ID} .qol-npc-tribe-option:hover{background:#fff!important;color:#49361f!important}
+#${PANEL_ID} .qol-npc-tribe-option.active{background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;box-shadow:inset 0 0 0 1px var(--qol-action-border),0 1px 2px rgba(0,0,0,.15)!important}
+#${PANEL_ID} input[type=number]{display:block!important;visibility:visible!important;opacity:1!important;height:34px!important;margin:0!important;padding:5px 8px!important;border:1px solid #9f8767!important;border-radius:4px!important;background:#fff!important;color:#342719!important;font-size:11px!important;font-weight:700!important;text-align:center!important;box-shadow:none!important}
+#${PANEL_ID} .qol-npc-btn{all:unset!important;box-sizing:border-box!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;height:34px!important;padding:5px 11px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;font-size:10px!important;font-weight:800!important;cursor:pointer!important;user-select:none!important;white-space:nowrap!important}
+#${PANEL_ID} .qol-npc-btn:hover{filter:brightness(1.06)!important}
+#${PANEL_ID} .qol-npc-btn.secondary{background:linear-gradient(#fffdf9,#e9dfd0)!important;color:#5d472d!important;border-color:#967d5c!important}
+#${PANEL_ID} .qol-npc-btn.danger{background:linear-gradient(#d9605c,#b6322e)!important;border-color:#8e2421!important}
+#${PANEL_ID} .qol-npc-helper{align-self:center!important;padding-left:2px!important;color:#75634c!important;font-size:9px!important;line-height:1.38!important}#${PANEL_ID} .qol-npc-helper strong{color:#4d3823!important}
 #${PANEL_ID} .qol-npc-summaries{display:grid!important;grid-template-columns:1fr 1fr!important;gap:8px!important;flex:0 0 auto!important;min-width:0!important}
-#${PANEL_ID} .qol-npc-summary{min-width:0!important;border:1px solid #cdbda3!important;border-radius:4px!important;background:#fff!important;overflow:hidden!important}#${PANEL_ID} .qol-npc-summary-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:29px!important;padding:6px 8px!important;background:#e8decc!important;color:#60492f!important;font-size:9px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.35px!important}#${PANEL_ID} .qol-npc-summary-head strong{font-size:10px!important;color:#3d2e1f!important}
-#${PANEL_ID} .qol-npc-resource-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}#${PANEL_ID} .qol-npc-resource-card{min-width:0!important;padding:7px 7px 6px!important;border-right:1px solid #ece3d5!important}#${PANEL_ID} .qol-npc-resource-card:last-child{border-right:0!important}#${PANEL_ID} .qol-npc-resource-card.capped{background:#fff1e8!important;box-shadow:inset 0 -3px 0 #c56a3b!important}
-#${PANEL_ID} .qol-npc-resource-head{display:flex!important;align-items:center!important;gap:4px!important;color:#715d43!important;font-size:8px!important;font-weight:800!important;text-transform:uppercase!important;white-space:nowrap!important}#${PANEL_ID} .qol-npc-resource-card>strong{display:block!important;margin-top:4px!important;color:#392a1c!important;font-size:14px!important;font-weight:800!important;line-height:17px!important;font-variant-numeric:tabular-nums!important}#${PANEL_ID} .qol-npc-resource-sub{display:flex!important;flex-direction:column!important;gap:1px!important;margin-top:2px!important;color:#87745c!important;font-size:7.5px!important;line-height:10px!important}#${PANEL_ID} .qol-npc-resource-sub .overflow{color:#ad452b!important;font-weight:800!important}
-#${PANEL_ID} .qol-npc-summary-foot{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:34px!important;padding:5px 8px!important;border-top:1px solid #e7ddcf!important;background:#faf6ee!important;color:#715f47!important;font-size:8px!important}#${PANEL_ID} .qol-npc-summary-foot strong{color:#47351f!important;font-size:9px!important}.qol-npc-pill{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:22px!important;padding:3px 7px!important;border-radius:999px!important;font-size:8px!important;font-weight:800!important;white-space:nowrap!important}.qol-npc-pill.good{border:1px solid #8dac68!important;background:#eef7e6!important;color:#486d2b!important}.qol-npc-pill.warn{border:1px solid #c57a58!important;background:#fff0e7!important;color:#9b4428!important}
-#${PANEL_ID} .qol-npc-plan{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:0!important;border:1px solid #cdbda3!important;border-radius:4px!important;background:#fff!important;overflow:hidden!important}#${PANEL_ID} .qol-npc-plan-scroll{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}#${PANEL_ID} table{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:9px!important}#${PANEL_ID} th,#${PANEL_ID} td{padding:7px 8px!important;border-bottom:1px solid #e7ded1!important;vertical-align:middle!important;color:#3f3020!important}#${PANEL_ID} th{position:sticky!important;top:0!important;z-index:2!important;background:#e8decc!important;color:#60492f!important;font-size:8px!important;text-transform:uppercase!important;letter-spacing:.25px!important}#${PANEL_ID} th.num,#${PANEL_ID} td.num{text-align:right!important}#${PANEL_ID} th.center,#${PANEL_ID} td.center{text-align:center!important}
-#${PANEL_ID} .qol-npc-unit-select{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:30px!important;margin:0!important;padding:4px 7px!important;border:1px solid #a88e69!important;border-radius:3px!important;background:#fff!important;color:#342719!important;font-size:10px!important;font-weight:700!important;appearance:auto!important;-webkit-appearance:menulist!important}#${PANEL_ID} .qol-npc-count{width:88px!important}#${PANEL_ID} .qol-npc-mode{display:flex!important;align-items:center!important;gap:6px!important;font-size:8px!important;font-weight:700!important;white-space:nowrap!important}#${PANEL_ID} .qol-npc-mode input{width:14px!important;height:14px!important;margin:0!important}#${PANEL_ID} .qol-npc-delete{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:24px!important;height:24px!important;border-radius:3px!important;color:#a00000!important;font-size:18px!important;font-weight:bold!important;cursor:pointer!important}.qol-npc-delete:hover{background:#f7d8d6!important}
-#${PANEL_ID} .qol-npc-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex:0 0 43px!important;padding:6px 8px!important;border-top:1px solid #cdbda3!important;background:#f7f1e6!important}#${PANEL_ID} .qol-npc-footer-actions{display:flex!important;gap:6px!important}.qol-npc-status{min-width:0!important;color:#78644a!important;font-size:8px!important;text-align:right!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}.qol-npc-status[data-tone="success"]{color:#55772f!important;font-weight:800!important}.qol-npc-status[data-tone="warning"]{color:#a34d2c!important;font-weight:800!important}
-@media(max-width:760px){#${PANEL_ID}{min-width:94vw!important}#${PANEL_ID} .qol-npc-controls{grid-template-columns:1fr 90px auto!important}#${PANEL_ID} .qol-npc-helper{grid-column:1/-1!important}#${PANEL_ID} .qol-npc-summaries{grid-template-columns:1fr!important}}
+#${PANEL_ID} .qol-npc-summary{min-width:0!important;border:1px solid #c9b89d!important;border-radius:5px!important;background:#fff!important;overflow:hidden!important}
+#${PANEL_ID} .qol-npc-summary-head{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:30px!important;padding:6px 9px!important;background:#e7ddcc!important;color:#60492f!important;font-size:9px!important;font-weight:800!important;text-transform:uppercase!important;letter-spacing:.35px!important}
+#${PANEL_ID} .qol-npc-summary-head strong{font-size:11px!important;color:#3d2e1f!important}
+#${PANEL_ID} .qol-npc-resource-grid{display:grid!important;grid-template-columns:repeat(4,minmax(0,1fr))!important}
+#${PANEL_ID} .qol-npc-resource-card{position:relative!important;min-width:0!important;min-height:78px!important;padding:8px 8px 7px!important;border-right:1px solid #ece3d5!important;background:#fff!important;transition:background .12s ease!important}
+#${PANEL_ID} .qol-npc-resource-card:last-child{border-right:0!important}
+#${PANEL_ID} .qol-npc-resource-card.capped{background:#fff1e8!important}
+#${PANEL_ID} .qol-npc-resource-card.capped::after{content:''!important;position:absolute!important;left:0!important;right:0!important;bottom:0!important;height:3px!important;background:#c45d34!important}
+#${PANEL_ID} .qol-npc-resource-head{display:flex!important;align-items:center!important;gap:5px!important;color:#715d43!important;font-size:8px!important;font-weight:800!important;text-transform:uppercase!important;white-space:nowrap!important}
+#${PANEL_ID} .qol-npc-resource-card>strong{display:block!important;margin-top:4px!important;color:#392a1c!important;font-size:15px!important;font-weight:800!important;line-height:18px!important;font-variant-numeric:tabular-nums!important}
+#${PANEL_ID} .qol-npc-resource-meta{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:5px!important;margin-top:2px!important;color:#86735b!important;font-size:7.5px!important;line-height:10px!important;white-space:nowrap!important}
+#${PANEL_ID} .qol-npc-resource-meta .overflow{color:#a64028!important;font-weight:800!important}
+#${PANEL_ID} .qol-npc-meter{height:4px!important;margin-top:5px!important;border-radius:999px!important;background:#eee7da!important;overflow:hidden!important}
+#${PANEL_ID} .qol-npc-meter span{display:block!important;width:0;height:100%!important;border-radius:999px!important;background:linear-gradient(to right,var(--qol-accent),var(--qol-accent-dark))!important;transition:width .16s ease!important}
+#${PANEL_ID} .qol-npc-resource-card.capped .qol-npc-meter span{background:#bd5835!important}
+#${PANEL_ID} .qol-npc-summary-foot{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:31px!important;padding:5px 8px!important;border-top:1px solid #e7ddcf!important;background:#faf6ee!important;color:#715f47!important;font-size:8px!important}
+#${PANEL_ID} .qol-npc-summary-foot strong{color:#47351f!important;font-size:9px!important}
+#${PANEL_ID} .qol-npc-pill{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:21px!important;padding:3px 8px!important;border-radius:999px!important;font-size:8px!important;font-weight:800!important;white-space:nowrap!important}
+#${PANEL_ID} .qol-npc-pill.good{border:1px solid #87a863!important;background:#eef7e6!important;color:#486d2b!important}
+#${PANEL_ID} .qol-npc-pill.warn{border:1px solid #c57a58!important;background:#fff0e7!important;color:#9b4428!important}
+#${PANEL_ID} .qol-npc-banner{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex:0 0 auto!important;min-height:36px!important;padding:7px 10px!important;border:1px solid #b9ab92!important;border-radius:5px!important;background:#f8f4ec!important;color:#64523b!important;font-size:9px!important}
+#${PANEL_ID} .qol-npc-banner-main{display:flex!important;align-items:center!important;gap:8px!important;min-width:0!important;font-weight:800!important}
+#${PANEL_ID} .qol-npc-banner-dot{flex:0 0 9px!important;width:9px!important;height:9px!important;border-radius:50%!important;background:#a8977a!important}
+#${PANEL_ID} .qol-npc-banner-sub{color:#837159!important;font-size:8px!important;white-space:nowrap!important}
+#${PANEL_ID} .qol-npc-banner[data-tone="success"]{border-color:#9ab77c!important;background:#f2f8eb!important;color:#4f6d31!important}#${PANEL_ID} .qol-npc-banner[data-tone="success"] .qol-npc-banner-dot{background:#79a04b!important}
+#${PANEL_ID} .qol-npc-banner[data-tone="warning"]{border-color:#d09a75!important;background:#fff3e9!important;color:#93472d!important}#${PANEL_ID} .qol-npc-banner[data-tone="warning"] .qol-npc-banner-dot{background:#c35d36!important}
+#${PANEL_ID} .qol-npc-plan{display:flex!important;flex-direction:column!important;flex:1 1 auto!important;min-height:165px!important;border:1px solid #c9b89d!important;border-radius:5px!important;background:#fff!important;overflow:hidden!important}
+#${PANEL_ID} .qol-npc-plan-scroll{flex:1 1 auto!important;min-height:0!important;overflow:auto!important;background:#fff!important}
+#${PANEL_ID} table{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:9px!important}
+#${PANEL_ID} th,#${PANEL_ID} td{padding:7px 8px!important;border-bottom:1px solid #e7ded1!important;vertical-align:middle!important;color:#3f3020!important}
+#${PANEL_ID} th{position:sticky!important;top:0!important;z-index:2!important;background:#e7ddcc!important;color:#60492f!important;font-size:8px!important;text-transform:uppercase!important;letter-spacing:.28px!important}
+#${PANEL_ID} tbody tr:hover{background:#fffaf2!important}
+#${PANEL_ID} th.num,#${PANEL_ID} td.num{text-align:right!important}#${PANEL_ID} th.center,#${PANEL_ID} td.center{text-align:center!important}
+#${PANEL_ID} .qol-npc-unit-select{display:block!important;visibility:visible!important;opacity:1!important;width:100%!important;height:31px!important;margin:0!important;padding:4px 7px!important;border:1px solid #9f8767!important;border-radius:4px!important;background:#fff!important;color:#342719!important;font-size:10px!important;font-weight:700!important;appearance:auto!important;-webkit-appearance:menulist!important}
+#${PANEL_ID} .qol-npc-count{width:86px!important;height:31px!important}
+#${PANEL_ID} .qol-npc-mode{display:inline-flex!important;align-items:center!important;margin:0!important;cursor:pointer!important;user-select:none!important}
+#${PANEL_ID} .qol-npc-mode input{position:absolute!important;width:1px!important;height:1px!important;opacity:0!important;pointer-events:none!important}
+#${PANEL_ID} .qol-npc-mode-chip{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:66px!important;height:25px!important;padding:3px 9px!important;border:1px solid #bba98d!important;border-radius:999px!important;background:#f7f2e9!important;color:#695638!important;font-size:8px!important;font-weight:800!important;white-space:nowrap!important;transition:background .12s ease,border-color .12s ease,color .12s ease!important}
+#${PANEL_ID} .qol-npc-mode input:checked+.qol-npc-mode-chip{border-color:var(--qol-action-border)!important;background:var(--qol-accent-soft)!important;color:var(--qol-accent-ink)!important}
+#${PANEL_ID} .qol-npc-mode input:disabled+.qol-npc-mode-chip{border-color:#ccc0ad!important;background:#eee8dd!important;color:#8a7b65!important;cursor:default!important}
+#${PANEL_ID} .qol-npc-delete{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:24px!important;height:24px!important;border-radius:3px!important;color:#a00000!important;font-size:18px!important;font-weight:bold!important;cursor:pointer!important}
+#${PANEL_ID} .qol-npc-delete:hover{background:#f7d8d6!important}
+#${PANEL_ID} .qol-npc-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;flex:0 0 44px!important;padding:6px 8px!important;border-top:1px solid #c9b89d!important;background:#f7f1e6!important}
+#${PANEL_ID} .qol-npc-footer-actions{display:flex!important;gap:6px!important}
+#${PANEL_ID} .qol-npc-status-wrap{display:flex!important;flex-direction:column!important;align-items:flex-end!important;min-width:0!important;gap:1px!important}
+#${PANEL_ID} .qol-npc-status{min-width:0!important;color:#5e4b32!important;font-size:9px!important;font-weight:800!important;text-align:right!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+#${PANEL_ID} .qol-npc-status-detail{color:#88755d!important;font-size:8px!important;text-align:right!important;white-space:nowrap!important}
+#${PANEL_ID} .qol-npc-status[data-tone="success"]{color:#55772f!important}#${PANEL_ID} .qol-npc-status[data-tone="warning"]{color:#a34d2c!important}
+@media(max-width:800px){#${PANEL_ID}{min-width:94vw!important}#${PANEL_ID} .qol-npc-controls{grid-template-columns:1fr 90px 112px!important}#${PANEL_ID} .qol-npc-helper{grid-column:1/-1!important}#${PANEL_ID} .qol-npc-summaries{grid-template-columns:1fr!important}#${PANEL_ID} .qol-npc-resource-card{min-height:70px!important}}
 `;
         document.head.appendChild(style);
     }
@@ -243,7 +290,8 @@
             event.preventDefault();
         });
         const stop = event => { dragging = false; try { handle.releasePointerCapture(event.pointerId); } catch (_) {} };
-        handle.addEventListener('pointerup', stop); handle.addEventListener('pointercancel', stop);
+        handle.addEventListener('pointerup', stop);
+        handle.addEventListener('pointercancel', stop);
     }
 
     function positionPanel() {
@@ -251,8 +299,8 @@
         const toolbar = document.getElementById('qol-responsive-toolbar');
         const cog = document.getElementById('qol-cog-btn');
         const anchor = toolbar?.getBoundingClientRect?.() || cog?.getBoundingClientRect?.();
-        const width = panel.offsetWidth || 900;
-        const height = panel.offsetHeight || 610;
+        const width = panel.offsetWidth || 930;
+        const height = panel.offsetHeight || 570;
         const left = Math.max(8, Math.min(anchor?.left ?? 20, window.innerWidth - width - 8));
         const preferredTop = anchor ? anchor.bottom + 18 : 80;
         const top = Math.max(8, Math.min(preferredTop, window.innerHeight - height - 8));
@@ -262,11 +310,24 @@
         panel.style.setProperty('bottom', 'auto', 'important');
     }
 
-    function setStatus(message, tone = 'neutral') {
+    function setStatus(message, tone = 'neutral', detail = '') {
         const node = panel?.querySelector('.qol-npc-status');
-        if (!node) return;
-        node.textContent = message;
-        node.dataset.tone = tone;
+        const detailNode = panel?.querySelector('.qol-npc-status-detail');
+        if (node) {
+            node.textContent = message;
+            node.dataset.tone = tone;
+        }
+        if (detailNode) detailNode.textContent = detail;
+    }
+
+    function setBanner(message, tone = 'neutral', detail = '') {
+        const banner = panel?.querySelector('.qol-npc-banner');
+        if (!banner) return;
+        banner.dataset.tone = tone;
+        const main = banner.querySelector('.qol-npc-banner-text');
+        const sub = banner.querySelector('.qol-npc-banner-sub');
+        if (main) main.textContent = message;
+        if (sub) sub.textContent = detail;
     }
 
     function setTribe(tribeKey, rebuild = true) {
@@ -283,17 +344,17 @@
         const units = ALL_TRIBE_UNITS[tribeKey]?.units || ALL_TRIBE_UNITS.romans.units;
         const row = document.createElement('tr');
         row.className = 'qol-npc-row';
-        row.innerHTML = `<td><select class="qol-npc-unit-select">${units.map(unit => `<option value="${unit.name}">${unit.name}</option>`).join('')}</select></td><td><label class="qol-npc-mode"><input class="qol-npc-great" type="checkbox"><span>Normal</span></label></td><td class="num qol-npc-max">0</td><td class="center"><input class="qol-npc-count" type="number" min="0" value="0" inputmode="numeric"></td><td class="num qol-npc-cost">0</td><td class="center"><span class="qol-npc-delete" role="button" tabindex="0" title="Delete entry">×</span></td>`;
+        row.innerHTML = `<td><select class="qol-npc-unit-select">${units.map(unit => `<option value="${unit.name}">${unit.name}</option>`).join('')}</select></td><td><label class="qol-npc-mode" title="Toggle Great Barracks / Great Stable cost"><input class="qol-npc-great" type="checkbox"><span class="qol-npc-mode-chip">Normal</span></label></td><td class="num qol-npc-max">0</td><td class="center"><input class="qol-npc-count" type="number" min="0" value="0" inputmode="numeric"></td><td class="num qol-npc-cost">0</td><td class="center"><span class="qol-npc-delete" role="button" tabindex="0" title="Delete entry">×</span></td>`;
         const select = row.querySelector('.qol-npc-unit-select');
         if (units.some(unit => unit.name === preferredUnit)) select.value = preferredUnit;
         const great = row.querySelector('.qol-npc-great');
-        const modeLabel = row.querySelector('.qol-npc-mode span');
+        const modeLabel = row.querySelector('.qol-npc-mode-chip');
         const count = row.querySelector('.qol-npc-count');
         const syncMode = () => {
             const siege = SIEGE_UNITS.has(select.value);
             great.disabled = siege;
             if (siege) great.checked = false;
-            modeLabel.textContent = siege ? 'Siege' : (great.checked ? 'GS/GB' : 'Normal');
+            modeLabel.textContent = siege ? 'Siege' : (great.checked ? 'GS / GB' : 'Normal');
         };
         select.addEventListener('change', () => { syncMode(); updateCalculations(); });
         great.addEventListener('change', () => { syncMode(); updateCalculations(); });
@@ -312,9 +373,8 @@
         const existing = [...body.querySelectorAll('.qol-npc-row')];
         if (!existing.length) body.appendChild(createRow(tribeKey));
         else existing.forEach(row => {
-            const oldUnit = row.querySelector('.qol-npc-unit-select')?.value;
             const oldCount = row.querySelector('.qol-npc-count')?.value || '0';
-            const replacement = createRow(tribeKey, oldUnit);
+            const replacement = createRow(tribeKey);
             replacement.querySelector('.qol-npc-count').value = oldCount;
             row.replaceWith(replacement);
         });
@@ -336,7 +396,7 @@
         body.innerHTML = '';
         body.appendChild(createRow(selectedTribe));
         updateCalculations();
-        setStatus('Training plan cleared.');
+        setStatus('Training plan cleared.', 'neutral', 'Enter troop counts to build a new plan.');
     }
 
     function updateCalculations() {
@@ -346,8 +406,17 @@
         const units = ALL_TRIBE_UNITS[selectedTribe]?.units || ALL_TRIBE_UNITS.romans.units;
 
         RESOURCE_KEYS.forEach(key => {
-            panel.querySelector(`#qol-npc-stock-${key}`).textContent = formatNumber(resources[key].current);
-            panel.querySelector(`#qol-npc-stock-${key}-capacity`).textContent = Number.isFinite(resources[key].capacity) ? `Cap ${formatNumber(resources[key].capacity)}` : 'Cap unknown';
+            const current = resources[key].current;
+            const capacity = resources[key].capacity;
+            const stockValue = panel.querySelector(`#qol-npc-stock-${key}`);
+            const capacityNode = panel.querySelector(`#qol-npc-stock-${key}-capacity`);
+            const percentNode = panel.querySelector(`#qol-npc-stock-${key}-percent`);
+            const meter = panel.querySelector(`#qol-npc-stock-${key}-meter`);
+            if (stockValue) stockValue.textContent = formatNumber(current);
+            if (capacityNode) capacityNode.textContent = Number.isFinite(capacity) ? `Cap ${formatNumber(capacity)}` : 'Cap unknown';
+            const percent = Number.isFinite(capacity) && capacity > 0 ? Math.max(0, Math.min(100, Math.round((current / capacity) * 100))) : null;
+            if (percentNode) percentNode.textContent = percent == null ? '—' : `${percent}%`;
+            if (meter) meter.style.width = `${percent ?? 0}%`;
         });
         panel.querySelector('#qol-npc-stock-total').textContent = formatNumber(resources.total);
 
@@ -386,11 +455,18 @@
             overflow[key] = Math.max(0, required[key] - recommended[key]);
             const card = panel.querySelector(`.qol-npc-summary.npc [data-resource="${key}"]`);
             card?.classList.toggle('capped', overflow[key] > 0);
-            panel.querySelector(`#qol-npc-dist-${key}`).textContent = formatNumber(recommended[key]);
-            panel.querySelector(`#qol-npc-dist-${key}-required`).textContent = `Need ${formatNumber(required[key])}`;
+            const valueNode = panel.querySelector(`#qol-npc-dist-${key}`);
+            const requiredNode = panel.querySelector(`#qol-npc-dist-${key}-required`);
             const overflowNode = panel.querySelector(`#qol-npc-dist-${key}-overflow`);
-            overflowNode.textContent = overflow[key] ? `+${formatNumber(overflow[key])} overflow` : 'Fits storage';
-            overflowNode.classList.toggle('overflow', overflow[key] > 0);
+            const meter = panel.querySelector(`#qol-npc-dist-${key}-meter`);
+            if (valueNode) valueNode.textContent = formatNumber(recommended[key]);
+            if (requiredNode) requiredNode.textContent = `Need ${formatNumber(required[key])}`;
+            if (overflowNode) {
+                overflowNode.textContent = overflow[key] ? `+${formatNumber(overflow[key])}` : 'Fits storage';
+                overflowNode.classList.toggle('overflow', overflow[key] > 0);
+            }
+            const ratio = Number.isFinite(cap) && cap > 0 ? Math.max(0, Math.min(100, Math.round((recommended[key] / cap) * 100))) : (required[key] > 0 ? 100 : 0);
+            if (meter) meter.style.width = `${ratio}%`;
         });
 
         const recommendedTotal = RESOURCE_KEYS.reduce((sum, key) => sum + recommended[key], 0);
@@ -409,12 +485,20 @@
         passNode.textContent = overflowTotal ? `${capacityPasses}+ passes` : '1 pass';
         passNode.className = `qol-npc-pill ${overflowTotal ? 'warn' : 'good'}`;
 
-        if (!rows.length) setStatus('Add a training entry to begin planning.');
-        else if (!totalUnits) setStatus(`${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} ready. Enter troop counts.`);
-        else if (overflowTotal) {
+        if (!rows.length) {
+            setBanner('Add a training entry to begin planning.', 'neutral', 'No NPC target yet.');
+            setStatus('No training entries.', 'neutral', 'Add an entry to start.');
+        } else if (!totalUnits) {
+            setBanner('Build your troop plan.', 'neutral', 'NPC targets will update instantly.');
+            setStatus(`${rows.length} ${rows.length === 1 ? 'entry' : 'entries'} ready.`, 'neutral', 'Enter troop counts.');
+        } else if (overflowTotal) {
             const blocked = RESOURCE_KEYS.filter(key => overflow[key] > 0).map(key => RESOURCE_META[key].label).join(', ');
-            setStatus(`Storage cap reached: ${blocked}. Split the plan across ${capacityPasses}+ passes.`, 'warning');
-        } else setStatus(`${formatNumber(totalUnits)} troops · ${formatNumber(totalCost)} resources · fits one NPC pass.`, 'success');
+            setBanner(`Storage overflow: ${blocked}`, 'warning', `${capacityPasses}+ NPC/training passes required`);
+            setStatus(`${formatNumber(totalUnits)} troops · ${formatNumber(totalCost)} resources`, 'warning', `${formatNumber(overflowTotal)} overflow · ${capacityPasses}+ passes`);
+        } else {
+            setBanner('Fits in one NPC pass.', 'success', 'All resource targets fit current storage.');
+            setStatus(`${formatNumber(totalUnits)} troops · ${formatNumber(totalCost)} resources`, 'success', 'No storage overflow.');
+        }
     }
 
     function buildPanel() {
@@ -430,32 +514,46 @@
     <div class="qol-npc-field"><span>Tribe</span><div class="qol-npc-tribe-options" role="group" aria-label="Tribe"><button type="button" class="qol-npc-tribe-option" data-tribe="romans">Roman</button><button type="button" class="qol-npc-tribe-option" data-tribe="teutons">Teuton</button><button type="button" class="qol-npc-tribe-option" data-tribe="gauls">Gaul</button></div></div>
     <label class="qol-npc-field">Fealty<input id="qol-npc-fealty" type="number" min="1" max="20" value="1"></label>
     <div class="qol-npc-btn secondary" id="qol-npc-refresh" role="button" tabindex="0">Refresh stock</div>
-    <div class="qol-npc-helper">NPC targets are capped at the village's <strong>Warehouse/Granary capacity</strong>. Overflow means another NPC/training pass.</div>
+    <div class="qol-npc-helper">NPC targets are capped at the village's <strong>Warehouse / Granary</strong>. Overflow is shown separately instead of suggesting an impossible distribution.</div>
   </div>
   <div class="qol-npc-summaries">
     <section class="qol-npc-summary stock"><div class="qol-npc-summary-head"><span>Village stock</span><span>Total <strong id="qol-npc-stock-total">0</strong></span></div><div class="qol-npc-resource-grid">${buildResourceCards('qol-npc-stock','stock')}</div><div class="qol-npc-summary-foot"><span>After planned training: <strong id="qol-npc-remaining">0</strong></span><span>Troops: <strong id="qol-npc-units">0</strong></span></div></section>
     <section class="qol-npc-summary npc"><div class="qol-npc-summary-head"><span>NPC now</span><span>Target <strong id="qol-npc-dist-total">0</strong></span></div><div class="qol-npc-resource-grid">${buildResourceCards('qol-npc-dist','npc')}</div><div class="qol-npc-summary-foot"><span>Plan cost: <strong id="qol-npc-plan-cost">0</strong> · Overflow: <strong id="qol-npc-overflow">0</strong></span><span id="qol-npc-passes" class="qol-npc-pill good">1 pass</span></div></section>
   </div>
-  <section class="qol-npc-plan"><div class="qol-npc-plan-scroll"><table><thead><tr><th style="width:27%">Unit</th><th style="width:18%">Training mode</th><th class="num" style="width:16%">Max one batch</th><th class="center" style="width:14%">Plan</th><th class="num" style="width:17%">Cost</th><th style="width:8%"></th></tr></thead><tbody id="qol-npc-plan-body"></tbody></table></div><div class="qol-npc-footer"><div class="qol-npc-footer-actions"><div class="qol-npc-btn" id="qol-npc-add" role="button" tabindex="0">Add entry</div><div class="qol-npc-btn danger" id="qol-npc-clear" role="button" tabindex="0">Clear plan</div></div><div class="qol-npc-status" data-tone="neutral">Ready.</div></div></section>
+  <div class="qol-npc-banner" data-tone="neutral"><div class="qol-npc-banner-main"><span class="qol-npc-banner-dot"></span><span class="qol-npc-banner-text">Build your troop plan.</span></div><span class="qol-npc-banner-sub">NPC targets update instantly.</span></div>
+  <section class="qol-npc-plan"><div class="qol-npc-plan-scroll"><table><thead><tr><th style="width:27%">Unit</th><th style="width:18%">Training mode</th><th class="num" style="width:16%">Max one batch</th><th class="center" style="width:14%">Plan</th><th class="num" style="width:17%">Cost</th><th style="width:8%"></th></tr></thead><tbody id="qol-npc-plan-body"></tbody></table></div><div class="qol-npc-footer"><div class="qol-npc-footer-actions"><div class="qol-npc-btn" id="qol-npc-add" role="button" tabindex="0">Add entry</div><div class="qol-npc-btn danger" id="qol-npc-clear" role="button" tabindex="0">Clear plan</div></div><div class="qol-npc-status-wrap"><div class="qol-npc-status" data-tone="neutral">Ready.</div><div class="qol-npc-status-detail">Enter troop counts.</div></div></div></section>
 </div>`;
         document.body.appendChild(panel);
         makeDraggable(panel, panel.querySelector('.qol-npc-header'));
         panel.querySelector('.qol-npc-close').addEventListener('click', closePanel);
         selectedTribe = detectUserTribe();
         panel.querySelectorAll('.qol-npc-tribe-option').forEach(button => button.addEventListener('click', event => {
-            event.preventDefault(); event.stopPropagation(); setTribe(button.dataset.tribe, true);
+            event.preventDefault();
+            event.stopPropagation();
+            setTribe(button.dataset.tribe, true);
         }));
         setTribe(selectedTribe, false);
         panel.querySelector('#qol-npc-fealty').addEventListener('input', event => {
             const value = Math.min(20, Math.max(1, Number.parseInt(event.target.value || '1', 10) || 1));
-            event.target.value = String(value); updateCalculations();
+            event.target.value = String(value);
+            updateCalculations();
         });
         const bind = (selector, fn) => {
-            const node = panel.querySelector(selector); if (!node) return;
+            const node = panel.querySelector(selector);
+            if (!node) return;
             node.addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); fn(); });
-            node.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); event.stopPropagation(); fn(); } });
+            node.addEventListener('keydown', event => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    fn();
+                }
+            });
         };
-        bind('#qol-npc-refresh', () => { updateCalculations(); setStatus('Village stock and storage capacities refreshed.', 'success'); });
+        bind('#qol-npc-refresh', () => {
+            updateCalculations();
+            setStatus('Village stock refreshed.', 'success', 'Storage capacities reread from the HUD.');
+        });
         bind('#qol-npc-add', addEntry);
         bind('#qol-npc-clear', clearPlan);
         panel.querySelector('#qol-npc-plan-body').appendChild(createRow(selectedTribe));
@@ -470,7 +568,9 @@
         requestAnimationFrame(positionPanel);
     }
 
-    function closePanel() { panel?.classList.remove('qol-open'); }
+    function closePanel() {
+        panel?.classList.remove('qol-open');
+    }
 
     function buildToggleButton() {
         const existing = document.getElementById(TOGGLE_ID);
@@ -480,8 +580,10 @@
         toggleButton.title = 'NPC Calculator';
         toggleButton.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><path d="M8 10h.01M12 10h.01M16 10h.01M8 14h.01M12 14h.01M16 14v4M8 18h.01M12 18h.01"></path></svg>`;
         toggleButton.addEventListener('click', event => {
-            event.preventDefault(); event.stopPropagation();
-            if (panel?.classList.contains('qol-open')) closePanel(); else openPanel();
+            event.preventDefault();
+            event.stopPropagation();
+            if (panel?.classList.contains('qol-open')) closePanel();
+            else openPanel();
         });
         document.body.appendChild(toggleButton);
         window.qolRepositionAllButtons?.();
@@ -497,23 +599,42 @@
     }
 
     function destroyUI() {
-        panel?.remove(); toggleButton?.remove(); panel = null; toggleButton = null; window.qolRepositionAllButtons?.();
+        panel?.remove();
+        toggleButton?.remove();
+        panel = null;
+        toggleButton = null;
+        window.qolRepositionAllButtons?.();
     }
 
-    window.addEventListener('qol_close_others', event => { if (event.detail?.source !== 'npcCalculator') closePanel(); });
+    window.addEventListener('qol_close_others', event => {
+        if (event.detail?.source !== 'npcCalculator') closePanel();
+    });
+
     window.addEventListener('qol_setting_changed', event => {
         if (event.detail?.key !== FEATURE_KEY) return;
-        if (event.detail.enabled) buildUI(); else destroyUI();
+        if (event.detail.enabled) buildUI();
+        else destroyUI();
     });
+
     window.addEventListener('resize', () => {
         if (!panel?.classList.contains('qol-open')) return;
         const rect = panel.getBoundingClientRect();
         if (rect.right > window.innerWidth || rect.bottom > window.innerHeight) positionPanel();
     });
+
     document.addEventListener('keydown', event => {
-        if (event.key === 'Escape' && panel?.classList.contains('qol-open')) { event.preventDefault(); event.stopImmediatePropagation(); closePanel(); }
+        if (event.key === 'Escape' && panel?.classList.contains('qol-open')) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            closePanel();
+        }
     }, true);
 
-    const start = () => { if (isEnabled()) buildUI(); console.log('[NPC Calculator] Storage-aware calculator initialized.'); };
-    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true }); else start();
+    const start = () => {
+        if (isEnabled()) buildUI();
+        console.log('[NPC Calculator] Storage-aware calculator initialized.');
+    };
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once:true });
+    else start();
 })();
