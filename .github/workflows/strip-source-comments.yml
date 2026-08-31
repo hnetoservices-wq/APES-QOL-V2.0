@@ -107,6 +107,7 @@ jobs:
                   discardComments({ removeAll: true })
                 ]).process(original, { from: undefined });
                 output = result.css
+                  .replace(/\r\n?/g, '\n')
                   .split('\n')
                   .map(line => line.replace(/[ \t]+$/g, ''))
                   .join('\n');
