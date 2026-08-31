@@ -544,7 +544,9 @@
             #${DIALOG_ID} .qol-ss-compare-controls{display:grid!important;grid-template-columns:minmax(190px,1fr) 24px minmax(190px,1fr) auto!important;align-items:end!important;gap:8px!important;padding:10px!important;border-bottom:1px solid #d1c1a7!important;background:#f1e9dc!important}
             #${DIALOG_ID} .qol-ss-compare-field{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
             #${DIALOG_ID} .qol-ss-compare-field span{color:#6d5437!important;font-size:8px!important;font-weight:800!important;text-transform:uppercase!important}
-            #${DIALOG_ID} .qol-ss-compare-select{width:100%!important;height:29px!important;padding:3px 7px!important;border:1px solid #aa9372!important;border-radius:4px!important;background:#fff!important;color:#432f1d!important;font-size:9px!important;appearance:auto!important;-webkit-appearance:auto!important}
+            #${DIALOG_ID} select.qol-ss-compare-select,#${DIALOG_ID} [data-compare-a],#${DIALOG_ID} [data-compare-b]{display:block!important;position:static!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;width:100%!important;min-width:180px!important;height:30px!important;min-height:30px!important;margin:0!important;padding:4px 28px 4px 8px!important;border:1px solid #aa9372!important;border-radius:4px!important;background:#fff!important;color:#432f1d!important;font:9px/20px Arial,Helvetica,sans-serif!important;appearance:auto!important;-webkit-appearance:menulist!important;box-shadow:none!important;transform:none!important;clip:auto!important;clip-path:none!important}
+            #${DIALOG_ID} select.qol-ss-compare-select option,#${DIALOG_ID} [data-compare-a] option,#${DIALOG_ID} [data-compare-b] option{display:block!important;background:#fff!important;color:#432f1d!important;font:10px Arial,Helvetica,sans-serif!important}
+            #${DIALOG_ID} select.qol-ss-compare-select:focus,#${DIALOG_ID} [data-compare-a]:focus,#${DIALOG_ID} [data-compare-b]:focus{outline:none!important;border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
             #${DIALOG_ID} .qol-ss-compare-arrow{padding-bottom:7px!important;color:#8a7253!important;font-size:16px!important;text-align:center!important}
             #${DIALOG_ID} .qol-ss-compare-run{display:inline-flex!important;align-items:center!important;justify-content:center!important;height:29px!important;padding:5px 13px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;color:#fff8e9!important;font-size:9px!important;font-weight:800!important;cursor:pointer!important;white-space:nowrap!important}
             #${DIALOG_ID} .qol-ss-compare-run[aria-disabled="true"]{opacity:.5!important;pointer-events:none!important}
@@ -578,6 +580,15 @@
         document.head.appendChild(style);
     }
 
+    function resetComparisonResult(dialog) {
+        const summary = dialog.querySelector('.qol-ss-compare-summary');
+        const wrap = dialog.querySelector('.qol-ss-compare-table-wrap');
+        if (summary) summary.textContent = 'Select an earlier Scan A and a later Scan B.';
+        if (wrap) {
+            wrap.innerHTML = '<div class="qol-ss-compare-empty">Choose two dated scans, then select Compare.</div>';
+        }
+    }
+
     function renderComparison(dialog, societyId) {
         const snapshots = historyForSociety(societyId);
         const selectA = dialog.querySelector('[data-compare-a]');
@@ -595,8 +606,7 @@
         run.setAttribute('aria-disabled', String(!valid));
 
         if (!valid) {
-            summary.textContent = 'Select an earlier Scan A and a later Scan B.';
-            wrap.innerHTML = '<div class="qol-ss-compare-empty">Choose two stored scans to compare.</div>';
+            resetComparisonResult(dialog);
             return;
         }
 
@@ -677,24 +687,26 @@
         });
     }
 
-    function populateLaterSelect(dialog, societyId, preferredB = null) {
+    function populateLaterSelect(dialog, societyId) {
         const snapshots = historyForSociety(societyId);
         const selectA = dialog.querySelector('[data-compare-a]');
         const selectB = dialog.querySelector('[data-compare-b]');
-        if (!selectA || !selectB) return;
+        const run = dialog.querySelector('[data-compare-run]');
+        if (!selectA || !selectB || !run) return;
 
         const aTime = Number(selectA.value);
-        const later = snapshots.filter(snapshot => Number(snapshot.scannedAt) > aTime);
-        selectB.innerHTML = later.map(snapshot =>
-            `<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`
-        ).join('');
-
-        const preferred = Number(preferredB);
-        if (later.some(snapshot => Number(snapshot.scannedAt) === preferred)) {
-            selectB.value = String(preferred);
-        } else if (later.length) {
-            selectB.value = String(later[later.length - 1].scannedAt);
-        }
+        const later = selectA.value
+            ? snapshots.filter(snapshot => Number(snapshot.scannedAt) > aTime)
+            : [];
+        selectB.innerHTML = [
+            '<option value="">Select Scan B…</option>',
+            ...later.map(snapshot =>
+                `<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`
+            )
+        ].join('');
+        selectB.value = '';
+        run.setAttribute('aria-disabled', 'true');
+        resetComparisonResult(dialog);
     }
 
     function openCompareDialog(societyId) {
@@ -720,7 +732,7 @@
                         <span>Scan B · Later</span>
                         <select class="qol-ss-compare-select" data-compare-b></select>
                     </label>
-                    <div class="qol-ss-compare-run" data-compare-run role="button" tabindex="0">Compare</div>
+                    <div class="qol-ss-compare-run" data-compare-run role="button" tabindex="0" aria-disabled="true">Compare</div>
                 </div>
                 <div class="qol-ss-compare-summary"></div>
                 <div class="qol-ss-compare-table-wrap"></div>
@@ -732,12 +744,14 @@
         const selectB = dialog.querySelector('[data-compare-b]');
         const run = dialog.querySelector('[data-compare-run]');
 
-        selectA.innerHTML = snapshots.slice(0, -1).map(snapshot =>
-            `<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`
-        ).join('');
-        selectA.value = String(snapshots[snapshots.length - 2].scannedAt);
-        populateLaterSelect(dialog, societyId, snapshots[snapshots.length - 1].scannedAt);
-        renderComparison(dialog, societyId);
+        selectA.innerHTML = [
+            '<option value="">Select Scan A…</option>',
+            ...snapshots.slice(0, -1).map(snapshot =>
+                `<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`
+            )
+        ].join('');
+        selectA.value = '';
+        populateLaterSelect(dialog, societyId);
 
         const close = () => dialog.remove();
         const closeButton = dialog.querySelector('.qol-ss-compare-close');
@@ -750,9 +764,16 @@
         });
         selectA.addEventListener('change', () => {
             populateLaterSelect(dialog, societyId);
-            renderComparison(dialog, societyId);
         });
-        selectB.addEventListener('change', () => renderComparison(dialog, societyId));
+        selectB.addEventListener('change', () => {
+            const valid = Boolean(
+                selectA.value &&
+                selectB.value &&
+                Number(selectB.value) > Number(selectA.value)
+            );
+            run.setAttribute('aria-disabled', String(!valid));
+            resetComparisonResult(dialog);
+        });
         const compare = event => {
             event?.preventDefault();
             if (run.getAttribute('aria-disabled') === 'true') return;
