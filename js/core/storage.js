@@ -85,6 +85,39 @@
         });
     }
 
+    async function auditStorageScopes() {
+        const all = await getAllChromeStorage();
+        const server = String(APES.context.getServer?.() || '').trim();
+        const playerId = String(APES.context.getPlayerId?.() || '').trim();
+        const keys = Object.keys(all).filter(key => key.startsWith(`${PREFIX}:`));
+        const currentServerPrefix = server ? `${PREFIX}:${server}:` : '';
+        const currentServerKeys = currentServerPrefix
+            ? keys.filter(key => key.startsWith(currentServerPrefix))
+            : [];
+        const ambiguousPlayerKeys = currentServerKeys.filter(key =>
+            key.startsWith(`${PREFIX}:${server}:unknown:`)
+        );
+        const currentPlayerKeys = /^\d+$/.test(playerId)
+            ? currentServerKeys.filter(key => key.startsWith(`${PREFIX}:${server}:${playerId}:`))
+            : [];
+        const serverScopedKeys = currentServerKeys.filter(key =>
+            key.startsWith(`${PREFIX}:${server}:server:`)
+        );
+        const globalKeys = keys.filter(key => key.startsWith(`${PREFIX}:global:`));
+
+        return Object.freeze({
+            server,
+            playerId: /^\d+$/.test(playerId) ? playerId : null,
+            playerResolved: /^\d+$/.test(playerId),
+            totalV2Keys: keys.length,
+            currentServerKeys: currentServerKeys.length,
+            currentPlayerKeys: currentPlayerKeys.length,
+            serverScopedKeys: serverScopedKeys.length,
+            globalKeys: globalKeys.length,
+            ambiguousPlayerKeys: [...ambiguousPlayerKeys]
+        });
+    }
+
     APES.storage = {
         prefix: PREFIX,
         key: buildKey,
@@ -121,6 +154,22 @@
                     return key.startsWith(prefix);
                 })
             );
-        }
+        },
+
+        audit: auditStorageScopes
     };
+
+    // Old alphas could write player-scoped data under an unresolved `unknown`
+    // namespace. Do not migrate or delete those keys automatically because the
+    // owning account cannot be proven. Surface a developer warning instead.
+    window.setTimeout(() => {
+        auditStorageScopes().then(report => {
+            if (!report.ambiguousPlayerKeys.length) return;
+            console.warn(
+                '[APES.storage] Ambiguous legacy v2 player keys detected. ' +
+                'They were left untouched and should be reviewed manually:',
+                report.ambiguousPlayerKeys
+            );
+        }).catch(() => {});
+    }, 1500);
 })();
