@@ -25,7 +25,6 @@
     minY: -59,
     maxY: 59
   };
-  const TAG_TEAM_OVERLAP = 1;
   const TAG_TEAM_LAYOUTS = {
     2: {
       columns: 2,
@@ -180,20 +179,18 @@
     return {
       enabled: false,
       teamSize: 2,
-      selectedSection: "A",
-      scannerName: ""
+      selectedSection: "A"
     };
   }
   function normaliseTagTeamConfig(rawConfig) {
     const defaults = getDefaultTagTeamConfig();
     const teamSize = Math.max(2, Math.min(6, parseInteger(rawConfig?.teamSize) || defaults.teamSize));
-    const availableSections = TAG_TEAM_SECTION_COLORS.slice(0, teamSize).map(section => section.id);
+    const availableSections = ["ALL", ...TAG_TEAM_SECTION_COLORS.slice(0, teamSize).map(section => section.id)];
     const selectedSection = availableSections.includes(rawConfig?.selectedSection) ? rawConfig.selectedSection : "A";
     return {
       enabled: rawConfig?.enabled === true,
       teamSize,
-      selectedSection,
-      scannerName: String(rawConfig?.scannerName || "").trim().slice(0, 80)
+      selectedSection
     };
   }
   function loadTagTeamConfig() {
@@ -304,10 +301,7 @@
           maxY: ySections[row].maximum
         };
         const assigned = {
-          minX: Math.max(TAG_TEAM_BOUNDS.minX, primary.minX - (column > 0 ? TAG_TEAM_OVERLAP : 0)),
-          maxX: primary.maxX,
-          minY: Math.max(TAG_TEAM_BOUNDS.minY, primary.minY - (row > 0 ? TAG_TEAM_OVERLAP : 0)),
-          maxY: primary.maxY
+          ...primary
         };
         sections.push({
           ...color,
@@ -332,13 +326,20 @@
     return getTagTeamSections(teamSize).filter(section => isCoordinateInsideBounds(x, y, section.assigned));
   }
   function getSelectedTagTeamSection() {
+    if (tagTeamConfig.selectedSection === "ALL") {
+      return null;
+    }
     return getTagTeamSections().find(section => section.id === tagTeamConfig.selectedSection) || null;
+  }
+  function isAllTagTeamSectionsVisible() {
+    return tagTeamConfig.selectedSection === "ALL";
   }
   function getBoundsTileCount(bounds) {
     return (bounds.maxX - bounds.minX + 1) * (bounds.maxY - bounds.minY + 1);
   }
   function getTagTeamProgress() {
     const selectedSection = getSelectedTagTeamSection();
+    const allSections = isAllTagTeamSectionsVisible();
     const scannedCoordinates = Object.entries(tagTeamSession.scannedTiles || {}).map(([id, scannedAt]) => {
       const [rawX, rawY] = id.split("|");
       const x = parseInteger(rawX);
@@ -353,12 +354,13 @@
         scannedAt: Number(scannedAt) || tagTeamSession.startedAt
       };
     }).filter(Boolean);
-    const assignedScanned = selectedSection ? scannedCoordinates.filter(coordinate => isCoordinateInsideBounds(coordinate.x, coordinate.y, selectedSection.assigned)).length : 0;
-    const assignedTotal = selectedSection ? getBoundsTileCount(selectedSection.assigned) : 0;
     const overallScanned = scannedCoordinates.length;
     const overallTotal = getBoundsTileCount(TAG_TEAM_BOUNDS);
+    const assignedScanned = allSections ? overallScanned : selectedSection ? scannedCoordinates.filter(coordinate => isCoordinateInsideBounds(coordinate.x, coordinate.y, selectedSection.assigned)).length : 0;
+    const assignedTotal = allSections ? overallTotal : selectedSection ? getBoundsTileCount(selectedSection.assigned) : 0;
     return {
       selectedSection,
+      allSections,
       scannedCoordinates,
       assignedScanned,
       assignedTotal,
@@ -393,14 +395,14 @@
     const assignedBar = document.getElementById("qol-tag-team-assigned-bar");
     const overallBar = document.getElementById("qol-tag-team-overall-bar");
     if (assignedText) {
-      assignedText.textContent = selectedSection ? `Section ${selectedSection.id}: ` + `${progress.assignedScanned.toLocaleString()} / ` + `${progress.assignedTotal.toLocaleString()} ` + `(${formatPercentage(progress.assignedPercentage)})` : "No section selected";
+      assignedText.textContent = progress.allSections ? `All sections: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()} (${formatPercentage(progress.assignedPercentage)})` : selectedSection ? `Section ${selectedSection.id}: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()} (${formatPercentage(progress.assignedPercentage)})` : "No section selected";
     }
     if (overallText) {
-      overallText.textContent = `Full map: ` + `${progress.overallScanned.toLocaleString()} / ` + `${progress.overallTotal.toLocaleString()} ` + `(${formatPercentage(progress.overallPercentage)})`;
+      overallText.textContent = `Full map: ${progress.overallScanned.toLocaleString()} / ${progress.overallTotal.toLocaleString()} (${formatPercentage(progress.overallPercentage)})`;
     }
     if (assignedBar) {
       assignedBar.style.setProperty("width", formatPercentage(progress.assignedPercentage), "important");
-      assignedBar.style.backgroundColor = selectedSection?.hex || "#2d7dd2";
+      assignedBar.style.backgroundColor = selectedSection?.hex || "var(--qol-accent)";
     }
     if (overallBar) {
       overallBar.style.setProperty("width", formatPercentage(progress.overallPercentage), "important");
@@ -424,23 +426,20 @@
     }
     const sectionSelect = document.getElementById("qol-tag-team-section");
     if (sectionSelect) {
-      sectionSelect.innerHTML = getTagTeamSections().map(section => `<option value="${section.id}">` + `${section.id} — ${section.position}` + `</option>`).join("");
+      sectionSelect.innerHTML = [`<option value="ALL">All</option>`, ...getTagTeamSections().map(section => `<option value="${section.id}">${section.id} — ${section.position}</option>`)].join("");
       sectionSelect.value = tagTeamConfig.selectedSection;
-    }
-    const scannerInput = document.getElementById("qol-tag-team-scanner-name");
-    if (scannerInput && scannerInput.value !== tagTeamConfig.scannerName) {
-      scannerInput.value = tagTeamConfig.scannerName;
     }
     const setupSummary = document.getElementById("qol-tag-team-setup-summary");
     const selectedSection = getSelectedTagTeamSection();
     if (setupSummary) {
-      setupSummary.textContent = tagTeamConfig.enabled && selectedSection ? `Section ${selectedSection.id} · ` + `${selectedSection.position} · ` + `${selectedSection.name}` : "Manual shared scan sections";
+      setupSummary.textContent = tagTeamConfig.enabled ? isAllTagTeamSectionsVisible() ? `All sections · ${tagTeamConfig.teamSize} users` : selectedSection ? `Section ${selectedSection.id} · ${selectedSection.position} · ${selectedSection.name}` : "Manual shared scan sections" : "Manual shared scan sections";
     }
     const legend = document.getElementById("qol-tag-team-legend");
     if (legend) {
+      const showAll = isAllTagTeamSectionsVisible();
       legend.innerHTML = getTagTeamSections().map(section => `
               <span
-                class="qol-tag-team-legend-item ${section.id === tagTeamConfig.selectedSection ? "is-selected" : ""}"
+                class="qol-tag-team-legend-item ${showAll || section.id === tagTeamConfig.selectedSection ? "is-selected" : ""}"
               >
                 <span
                   class="qol-tag-team-swatch"
@@ -472,6 +471,9 @@
       setStatus("Visual Aid Mode turned off. Scanning remains active.");
     }
   }
+  function getVisibleSectionLabel() {
+    return isAllTagTeamSectionsVisible() ? "All sections" : `Section ${tagTeamConfig.selectedSection}`;
+  }
   function toggleTagTeamMode() {
     tagTeamConfig.enabled = !tagTeamConfig.enabled;
     if (tagTeamConfig.enabled && tagTeamSession.teamSize !== tagTeamConfig.teamSize) {
@@ -481,7 +483,7 @@
     saveTagTeamConfig();
     updateTagTeamUI();
     scheduleScannedOverlayRender();
-    setStatus(tagTeamConfig.enabled ? `Tag Team Mode enabled for Section ${tagTeamConfig.selectedSection}.` : "Tag Team Mode disabled. Your session progress was preserved.");
+    setStatus(tagTeamConfig.enabled ? `Tag Team Mode enabled. Visible section: ${getVisibleSectionLabel()}.` : "Tag Team Mode disabled. Your session progress was preserved.");
   }
   function startNewTagTeamSession(askForConfirmation = true) {
     if (askForConfirmation && Object.keys(tagTeamSession.scannedTiles || {}).length > 0) {
@@ -494,7 +496,7 @@
     saveTagTeamSession();
     updateTagTeamUI();
     scheduleScannedOverlayRender();
-    setStatus(`New Tag Team session started for Section ${tagTeamConfig.selectedSection}.`);
+    setStatus(`New Tag Team session started. Visible section: ${getVisibleSectionLabel()}.`);
   }
   function changeTagTeamSize(rawValue) {
     const nextTeamSize = Math.max(2, Math.min(6, parseInteger(rawValue) || 2));
@@ -502,7 +504,7 @@
       return;
     }
     tagTeamConfig.teamSize = nextTeamSize;
-    const availableSections = TAG_TEAM_SECTION_COLORS.slice(0, nextTeamSize).map(section => section.id);
+    const availableSections = ["ALL", ...TAG_TEAM_SECTION_COLORS.slice(0, nextTeamSize).map(section => section.id)];
     if (!availableSections.includes(tagTeamConfig.selectedSection)) {
       tagTeamConfig.selectedSection = "A";
     }
@@ -514,7 +516,7 @@
     setStatus(`Tag Team changed to ${nextTeamSize} sections. A new zero-progress session was started.`);
   }
   function changeTagTeamSection(sectionId) {
-    const isAvailable = getTagTeamSections().some(section => section.id === sectionId);
+    const isAvailable = sectionId === "ALL" || getTagTeamSections().some(section => section.id === sectionId);
     if (!isAvailable) {
       return;
     }
@@ -522,21 +524,7 @@
     saveTagTeamConfig();
     updateTagTeamUI();
     scheduleScannedOverlayRender();
-    setStatus(`Your Tag Team assignment is now Section ${sectionId}. Existing session scans were preserved.`);
-  }
-  function changeTagTeamScannerName(scannerName) {
-    tagTeamConfig.scannerName = String(scannerName || "").trim().slice(0, 80);
-    saveTagTeamConfig();
-  }
-  async function copyTagTeamSetup() {
-    const setupCode = "APES-TT1|" + `${TAG_TEAM_BOUNDS.minX}|` + `${TAG_TEAM_BOUNDS.maxX}|` + `${TAG_TEAM_BOUNDS.minY}|` + `${TAG_TEAM_BOUNDS.maxY}|` + `${tagTeamConfig.teamSize}|` + `${TAG_TEAM_OVERLAP}`;
-    try {
-      await navigator.clipboard.writeText(setupCode);
-      setStatus(`Copied Tag Team setup for ${tagTeamConfig.teamSize} sections.`);
-    } catch (error) {
-      console.error("[APES Oasis Scanner] Could not copy the Tag Team setup.", error);
-      setStatus("Could not copy the Tag Team setup.");
-    }
+    setStatus(`Visible section changed to ${getVisibleSectionLabel()}. Existing session scans were preserved.`);
   }
   function recordTagTeamScan(record) {
     if (!tagTeamConfig.enabled || !record) {
@@ -1388,7 +1376,7 @@
     const fragment = document.createDocumentFragment();
     const visibleBounds = getVisibleCoordinateBounds(metrics, overlayLeft, overlayTop, viewportWidth, viewportHeight);
     const sections = tagTeamConfig.enabled ? getTagTeamSections() : [];
-    const selectedSection = tagTeamConfig.enabled ? getSelectedTagTeamSection() : null;
+    const showAllSections = tagTeamConfig.enabled && isAllTagTeamSectionsVisible();
     for (let x = visibleBounds.minX; x <= visibleBounds.maxX; x += 1) {
       for (let y = visibleBounds.minY; y <= visibleBounds.maxY; y += 1) {
         const left = (x + y) * metrics.halfWidth - metrics.halfWidth;
@@ -1402,38 +1390,36 @@
         const cropperType = getStoredCropperType(id);
         const highlight9c = highlight9cEnabled && cropperType === "9c";
         const highlight15c = highlight15cEnabled && cropperType === "15c";
-        if (!visualAidEnabled && !highlight9c && !highlight15c) {
+        const scanned = isVisualAidTileScanned(id);
+        const scannedVisual = visualAidEnabled && scanned;
+        const primarySection = tagTeamConfig.enabled ? sections.find(section => isCoordinateInsideBounds(x, y, section.primary)) : null;
+        const sectionVisible = Boolean(tagTeamConfig.enabled && visualAidEnabled && !scanned && primarySection && (showAllSections || primarySection.id === tagTeamConfig.selectedSection));
+        const standardVisual = Boolean(visualAidEnabled && !tagTeamConfig.enabled);
+        if (!scannedVisual && !sectionVisible && !standardVisual && !highlight9c && !highlight15c) {
           continue;
         }
-        const scanned = isVisualAidTileScanned(id);
         const tile = document.createElement("span");
         tile.className = "qol-oasis-visual-tile";
         if (visualAidEnabled) {
-          tile.classList.add(scanned ? "is-scanned" : "is-unscanned");
-        }
-        if (tagTeamConfig.enabled) {
-          const primarySection = sections.find(section => isCoordinateInsideBounds(x, y, section.primary));
-          const isSelectedPrimary = primarySection?.id === selectedSection?.id;
-          const isSelectedOverlap = !isSelectedPrimary && selectedSection && isCoordinateInsideBounds(x, y, selectedSection.assigned);
-          tile.classList.add("qol-tag-team-tile");
-          tile.classList.toggle("is-selected-section", isSelectedPrimary);
-          tile.classList.toggle("is-selected-overlap", Boolean(isSelectedOverlap));
-          tile.classList.toggle("is-other-section", !isSelectedPrimary && !isSelectedOverlap);
-          if (primarySection) {
-            tile.dataset.section = primarySection.id;
-            tile.style.setProperty("--qol-section-rgb", primarySection.rgb);
-          }
-          if (selectedSection) {
-            tile.style.setProperty("--qol-selected-section-rgb", selectedSection.rgb);
-          }
-          if (primarySection && (x === primarySection.primary.minX || x === primarySection.primary.maxX || y === primarySection.primary.minY || y === primarySection.primary.maxY)) {
-            tile.classList.add("is-section-edge");
+          if (tagTeamConfig.enabled) {
+            if (scanned) {
+              tile.classList.add("is-scanned");
+            } else if (sectionVisible) {
+              tile.classList.add("qol-tag-team-tile", "is-selected-section");
+              tile.dataset.section = primarySection.id;
+              tile.style.setProperty("--qol-section-rgb", primarySection.rgb);
+              if (x === primarySection.primary.minX || x === primarySection.primary.maxX || y === primarySection.primary.minY || y === primarySection.primary.maxY) {
+                tile.classList.add("is-section-edge");
+              }
+            }
+          } else {
+            tile.classList.add(scanned ? "is-scanned" : "is-unscanned");
           }
         }
-        if (highlight9c) {
+        if (!scannedVisual && highlight9c) {
           tile.classList.add("is-highlight-9c");
         }
-        if (highlight15c) {
+        if (!scannedVisual && highlight15c) {
           tile.classList.add("is-highlight-15c");
         }
         tile.style.left = `${left}px`;
@@ -1764,11 +1750,12 @@
     }
     if (tagTeamConfig.enabled) {
       const progress = getTagTeamProgress();
-      countElement.textContent = `${createDisplayEntries().length} results / ` + `Section ${tagTeamConfig.selectedSection}: ` + `${progress.assignedScanned.toLocaleString()} / ` + `${progress.assignedTotal.toLocaleString()}`;
+      const scope = progress.allSections ? "All sections" : `Section ${tagTeamConfig.selectedSection}`;
+      countElement.textContent = `${createDisplayEntries().length} results / ${scope}: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()}`;
       updateTagTeamProgressUI();
       return;
     }
-    countElement.textContent = `${createDisplayEntries().length} results shown / ` + `${getTotalSavedCount()} tiles scanned`;
+    countElement.textContent = `${createDisplayEntries().length} results shown / ${getTotalSavedCount()} tiles scanned`;
   }
   function getCropperStatusLabel(cropper) {
     return cropper?.isNatar ? "Conquer Natars" : "Available";
@@ -2080,17 +2067,18 @@
       return;
     }
     const selectedSection = progress.selectedSection;
-    const rows = [["Server", "Session ID", "Session Started", "Team Size", "Scanner", "Selected Section", "Selected Position", "Primary Section", "Assigned Sections", "Inside Selected Section", "X", "Y", "Coordinate", "Tile Type", "Field Combination", "Result Type", "Status", "Wood Bonus", "Clay Bonus", "Iron Bonus", "Crop Bonus", "Player ID", "Player Name", "Village Name", "Kingdom ID", "Oasis Status", "Location ID", "Scanned At", "Last Seen"]];
+    const rows = [["Server", "Session ID", "Session Started", "Team Size", "Visible Section", "Visible Position", "Primary Section", "Assigned Sections", "Inside Visible Section", "X", "Y", "Coordinate", "Tile Type", "Field Combination", "Result Type", "Status", "Wood Bonus", "Clay Bonus", "Iron Bonus", "Crop Bonus", "Player ID", "Player Name", "Village Name", "Kingdom ID", "Oasis Status", "Location ID", "Scanned At", "Last Seen"]];
     progress.scannedCoordinates.sort((first, second) => first.x !== second.x ? first.x - second.x : first.y - second.y).forEach(coordinate => {
       const record = getExportTileRecord(coordinate.id, coordinate.x, coordinate.y);
       const primarySection = getPrimarySectionForCoordinate(coordinate.x, coordinate.y);
       const assignedSections = getAssignedSectionsForCoordinate(coordinate.x, coordinate.y);
       const bonus = normaliseBonus(record.bonus);
-      const insideSelected = assignedSections.some(section => section.id === tagTeamConfig.selectedSection);
-      rows.push([window.location.hostname, tagTeamSession.id, new Date(tagTeamSession.startedAt).toISOString(), tagTeamConfig.teamSize, tagTeamConfig.scannerName || "Unnamed scanner", tagTeamConfig.selectedSection, selectedSection?.position || "", primarySection?.id || "", assignedSections.map(section => section.id).join(" ; "), insideSelected ? "Yes" : "No", coordinate.x, coordinate.y, `${coordinate.x}|${coordinate.y}`, record.tileType || "unknown", getRecordFieldCombination(record), record.resultType || record.fieldType || "", record.status || "scanned", bonus.wood, bonus.clay, bonus.iron, bonus.crop, record.playerId || "", record.playerName || "", record.villageName || "", record.kingdomId || "", record.oasisStatus || "", record.locationId || "", new Date(coordinate.scannedAt).toISOString(), record.lastSeen ? new Date(record.lastSeen).toISOString() : ""]);
+      const insideSelected = progress.allSections || assignedSections.some(section => section.id === tagTeamConfig.selectedSection);
+      rows.push([window.location.hostname, tagTeamSession.id, new Date(tagTeamSession.startedAt).toISOString(), tagTeamConfig.teamSize, tagTeamConfig.selectedSection, progress.allSections ? "All" : selectedSection?.position || "", primarySection?.id || "", assignedSections.map(section => section.id).join(" ; "), insideSelected ? "Yes" : "No", coordinate.x, coordinate.y, `${coordinate.x}|${coordinate.y}`, record.tileType || "unknown", getRecordFieldCombination(record), record.resultType || record.fieldType || "", record.status || "scanned", bonus.wood, bonus.clay, bonus.iron, bonus.crop, record.playerId || "", record.playerName || "", record.villageName || "", record.kingdomId || "", record.oasisStatus || "", record.locationId || "", new Date(coordinate.scannedAt).toISOString(), record.lastSeen ? new Date(record.lastSeen).toISOString() : ""]);
     });
-    createCSVDownload(rows, "apes-tag-team-" + `${window.location.hostname}-` + `section-${tagTeamConfig.selectedSection}-` + `${tagTeamSession.id}.csv`);
-    setStatus(`Exported ${progress.scannedCoordinates.length.toLocaleString()} Tag Team session tiles for Section ${tagTeamConfig.selectedSection}.`);
+    const scope = progress.allSections ? "all" : tagTeamConfig.selectedSection.toLowerCase();
+    createCSVDownload(rows, `apes-tag-team-${window.location.hostname}-section-${scope}-${tagTeamSession.id}.csv`);
+    setStatus(`Exported ${progress.scannedCoordinates.length.toLocaleString()} Tag Team session tiles for ${getVisibleSectionLabel()}.`);
   }
   function exportVisibleResults() {
     if (tagTeamConfig.enabled) {
@@ -2217,46 +2205,6 @@
             var(--qol-section-rgb),
             0.58
           )
-          !important;
-      }
-
-      .qol-tag-team-tile.is-other-section {
-        background:
-          rgba(
-            var(--qol-section-rgb),
-            0.17
-          )
-          !important;
-      }
-
-      .qol-tag-team-tile.is-selected-overlap {
-        background:
-          repeating-linear-gradient(
-            135deg,
-            rgba(
-              var(--qol-selected-section-rgb),
-              0.62
-            ) 0,
-            rgba(
-              var(--qol-selected-section-rgb),
-              0.62
-            ) 5px,
-            rgba(
-              var(--qol-section-rgb),
-              0.42
-            ) 5px,
-            rgba(
-              var(--qol-section-rgb),
-              0.42
-            ) 10px
-          )
-          !important;
-      }
-
-      .qol-tag-team-tile.is-scanned {
-        filter:
-          saturate(0.38)
-          brightness(0.58)
           !important;
       }
 
@@ -2680,11 +2628,8 @@
           grid
           !important;
         grid-template-columns:
-          minmax(105px, 120px)
-          minmax(135px, 160px)
-          minmax(150px, 1fr)
-          auto
-          auto
+          minmax(105px, 140px)
+          minmax(150px, 220px)
           !important;
         gap:
           6px
@@ -2712,42 +2657,6 @@
           !important;
         font-weight:
           bold
-          !important;
-      }
-
-      .qol-tag-team-area {
-        height:
-          28px
-          !important;
-        display:
-          flex
-          !important;
-        align-items:
-          center
-          !important;
-        padding:
-          0 8px
-          !important;
-        border:
-          1px solid #b7a88d
-          !important;
-        border-radius:
-          3px
-          !important;
-        background:
-          #fff
-          !important;
-        color:
-          var(--qol-accent-deep)
-          !important;
-        font-weight:
-          bold
-          !important;
-        white-space:
-          nowrap
-          !important;
-        box-sizing:
-          border-box
           !important;
       }
 
@@ -3563,7 +3472,7 @@
           Hover any map tile to mark its coordinate as scanned,
           including empty terrain and occupied villages.
           Visual Aid Mode shows unscanned tiles in blue and
-          scanned tiles in red. Highlight 9c marks discovered 9c tiles
+          scanned tiles in red. Tag Team Visual Aid shows only the selected section, or every section when All is selected. Highlight 9c marks discovered 9c tiles
           orange, while Highlight 15c marks discovered 15c tiles purple.
           Tag Team Mode divides the
           -59 to 59 map into identical shared sections while
@@ -3601,54 +3510,26 @@
 
           <div class="qol-tag-team-details">
             <div class="qol-tag-team-settings">
-              <label class="qol-tag-team-field">
-                <span>Tag Team Users</span>
+            <label class="qol-tag-team-field">
+              <span>Tag Team Users</span>
 
-                <select id="qol-tag-team-size">
-                  <option value="2">2 users</option>
-                  <option value="3">3 users</option>
-                  <option value="4">4 users</option>
-                  <option value="5">5 users</option>
-                  <option value="6">6 users</option>
-                </select>
-              </label>
+              <select id="qol-tag-team-size">
+                <option value="2">2 users</option>
+                <option value="3">3 users</option>
+                <option value="4">4 users</option>
+                <option value="5">5 users</option>
+                <option value="6">6 users</option>
+              </select>
+            </label>
 
-              <label class="qol-tag-team-field">
-                <span>Your Section</span>
+            <label class="qol-tag-team-field">
+              <span>Visible Section</span>
 
-                <select
-                  id="qol-tag-team-section"
-                ></select>
-              </label>
-
-              <label class="qol-tag-team-field">
-                <span>Scanner Name</span>
-
-                <input
-                  id="qol-tag-team-scanner-name"
-                  type="text"
-                  maxlength="80"
-                  placeholder="Discord or player name"
-                  autocomplete="off"
-                >
-              </label>
-
-              <div
-                class="qol-tag-team-area"
-                title="Shared scan boundaries and border overlap"
-              >
-                X -59…59 · Y -59…59 · 1 overlap
-              </div>
-
-              <div
-                id="qol-tag-team-copy-setup"
-                class="qol-oasis-action-btn"
-                role="button"
-                tabindex="0"
-              >
-                Copy Setup
-              </div>
-            </div>
+              <select
+                id="qol-tag-team-section"
+              ></select>
+            </label>
+          </div>
 
             <div class="qol-tag-team-progress-grid">
               <div class="qol-tag-team-progress-item">
@@ -3906,17 +3787,6 @@
     });
     oasisContainer.querySelector("#qol-tag-team-section").addEventListener("change", event => {
       changeTagTeamSection(event.target.value);
-    });
-    oasisContainer.querySelector("#qol-tag-team-scanner-name").addEventListener("input", event => {
-      changeTagTeamScannerName(event.target.value);
-    });
-    oasisContainer.querySelector("#qol-tag-team-copy-setup").addEventListener("click", copyTagTeamSetup);
-    oasisContainer.querySelector("#qol-tag-team-copy-setup").addEventListener("keydown", event => {
-      if (event.key !== "Enter" && event.key !== " ") {
-        return;
-      }
-      event.preventDefault();
-      copyTagTeamSetup();
     });
     oasisContainer.querySelector("#qol-tag-team-new-session").addEventListener("click", () => {
       startNewTagTeamSession();
