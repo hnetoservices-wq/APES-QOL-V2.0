@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL v2 Alpha",
-  "version": "2.0.0.68",
+  "version": "2.0.0.69",
   "description": "APES QoL v2 alpha for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -13,6 +13,7 @@
         "*://*.kingdoms.com/*"
       ],
       "js": [
+        "js/core/playerIdentityBridge.js",
         "js/ui/villageDashboardBridge.js",
         "js/features/oasisNetworkBridge.js"
       ],
@@ -92,5 +93,5 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-alpha.75"
+  "version_name": "2.0.0-alpha.76"
 }
