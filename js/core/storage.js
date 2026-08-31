@@ -14,6 +14,8 @@
 
     const PREFIX = 'apes:v2';
     const VALID_SCOPES = new Set(['global', 'server', 'player']);
+    const PLAYER_ID_TIMEOUT_MS = 6000;
+    const PLAYER_ID_POLL_MS = 60;
 
     function assertSegment(value, label) {
         const segment = String(value ?? '').trim();
@@ -23,6 +25,14 @@
         }
 
         return segment;
+    }
+
+    function assertPlayerId(value) {
+        const playerId = String(value ?? '').trim();
+        if (!/^\d+$/.test(playerId)) {
+            throw new Error('APES player identity is not resolved yet.');
+        }
+        return playerId;
     }
 
     function buildKey({ feature, key, scope = 'player' }) {
@@ -43,12 +53,27 @@
             return `${PREFIX}:${server}:server:${featureSegment}:${keySegment}`;
         }
 
-        const playerId = assertSegment(
-            APES.context.getPlayerId(),
-            'player'
-        );
-
+        const playerId = assertPlayerId(APES.context.getPlayerId());
         return `${PREFIX}:${server}:${playerId}:${featureSegment}:${keySegment}`;
+    }
+
+    async function waitForPlayerId(timeoutMs = PLAYER_ID_TIMEOUT_MS) {
+        const startedAt = Date.now();
+        while (Date.now() - startedAt < timeoutMs) {
+            const playerId = String(APES.context.getPlayerId?.() || '').trim();
+            if (/^\d+$/.test(playerId)) return playerId;
+            await new Promise(resolve => window.setTimeout(resolve, PLAYER_ID_POLL_MS));
+        }
+        throw new Error(
+            'APES could not resolve the logged-in player identity. ' +
+            'Player-scoped data was not read or written to avoid account mixing.'
+        );
+    }
+
+    async function buildKeyAsync(options) {
+        const scope = options?.scope || 'player';
+        if (scope === 'player') await waitForPlayerId();
+        return buildKey(options);
     }
 
     function getAllChromeStorage() {
@@ -63,9 +88,10 @@
     APES.storage = {
         prefix: PREFIX,
         key: buildKey,
+        waitForPlayerId,
 
         async get(options, fallback = null) {
-            const storageKey = buildKey(options);
+            const storageKey = await buildKeyAsync(options);
             const result = await chrome.storage.local.get(storageKey);
             return Object.hasOwn(result, storageKey)
                 ? result[storageKey]
@@ -73,7 +99,7 @@
         },
 
         async set(options, value) {
-            const storageKey = buildKey(options);
+            const storageKey = await buildKeyAsync(options);
             await chrome.storage.local.set({ [storageKey]: value });
             APES.events.emit('storage:changed', {
                 key: storageKey,
@@ -83,7 +109,7 @@
         },
 
         async remove(options) {
-            const storageKey = buildKey(options);
+            const storageKey = await buildKeyAsync(options);
             await chrome.storage.local.remove(storageKey);
             APES.events.emit('storage:removed', { key: storageKey });
         },
