@@ -2,15 +2,16 @@
  * APES QoL v2 — Logged-in player identity bridge.
  *
  * Runs in Travian's MAIN world and exposes only the logged-in player's numeric
- * player id through a DOM data attribute shared with the isolated extension
- * world. This prevents player-scoped storage from guessing identity from an
- * arbitrary player profile currently open on screen.
+ * player id plus the active own-village id through DOM data attributes shared
+ * with the isolated extension world. This prevents player-scoped storage from
+ * guessing identity from an arbitrary player profile currently open on screen.
  */
 (() => {
     'use strict';
 
     const FLAG = '__APES_QOL_PLAYER_IDENTITY_BRIDGE__';
     const PLAYER_ATTRIBUTE = 'data-apes-player-id';
+    const VILLAGE_ATTRIBUTE = 'data-apes-village-id';
     const MAX_FAST_ATTEMPTS = 80;
     const FAST_INTERVAL_MS = 250;
 
@@ -34,7 +35,7 @@
     function activeVillageId(cacheObject) {
         const hashId = String(location.hash || '')
             .match(/(?:^|\/)villId:(\d+)/i)?.[1];
-        if (hashId) return hashId;
+        if (hashId && modelData(cacheObject, `Village:${hashId}`)) return hashId;
 
         for (const [key, model] of Object.entries(cacheObject)) {
             const match = key.match(/^Village:(\d+)$/);
@@ -47,17 +48,20 @@
         return '';
     }
 
-    function resolvePlayerId() {
+    function resolveIdentity() {
         const cacheObject = cache();
         const villageId = activeVillageId(cacheObject);
-        if (!villageId) return '';
-        return asId(modelData(cacheObject, `Village:${villageId}`)?.playerId);
+        if (!villageId) return { villageId: '', playerId: '' };
+        const playerId = asId(modelData(cacheObject, `Village:${villageId}`)?.playerId);
+        return { villageId, playerId };
     }
 
     function publish() {
-        const playerId = resolvePlayerId();
-        if (!playerId || !document.documentElement) return false;
-        document.documentElement.setAttribute(PLAYER_ATTRIBUTE, playerId);
+        const { villageId, playerId } = resolveIdentity();
+        const root = document.documentElement;
+        if (!root || !villageId || !playerId) return false;
+        root.setAttribute(PLAYER_ATTRIBUTE, playerId);
+        root.setAttribute(VILLAGE_ATTRIBUTE, villageId);
         return true;
     }
 
@@ -69,8 +73,8 @@
         }
     }, FAST_INTERVAL_MS);
 
-    // Try immediately when possible, then retry on SPA navigation. If Travian
-    // initialized unusually slowly, the hash change gives us another chance.
+    // Try immediately when possible, then refresh on SPA navigation so context
+    // follows village switches without requiring a page reload.
     publish();
     window.addEventListener('hashchange', publish, { passive: true });
 })();
