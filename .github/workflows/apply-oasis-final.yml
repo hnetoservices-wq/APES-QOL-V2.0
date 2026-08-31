@@ -20,20 +20,33 @@ jobs:
           python3 <<'PY'
           from pathlib import Path
           import json
-          import re
 
           path = Path('js/features/oasisScanner.js')
           text = path.read_text()
 
-          def one(pattern, replacement, label, flags=0):
+          def replace_once(old, new, label):
               global text
-              text, count = re.subn(pattern, replacement, text, count=1, flags=flags)
+              count = text.count(old)
               if count != 1:
-                  raise SystemExit(f'{label}: expected 1 replacement, got {count}')
+                  raise SystemExit(f'{label}: expected 1 occurrence, got {count}')
+              text = text.replace(old, new, 1)
 
-          one(r'  const TAG_TEAM_OVERLAP = 1;\n', '', 'overlap constant')
+          def replace_between(start_marker, end_marker, replacement, label):
+              global text
+              start = text.find(start_marker)
+              if start < 0:
+                  raise SystemExit(f'{label}: start marker missing')
+              end = text.find(end_marker, start + len(start_marker))
+              if end < 0:
+                  raise SystemExit(f'{label}: end marker missing')
+              text = text[:start] + replacement + text[end:]
 
-          one(r'''  function getDefaultTagTeamConfig\(\) \{.*?\n  function loadTagTeamConfig\(\) \{''', '''  function getDefaultTagTeamConfig() {
+          replace_once('  const TAG_TEAM_OVERLAP = 1;\n', '', 'overlap constant')
+
+          replace_between(
+              '  function getDefaultTagTeamConfig() {',
+              '  function loadTagTeamConfig() {',
+              '''  function getDefaultTagTeamConfig() {
             return {
               enabled: false,
               teamSize: 2,
@@ -51,14 +64,29 @@ jobs:
               selectedSection
             };
           }
-          function loadTagTeamConfig() {''', 'config block', re.S)
+''',
+              'config block'
+          )
 
-          one(r'''        const assigned = \{.*?\n        \};\n        sections\.push''', '''        const assigned = {
+          replace_once(
+              '''        const assigned = {
+                  minX: Math.max(TAG_TEAM_BOUNDS.minX, primary.minX - (column > 0 ? TAG_TEAM_OVERLAP : 0)),
+                  maxX: primary.maxX,
+                  minY: Math.max(TAG_TEAM_BOUNDS.minY, primary.minY - (row > 0 ? TAG_TEAM_OVERLAP : 0)),
+                  maxY: primary.maxY
+                };
+''',
+              '''        const assigned = {
                   ...primary
                 };
-                sections.push''', 'assigned bounds', re.S)
+''',
+              'assigned bounds'
+          )
 
-          one(r'''  function getSelectedTagTeamSection\(\) \{.*?\n  function getBoundsTileCount''', '''  function getSelectedTagTeamSection() {
+          replace_between(
+              '  function getSelectedTagTeamSection() {',
+              '  function getBoundsTileCount(bounds) {',
+              '''  function getSelectedTagTeamSection() {
             if (tagTeamConfig.selectedSection === "ALL") {
               return null;
             }
@@ -67,9 +95,14 @@ jobs:
           function isAllTagTeamSectionsVisible() {
             return tagTeamConfig.selectedSection === "ALL";
           }
-          function getBoundsTileCount''', 'selected section helper', re.S)
+''',
+              'selected section helper'
+          )
 
-          one(r'''  function getTagTeamProgress\(\) \{.*?\n  function formatPercentage''', '''  function getTagTeamProgress() {
+          replace_between(
+              '  function getTagTeamProgress() {',
+              '  function formatPercentage(value) {',
+              '''  function getTagTeamProgress() {
             const selectedSection = getSelectedTagTeamSection();
             const allSections = isAllTagTeamSectionsVisible();
             const scannedCoordinates = Object.entries(tagTeamSession.scannedTiles || {}).map(([id, scannedAt]) => {
@@ -102,9 +135,14 @@ jobs:
               overallPercentage: overallTotal ? overallScanned / overallTotal * 100 : 0
             };
           }
-          function formatPercentage''', 'progress block', re.S)
+''',
+              'progress block'
+          )
 
-          one(r'''  function updateTagTeamProgressUI\(\) \{.*?\n  function updateTagTeamUI''', '''  function updateTagTeamProgressUI() {
+          replace_between(
+              '  function updateTagTeamProgressUI() {',
+              '  function updateTagTeamUI() {',
+              '''  function updateTagTeamProgressUI() {
             const card = document.getElementById("qol-tag-team-card");
             if (!card) {
               return;
@@ -129,9 +167,14 @@ jobs:
               overallBar.style.setProperty("width", formatPercentage(progress.overallPercentage), "important");
             }
           }
-          function updateTagTeamUI''', 'progress ui', re.S)
+''',
+              'progress ui'
+          )
 
-          one(r'''  function updateTagTeamUI\(\) \{.*?\n  function toggleVisualAidMode''', '''  function updateTagTeamUI() {
+          replace_between(
+              '  function updateTagTeamUI() {',
+              '  function toggleVisualAidMode() {',
+              '''  function updateTagTeamUI() {
             const card = document.getElementById("qol-tag-team-card");
             if (!card) {
               return;
@@ -178,9 +221,14 @@ jobs:
             }
             updateTagTeamProgressUI();
           }
-          function toggleVisualAidMode''', 'tag ui', re.S)
+''',
+              'tag ui'
+          )
 
-          one(r'''  function toggleTagTeamMode\(\) \{.*?\n  function recordTagTeamScan\(record\) \{''', '''  function getVisibleSectionLabel() {
+          replace_between(
+              '  function toggleTagTeamMode() {',
+              '  function recordTagTeamScan(record) {',
+              '''  function getVisibleSectionLabel() {
             return isAllTagTeamSectionsVisible() ? "All sections" : `Section ${tagTeamConfig.selectedSection}`;
           }
           function toggleTagTeamMode() {
@@ -235,9 +283,14 @@ jobs:
             scheduleScannedOverlayRender();
             setStatus(`Visible section changed to ${getVisibleSectionLabel()}. Existing session scans were preserved.`);
           }
-          function recordTagTeamScan(record) {''', 'tag controls', re.S)
+''',
+              'tag controls'
+          )
 
-          one(r'''  function renderScannedTileOverlay\(\) \{.*?\n  function scheduleScannedOverlayRender''', '''  function renderScannedTileOverlay() {
+          replace_between(
+              '  function renderScannedTileOverlay() {',
+              '  function scheduleScannedOverlayRender() {',
+              '''  function renderScannedTileOverlay() {
             if (!ensureScannedTileOverlay() || !scannedOverlay || !observedMapOverlay) {
               return;
             }
@@ -307,9 +360,14 @@ jobs:
             }
             scannedOverlay.replaceChildren(fragment);
           }
-          function scheduleScannedOverlayRender''', 'overlay renderer', re.S)
+''',
+              'overlay renderer'
+          )
 
-          one(r'''  function updateResultCount\(\) \{.*?\n  function getCropperStatusLabel''', '''  function updateResultCount() {
+          replace_between(
+              '  function updateResultCount() {',
+              '  function getCropperStatusLabel(cropper) {',
+              '''  function updateResultCount() {
             const countElement = document.getElementById("qol-oasis-result-count");
             if (!countElement) {
               return;
@@ -323,9 +381,14 @@ jobs:
             }
             countElement.textContent = `${createDisplayEntries().length} results shown / ${getTotalSavedCount()} tiles scanned`;
           }
-          function getCropperStatusLabel''', 'result count', re.S)
+''',
+              'result count'
+          )
 
-          one(r'''  function exportTagTeamSession\(\) \{.*?\n  function exportVisibleResults''', '''  function exportTagTeamSession() {
+          replace_between(
+              '  function exportTagTeamSession() {',
+              '  function exportVisibleResults() {',
+              '''  function exportTagTeamSession() {
             saveTagTeamSession();
             const progress = getTagTeamProgress();
             if (!progress.scannedCoordinates.length) {
@@ -346,9 +409,14 @@ jobs:
             createCSVDownload(rows, `apes-tag-team-${window.location.hostname}-section-${scope}-${tagTeamSession.id}.csv`);
             setStatus(`Exported ${progress.scannedCoordinates.length.toLocaleString()} Tag Team session tiles for ${getVisibleSectionLabel()}.`);
           }
-          function exportVisibleResults''', 'tag export', re.S)
+''',
+              'tag export'
+          )
 
-          one(r'''      \.qol-tag-team-settings \{.*?\n      \.qol-tag-team-field \{''', '''      .qol-tag-team-settings {
+          replace_between(
+              '      .qol-tag-team-settings {',
+              '      .qol-tag-team-field {',
+              '''      .qol-tag-team-settings {
                 display:
                   grid
                   !important;
@@ -364,15 +432,28 @@ jobs:
                   !important;
               }
 
-              .qol-tag-team-field {''', 'settings css', re.S)
+''',
+              'settings css'
+          )
 
-          one(r'''\n      \.qol-tag-team-area \{.*?\n      \}\n\n      \.qol-tag-team-progress-grid''', '''
+          replace_between(
+              '      .qol-tag-team-area {',
+              '      .qol-tag-team-progress-grid {',
+              '',
+              'area css'
+          )
 
-              .qol-tag-team-progress-grid''', 'area css', re.S)
+          replace_between(
+              '      .qol-tag-team-tile.is-other-section {',
+              '      .qol-tag-team-tile.is-section-edge {',
+              '',
+              'obsolete overlay css'
+          )
 
-          one(r'''\n      \.qol-tag-team-tile\.is-selected-overlap \{.*?\n      \}\n\n      \.qol-tag-team-tile\.is-scanned \{.*?\n      \}\n''', '\n', 'obsolete overlay css', re.S)
-
-          one(r'''          <div class="qol-tag-team-settings">.*?\n            </div>\n\n            <div class="qol-tag-team-progress-grid">''', '''          <div class="qol-tag-team-settings">
+          replace_between(
+              '          <div class="qol-tag-team-settings">',
+              '            <div class="qol-tag-team-progress-grid">',
+              '''          <div class="qol-tag-team-settings">
                       <label class="qol-tag-team-field">
                         <span>Tag Team Users</span>
 
@@ -394,18 +475,41 @@ jobs:
                       </label>
                     </div>
 
-                    <div class="qol-tag-team-progress-grid">''', 'settings html', re.S)
+''',
+              'settings html'
+          )
 
-          one(r'''    oasisContainer\.querySelector\("#qol-tag-team-scanner-name"\).*?\n    oasisContainer\.querySelector\("#qol-tag-team-new-session"\)\.addEventListener\("click"''', '''    oasisContainer.querySelector("#qol-tag-team-new-session").addEventListener("click"''', 'obsolete listeners', re.S)
+          replace_between(
+              '    oasisContainer.querySelector("#qol-tag-team-scanner-name")',
+              '    oasisContainer.querySelector("#qol-tag-team-new-session").addEventListener("click"',
+              '',
+              'obsolete listeners'
+          )
 
-          text = text.replace('Visual Aid Mode shows unscanned tiles in blue and\n          scanned tiles in red. Highlight 9c marks discovered 9c tiles', 'Visual Aid Mode shows unscanned tiles in blue and\n          scanned tiles in red. Tag Team Visual Aid shows only the selected section, or every section when All is selected. Highlight 9c marks discovered 9c tiles')
+          text = text.replace(
+              'Visual Aid Mode shows unscanned tiles in blue and\n          scanned tiles in red. Highlight 9c marks discovered 9c tiles',
+              'Visual Aid Mode shows unscanned tiles in blue and\n          scanned tiles in red. Tag Team Visual Aid shows only the selected section, or every section when All is selected. Highlight 9c marks discovered 9c tiles'
+          )
 
-          forbidden = ['scannerName', 'Scanner Name', 'qol-tag-team-scanner-name', 'qol-tag-team-copy-setup', 'Copy Setup', 'TAG_TEAM_OVERLAP', 'is-selected-overlap', 'qol-tag-team-area']
+          forbidden = [
+              'scannerName',
+              'Scanner Name',
+              'qol-tag-team-scanner-name',
+              'qol-tag-team-copy-setup',
+              'Copy Setup',
+              'TAG_TEAM_OVERLAP',
+              'is-selected-overlap',
+              'is-other-section',
+              'qol-tag-team-area',
+              'Your Section'
+          ]
           for token in forbidden:
               if token in text:
                   raise SystemExit(f'forbidden token remains: {token}')
-          if '<span>Visible Section</span>' not in text or '<option value="ALL">All</option>' not in text:
-              raise SystemExit('Visible Section or All option missing')
+          if '<span>Visible Section</span>' not in text:
+              raise SystemExit('Visible Section label missing')
+          if '<option value="ALL">All</option>' not in text:
+              raise SystemExit('All section option missing')
 
           path.write_text(text)
 
