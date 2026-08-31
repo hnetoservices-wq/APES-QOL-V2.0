@@ -106,7 +106,10 @@ jobs:
                 const result = await postcss([
                   discardComments({ removeAll: true })
                 ]).process(original, { from: undefined });
-                output = result.css;
+                output = result.css
+                  .split('\n')
+                  .map(line => line.replace(/[ \t]+$/g, ''))
+                  .join('\n');
                 const rootCss = postcss.parse(output);
                 let remaining = 0;
                 rootCss.walkComments(() => { remaining += 1; });
