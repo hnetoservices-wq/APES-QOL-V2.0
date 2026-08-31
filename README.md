@@ -32,4 +32,4 @@ Current work should prioritize stability, storage safety, parser/navigation regr
 - Scanners must wait for confirmed rendered state before parsing or moving to the next page.
 - Shared UI must use APES-owned classes and controls.
 
-See [docs/V2_ARCHITECTURE.md](docs/V2_ARCHITECTURE.md) for implementation details.
+See [docs/V2_ARCHITECTURE.md](docs/V2_ARCHITECTURE.md) for implementation details and [docs/RELEASE_HARDENING_CHECKLIST.md](docs/RELEASE_HARDENING_CHECKLIST.md) for the pre-release smoke-test matrix.
