@@ -49,7 +49,6 @@
 
     let syncScheduled = false;
     let toolbarCollapsed = false;
-    let toolbarMode = 'normal';
     let observedVillageList = null;
     let resizeObserver = null;
 
@@ -301,6 +300,15 @@
         return `${PROXY_PREFIX}${sourceId}`;
     }
 
+    function abbreviation(label) {
+        return String(label || '?')
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(part => part[0]?.toUpperCase() || '')
+            .join('') || '?';
+    }
+
     function copySvgPresentation(source, proxy) {
         const sourceSvg = source?.querySelector('svg');
         const proxySvg = proxy?.querySelector('svg');
@@ -338,7 +346,8 @@
             host.appendChild(proxy);
         }
 
-        const markup = source?.innerHTML || '';
+        const sourceMarkup = String(source?.innerHTML || '').trim();
+        const markup = sourceMarkup || `<span>${abbreviation(label)}</span>`;
         if (proxy.dataset.qolMarkup !== markup) {
             proxy.innerHTML = markup;
             proxy.dataset.qolMarkup = markup;
@@ -359,7 +368,6 @@
     }
 
     function widthFor(toolCount, size, gap) {
-        // Cog + N feature buttons, with a gap only between controls.
         const controls = 1 + toolCount;
         return controls * size + Math.max(0, controls - 1) * gap;
     }
@@ -387,9 +395,6 @@
         toolbarCollapsed = collapsed;
         window.qolToolbarCollapsed = collapsed;
         document.body?.classList.toggle('qol-toolbar-collapsed', collapsed);
-
-        // Keep menu.js's historical dropdown closed. This toolbar owns its
-        // own overflow menu and never needs the old per-button dropdown.
         document.getElementById('qol-toolbar-dropdown')?.classList.remove('qol-open');
     }
 
@@ -475,19 +480,28 @@
         triggerSource(sourceId);
     }
 
+    function placeProxyAt(host, proxy, index) {
+        const current = host.children[index] || null;
+        if (current === proxy) return;
+        host.insertBefore(proxy, current);
+    }
+
     function syncProxies(host, items) {
         const cogSource = sourceFor(COG_SOURCE_ID);
         if (!cogSource) return false;
 
-        const cog = ensureProxy(host, cogSource, COG_SOURCE_ID, 'APES QoL Settings', 'qol-toolbar-cog-proxy');
-        host.appendChild(cog);
+        const wanted = new Set();
+        let slot = 0;
 
-        const wanted = new Set([proxyId(COG_SOURCE_ID)]);
+        const cog = ensureProxy(host, cogSource, COG_SOURCE_ID, 'APES QoL Settings', 'qol-toolbar-cog-proxy');
+        placeProxyAt(host, cog, slot++);
+        wanted.add(cog.id);
+
         items.forEach(item => {
             const source = sourceFor(item.id);
             if (!source) return;
             const proxy = ensureProxy(host, source, item.id, item.label, 'qol-toolbar-feature-proxy');
-            host.appendChild(proxy);
+            placeProxyAt(host, proxy, slot++);
             wanted.add(proxy.id);
         });
 
@@ -535,7 +549,6 @@
         }
 
         const layout = resolveLayout(rect, items.length);
-        toolbarMode = layout.mode;
         setCompatibilityState(layout.collapsed);
 
         host.classList.toggle('qol-toolbar-collapsed-host', layout.collapsed);
@@ -578,8 +591,8 @@
     }
 
     function captureAndSchedule() {
-        // Move recognized source buttons to the hidden depot immediately in
-        // the MutationObserver microtask, before the next browser paint.
+        // Capture happens in the MutationObserver microtask, before the next
+        // paint, so a newly mounted legacy source button is never visible.
         captureSources();
         scheduleSync();
     }
@@ -591,8 +604,8 @@
         ensureMenu();
         captureSources();
 
-        // Replace the historical public reposition hook. Feature modules may
-        // request a refresh, but no feature receives authority over geometry.
+        // Feature modules may request a toolbar refresh, but they never receive
+        // geometry ownership. The visible row is laid out only by this host.
         window.qolRepositionAllButtons = scheduleSync;
         window.qolRefreshToolbar = scheduleSync;
 
