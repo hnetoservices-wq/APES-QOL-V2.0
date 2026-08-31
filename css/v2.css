@@ -284,6 +284,12 @@
     margin-left: 8px !important;
 }
 
+/* Player Dossier is launched from Secret Society Scanner only. */
+.qol-pd-profile-open,
+#qol-watchlist-container .qol-pd-inline-open {
+    display: none !important;
+}
+
 @media (max-width: 520px), (max-height: 520px) {
     .apes-v2-radial {
         transform: scale(.78) !important;
