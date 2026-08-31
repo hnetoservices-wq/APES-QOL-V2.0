@@ -20,25 +20,42 @@
         return result || fallback;
     }
 
-    function getPlayerId() {
-        const explicit = document.querySelector(
-            '[data-player-id], [playerid].playerLink'
-        );
-        const value = explicit?.getAttribute('data-player-id') ||
-            explicit?.getAttribute('playerid');
+    function numericId(value) {
+        const text = String(value ?? '').trim();
+        return /^\d+$/.test(text) ? text : '';
+    }
 
-        return clean(value);
+    function getPlayerId() {
+        // Never infer the logged-in player from a generic .playerLink: the user
+        // may have another player's profile open. MAIN-world bridge data is
+        // intentionally derived from the active own-village cache instead.
+        const bridged = numericId(
+            document.documentElement?.getAttribute('data-apes-player-id')
+        );
+        if (bridged) return bridged;
+
+        // Reserved safe hook for any future own-profile marker. Do not broaden
+        // this selector to generic player links.
+        const explicitOwn = document.querySelector('[data-apes-own-player-id]');
+        const explicitId = numericId(explicitOwn?.getAttribute('data-apes-own-player-id'));
+        return explicitId || 'unknown';
     }
 
     function getVillageId() {
         const hashMatch = String(window.location.hash || '')
-            .match(/villId:(\d+)/i);
+            .match(/(?:^|\/)villId:(\d+)/i);
+        if (hashMatch) return hashMatch[1];
 
-        return hashMatch ? hashMatch[1] : 'unknown';
+        const bridged = numericId(
+            document.documentElement?.getAttribute('data-apes-village-id')
+        );
+        return bridged || 'unknown';
     }
 
     function getVillageName() {
         const element = document.querySelector(
+            '.currentVillageName .dropdownHead .selectedItem .villageEntry, ' +
+            '#villageList .dropdownHead .selectedItem .villageEntry, ' +
             '.currentVillageName .villageEntry, ' +
             '.villageEntry.active, .active .villageEntry'
         );
@@ -54,6 +71,10 @@
         getPlayerId,
         getVillageId,
         getVillageName,
+
+        isPlayerResolved() {
+            return /^\d+$/.test(getPlayerId());
+        },
 
         snapshot() {
             return Object.freeze({
