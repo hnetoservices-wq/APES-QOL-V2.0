@@ -37,6 +37,7 @@
         { id: 'qol-building-alarm-toggle-btn', label: 'Building Alarms', key: 'buildingAlarm' },
         { id: 'qol-npc-calc-toggle-btn', label: 'NPC Calculator', key: 'npcCalculator' },
         { id: 'qol-resource-planner-toggle-btn', label: 'Resource Upgrade Planner', key: 'resourceUpgradePlanner' },
+        { id: 'qol-building-plan-toggle-btn', label: 'Building Plan / Queue Planner', key: 'buildingPlanQueuePlanner' },
         { id: 'qol-distance-calc-toggle-btn', label: 'Distance & Arrival Calculator', key: 'distanceCalculator' },
         { id: 'qol-oasis-toggle-btn', label: 'Oasis Scanner', key: 'oasisScanner' },
         { id: 'qol-report-archive-toggle', label: 'Report Archive', key: 'reportArchive' },
