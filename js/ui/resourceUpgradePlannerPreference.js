@@ -1,10 +1,9 @@
 /**
  * APES QoL v2 — Resource Upgrade Planner preference + per-village scan state.
  *
- * Keeps the feature preference when APES server cache is cleared and makes the
- * planner's scanned village state persistent by numeric villId. Each village is
- * scanned once, restored automatically when revisited, and keeps its own
- * roadmap/results context without another navigation scan.
+ * Keeps the feature preference when APES server cache is cleared, makes the
+ * planner's scanned village state persistent by numeric villId, and turns the
+ * planner into a floating work window that can stay open while using Travian.
  */
 (() => {
     'use strict';
@@ -13,6 +12,8 @@
     const FEATURE_KEY = 'resourceUpgradePlanner';
     const PREFERENCE_KEY = 'qolpref_resourceUpgradePlanner';
     const PANEL_ID = 'qol-resource-upgrade-planner-overlay';
+    const FLOAT_STYLE_ID = 'qol-resource-upgrade-floating-styles';
+    const WINDOW_GEOMETRY_KEY = `apes_resource_upgrade_window_geometry_v1_${location.hostname}`;
     const VILLAGE_STATE_STORAGE = Object.freeze({
         feature: FEATURE_KEY,
         key: 'villageScanStates',
@@ -32,6 +33,8 @@
     let pendingScan = null;
     let scanWatchTimer = null;
     let lastSavedFingerprint = '';
+    let geometryResizeObserver = null;
+    let geometrySaveTimer = null;
 
     window.isQolEnabled = function(key) {
         if (key === FEATURE_KEY) {
@@ -136,6 +139,10 @@
 
     function panel() {
         return document.getElementById(PANEL_ID);
+    }
+
+    function plannerWindow() {
+        return panel()?.querySelector('.qol-rup-window') || null;
     }
 
     function panelIsOpen() {
@@ -336,6 +343,167 @@
         await saveVillageState(identity, state, villageStore.villages[villageKey(identity.villageId)]?.scannedAt || Date.now());
     }
 
+    function injectFloatingStyles() {
+        if (!panel() || document.getElementById(FLOAT_STYLE_ID)) return;
+        const style = document.createElement('style');
+        style.id = FLOAT_STYLE_ID;
+        style.textContent = `
+            #${PANEL_ID}{
+                display:none!important;
+                position:fixed!important;
+                inset:0!important;
+                padding:0!important;
+                background:transparent!important;
+                align-items:initial!important;
+                justify-content:initial!important;
+                pointer-events:none!important;
+            }
+            #${PANEL_ID}.qol-open{display:block!important;pointer-events:none!important}
+            #${PANEL_ID} .qol-rup-window{
+                position:absolute!important;
+                left:50%;
+                top:50%;
+                transform:translate(-50%,-50%);
+                width:min(1120px,calc(100vw - 32px))!important;
+                height:min(760px,calc(100vh - 32px))!important;
+                min-width:min(680px,calc(100vw - 16px))!important;
+                min-height:min(420px,calc(100vh - 16px))!important;
+                max-width:calc(100vw - 16px)!important;
+                max-height:calc(100vh - 16px)!important;
+                resize:both!important;
+                overflow:hidden!important;
+                pointer-events:auto!important;
+            }
+            #${PANEL_ID} .qol-rup-header{cursor:move!important;user-select:none!important;touch-action:none!important}
+            #${PANEL_ID} .qol-rup-body{flex:1 1 auto!important;min-height:0!important;overflow:auto!important}
+        `;
+        document.head.appendChild(style);
+    }
+
+    function loadWindowGeometry() {
+        try {
+            const value = JSON.parse(localStorage.getItem(WINDOW_GEOMETRY_KEY) || 'null');
+            return value && typeof value === 'object' ? value : null;
+        } catch (_) {
+            return null;
+        }
+    }
+
+    function saveWindowGeometry(win = plannerWindow()) {
+        if (!win || !panelIsOpen()) return;
+        const rect = win.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const value = {
+            left: Math.round(rect.left),
+            top: Math.round(rect.top),
+            width: Math.round(rect.width),
+            height: Math.round(rect.height)
+        };
+        try { localStorage.setItem(WINDOW_GEOMETRY_KEY, JSON.stringify(value)); } catch (_) {}
+    }
+
+    function scheduleGeometrySave() {
+        if (geometrySaveTimer !== null) window.clearTimeout(geometrySaveTimer);
+        geometrySaveTimer = window.setTimeout(() => {
+            geometrySaveTimer = null;
+            saveWindowGeometry();
+        }, 180);
+    }
+
+    function clampGeometry(value) {
+        if (!value || typeof value !== 'object') return null;
+        const maxWidth = Math.max(320, window.innerWidth - 16);
+        const maxHeight = Math.max(260, window.innerHeight - 16);
+        const width = Math.min(maxWidth, Math.max(Math.min(680, maxWidth), Number(value.width) || 0));
+        const height = Math.min(maxHeight, Math.max(Math.min(420, maxHeight), Number(value.height) || 0));
+        if (!Number.isFinite(width) || !Number.isFinite(height)) return null;
+        const left = Math.max(8, Math.min(Number(value.left) || 8, window.innerWidth - width - 8));
+        const top = Math.max(8, Math.min(Number(value.top) || 8, window.innerHeight - height - 8));
+        return { left, top, width, height };
+    }
+
+    function restoreWindowGeometry(win = plannerWindow()) {
+        if (!win || win.dataset.rupGeometryRestored === 'true') return;
+        const geometry = clampGeometry(loadWindowGeometry());
+        if (geometry) {
+            win.style.setProperty('transform', 'none', 'important');
+            win.style.setProperty('left', `${geometry.left}px`, 'important');
+            win.style.setProperty('top', `${geometry.top}px`, 'important');
+            win.style.setProperty('width', `${geometry.width}px`, 'important');
+            win.style.setProperty('height', `${geometry.height}px`, 'important');
+        }
+        win.dataset.rupGeometryRestored = 'true';
+    }
+
+    function keepWindowInViewport(win = plannerWindow()) {
+        if (!win || !panelIsOpen()) return;
+        const rect = win.getBoundingClientRect();
+        if (rect.width <= 0 || rect.height <= 0) return;
+        const width = Math.min(rect.width, Math.max(320, window.innerWidth - 16));
+        const height = Math.min(rect.height, Math.max(260, window.innerHeight - 16));
+        const left = Math.max(8, Math.min(rect.left, window.innerWidth - width - 8));
+        const top = Math.max(8, Math.min(rect.top, window.innerHeight - height - 8));
+        win.style.setProperty('transform', 'none', 'important');
+        win.style.setProperty('left', `${left}px`, 'important');
+        win.style.setProperty('top', `${top}px`, 'important');
+        if (rect.width > window.innerWidth - 16) win.style.setProperty('width', `${width}px`, 'important');
+        if (rect.height > window.innerHeight - 16) win.style.setProperty('height', `${height}px`, 'important');
+    }
+
+    function makeWindowDraggable(win) {
+        const header = win?.querySelector('.qol-rup-header');
+        if (!header || header.dataset.rupFloatingDragBound === 'true') return;
+        header.dataset.rupFloatingDragBound = 'true';
+
+        header.addEventListener('pointerdown', event => {
+            if (event.button !== 0 || event.target.closest('[data-close]')) return;
+            const rect = win.getBoundingClientRect();
+            const offsetX = event.clientX - rect.left;
+            const offsetY = event.clientY - rect.top;
+            win.style.setProperty('transform', 'none', 'important');
+            win.style.setProperty('left', `${rect.left}px`, 'important');
+            win.style.setProperty('top', `${rect.top}px`, 'important');
+            event.preventDefault();
+            event.stopPropagation();
+
+            const move = moveEvent => {
+                const width = win.getBoundingClientRect().width;
+                const height = win.getBoundingClientRect().height;
+                const left = Math.max(8, Math.min(moveEvent.clientX - offsetX, window.innerWidth - width - 8));
+                const top = Math.max(8, Math.min(moveEvent.clientY - offsetY, window.innerHeight - height - 8));
+                win.style.setProperty('left', `${left}px`, 'important');
+                win.style.setProperty('top', `${top}px`, 'important');
+            };
+            const stop = () => {
+                window.removeEventListener('pointermove', move, true);
+                window.removeEventListener('pointerup', stop, true);
+                window.removeEventListener('pointercancel', stop, true);
+                scheduleGeometrySave();
+            };
+            window.addEventListener('pointermove', move, true);
+            window.addEventListener('pointerup', stop, true);
+            window.addEventListener('pointercancel', stop, true);
+        });
+    }
+
+    function ensureFloatingWindow() {
+        const currentPanel = panel();
+        const win = plannerWindow();
+        if (!currentPanel || !win) return;
+        injectFloatingStyles();
+        makeWindowDraggable(win);
+        if (panelIsOpen()) {
+            restoreWindowGeometry(win);
+            window.requestAnimationFrame(() => keepWindowInViewport(win));
+        }
+        if (!geometryResizeObserver && typeof ResizeObserver === 'function') {
+            geometryResizeObserver = new ResizeObserver(() => {
+                if (panelIsOpen()) scheduleGeometrySave();
+            });
+            geometryResizeObserver.observe(win);
+        }
+    }
+
     function handlePlannerClick(event) {
         const scanControl = event.target.closest?.(`#${PANEL_ID} [data-action="scan"]`);
         if (!scanControl) return;
@@ -359,11 +527,17 @@
     document.addEventListener('change', handlePlannerChange, true);
 
     window.addEventListener('hashchange', () => scheduleRestore(false));
+    window.addEventListener('resize', () => {
+        ensureFloatingWindow();
+        keepWindowInViewport();
+        scheduleGeometrySave();
+    }, { passive: true });
     window.addEventListener('qol_setting_changed', event => {
         if (event.detail?.key === FEATURE_KEY && event.detail.enabled !== false) scheduleRestore(true);
     });
 
     const observer = new MutationObserver(() => {
+        ensureFloatingWindow();
         if (!panelIsOpen()) return;
         scheduleRestore(false);
         ensureCurrentVillageResults();
@@ -376,6 +550,7 @@
     });
 
     window.setInterval(() => {
+        ensureFloatingWindow();
         const identity = currentVillageIdentity();
         if (!identity.villageId) return;
         if (identity.villageId !== appliedVillageId) {
