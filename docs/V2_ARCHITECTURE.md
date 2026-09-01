@@ -2,7 +2,7 @@
 
 ## Current status
 
-v2 is in release hardening. The original foundation phases are complete enough that new work should favor stability, scoped persistence, regression prevention and cleanup over broad feature expansion.
+v2 is in public beta. The original foundation and release-hardening phases are complete enough that new work should favor stability, scoped persistence, regression prevention and cleanup over broad feature expansion.
 
 ## Migration rule
 
@@ -35,7 +35,7 @@ Small event bus for communication without unnecessary direct feature dependencie
 
 ### APES release metadata
 
-`js/core/bootstrap.js` reads the installed manifest and exposes the current version through `APES.version` / `APES.release`. UI version badges are synchronized from that value so old hard-coded alpha labels cannot drift from the manifest.
+`js/core/bootstrap.js` reads the installed manifest and exposes the current version through `APES.version` / `APES.release`. UI version badges are synchronized from that value so old hard-coded release labels cannot drift from the manifest.
 
 ### APES.context
 
@@ -77,7 +77,7 @@ A separate integration module is acceptable when it genuinely joins two independ
 
 Current integration files should therefore be reviewed individually before consolidation; do not merge them merely to reduce file count if doing so increases regression risk.
 
-## Release-hardening priorities
+## Beta priorities
 
 1. Player/server storage isolation.
 2. Manifest-driven version and release metadata.
@@ -86,6 +86,7 @@ Current integration files should therefore be reviewed individually before conso
 5. Regression-test multi-page scanners and route transitions.
 6. Consolidate patch-only modules into canonical feature files where safe.
 7. Verify backup/restore and storage cleanup understand both legacy APES prefixes and `apes:v2:` keys.
+8. Fix reproducible gameplay and UI regressions before adding large new features.
 
 ## Safety rules
 
