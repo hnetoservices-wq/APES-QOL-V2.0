@@ -1266,7 +1266,8 @@
     document.getElementById(PANEL_ID)?.classList.remove('qol-ss-open');
   });
   window.addEventListener('qol_close_others', event => {
-    if (event.detail?.source !== 'secretSocietyScanner') {
+    const compatibleSources = new Set(['secretSocietyScanner', 'playerDossier', 'reportArchive']);
+    if (!compatibleSources.has(event.detail?.source)) {
       document.getElementById(PANEL_ID)?.classList.remove('qol-ss-open');
     }
   });

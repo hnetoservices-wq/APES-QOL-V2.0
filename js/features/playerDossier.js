@@ -200,7 +200,12 @@
     if (!name) return false;
     return normalized(report?.sourcePlayer) === name || normalized(report?.destPlayer) === name;
   }
-  function classifyReport(report, identity) {
+  function reportFolderName(archive, folderId) {
+    const folders = Array.isArray(archive?.folders) ? archive.folders : [];
+    if (!folderId || folderId === '__unfiled__') return 'Default';
+    return clean(folders.find(folder => clean(folder?.id) === clean(folderId))?.name) || 'Default';
+  }
+  function classifyReport(report, identity, archive) {
     const name = normalized(identity?.playerName);
     const source = normalized(report?.sourcePlayer);
     const destination = normalized(report?.destPlayer);
@@ -223,12 +228,13 @@
       opponent,
       route,
       category,
+      folderName: reportFolderName(archive, report?.folderId),
       type: clean(report?.reportType || report?.headline) || 'Report',
       result: clean(report?.resultText || report?.headline) || 'Report'
     };
   }
   function matchedReports(archive, identity) {
-    return (archive?.reports || []).filter(report => reportMatchesIdentity(report, identity)).map(report => classifyReport(report, identity)).sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
+    return (archive?.reports || []).filter(report => reportMatchesIdentity(report, identity)).map(report => classifyReport(report, identity, archive)).sort((a, b) => Number(b.timestamp || 0) - Number(a.timestamp || 0));
   }
   function entryCreatedAt(entry) {
     const match = String(entry?.id || '').match(/^entry_(\d{10,})$/);
@@ -443,6 +449,7 @@
 #${PANEL_ID} .qol-pd-kv{display:grid!important;grid-template-columns:120px minmax(0,1fr)!important;gap:4px 8px!important}.qol-pd-kv b{color:#775f42!important}.qol-pd-notes{display:flex!important;flex-direction:column!important;gap:5px!important}.qol-pd-note{padding:6px 7px!important;border:1px solid #e0d5c3!important;border-radius:3px!important;background:#fffaf0!important}.qol-pd-note strong{display:block!important;margin-bottom:2px!important;color:#6d5437!important;font-size:8px!important;text-transform:uppercase!important}.qol-pd-ss-block{padding:7px!important;border:1px solid #ded2c0!important;border-radius:3px!important;background:#fffdf8!important}.qol-pd-ss-block+.qol-pd-ss-block{margin-top:6px!important}.qol-pd-ss-title{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;margin-bottom:4px!important;font-weight:bold!important}.qol-pd-ss-metrics{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:4px!important}.qol-pd-ss-metric{padding:4px 5px!important;background:#f4eee3!important;border-radius:3px!important}.qol-pd-ss-metric span{display:block!important;color:#89745b!important;font-size:7px!important;text-transform:uppercase!important}.qol-pd-ss-metric strong{display:block!important;margin-top:1px!important;color:#4c3822!important;font-size:9px!important}
 #${PANEL_ID} table{width:100%!important;border-collapse:collapse!important;table-layout:fixed!important;font-size:9px!important;background:#fff!important}#${PANEL_ID} th,#${PANEL_ID} td{padding:6px 7px!important;border-bottom:1px solid #e4dccd!important;text-align:left!important;vertical-align:middle!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}#${PANEL_ID} th{position:sticky!important;top:0!important;z-index:2!important;background:#e9dfcc!important;color:#60482f!important;font-size:8px!important;text-transform:uppercase!important}
 #${PANEL_ID} .qol-pd-report-role{font-weight:bold!important}.qol-pd-report-role.Attacker{color:#8e4f12!important}.qol-pd-report-role.Defender{color:#3e6b87!important}.qol-pd-report-role.Involved{color:#7b6a55!important}
+#${PANEL_ID} .qol-pd-report-view{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-width:45px!important;min-height:23px!important;padding:3px 8px!important;border:1px solid var(--qol-action-border)!important;border-radius:4px!important;background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;font-size:8px!important;font-weight:800!important;cursor:pointer!important;user-select:none!important}#${PANEL_ID} .qol-pd-report-view:hover,#${PANEL_ID} .qol-pd-report-view:focus-visible{filter:brightness(1.08)!important;outline:none!important}#${PANEL_ID} .qol-pd-report-view.qol-pd-busy{opacity:.65!important;pointer-events:none!important}
 #${PANEL_ID} .qol-pd-timeline{display:flex!important;flex-direction:column!important;gap:6px!important}.qol-pd-event{display:grid!important;grid-template-columns:130px 110px minmax(0,1fr)!important;gap:8px!important;align-items:start!important;padding:7px 8px!important;border:1px solid #ddd1bf!important;border-radius:4px!important;background:#fff!important}.qol-pd-event-time{color:#89755d!important;font-size:8px!important}.qol-pd-event-type{font-size:8px!important;font-weight:800!important;text-transform:uppercase!important}.qol-pd-event-main strong{display:block!important;color:#4b3822!important;font-size:9.5px!important}.qol-pd-event-main span{display:block!important;margin-top:2px!important;color:#76634b!important;font-size:8.5px!important;line-height:1.35!important}.qol-pd-event.ss-joined .qol-pd-event-type{color:#3f732d!important}.qol-pd-event.ss-left .qol-pd-event-type{color:#982f29!important}.qol-pd-event.report .qol-pd-event-type{color:#7d5e29!important}.qol-pd-event.watchlist .qol-pd-event-type{color:#506c8f!important}
 #${PANEL_ID} .qol-pd-empty{padding:24px!important;text-align:center!important;color:#8b7a63!important;font-size:10px!important}
 .qol-pd-inline-open{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:20px!important;height:20px!important;margin-left:4px!important;padding:0!important;border:1px solid #ad966f!important;border-radius:3px!important;background:linear-gradient(#fff9ec,#e7d7bb)!important;color:#654a2e!important;cursor:pointer!important;vertical-align:middle!important;user-select:none!important}.qol-pd-inline-open:hover{filter:brightness(1.05)!important}.qol-pd-inline-open svg{width:13px!important;height:13px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;pointer-events:none!important}
@@ -636,15 +643,48 @@
   function renderReports(model) {
     const target = ensurePanel().querySelector('[data-pd-view="reports"]');
     const rows = model.reports.slice(0, MAX_REPORT_ROWS).map(report => `
-            <tr>
+            <tr data-pd-report-id="${escapeHtml(report.id)}">
                 <td>${escapeHtml(formatDate(report.timestamp))}</td>
                 <td><span class="qol-pd-report-role ${escapeHtml(report.role)}">${escapeHtml(report.role)}</span></td>
                 <td title="${escapeHtml(report.opponent)}">${escapeHtml(report.opponent)}</td>
                 <td title="${escapeHtml(report.route)}">${escapeHtml(report.route)}</td>
-                <td title="${escapeHtml(report.type)}">${escapeHtml(report.type)}</td>
+                <td title="${escapeHtml(report.folderName)}">${escapeHtml(report.folderName)}</td>
                 <td title="${escapeHtml(report.result)}">${escapeHtml(report.result)}</td>
+                <td><div class="qol-pd-report-view" role="button" tabindex="0" data-pd-report-view="${escapeHtml(report.id)}">View</div></td>
             </tr>`).join('');
-    target.innerHTML = model.reports.length ? `<table><thead><tr><th style="width:145px">Date</th><th style="width:75px">Role</th><th style="width:145px">Opponent</th><th style="width:190px">Villages</th><th style="width:130px">Type</th><th>Result</th></tr></thead><tbody>${rows}</tbody></table>${model.reports.length > MAX_REPORT_ROWS ? `<div class="qol-pd-empty">Showing the newest ${MAX_REPORT_ROWS} of ${model.reports.length} matching reports.</div>` : ''}` : '<div class="qol-pd-empty">No archived reports match this exact player name.</div>';
+    target.innerHTML = model.reports.length ? `<table><thead><tr><th style="width:145px">Date</th><th style="width:75px">Role</th><th style="width:145px">Opponent</th><th style="width:190px">Villages</th><th style="width:125px">Folder</th><th>Result</th><th style="width:65px">View</th></tr></thead><tbody>${rows}</tbody></table>${model.reports.length > MAX_REPORT_ROWS ? `<div class="qol-pd-empty">Showing the newest ${MAX_REPORT_ROWS} of ${model.reports.length} matching reports.</div>` : ''}` : '<div class="qol-pd-empty">No archived reports match this exact player name.</div>';
+    target.querySelectorAll('[data-pd-report-view]').forEach(control => {
+      const activate = async event => {
+        event.preventDefault();
+        event.stopPropagation();
+        if (control.classList.contains('qol-pd-busy')) return;
+        const reportId = clean(control.dataset.pdReportView);
+        const archiveApi = window.APES_REPORT_ARCHIVE;
+        control.classList.add('qol-pd-busy');
+        control.textContent = 'Opening…';
+        try {
+          const opened = await archiveApi?.openReport?.(reportId);
+          if (!opened) {
+            control.textContent = 'Unavailable';
+            control.title = 'Enable Report Archive to view this report.';
+            window.setTimeout(() => {
+              control.textContent = 'View';
+              control.removeAttribute('title');
+            }, 1800);
+          }
+        } catch (error) {
+          console.error('[APES Player Dossier] Could not open archived report:', error);
+          control.textContent = 'Try again';
+        } finally {
+          control.classList.remove('qol-pd-busy');
+          if (control.textContent === 'Opening…') control.textContent = 'View';
+        }
+      };
+      control.addEventListener('click', activate);
+      control.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') void activate(event);
+      });
+    });
   }
   function eventTypeLabel(type) {
     if (type === 'ss-joined') return 'Joined SS';
@@ -821,7 +861,8 @@
     injectEntryPoints();
   });
   window.addEventListener('qol_close_others', event => {
-    if (event.detail?.source !== 'playerDossier') close();
+    const compatibleSources = new Set(['playerDossier', 'reportArchive', 'secretSocietyScanner']);
+    if (!compatibleSources.has(event.detail?.source)) close();
   });
   window.addEventListener('resize', () => {
     const panel = document.getElementById(PANEL_ID);

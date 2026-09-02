@@ -1768,11 +1768,13 @@
     }));
     closeReportDetail();
     renderArchive();
+    archivePanel.style.setProperty('z-index', '1000007', 'important');
     archivePanel.style.setProperty('display', 'flex', 'important');
   }
   function closeArchivePanel() {
     if (archivePanel) {
       archivePanel.style.setProperty('display', 'none', 'important');
+      archivePanel.style.removeProperty('z-index');
     }
     closeReportDetail();
   }
@@ -2353,6 +2355,22 @@
     updateDetailNavigation();
     detail.style.setProperty('display', 'flex', 'important');
     detail.querySelector('.qol-ra-snapshot-host').scrollTop = 0;
+  }
+  async function openArchivedReport(reportId) {
+    const wantedId = String(reportId || '').trim();
+    if (!wantedId || !isEnabled()) return false;
+    await startFeature();
+    if (!archivePanel) return false;
+    archive = await loadArchive();
+    const report = archive.reports.find(item => String(item?.id || '') === wantedId);
+    if (!report) return false;
+    const hasCustomFolder = archive.folders.some(folder => folder.id === report.folderId);
+    activeFolderId = hasCustomFolder ? report.folderId : DEFAULT_FOLDER_ID;
+    searchQuery = '';
+    updateSearchControl();
+    openArchivePanel();
+    openReportDetail(report);
+    return true;
   }
   function updateDetailNavigation() {
     if (!archivePanel) return;
@@ -3058,4 +3076,9 @@
   } else {
     initializeModule();
   }
+  window.APES_REPORT_ARCHIVE = Object.freeze({
+    open: openArchivePanel,
+    openReport: openArchivedReport,
+    close: closeArchivePanel
+  });
 })();
