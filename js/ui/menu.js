@@ -940,7 +940,7 @@ function buildSettingsMarkup() {
                         <span class="qol-thank-dialog-mark" aria-hidden="true">♡</span>
                         <div>
                             <h2 class="qol-thank-dialog-title" id="qol-thank-dialog-title">Enjoying APES QoL?</h2>
-                            <span class="qol-thank-dialog-subtitle">A message from the developer</span>
+                            <span class="qol-thank-dialog-subtitle">A message from Restos</span>
                         </div>
                     </div>
                     <div class="qol-thank-dialog-x" role="button" tabindex="0" aria-label="Close thank you message">&times;</div>
@@ -952,14 +952,14 @@ function buildSettingsMarkup() {
 
                     <div class="qol-thank-divider" aria-hidden="true"></div>
                     <h3 class="qol-thank-heading">Thanks</h3>
-                    <p>A big thank you to every Ape, marsupial and monkey in APES. My time in this game has been extra enjoyable because you were in it. A special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir and Cookix for keeping me sane in all the crazy times I've gone through. And another special thanks to Tjabz, SirPates and knupa, who have tested, suggested and bug reported during the development of this extension.</p>
+                    <p>A big thank you to every Ape, marsupial and monkey in APES. My time in this game has been extra enjoyable because you were in it. A special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir and Cookix for keeping me (in)sane in all the crazy times I've gone through. And another special thanks to Tjabz, SirPates and knupa, who have tested, suggested and bug reported during the development of this extension.</p>
                     <p class="qol-thank-quote">Above all, my biggest thanks to my wife, who said “just do it then, jesus christ, shut up about it already, holy shit”, when I kept going on and on about how I had a ton of ideas to improve this game and who is an actual saint for putting up with me.</p>
-                    <p>A huge thank you to my son, who made sure I took (forced) breaks while structuring, organizing and building this extension. And a big thanks to a very special someone whom I've had a chance to meet but kept me up every night for a week and who miss terribly. I will always hold you dearly to my heart and soul.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
+                    <p>A huge thank you to my son, who made sure I took (forced) breaks while structuring, organizing and building this extension. And a big thanks to a very special someone whom I've never had a chance to meet but kept me up every night for a week and who I miss terribly. I will always hold you dearly to my heart and soul.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
 
                     <p class="qol-thank-contact">To all of you reading this: if you need anything—from just talking to asking me to be a temp king, from life to game related—you can always message me on Discord <span class="qol-thank-contact-handle">@restoss</span>.</p>
                 </div>
                 <div class="qol-thank-dialog-footer">
-                    <span>From APES, for the community.</span>
+                    <span>From the king APE, for APES and the community.</span>
                     <div class="qol-thank-dialog-close" role="button" tabindex="0">Close</div>
                 </div>
             </div>
