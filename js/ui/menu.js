@@ -446,13 +446,15 @@ function injectQolMenuStyles() {
         #qol-modal .qol-checkbox:checked + .qol-switch-track{border-color:#4f6e25!important;background:#6f9b34!important}
         #qol-modal .qol-checkbox:checked + .qol-switch-track::after{transform:translateX(16px)!important}
 
-        #qol-modal .qol-modal-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:36px!important;padding:7px 14px!important;border-top:1px solid #d8ccba!important;background:#eee8dc!important;color:#71634f!important;font-size:9px!important}
+        #qol-modal .qol-modal-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex:0 0 auto!important;min-height:36px!important;padding:7px 14px!important;border-top:1px solid #d8ccba!important;background:#eee8dc!important;color:#71634f!important;font-size:9px!important}
         #qol-modal .qol-footer-left{display:inline-flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important}
+        #qol-modal .qol-footer-actions{display:inline-flex!important;align-items:center!important;gap:6px!important;flex-wrap:wrap!important}
         #qol-modal .qol-save-note{display:inline-flex!important;align-items:center!important;gap:6px!important}
         #qol-modal .qol-save-dot{width:7px!important;height:7px!important;border-radius:50%!important;background:#6f9b34!important}
         #qol-modal .qol-footer-hint{color:#8b7a62!important}
-        #qol-modal .qol-clear-cache-btn{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:24px!important;padding:3px 9px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#5b472f!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important}
-        #qol-modal .qol-clear-cache-btn:hover{border-color:#765b39!important;background:#eee4d4!important}
+        #qol-modal .qol-footer-action{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:24px!important;padding:3px 9px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#5b472f!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important}
+        #qol-modal .qol-footer-action:hover,#qol-modal .qol-footer-action:focus-visible{border-color:#765b39!important;background:#eee4d4!important;outline:none!important}
+        #qol-modal .qol-thank-you-btn{border-color:var(--qol-accent)!important;color:var(--qol-accent-ink)!important}
 
         #qol-modal-overlay .qol-cache-dialog-layer{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(18,16,13,.62)!important;z-index:1000002!important}
         #qol-modal-overlay .qol-cache-dialog-layer.qol-open{display:flex!important}
@@ -465,10 +467,35 @@ function injectQolMenuStyles() {
         #qol-modal-overlay .qol-cache-dialog-action.qol-danger{border-color:#9c5438!important;background:#9b4d36!important;color:#fff!important}
         #qol-modal-overlay .qol-cache-dialog-action[aria-disabled="true"]{opacity:.58!important;pointer-events:none!important;cursor:wait!important}
 
+        #qol-modal-overlay .qol-thank-dialog-layer{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(18,16,13,.68)!important;z-index:1000003!important}
+        #qol-modal-overlay .qol-thank-dialog-layer.qol-open{display:flex!important}
+        #qol-modal-overlay .qol-thank-dialog,#qol-modal-overlay .qol-thank-dialog *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
+        #qol-modal-overlay .qol-thank-dialog{display:flex!important;flex-direction:column!important;width:min(640px,92vw)!important;max-height:min(720px,84vh)!important;border:2px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 22px 58px rgba(0,0,0,.52)!important;overflow:hidden!important}
+        #qol-modal-overlay .qol-thank-dialog-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex:0 0 auto!important;min-height:54px!important;padding:9px 11px 9px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important}
+        #qol-modal-overlay .qol-thank-dialog-title-group{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
+        #qol-modal-overlay .qol-thank-dialog-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:50%!important;background:rgba(24,15,8,.22)!important;color:#fff6e7!important;font-size:20px!important;line-height:1!important}
+        #qol-modal-overlay .qol-thank-dialog-title{margin:0!important;color:#fffaf0!important;font-size:15px!important;font-weight:700!important;line-height:20px!important}
+        #qol-modal-overlay .qol-thank-dialog-subtitle{display:block!important;margin-top:1px!important;color:#d9ccb5!important;font-size:9px!important;line-height:13px!important}
+        #qol-modal-overlay .qol-thank-dialog-x{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:29px!important;height:29px!important;border-radius:5px!important;background:rgba(0,0,0,.2)!important;color:#fff!important;font-size:22px!important;font-weight:bold!important;cursor:pointer!important;user-select:none!important}
+        #qol-modal-overlay .qol-thank-dialog-x:hover,#qol-modal-overlay .qol-thank-dialog-x:focus-visible{background:rgba(255,255,255,.15)!important;outline:none!important}
+        #qol-modal-overlay .qol-thank-dialog-body{flex:1 1 auto!important;min-height:0!important;padding:17px 18px!important;background:#f7f5f0!important;color:#5e503e!important;font-size:10.5px!important;line-height:1.58!important;overflow-y:auto!important}
+        #qol-modal-overlay .qol-thank-dialog-body p{margin:0 0 12px!important}
+        #qol-modal-overlay .qol-thank-dialog-body p:last-child{margin-bottom:0!important}
+        #qol-modal-overlay .qol-thank-promise{padding:9px 11px!important;border-left:3px solid var(--qol-accent)!important;border-radius:0 4px 4px 0!important;background:var(--qol-accent-soft)!important;color:#463622!important;font-weight:700!important}
+        #qol-modal-overlay .qol-thank-divider{height:1px!important;margin:16px 0 13px!important;background:#d8ccba!important}
+        #qol-modal-overlay .qol-thank-heading{margin:0 0 9px!important;color:var(--qol-accent-deep)!important;font-size:13px!important;font-weight:700!important;line-height:18px!important}
+        #qol-modal-overlay .qol-thank-quote{padding:10px 12px!important;border:1px solid #d9cbb7!important;border-radius:5px!important;background:#fffdf8!important;color:#4c3b27!important;font-style:italic!important}
+        #qol-modal-overlay .qol-thank-tree{display:inline-block!important;margin-left:3px!important;font-size:14px!important;vertical-align:-1px!important}
+        #qol-modal-overlay .qol-thank-contact{margin-top:16px!important;padding-top:14px!important;border-top:1px solid #d8ccba!important;color:#453521!important;font-weight:700!important}
+        #qol-modal-overlay .qol-thank-contact-handle{color:var(--qol-accent-deep)!important;white-space:nowrap!important}
+        #qol-modal-overlay .qol-thank-dialog-footer{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex:0 0 auto!important;padding:9px 14px!important;border-top:1px solid #d8ccba!important;background:#eee8dc!important;color:#81715b!important;font-size:9px!important}
+        #qol-modal-overlay .qol-thank-dialog-close{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:28px!important;padding:5px 14px!important;border:1px solid var(--qol-accent)!important;border-radius:4px!important;background:var(--qol-accent-mid)!important;color:#fff!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important}
+        #qol-modal-overlay .qol-thank-dialog-close:hover,#qol-modal-overlay .qol-thank-dialog-close:focus-visible{background:var(--qol-accent-deep)!important;outline:none!important}
+
         #qol-modal .qol-visually-hidden{position:absolute!important;width:1px!important;height:1px!important;margin:-1px!important;padding:0!important;border:0!important;overflow:hidden!important;clip:rect(0 0 0 0)!important;white-space:nowrap!important}
 
         @media(max-width:820px){#qol-modal-overlay{padding:12px!important}#qol-modal{width:96vw!important;max-height:94vh!important}#qol-modal .qol-feature-grid{grid-template-columns:1fr!important}#qol-modal .qol-keybind-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}#qol-modal .qol-theme-card{grid-template-columns:1fr!important}#qol-modal .qol-theme-options{grid-template-columns:repeat(3,minmax(0,1fr))!important}}
-        @media(max-width:560px){#qol-modal .qol-brand-mark,#qol-modal .qol-modal-subtitle,#qol-modal .qol-footer-hint{display:none!important}#qol-modal .qol-modal-body{padding:11px!important}#qol-modal .qol-keybind-grid{grid-template-columns:1fr!important}#qol-modal .qol-theme-options{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+        @media(max-width:560px){#qol-modal .qol-brand-mark,#qol-modal .qol-modal-subtitle,#qol-modal .qol-footer-hint{display:none!important}#qol-modal .qol-modal-body{padding:11px!important}#qol-modal .qol-keybind-grid{grid-template-columns:1fr!important}#qol-modal .qol-theme-options{grid-template-columns:repeat(2,minmax(0,1fr))!important}#qol-modal-overlay .qol-thank-dialog-layer{padding:12px!important}#qol-modal-overlay .qol-thank-dialog{width:96vw!important;max-height:92vh!important}#qol-modal-overlay .qol-thank-dialog-body{padding:14px!important}}
     `;
   document.head.appendChild(style);
 }
@@ -879,7 +906,10 @@ function buildSettingsMarkup() {
             <div class="qol-modal-footer">
                 <div class="qol-footer-left">
                     <span class="qol-save-note"><span class="qol-save-dot" aria-hidden="true"></span>Changes are saved automatically</span>
-                    <div class="qol-clear-cache-btn" role="button" tabindex="0">Manage Storage</div>
+                    <div class="qol-footer-actions">
+                        <div class="qol-footer-action qol-clear-cache-btn" role="button" tabindex="0">Manage Storage</div>
+                        <div class="qol-footer-action qol-thank-you-btn" role="button" tabindex="0" aria-haspopup="dialog">♡ Thank You</div>
+                    </div>
                 </div>
                 <span class="qol-footer-hint">Press Esc or click outside to close</span>
             </div>
@@ -899,6 +929,38 @@ function buildSettingsMarkup() {
                 <div class="qol-cache-dialog-actions">
                     <div class="qol-cache-dialog-action qol-cache-cancel" role="button" tabindex="0">Cancel</div>
                     <div class="qol-cache-dialog-action qol-danger qol-cache-confirm" role="button" tabindex="0">Clear &amp; Reload</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="qol-thank-dialog-layer" aria-hidden="true">
+            <div class="qol-thank-dialog" role="dialog" aria-modal="true" aria-labelledby="qol-thank-dialog-title">
+                <div class="qol-thank-dialog-header">
+                    <div class="qol-thank-dialog-title-group">
+                        <span class="qol-thank-dialog-mark" aria-hidden="true">♡</span>
+                        <div>
+                            <h2 class="qol-thank-dialog-title" id="qol-thank-dialog-title">Enjoying APES QoL?</h2>
+                            <span class="qol-thank-dialog-subtitle">A message from the developer</span>
+                        </div>
+                    </div>
+                    <div class="qol-thank-dialog-x" role="button" tabindex="0" aria-label="Close thank you message">&times;</div>
+                </div>
+                <div class="qol-thank-dialog-body">
+                    <p>This extension is developed and maintained for the Travian Kingdoms community.</p>
+                    <p>If you'd like to support its development, just knowing you're enjoying the tools and that my work has made your life in this game easier is enough compensation for me.</p>
+                    <p class="qol-thank-promise">This extension will never have paid premium features and will always be free to use.</p>
+
+                    <div class="qol-thank-divider" aria-hidden="true"></div>
+                    <h3 class="qol-thank-heading">Thanks</h3>
+                    <p>A big thank you to every Ape, marsupial and monkey in APES. My time in this game has been extra enjoyable because you were in it. A special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir and Cookix for keeping me sane in all the crazy times I've gone through. And another special thanks to Tjabz, SirPates and knupa, who have tested, suggested and bug reported during the development of this extension.</p>
+                    <p class="qol-thank-quote">Above all, my biggest thanks to my wife, who said “just do it then, jesus christ, shut up about it already, holy shit”, when I kept going on and on about how I had a ton of ideas to improve this game and who is an actual saint for putting up with me.</p>
+                    <p>A huge thank you to my son, who made sure I took (forced) breaks while structuring, organizing and building this extension. And a big thanks to a very special someone whom I've had a chance to meet, but miss terribly. I will always hold you dearly to my heart and soul.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
+
+                    <p class="qol-thank-contact">To all of you reading this: if you need anything—from just talking to asking me to be a temp king, from life to game related—you can always message me on Discord <span class="qol-thank-contact-handle">@restoss</span>.</p>
+                </div>
+                <div class="qol-thank-dialog-footer">
+                    <span>From APES, for the community.</span>
+                    <div class="qol-thank-dialog-close" role="button" tabindex="0">Close</div>
                 </div>
             </div>
         </div>
@@ -964,13 +1026,20 @@ function setupQolMenu() {
   scheduleReposition();
 }
 function bindMenuShell(overlay) {
-  const closeModal = () => overlay.style.setProperty('display', 'none', 'important');
+  const closeModal = () => {
+    overlay.querySelector('.qol-thank-dialog-layer')?.classList.remove('qol-open');
+    overlay.querySelector('.qol-thank-dialog-layer')?.setAttribute('aria-hidden', 'true');
+    overlay.style.setProperty('display', 'none', 'important');
+  };
   const closeBtn = overlay.querySelector('.qol-modal-close');
   const cacheDialog = overlay.querySelector('.qol-cache-dialog-layer');
   const clearCacheBtn = overlay.querySelector('.qol-clear-cache-btn');
   const cancelBtn = overlay.querySelector('.qol-cache-cancel');
   const confirmBtn = overlay.querySelector('.qol-cache-confirm');
   const status = overlay.querySelector('.qol-cache-dialog-status');
+  const thankDialog = overlay.querySelector('.qol-thank-dialog-layer');
+  const thankYouBtn = overlay.querySelector('.qol-thank-you-btn');
+  const thankCloseBtns = overlay.querySelectorAll('.qol-thank-dialog-x, .qol-thank-dialog-close');
   const bindAction = (element, action) => {
     if (!element) return;
     element.addEventListener('click', event => {
@@ -987,6 +1056,17 @@ function bindMenuShell(overlay) {
     });
   };
   bindAction(closeBtn, closeModal);
+  const closeThankDialog = () => {
+    thankDialog.classList.remove('qol-open');
+    thankDialog.setAttribute('aria-hidden', 'true');
+    thankYouBtn.focus();
+  };
+  bindAction(thankYouBtn, () => {
+    thankDialog.classList.add('qol-open');
+    thankDialog.setAttribute('aria-hidden', 'false');
+    thankDialog.querySelector('.qol-thank-dialog-x')?.focus();
+  });
+  thankCloseBtns.forEach(button => bindAction(button, closeThankDialog));
   bindAction(clearCacheBtn, () => {
     status.textContent = '';
     confirmBtn.setAttribute('aria-disabled', 'false');
@@ -1028,6 +1108,10 @@ function bindMenuShell(overlay) {
     }
     event.stopPropagation();
   });
+  thankDialog.addEventListener('click', event => {
+    if (event.target === thankDialog) closeThankDialog();
+    event.stopPropagation();
+  });
 }
 function initQolUI() {
   cleanWelcomeScreenUrl();
@@ -1050,6 +1134,14 @@ function initQolUI() {
       return;
     }
     const overlay = document.getElementById('qol-modal-overlay');
+    const thankDialog = overlay?.querySelector('.qol-thank-dialog-layer');
+    if (thankDialog?.classList.contains('qol-open')) {
+      thankDialog.classList.remove('qol-open');
+      thankDialog.setAttribute('aria-hidden', 'true');
+      overlay.querySelector('.qol-thank-you-btn')?.focus();
+      event.stopImmediatePropagation();
+      return;
+    }
     const cacheDialog = overlay?.querySelector('.qol-cache-dialog-layer');
     if (cacheDialog?.classList.contains('qol-open')) {
       const confirm = overlay.querySelector('.qol-cache-confirm');
