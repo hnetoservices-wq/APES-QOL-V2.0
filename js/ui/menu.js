@@ -962,7 +962,7 @@ function buildSettingsMarkup() {
                     <p class="qol-thank-contact">To all of you reading this: if you need anything—from just talking to asking me to be a temp king, from life to game related—you can always message me on Discord <span class="qol-thank-contact-handle">@restoss</span>.</p>
                 </div>
                 <div class="qol-thank-dialog-footer">
-                    <span>From the king APE, for APES and the community. PS: The list was real.</span>
+                    <span>From the king APE, for APES and the community.</span>
                     <div class="qol-thank-dialog-close" role="button" tabindex="0">Close</div>
                 </div>
             </div>
