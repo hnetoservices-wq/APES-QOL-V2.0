@@ -946,15 +946,18 @@ function buildSettingsMarkup() {
                     <div class="qol-thank-dialog-x" role="button" tabindex="0" aria-label="Close thank you message">&times;</div>
                 </div>
                 <div class="qol-thank-dialog-body">
-                    <p>This extension is developed and maintained for the Travian Kingdoms community.</p>
-                    <p>If you'd like to support its development, just knowing you're enjoying the tools and that my work has made your life in this game easier is enough compensation for me.</p>
+                    <p>This extension is developed and maintained mostly for my APES, but also for the Travian Kingdoms community.</p>
+                    <p>If you’d like to support its development, simply letting me know that you enjoy the tools and that my work has made your life in this game a little easier, is more than enough compensation for me.</p>
                     <p class="qol-thank-promise">This extension will never have paid premium features and will always be free to use.</p>
 
                     <div class="qol-thank-divider" aria-hidden="true"></div>
                     <h3 class="qol-thank-heading">Thanks</h3>
-                    <p>A big thank you to every Ape, marsupial and monkey in APES. My time in this game has been extra enjoyable because you were in it. A special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir and Cookix for keeping me (in)sane in all the crazy times I've gone through. And another special thanks to Tjabz, SirPates and knupa, who have tested, suggested and bug reported during the development of this extension.</p>
-                    <p class="qol-thank-quote">Above all, my biggest thanks to my wife, who said “just do it then, jesus christ, shut up about it already, holy shit”, when I kept going on and on about how I had a ton of ideas to improve this game and who is an actual saint for putting up with me.</p>
-                    <p>A huge thank you to my son, who made sure I took (forced) breaks while structuring, organizing and building this extension. And a big thanks to a very special someone whom I've never had a chance to meet but kept me up every night for a week and who I miss terribly. I will always hold you dearly to my heart and soul.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
+                    <p>A big thank-you to every Ape, marsupial, and monkey in APES. My time in this game has been far more enjoyable because you were part of it.</p>
+                    <p>Special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir, and Cookix for keeping me (in)sane through all the crazy times I’ve gone through.</p>
+                    <p>Special thanks also go to Tjabz, SirPates, and knupa, who tested the extension, offered suggestions, and reported bugs throughout its developmen</p>
+                    <p class="qol-thank-quote">Above all, I owe my greatest thanks to my wife. When I kept going on and on about how I had a ton of ideas for improving this game, she finally said, “Just do it then. Jesus fucking Christ, shut up about it already. Holy shit. Do it, just fucking do it, leave me alone.” She is an actual saint for putting up with me.</p>
+                    <p>A huge thank-you also goes to my son, who made sure I took some (forced) breaks while structuring, organizing, and building this extension.</p>
+                    <p>And a big thank-you to a very special someone I never had the chance to meet and whom I miss terribly. You've never made a sound, yet you kept me up every night for over a week. Your tiny weight is the heaviest I've ever carried. Rest easy knowing I will carry you with me forever, in my heart and soul.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
 
                     <p class="qol-thank-contact">To all of you reading this: if you need anything—from just talking to asking me to be a temp king, from life to game related—you can always message me on Discord <span class="qol-thank-contact-handle">@restoss</span>.</p>
                 </div>
