@@ -1,16 +1,19 @@
 (() => {
   'use strict';
 
-  const STATE_KEY = 'qol_roadmap_runner_v1';
+  const ASSIGNMENT_PREFIX = 'qol_roadmap_assignments_v1';
+  const LEGACY_STATE_KEY = 'qol_roadmap_runner_v1';
   const WINDOW_KEY = 'qol_roadmap_runner_window_v1';
   const VISIBLE_KEY = 'qol_roadmap_runner_visible_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
   const PANEL_ID = 'qol-roadmap-runner';
   const HUB_ID = 'qol-roadmaps-container';
-  const DIALOG_ID = 'qol-roadmap-runner-dialog';
+  const ASSIGN_DIALOG_ID = 'qol-roadmap-assignment-dialog';
+  const CONFIRM_DIALOG_ID = 'qol-roadmap-runner-dialog';
 
   let panel = null;
   let refreshQueued = false;
+  let lastContextSignature = '';
 
   function clean(value) {
     return String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -39,7 +42,7 @@
       localStorage.setItem(key, JSON.stringify(value));
       return true;
     } catch (error) {
-      console.warn('[APES Roadmaps Runner] Could not save state.', error);
+      console.warn('[APES Roadmaps] Could not save assignment state.', error);
       return false;
     }
   }
@@ -56,36 +59,137 @@
     }
   }
 
-  function normalizeState() {
-    const raw = readJson(STATE_KEY, {});
-    const state = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
-    const progress = state.progress && typeof state.progress === 'object' && !Array.isArray(state.progress) ? state.progress : {};
-    return {
-      activeId: clean(state.activeId),
-      progress
-    };
+  function contextSnapshot() {
+    const source = window.APES?.context?.snapshot?.() || {};
+    const server = clean(source.server || location.hostname.toLowerCase()) || 'unknown';
+    const playerId = clean(source.playerId) || 'unknown';
+    const hashVillage = String(location.hash || '').match(/(?:^|\/)villId:(\d+)/i)?.[1] || '';
+    const villageId = clean(source.villageId === 'unknown' ? hashVillage : source.villageId) || hashVillage || 'unknown';
+    const villageName = clean(source.villageName) || 'Unknown village';
+    return { server, playerId, villageId, villageName };
   }
 
-  function saveState(state) {
-    return writeJson(STATE_KEY, state);
+  function validPlayer(ctx) {
+    return /^\d+$/.test(ctx.playerId);
   }
 
-  function getProgress(state, roadmapId, total) {
-    const raw = state.progress?.[roadmapId] || {};
-    const currentStep = Math.max(0, Math.min(total, Number.isInteger(Number(raw.currentStep)) ? Number(raw.currentStep) : 0));
-    const skipped = Array.isArray(raw.skipped)
-      ? [...new Set(raw.skipped.map(Number).filter(index => Number.isInteger(index) && index >= 0 && index < total))]
+  function validVillage(ctx) {
+    return /^\d+$/.test(ctx.villageId);
+  }
+
+  function storageKey(ctx) {
+    if (!validPlayer(ctx)) return '';
+    return `${ASSIGNMENT_PREFIX}:${ctx.server}:${ctx.playerId}`;
+  }
+
+  function normalizeProgress(raw, total = Number.MAX_SAFE_INTEGER) {
+    const source = raw && typeof raw === 'object' ? raw : {};
+    const currentStep = Math.max(0, Math.min(total, Number.isInteger(Number(source.currentStep)) ? Number(source.currentStep) : 0));
+    const skipped = Array.isArray(source.skipped)
+      ? [...new Set(source.skipped.map(Number).filter(index => Number.isInteger(index) && index >= 0 && index < total))].sort((a, b) => a - b)
       : [];
     return { currentStep, skipped };
   }
 
-  function setProgress(state, roadmapId, progress) {
-    state.progress = state.progress || {};
-    state.progress[roadmapId] = {
-      currentStep: Math.max(0, Number(progress.currentStep) || 0),
-      skipped: [...new Set((progress.skipped || []).map(Number).filter(Number.isInteger))].sort((a, b) => a - b)
+  function normalizeAssignment(raw) {
+    if (!raw || typeof raw !== 'object') return null;
+    const roadmapId = clean(raw.roadmapId);
+    const scope = raw.scope === 'all' || raw.scope === 'every' ? raw.scope : '';
+    if (!roadmapId || !scope) return null;
+    return { scope, roadmapId, assignedAt: Number(raw.assignedAt) || 0 };
+  }
+
+  function loadAccountState(ctx = contextSnapshot()) {
+    const key = storageKey(ctx);
+    const raw = key ? readJson(key, {}) : {};
+    const source = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+    const villages = source.villages && typeof source.villages === 'object' && !Array.isArray(source.villages) ? source.villages : {};
+    const shared = source.progress?.shared && typeof source.progress.shared === 'object' && !Array.isArray(source.progress.shared) ? source.progress.shared : {};
+    const villageProgress = source.progress?.villages && typeof source.progress.villages === 'object' && !Array.isArray(source.progress.villages) ? source.progress.villages : {};
+    return {
+      version: 1,
+      defaultAssignment: normalizeAssignment(source.defaultAssignment),
+      villages,
+      progress: { shared, villages: villageProgress }
     };
-    saveState(state);
+  }
+
+  function saveAccountState(ctx, state) {
+    const key = storageKey(ctx);
+    return key ? writeJson(key, state) : false;
+  }
+
+  function resolveAssignment(ctx = contextSnapshot(), state = loadAccountState(ctx)) {
+    const roadmaps = getAllRoadmaps();
+    if (validVillage(ctx)) {
+      const explicit = state.villages?.[ctx.villageId];
+      if (explicit && roadmaps[clean(explicit.roadmapId)]) {
+        return { scope: 'village', roadmapId: clean(explicit.roadmapId), villageId: ctx.villageId };
+      }
+    }
+    const fallback = normalizeAssignment(state.defaultAssignment);
+    if (!fallback || !roadmaps[fallback.roadmapId]) return null;
+    if (fallback.scope === 'every' && !validVillage(ctx)) return null;
+    return {
+      scope: fallback.scope,
+      roadmapId: fallback.roadmapId,
+      villageId: fallback.scope === 'every' ? ctx.villageId : ''
+    };
+  }
+
+  function progressSlot(state, assignment, create = false) {
+    if (!assignment) return null;
+    if (assignment.scope === 'all') {
+      if (create && !state.progress.shared[assignment.roadmapId]) state.progress.shared[assignment.roadmapId] = { currentStep: 0, skipped: [] };
+      return state.progress.shared[assignment.roadmapId] || null;
+    }
+    const villageId = assignment.villageId;
+    if (!villageId) return null;
+    if (create && !state.progress.villages[villageId]) state.progress.villages[villageId] = {};
+    if (create && !state.progress.villages[villageId][assignment.roadmapId]) state.progress.villages[villageId][assignment.roadmapId] = { currentStep: 0, skipped: [] };
+    return state.progress.villages[villageId]?.[assignment.roadmapId] || null;
+  }
+
+  function getProgress(state, assignment, total) {
+    return normalizeProgress(progressSlot(state, assignment, false), total);
+  }
+
+  function setProgress(ctx, state, assignment, progress) {
+    const slot = progressSlot(state, assignment, true);
+    if (!slot) return false;
+    const normalized = normalizeProgress(progress);
+    slot.currentStep = normalized.currentStep;
+    slot.skipped = normalized.skipped;
+    return saveAccountState(ctx, state);
+  }
+
+  function legacyProgress(roadmapId, total) {
+    const legacy = readJson(LEGACY_STATE_KEY, {});
+    return normalizeProgress(legacy?.progress?.[roadmapId], total);
+  }
+
+  function seedProgressIfEmpty(state, assignment, roadmap) {
+    if (progressSlot(state, assignment, false)) return;
+    const legacy = legacyProgress(assignment.roadmapId, roadmap.steps.length);
+    const slot = progressSlot(state, assignment, true);
+    if (!slot) return;
+    slot.currentStep = legacy.currentStep;
+    slot.skipped = legacy.skipped;
+  }
+
+  function assignmentLabel(scope) {
+    if (scope === 'all') return 'All Villages · shared progress';
+    if (scope === 'every') return 'Every Village · independent progress';
+    return 'This Village';
+  }
+
+  function stepLabel(step) {
+    if (!step) return '';
+    if (step.type === 'building') {
+      const instance = step.instance ? ` #${step.instance}` : '';
+      return `${step.building}${instance} → Level ${step.level}`;
+    }
+    return clean(step.text ?? step.label);
   }
 
   function setVisible(visible) {
@@ -102,49 +206,162 @@
     }
   }
 
-  function stepLabel(step) {
-    if (!step) return '';
-    if (step.type === 'building') {
-      const instance = step.instance ? ` #${step.instance}` : '';
-      return `${step.building}${instance} → Level ${step.level}`;
-    }
-    return clean(step.text ?? step.label);
+  function showToast(message, type = 'success') {
+    document.querySelector('.qol-rma-toast')?.remove();
+    const toast = document.createElement('div');
+    toast.className = `qol-rma-toast ${type}`;
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
   }
 
-  function closeConfirm() {
-    document.getElementById(DIALOG_ID)?.remove();
+  function closeDialog(id) {
+    document.getElementById(id)?.remove();
+  }
+
+  function wireKeyboardButtons(root) {
+    root.addEventListener('keydown', event => {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[role="button"],[role="radio"]')) {
+        event.preventDefault();
+        event.target.click();
+      }
+    });
   }
 
   function showConfirm(title, message, confirmLabel, onConfirm) {
-    closeConfirm();
+    closeDialog(CONFIRM_DIALOG_ID);
     const layer = document.createElement('div');
-    layer.id = DIALOG_ID;
+    layer.id = CONFIRM_DIALOG_ID;
     layer.innerHTML = `
       <div class="qol-rmr-dialog" role="alertdialog" aria-modal="true">
         <div class="qol-rmr-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rmr-dialog-body">${escapeHtml(message)}</div>
         <div class="qol-rmr-dialog-actions">
-          <div class="qol-rmr-action secondary" data-rmr-cancel role="button" tabindex="0">Cancel</div>
-          <div class="qol-rmr-action" data-rmr-confirm role="button" tabindex="0">${escapeHtml(confirmLabel)}</div>
+          <div class="qol-rmr-action secondary" data-cancel role="button" tabindex="0">Cancel</div>
+          <div class="qol-rmr-action" data-confirm role="button" tabindex="0">${escapeHtml(confirmLabel)}</div>
         </div>
       </div>`;
-    layer.querySelector('[data-rmr-cancel]').addEventListener('click', closeConfirm);
-    layer.querySelector('[data-rmr-confirm]').addEventListener('click', () => {
-      closeConfirm();
+    layer.querySelector('[data-cancel]').addEventListener('click', () => closeDialog(CONFIRM_DIALOG_ID));
+    layer.querySelector('[data-confirm]').addEventListener('click', () => {
+      closeDialog(CONFIRM_DIALOG_ID);
       onConfirm?.();
     });
-    layer.addEventListener('click', event => {
-      if (event.target === layer) closeConfirm();
+    layer.addEventListener('pointerdown', event => {
+      if (event.target === layer) closeDialog(CONFIRM_DIALOG_ID);
     });
-    layer.addEventListener('keydown', event => {
-      if (event.key === 'Escape') closeConfirm();
-      if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[role="button"]')) {
-        event.preventDefault();
-        event.target.click();
-      }
-    });
+    wireKeyboardButtons(layer);
     document.body.appendChild(layer);
-    layer.querySelector('[data-rmr-cancel]')?.focus();
+  }
+
+  function openAssignmentDialog() {
+    closeDialog(ASSIGN_DIALOG_ID);
+    const ctx = contextSnapshot();
+    const roadmapId = getSelectedId();
+    const roadmap = getAllRoadmaps()[roadmapId];
+    if (!roadmap) return;
+    if (!validPlayer(ctx) || !validVillage(ctx)) {
+      showToast('APES is still resolving the current account and village. Try again in a moment.', 'error');
+      return;
+    }
+
+    const state = loadAccountState(ctx);
+    const current = resolveAssignment(ctx, state);
+    let chosen = current?.roadmapId === roadmapId ? current.scope : 'village';
+    const layer = document.createElement('div');
+    layer.id = ASSIGN_DIALOG_ID;
+    layer.innerHTML = `
+      <div class="qol-rma-dialog" role="dialog" aria-modal="true">
+        <div class="qol-rma-dialog-head">Load Roadmap</div>
+        <div class="qol-rma-dialog-body">
+          <strong class="qol-rma-dialog-roadmap">${escapeHtml(roadmap.name)}</strong>
+          <span class="qol-rma-dialog-village">Current village: ${escapeHtml(ctx.villageName)}</span>
+          <div class="qol-rma-scope-list" role="radiogroup" aria-label="Roadmap scope">
+            <div class="qol-rma-scope" data-scope="village" role="radio" tabindex="0" aria-checked="false">
+              <span class="qol-rma-radio"></span><div><strong>This Village</strong><small>Only ${escapeHtml(ctx.villageName)}. Progress belongs to this village.</small></div>
+            </div>
+            <div class="qol-rma-scope" data-scope="all" role="radio" tabindex="0" aria-checked="false">
+              <span class="qol-rma-radio"></span><div><strong>All Villages</strong><small>Loads everywhere with one shared step and shared progress. Replaces individual assignments.</small></div>
+            </div>
+            <div class="qol-rma-scope" data-scope="every" role="radio" tabindex="0" aria-checked="false">
+              <span class="qol-rma-radio"></span><div><strong>Every Village</strong><small>Loads the same roadmap everywhere, but each village advances independently. Replaces individual assignments.</small></div>
+            </div>
+          </div>
+          <div class="qol-rma-dialog-status" aria-live="polite"></div>
+        </div>
+        <div class="qol-rma-dialog-actions">
+          <div class="qol-rma-action secondary" data-cancel role="button" tabindex="0">Cancel</div>
+          <div class="qol-rma-action" data-load role="button" tabindex="0">Load Roadmap</div>
+        </div>
+      </div>`;
+
+    const syncChoice = () => {
+      layer.querySelectorAll('[data-scope]').forEach(option => {
+        const active = option.dataset.scope === chosen;
+        option.classList.toggle('active', active);
+        option.setAttribute('aria-checked', active ? 'true' : 'false');
+      });
+    };
+    layer.querySelectorAll('[data-scope]').forEach(option => {
+      option.addEventListener('click', () => {
+        chosen = option.dataset.scope;
+        syncChoice();
+      });
+    });
+    layer.querySelector('[data-cancel]').addEventListener('click', () => closeDialog(ASSIGN_DIALOG_ID));
+    layer.querySelector('[data-load]').addEventListener('click', () => {
+      closeDialog(ASSIGN_DIALOG_ID);
+      assignRoadmap(roadmapId, chosen);
+    });
+    layer.addEventListener('pointerdown', event => {
+      if (event.target === layer) closeDialog(ASSIGN_DIALOG_ID);
+    });
+    wireKeyboardButtons(layer);
+    document.body.appendChild(layer);
+    syncChoice();
+  }
+
+  function assignRoadmap(roadmapId, scope) {
+    const ctx = contextSnapshot();
+    const roadmap = getAllRoadmaps()[roadmapId];
+    if (!roadmap || !validPlayer(ctx) || !validVillage(ctx)) return;
+    const state = loadAccountState(ctx);
+    const now = Date.now();
+
+    if (scope === 'village') {
+      state.villages[ctx.villageId] = { roadmapId, assignedAt: now, villageName: ctx.villageName };
+    } else if (scope === 'all' || scope === 'every') {
+      state.defaultAssignment = { scope, roadmapId, assignedAt: now };
+      state.villages = {};
+    } else {
+      return;
+    }
+
+    const assignment = resolveAssignment(ctx, state);
+    seedProgressIfEmpty(state, assignment, roadmap);
+    saveAccountState(ctx, state);
+    setVisible(true);
+    window.APES?.roadmaps?.close?.();
+    showRunner();
+    scheduleRefresh();
+    showToast(`Loaded for ${assignmentLabel(scope)}.`);
+  }
+
+  function removeCurrentAssignment() {
+    const ctx = contextSnapshot();
+    if (!validPlayer(ctx)) return;
+    const state = loadAccountState(ctx);
+    const assignment = resolveAssignment(ctx, state);
+    if (!assignment) return;
+    const roadmap = getAllRoadmaps()[assignment.roadmapId];
+    const label = assignmentLabel(assignment.scope);
+    showConfirm('Remove Roadmap?', `Remove “${roadmap?.name || 'this roadmap'}” from ${label}? Saved progress will be kept.`, 'Remove', () => {
+      if (assignment.scope === 'village' && validVillage(ctx)) delete state.villages[ctx.villageId];
+      else state.defaultAssignment = null;
+      saveAccountState(ctx, state);
+      scheduleRefresh();
+      syncContext(true);
+      showToast('Roadmap assignment removed.', 'info');
+    });
   }
 
   function saveWindowPosition() {
@@ -208,64 +425,71 @@
     panel.innerHTML = `
       <div class="qol-rmr-header">
         <div class="qol-rmr-header-copy"><span>↪</span><strong>Roadmap</strong></div>
-        <div class="qol-rmr-close" data-rmr-action="close" role="button" tabindex="0" aria-label="Close Roadmap Runner">×</div>
+        <div class="qol-rmr-close" data-action="close" role="button" tabindex="0" aria-label="Close Roadmap Runner">×</div>
       </div>
       <div class="qol-rmr-body"></div>`;
     document.body.appendChild(panel);
     makeDraggable();
+    panel.addEventListener('click', event => {
+      const action = event.target.closest('[data-action]');
+      if (action) handleRunnerAction(action.dataset.action);
+    });
+    wireKeyboardButtons(panel);
     requestAnimationFrame(() => {
       applyWindowPosition();
       clampPanel();
     });
-    panel.addEventListener('click', event => {
-      const action = event.target.closest('[data-rmr-action]');
-      if (!action) return;
-      handleRunnerAction(action.dataset.rmrAction);
-    });
-    panel.addEventListener('keydown', event => {
-      if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[role="button"]')) {
-        event.preventDefault();
-        event.target.click();
-      }
-    });
     return panel;
   }
 
+  function currentRuntime() {
+    const ctx = contextSnapshot();
+    const state = loadAccountState(ctx);
+    const assignment = resolveAssignment(ctx, state);
+    const roadmap = assignment ? getAllRoadmaps()[assignment.roadmapId] : null;
+    const progress = roadmap ? getProgress(state, assignment, roadmap.steps.length) : null;
+    return { ctx, state, assignment, roadmap, progress };
+  }
+
   function renderRunner() {
-    if (!panel) return;
-    const state = normalizeState();
-    const roadmap = getAllRoadmaps()[state.activeId];
-    if (!roadmap) {
+    if (!panel) return false;
+    const runtime = currentRuntime();
+    const { ctx, assignment, roadmap, progress } = runtime;
+    if (!assignment || !roadmap || !progress) {
       panel.classList.remove('qol-rmr-open');
       panel.setAttribute('aria-hidden', 'true');
-      return;
+      return false;
     }
 
-    const total = roadmap.steps.length;
-    const progress = getProgress(state, state.activeId, total);
     const body = panel.querySelector('.qol-rmr-body');
     const title = panel.querySelector('.qol-rmr-header strong');
     if (title) title.textContent = roadmap.name;
+    const total = roadmap.steps.length;
+    const contextLine = assignment.scope === 'all'
+      ? 'All Villages · shared progress'
+      : `${ctx.villageName} · ${assignment.scope === 'every' ? 'Every Village' : 'This Village'}`;
 
     if (!total) {
       body.innerHTML = `
+        <div class="qol-rma-runner-scope">${escapeHtml(contextLine)}</div>
         <div class="qol-rmr-empty">This roadmap has no steps yet.</div>
-        <div class="qol-rmr-footer"><div class="qol-rmr-action secondary" data-rmr-action="hub" role="button" tabindex="0">Open Hub</div></div>`;
-      return;
+        <div class="qol-rmr-footer"><div class="qol-rmr-action secondary" data-action="hub" role="button" tabindex="0">Open Hub</div></div>`;
+      return true;
     }
 
     if (progress.currentStep >= total) {
       body.innerHTML = `
+        <div class="qol-rma-runner-scope">${escapeHtml(contextLine)}</div>
         <div class="qol-rmr-complete-mark">✓</div>
         <div class="qol-rmr-complete-title">Roadmap complete</div>
         <div class="qol-rmr-complete-copy">${escapeHtml(roadmap.name)} · ${total} steps processed${progress.skipped.length ? ` · ${progress.skipped.length} skipped` : ''}</div>
         <div class="qol-rmr-progress"><span style="width:100%"></span></div>
         <div class="qol-rmr-footer">
-          <div class="qol-rmr-action secondary" data-rmr-action="back" role="button" tabindex="0">‹ Back</div>
-          <div class="qol-rmr-action secondary" data-rmr-action="hub" role="button" tabindex="0">Open Hub</div>
-          <div class="qol-rmr-action" data-rmr-action="restart" role="button" tabindex="0">Restart</div>
+          <div class="qol-rmr-action secondary" data-action="back" role="button" tabindex="0">‹ Back</div>
+          <div class="qol-rmr-action secondary" data-action="hub" role="button" tabindex="0">Open Hub</div>
+          <div class="qol-rmr-action" data-action="restart" role="button" tabindex="0">Restart</div>
         </div>`;
-      return;
+      return true;
     }
 
     const step = roadmap.steps[progress.currentStep];
@@ -273,6 +497,7 @@
     const percent = Math.round((progress.currentStep / total) * 100);
     const wasSkipped = progress.skipped.includes(progress.currentStep);
     body.innerHTML = `
+      <div class="qol-rma-runner-scope">${escapeHtml(contextLine)}</div>
       <div class="qol-rmr-meta"><span>Step ${progress.currentStep + 1} of ${total}</span><strong>${percent}%</strong></div>
       <div class="qol-rmr-progress"><span style="width:${percent}%"></span></div>
       <div class="qol-rmr-step-card${wasSkipped ? ' skipped' : ''}">
@@ -281,136 +506,140 @@
       </div>
       <div class="qol-rmr-next"><span>Next</span><strong>${next ? escapeHtml(stepLabel(next)) : 'Final step'}</strong></div>
       <div class="qol-rmr-footer">
-        <div class="qol-rmr-action secondary${progress.currentStep === 0 ? ' disabled' : ''}" data-rmr-action="back" role="button" tabindex="${progress.currentStep === 0 ? -1 : 0}">‹ Back</div>
-        <div class="qol-rmr-action secondary" data-rmr-action="hub" role="button" tabindex="0">Hub</div>
-        <div class="qol-rmr-action secondary" data-rmr-action="skip" role="button" tabindex="0">Skip ›</div>
-        <div class="qol-rmr-action" data-rmr-action="complete" role="button" tabindex="0">✓ Complete</div>
+        <div class="qol-rmr-action secondary${progress.currentStep === 0 ? ' disabled' : ''}" data-action="back" role="button" tabindex="${progress.currentStep === 0 ? -1 : 0}">‹ Back</div>
+        <div class="qol-rmr-action secondary" data-action="hub" role="button" tabindex="0">Hub</div>
+        <div class="qol-rmr-action secondary" data-action="skip" role="button" tabindex="0">Skip ›</div>
+        <div class="qol-rmr-action" data-action="complete" role="button" tabindex="0">✓ Complete</div>
       </div>`;
+    return true;
   }
 
   function showRunner() {
     buildPanel();
-    renderRunner();
+    if (!renderRunner()) {
+      window.APES?.roadmaps?.open?.();
+      return;
+    }
     panel.classList.add('qol-rmr-open');
     panel.setAttribute('aria-hidden', 'false');
     setVisible(true);
     requestAnimationFrame(clampPanel);
   }
 
-  function hideRunner() {
+  function hideRunner(userInitiated = true) {
     panel?.classList.remove('qol-rmr-open');
     panel?.setAttribute('aria-hidden', 'true');
-    setVisible(false);
-  }
-
-  function activateRoadmap(roadmapId) {
-    const all = getAllRoadmaps();
-    const roadmap = all[roadmapId];
-    if (!roadmap) return;
-    const state = normalizeState();
-    state.activeId = roadmapId;
-    state.progress = state.progress || {};
-    if (!state.progress[roadmapId]) state.progress[roadmapId] = { currentStep: 0, skipped: [] };
-    saveState(state);
-    showRunner();
-    window.APES?.roadmaps?.close?.();
-    scheduleRefresh();
-  }
-
-  function startSelectedRoadmap() {
-    const roadmapId = getSelectedId();
-    const all = getAllRoadmaps();
-    if (!roadmapId || !all[roadmapId]) return;
-    const state = normalizeState();
-    if (state.activeId && state.activeId !== roadmapId) {
-      const active = all[state.activeId];
-      if (active) {
-        const activeProgress = getProgress(state, state.activeId, active.steps.length);
-        if (activeProgress.currentStep < active.steps.length) {
-          showConfirm('Switch Roadmap?', `Stop viewing “${active.name}” and switch the runner to “${all[roadmapId].name}”? Your progress will be preserved.`, 'Switch Roadmap', () => activateRoadmap(roadmapId));
-          return;
-        }
-      }
-    }
-    activateRoadmap(roadmapId);
+    if (userInitiated) setVisible(false);
   }
 
   function moveBack() {
-    const state = normalizeState();
-    const roadmap = getAllRoadmaps()[state.activeId];
-    if (!roadmap) return;
-    const progress = getProgress(state, state.activeId, roadmap.steps.length);
-    if (progress.currentStep <= 0) return;
-    progress.currentStep -= 1;
-    setProgress(state, state.activeId, progress);
+    const runtime = currentRuntime();
+    if (!runtime.assignment || !runtime.roadmap || !runtime.progress || runtime.progress.currentStep <= 0) return;
+    runtime.progress.currentStep -= 1;
+    setProgress(runtime.ctx, runtime.state, runtime.assignment, runtime.progress);
     renderRunner();
     scheduleRefresh();
   }
 
   function advance(skip = false) {
-    const state = normalizeState();
-    const roadmap = getAllRoadmaps()[state.activeId];
-    if (!roadmap) return;
-    const progress = getProgress(state, state.activeId, roadmap.steps.length);
-    if (progress.currentStep >= roadmap.steps.length) return;
-    const index = progress.currentStep;
-    const skipped = new Set(progress.skipped);
+    const runtime = currentRuntime();
+    if (!runtime.assignment || !runtime.roadmap || !runtime.progress) return;
+    if (runtime.progress.currentStep >= runtime.roadmap.steps.length) return;
+    const index = runtime.progress.currentStep;
+    const skipped = new Set(runtime.progress.skipped);
     if (skip) skipped.add(index);
     else skipped.delete(index);
-    progress.skipped = [...skipped];
-    progress.currentStep += 1;
-    setProgress(state, state.activeId, progress);
+    runtime.progress.skipped = [...skipped];
+    runtime.progress.currentStep += 1;
+    setProgress(runtime.ctx, runtime.state, runtime.assignment, runtime.progress);
     renderRunner();
     scheduleRefresh();
   }
 
-  function restartActive() {
-    const state = normalizeState();
-    const roadmap = getAllRoadmaps()[state.activeId];
-    if (!roadmap) return;
-    showConfirm('Restart Roadmap?', `Reset progress for “${roadmap.name}” back to Step 1?`, 'Restart', () => {
-      setProgress(state, state.activeId, { currentStep: 0, skipped: [] });
+  function restartCurrent() {
+    const runtime = currentRuntime();
+    if (!runtime.assignment || !runtime.roadmap) return;
+    showConfirm('Restart Roadmap?', `Reset progress for “${runtime.roadmap.name}” in ${assignmentLabel(runtime.assignment.scope)}?`, 'Restart', () => {
+      setProgress(runtime.ctx, runtime.state, runtime.assignment, { currentStep: 0, skipped: [] });
       showRunner();
       scheduleRefresh();
     });
   }
 
   function handleRunnerAction(action) {
-    if (action === 'close') hideRunner();
+    if (action === 'close') hideRunner(true);
     else if (action === 'hub') window.APES?.roadmaps?.open?.();
     else if (action === 'back') moveBack();
     else if (action === 'complete') advance(false);
     else if (action === 'skip') advance(true);
-    else if (action === 'restart') restartActive();
+    else if (action === 'restart') restartCurrent();
   }
 
-  function hubButtonLabel(roadmapId, roadmap) {
-    const state = normalizeState();
-    const progress = getProgress(state, roadmapId, roadmap.steps.length);
-    if (state.activeId === roadmapId) return progress.currentStep >= roadmap.steps.length ? 'View Completed' : 'Open Runner';
-    if (progress.currentStep > 0 && progress.currentStep < roadmap.steps.length) return 'Continue Roadmap';
-    if (progress.currentStep >= roadmap.steps.length && roadmap.steps.length) return 'View Completed';
-    return 'Start Roadmap';
-  }
-
-  function enhanceHub() {
+  function renderHubContext() {
     const hub = document.getElementById(HUB_ID);
     if (!hub) return;
     const actions = hub.querySelector('.qol-rm-actions');
-    if (!actions) return;
-    const roadmapId = getSelectedId();
-    const roadmap = getAllRoadmaps()[roadmapId];
-    if (!roadmap) return;
-    let button = actions.querySelector('[data-rmr-start]');
-    if (!button) {
-      button = document.createElement('div');
-      button.className = 'qol-rm-action qol-rmr-hub-start';
-      button.dataset.rmrStart = '1';
-      button.setAttribute('role', 'button');
-      button.setAttribute('tabindex', '0');
-      actions.prepend(button);
+    const selectedRoadmap = getAllRoadmaps()[getSelectedId()];
+    if (actions && selectedRoadmap) {
+      let load = actions.querySelector('[data-rma-load]');
+      if (!load) {
+        load = document.createElement('div');
+        load.className = 'qol-rm-action qol-rma-load';
+        load.dataset.rmaLoad = '1';
+        load.setAttribute('role', 'button');
+        load.setAttribute('tabindex', '0');
+        actions.prepend(load);
+      }
+      load.textContent = 'Load Roadmap';
     }
-    button.textContent = hubButtonLabel(roadmapId, roadmap);
+
+    const summary = hub.querySelector('.qol-rm-summary');
+    if (!summary) return;
+    let card = hub.querySelector('.qol-rma-context');
+    if (!card) {
+      card = document.createElement('div');
+      card.className = 'qol-rma-context';
+      summary.insertAdjacentElement('afterend', card);
+    }
+
+    const runtime = currentRuntime();
+    const { ctx, assignment, roadmap, progress } = runtime;
+    const signature = JSON.stringify({
+      playerId: ctx.playerId,
+      villageId: ctx.villageId,
+      villageName: ctx.villageName,
+      roadmapId: assignment?.roadmapId || '',
+      scope: assignment?.scope || '',
+      current: progress?.currentStep ?? -1,
+      total: roadmap?.steps?.length ?? 0
+    });
+    if (card.dataset.signature === signature) return;
+    card.dataset.signature = signature;
+
+    const contextName = validVillage(ctx) ? ctx.villageName : 'Resolving current village…';
+    if (!assignment || !roadmap) {
+      card.innerHTML = `
+        <div class="qol-rma-context-copy">
+          <span class="qol-rma-kicker">Current Village</span>
+          <strong>${escapeHtml(contextName)}</strong>
+          <small>No roadmap assigned here. Select a roadmap and choose Load Roadmap.</small>
+        </div>`;
+      return;
+    }
+
+    const total = roadmap.steps.length;
+    const done = Math.min(progress.currentStep, total);
+    card.innerHTML = `
+      <div class="qol-rma-context-copy">
+        <span class="qol-rma-kicker">Current Village</span>
+        <strong>${escapeHtml(contextName)}</strong>
+        <small>${escapeHtml(roadmap.name)} · ${escapeHtml(assignmentLabel(assignment.scope))} · Step ${total ? `${Math.min(done + 1, total)}/${total}` : '0/0'}</small>
+      </div>
+      <div class="qol-rma-context-progress"><span style="width:${total ? Math.round((done / total) * 100) : 0}%"></span></div>
+      <div class="qol-rma-context-actions">
+        <div class="qol-rm-action qol-secondary" data-rma-open role="button" tabindex="0">Open Runner</div>
+        <div class="qol-rm-action qol-secondary" data-rma-remove role="button" tabindex="0">Remove</div>
+      </div>`;
   }
 
   function scheduleRefresh() {
@@ -418,45 +647,88 @@
     refreshQueued = true;
     requestAnimationFrame(() => {
       refreshQueued = false;
-      enhanceHub();
+      renderHubContext();
       if (panel?.classList.contains('qol-rmr-open')) renderRunner();
     });
   }
 
+  function syncContext(force = false) {
+    const ctx = contextSnapshot();
+    const signature = `${ctx.server}|${ctx.playerId}|${ctx.villageId}|${ctx.villageName}`;
+    if (!force && signature === lastContextSignature) return;
+    lastContextSignature = signature;
+    scheduleRefresh();
+    const assignment = resolveAssignment(ctx, loadAccountState(ctx));
+    if (assignment && isVisibleWanted()) {
+      buildPanel();
+      renderRunner();
+      panel.classList.add('qol-rmr-open');
+      panel.setAttribute('aria-hidden', 'false');
+      requestAnimationFrame(clampPanel);
+    } else if (!assignment) {
+      hideRunner(false);
+    }
+  }
+
   function init() {
     document.addEventListener('click', event => {
-      const start = event.target.closest('[data-rmr-start]');
-      if (start && document.getElementById(HUB_ID)?.contains(start)) startSelectedRoadmap();
+      const hub = document.getElementById(HUB_ID);
+      const load = event.target.closest('[data-rma-load]');
+      if (load && hub?.contains(load)) {
+        event.preventDefault();
+        event.stopPropagation();
+        openAssignmentDialog();
+        return;
+      }
+      const open = event.target.closest('[data-rma-open]');
+      if (open && hub?.contains(open)) {
+        event.preventDefault();
+        event.stopPropagation();
+        showRunner();
+        return;
+      }
+      const remove = event.target.closest('[data-rma-remove]');
+      if (remove && hub?.contains(remove)) {
+        event.preventDefault();
+        event.stopPropagation();
+        removeCurrentAssignment();
+      }
     }, true);
+
     document.addEventListener('keydown', event => {
-      if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-rmr-start]')) {
+      if ((event.key === 'Enter' || event.key === ' ') && event.target.matches('[data-rma-load],[data-rma-open],[data-rma-remove]')) {
         event.preventDefault();
         event.target.click();
       }
+      if (event.key === 'Escape') {
+        if (document.getElementById(ASSIGN_DIALOG_ID)) {
+          closeDialog(ASSIGN_DIALOG_ID);
+          event.stopImmediatePropagation();
+        } else if (document.getElementById(CONFIRM_DIALOG_ID)) {
+          closeDialog(CONFIRM_DIALOG_ID);
+          event.stopImmediatePropagation();
+        }
+      }
     }, true);
+
     const observer = new MutationObserver(scheduleRefresh);
     observer.observe(document.documentElement, { childList: true, subtree: true });
+    window.addEventListener('hashchange', () => syncContext(true));
     window.addEventListener('resize', () => {
       if (panel?.classList.contains('qol-rmr-open')) clampPanel();
     }, { passive: true });
-    document.addEventListener('keydown', event => {
-      if (event.key === 'Escape' && document.getElementById(DIALOG_ID)) {
-        closeConfirm();
-        event.stopImmediatePropagation();
-      }
-    }, true);
+    setInterval(() => syncContext(false), 750);
+
     window.APES = window.APES || {};
     window.APES.roadmapsRunner = Object.freeze({
       open: showRunner,
-      close: hideRunner,
-      startSelected: startSelectedRoadmap,
-      getState: normalizeState
+      close: () => hideRunner(true),
+      assignSelected: openAssignmentDialog,
+      getContextState: currentRuntime,
+      refresh: () => syncContext(true)
     });
-    setTimeout(() => {
-      scheduleRefresh();
-      const state = normalizeState();
-      if (state.activeId && isVisibleWanted() && getAllRoadmaps()[state.activeId]) showRunner();
-    }, 250);
+
+    setTimeout(() => syncContext(true), 250);
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });

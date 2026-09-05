@@ -80,7 +80,8 @@
         "css/villageDashboard.css",
         "css/roadmaps.css",
         "css/roadmapsEditor.css",
-        "css/roadmapsRunner.css"
+        "css/roadmapsRunner.css",
+        "css/roadmapsAssignments.css"
       ],
       "run_at": "document_idle"
     }
