@@ -47,6 +47,7 @@
         "js/features/watchlistHighlights.js",
         "js/features/reportArchive.js",
         "js/features/checklists.js",
+        "js/features/roadmaps.js",
         "js/features/npcCalculator.js",
         "js/ui/resourceUpgradePlannerPreference.js",
         "js/features/resourceUpgradePlanner.js",
@@ -73,7 +74,8 @@
         "css/style.css",
         "css/oasisScannerUI.css",
         "css/v2.css",
-        "css/villageDashboard.css"
+        "css/villageDashboard.css",
+        "css/roadmaps.css"
       ],
       "run_at": "document_idle"
     }
