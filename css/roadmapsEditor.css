@@ -2,28 +2,45 @@
 #qol-roadmaps-container .qol-rme-new{min-height:22px!important;padding:3px 7px!important;font-size:8px!important;text-transform:none!important;letter-spacing:0!important}
 #qol-roadmaps-container .qol-rme-add{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:5px!important;flex:0 0 auto!important;flex-wrap:wrap!important}
 #qol-roadmaps-container .qol-rm-step.qol-rme-editable{grid-template-columns:28px 72px minmax(0,1fr) auto!important}
-#qol-roadmaps-container .qol-rme-step-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:2px!important;opacity:.35!important;transition:opacity .15s ease!important}
-#qol-roadmaps-container .qol-rme-editable:hover .qol-rme-step-actions,#qol-roadmaps-container .qol-rme-step-actions:focus-within{opacity:1!important}
-#qol-roadmaps-container .qol-rme-icon{display:flex!important;align-items:center!important;justify-content:center!important;width:22px!important;height:22px!important;border-radius:3px!important;color:#745d42!important;font-size:10px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important;outline:none!important}
-#qol-roadmaps-container .qol-rme-icon:hover,#qol-roadmaps-container .qol-rme-icon:focus-visible{background:#eadfce!important;color:var(--qol-accent-deep)!important;box-shadow:0 0 0 1px #c8b797!important}
-#qol-roadmaps-container .qol-rme-icon.danger:hover,#qol-roadmaps-container .qol-rme-icon.danger:focus-visible{background:#f3d7d1!important;color:#9a352b!important;box-shadow:0 0 0 1px #d5a198!important}
-#qol-roadmaps-container .qol-rme-icon.disabled{opacity:.2!important;pointer-events:none!important}
-#qol-roadmaps-dialog-layer .qol-rme-dialog{width:min(520px,calc(100vw - 32px))!important}
-#qol-roadmaps-dialog-layer .qol-rm-dialog-body{gap:7px!important;max-height:calc(100vh - 150px)!important;overflow-y:auto!important}
-#qol-roadmaps-dialog-layer textarea,#qol-roadmaps-dialog-layer select{width:100%!important;padding:7px 8px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#3e2d1d!important;font:10px/1.4 Arial,Helvetica,sans-serif!important;outline:none!important;appearance:auto!important;-webkit-appearance:auto!important}
+#qol-roadmaps-container .qol-rme-step-actions{display:flex!important;align-items:center!important;justify-content:flex-end!important;gap:2px!important;opacity:1!important}
+#qol-roadmaps-container .qol-rme-icon{display:flex!important;align-items:center!important;justify-content:center!important;width:23px!important;height:23px!important;border:1px solid transparent!important;border-radius:3px!important;background:#f3ecdf!important;color:#745d42!important;font-size:10px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important;outline:none!important}
+#qol-roadmaps-container .qol-rme-icon:hover,#qol-roadmaps-container .qol-rme-icon:focus-visible{border-color:#c8b797!important;background:#eadfce!important;color:var(--qol-accent-deep)!important}
+#qol-roadmaps-container .qol-rme-icon.danger{color:#995042!important}
+#qol-roadmaps-container .qol-rme-icon.danger:hover,#qol-roadmaps-container .qol-rme-icon.danger:focus-visible{border-color:#d5a198!important;background:#f3d7d1!important;color:#9a352b!important}
+#qol-roadmaps-container .qol-rme-icon.disabled{opacity:.25!important;pointer-events:none!important;cursor:default!important}
+
+#qol-roadmaps-dialog-layer .qol-rme-dialog{width:min(560px,calc(100vw - 32px))!important}
+#qol-roadmaps-dialog-layer .qol-rm-dialog-body{gap:8px!important;max-height:calc(100vh - 150px)!important;overflow-y:auto!important}
+#qol-roadmaps-dialog-layer textarea{width:100%!important;padding:7px 8px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#3e2d1d!important;font:10px/1.4 Arial,Helvetica,sans-serif!important;outline:none!important;appearance:auto!important;-webkit-appearance:auto!important}
 #qol-roadmaps-dialog-layer textarea{min-height:84px!important;resize:vertical!important}
-#qol-roadmaps-dialog-layer select{height:31px!important;padding-top:4px!important;padding-bottom:4px!important}
-#qol-roadmaps-dialog-layer textarea:focus,#qol-roadmaps-dialog-layer select:focus{border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
-#qol-roadmaps-dialog-layer .qol-rme-grid{display:grid!important;grid-template-columns:minmax(0,1fr) 90px 82px!important;gap:8px!important;align-items:end!important}
-#qol-roadmaps-dialog-layer .qol-rme-grid>div{display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0!important}
-#qol-roadmaps-dialog-layer .qol-rme-expand{display:grid!important;grid-template-columns:24px minmax(0,1fr)!important;align-items:start!important;gap:8px!important;margin-top:3px!important;padding:9px!important;border:1px solid #d5c6af!important;border-radius:5px!important;background:#f2eadd!important}
-#qol-roadmaps-dialog-layer .qol-rme-expand>div:last-child{display:flex!important;flex-direction:column!important;gap:2px!important}
-#qol-roadmaps-dialog-layer .qol-rme-expand strong{color:#5a432b!important;font-size:9px!important}
-#qol-roadmaps-dialog-layer .qol-rme-expand small{color:#78664f!important;font-size:8px!important;line-height:1.4!important}
-#qol-roadmaps-dialog-layer .qol-rme-check{display:flex!important;align-items:center!important;justify-content:center!important;width:20px!important;height:20px!important;border:1px solid #8e7656!important;border-radius:4px!important;background:#fff!important;color:#fff!important;font-size:12px!important;font-weight:700!important;cursor:pointer!important}
-#qol-roadmaps-dialog-layer .qol-rme-check.active{border-color:#46651f!important;background:#648b2c!important}
-#qol-roadmaps-dialog-layer .qol-rme-hint{min-height:14px!important;color:#7a684f!important;font-size:8px!important;line-height:1.4!important}
-.qol-rme-toast{position:fixed!important;left:50%!important;bottom:24px!important;z-index:2147483647!important;transform:translateX(-50%)!important;padding:9px 13px!important;border:1px solid #405f1e!important;border-radius:5px!important;background:#587d27!important;color:#fff!important;box-shadow:0 7px 20px rgba(0,0,0,.35)!important;font:700 10px Arial,sans-serif!important}
+#qol-roadmaps-dialog-layer textarea:focus{border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
+
+#qol-roadmaps-dialog-layer .qol-rme-building-grid{display:grid!important;grid-template-columns:minmax(0,1fr) 126px 78px!important;gap:8px!important;align-items:start!important}
+#qol-roadmaps-dialog-layer .qol-rme-building-field,#qol-roadmaps-dialog-layer .qol-rme-level-field,#qol-roadmaps-dialog-layer .qol-rme-instance-field{display:flex!important;flex-direction:column!important;gap:5px!important;min-width:0!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-shell{position:relative!important;min-width:0!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:31px!important;padding:6px 8px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#3e2d1d!important;font-size:10px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important;outline:none!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker:hover,#qol-roadmaps-dialog-layer .qol-rme-picker:focus-visible,#qol-roadmaps-dialog-layer .qol-rme-picker[aria-expanded="true"]{border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-arrow{flex:0 0 auto!important;color:#8a7355!important;font-size:9px!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-menu{display:none!important;flex-direction:column!important;gap:2px!important;max-height:210px!important;margin-top:4px!important;padding:4px!important;overflow-y:auto!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fffaf0!important;box-shadow:0 5px 14px rgba(0,0,0,.18)!important;scrollbar-width:thin!important;scrollbar-color:var(--qol-scroll-thumb) #eee5d6!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-menu.open{display:flex!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-option{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:10px!important;min-height:27px!important;padding:5px 7px!important;border:1px solid transparent!important;border-radius:3px!important;color:#4d3824!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important;outline:none!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-option span{color:#8b775d!important;font-size:7.5px!important;font-weight:700!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-option:hover,#qol-roadmaps-dialog-layer .qol-rme-picker-option:focus-visible{border-color:#d2c1a5!important;background:#f0e5d2!important}
+#qol-roadmaps-dialog-layer .qol-rme-picker-option.active{border-color:#9cae7e!important;background:#edf3df!important;color:#4e6928!important}
+
+#qol-roadmaps-dialog-layer .qol-rme-next-level{display:flex!important;flex-direction:column!important;justify-content:center!important;min-height:31px!important;padding:5px 8px!important;border:1px solid #a9b98b!important;border-radius:4px!important;background:#eef4e3!important}
+#qol-roadmaps-dialog-layer .qol-rme-next-level strong{color:#4e6928!important;font-size:10px!important;line-height:12px!important}
+#qol-roadmaps-dialog-layer .qol-rme-next-level small{margin-top:1px!important;color:#72815a!important;font-size:7px!important;line-height:9px!important}
+#qol-roadmaps-dialog-layer .qol-rme-instance-field input{height:31px!important}
+#qol-roadmaps-dialog-layer .qol-rme-sequence-note{padding:8px 9px!important;border:1px solid #d5c6af!important;border-radius:4px!important;background:#f3ecdf!important;color:#725f48!important;font-size:8px!important;line-height:1.45!important}
+
+.qol-rme-toast{position:fixed!important;left:50%!important;bottom:24px!important;z-index:2147483647!important;transform:translateX(-50%)!important;padding:9px 13px!important;border:1px solid #405f1e!important;border-radius:5px!important;background:#587d27!important;color:#fff!important;box-shadow:0 7px 20px rgba(0,0,0,.35)!important;font:700 10px Arial,sans-serif!important;text-align:center!important}
 .qol-rme-toast.info{border-color:var(--qol-action-border)!important;background:var(--qol-accent)!important}
 .qol-rme-toast.error{border-color:#7f3027!important;background:#a44539!important}
-@media(max-width:760px){#qol-roadmaps-container .qol-rm-step.qol-rme-editable{grid-template-columns:26px 64px minmax(0,1fr)!important}#qol-roadmaps-container .qol-rme-step-actions{grid-column:2/-1!important;justify-content:flex-start!important;opacity:1!important}#qol-roadmaps-dialog-layer .qol-rme-grid{grid-template-columns:minmax(0,1fr) 90px!important}}
+
+@media(max-width:760px){
+  #qol-roadmaps-container .qol-rm-step.qol-rme-editable{grid-template-columns:26px 64px minmax(0,1fr)!important}
+  #qol-roadmaps-container .qol-rme-step-actions{grid-column:2/-1!important;justify-content:flex-start!important}
+  #qol-roadmaps-dialog-layer .qol-rme-building-grid{grid-template-columns:minmax(0,1fr) 118px!important}
+  #qol-roadmaps-dialog-layer .qol-rme-instance-field{grid-column:1/-1!important}
+}
