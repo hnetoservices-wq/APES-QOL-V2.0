@@ -15,6 +15,11 @@
       name: 'x3 Speed Settle',
       pretext: 'This guide assumes you are using gold to settle as quickly as possible. Spend hero points in resources and change hero production before opening resource or crop chests.',
       steps: ['Finish the tutorial. Do not skip it; attack the furthest hideout first during the tutorial.', 'Queue 5 units.', 'Attack the closest hideout until it is empty. Send the hero on adventures continuously.', 'Upgrade the Warehouse and Granary to level 3.', 'Build the Embassy to level 1 and annex an oasis if possible.', 'Build the Marketplace and Cranny to level 1.', 'Upgrade every crop field to level 2, then every crop field to level 3.', 'Optional when demolishing the spawn village: upgrade every resource field to level 2.', 'Upgrade the Main Building to level 7.', 'Build the Residence to level 1.', 'Activate Gold Club, Travian Plus, Resource Bonus and Crop Bonus.', 'Upgrade the Warehouse to level 5 so it can hold the quest rewards.', 'Upgrade the Residence to level 5.', 'Complete free quests such as renaming the village, changing hero production and healing the hero.', 'If affordable, play card games for an extra adventure point and chests.', 'After Residence level 5 finishes, collect the quest reward, upgrade it to level 10 and queue the first Settler.', 'Queue the second Settler as soon as possible. Clear the first two hideouts, sell stolen goods and use the seventh hero adventure for more resources.', 'Catch animals in a nearby oasis after the seventh adventure for the quest reward.', 'Wait for the third and fourth hideouts. They should spawn roughly 1h27m after clearing the first two.', 'Use the first Settler to empty the third and fourth hideouts. Send extra troops so the Settler survives.', 'Queue the third Settler. Use resource or crop chests if necessary.', 'Upgrade the Main Building to level 10.', 'Demolish the Residence, timing completion for a few seconds after the third Settler completes.', 'Upgrade Barracks to level 3, Academy to level 10, Town Hall to level 1 and Workshop to level 1.', 'Upgrade the Granary to level 7.', 'Start a Small Celebration, relocate and send the Settlers.', 'Thank Ruben from Triangles for the guide.']
+    },
+    x1_support_500cp: {
+      name: 'x1 Support Village — 500 CP/day',
+      pretext: 'Designed for a normal non-city support village on x1 servers. The target is 500 passive CP per day at low population and resource cost while preserving one normal building slot. x3 CP scaling is intentionally not used in this guide.',
+      steps: ['Upgrade the Main Building to level 5.', 'Upgrade the Warehouse to level 12.', 'Upgrade the Granary to level 12.', 'Upgrade every resource field to level 10.', 'Upgrade the Sawmill to level 5.', 'Upgrade the Brickyard to level 5.', 'Upgrade the Iron Foundry to level 5.', 'Upgrade the Grain Mill to level 5.', 'Upgrade the Bakery to level 5.', 'Upgrade the Residence to level 10.', 'Upgrade the Marketplace to level 20.', 'Upgrade the Barracks to level 3.', 'Upgrade the Academy to level 5.', 'Upgrade the Smithy to level 3.', 'Upgrade the Stable to level 10.', 'Upgrade the Trade Office to level 5.', 'Upgrade the Main Building to level 10.', 'Upgrade the Academy to level 10.', 'Build the Town Hall to level 1.', 'Upgrade the Main Building to level 20.', 'Upgrade the Academy to level 17.', 'Upgrade the Smithy to level 6.', 'Upgrade the Embassy to level 3.', 'Upgrade the Rally Point to level 7.', 'Upgrade your tribe wall to level 15.', 'Upgrade the first Cranny to level 10.', 'Build and upgrade a second Cranny to level 10.', 'Verify the final village target: 500 passive CP/day on x1 and one normal building slot left free.']
     }
   });
   let panel = null;
@@ -287,10 +292,11 @@
     });
     return remapped;
   }
-  function openChecklistEditor(checklistId = '') {
+  function openChecklistEditor(checklistId = '', draft = null) {
     const custom = getCustomChecklists();
     const editing = Boolean(checklistId && custom[checklistId]);
-    const source = editing ? custom[checklistId] : {
+    const creatingCopy = !editing && Boolean(draft);
+    const source = editing ? custom[checklistId] : creatingCopy ? normalizeChecklist(draft) : {
       name: '',
       pretext: '',
       steps: []
@@ -300,7 +306,7 @@
     layer.id = DIALOG_ID;
     layer.innerHTML = `
             <div class="qol-cl-dialog" role="dialog" aria-modal="true">
-                <div class="qol-cl-dialog-head">${editing ? 'Edit Checklist' : 'Create Checklist'}</div>
+                <div class="qol-cl-dialog-head">${editing ? 'Edit Checklist' : creatingCopy ? 'Copy Checklist' : 'Create Checklist'}</div>
                 <div class="qol-cl-dialog-body">
                     <div class="qol-cl-field"><label for="qol-cl-editor-title">Checklist title</label><input id="qol-cl-editor-title" type="text" maxlength="80" placeholder="e.g. Hammer launch preparation"></div>
                     <div class="qol-cl-field"><label for="qol-cl-editor-description">Description (optional)</label><input id="qol-cl-editor-description" type="text" maxlength="240" placeholder="What is this checklist for?"></div>
@@ -309,7 +315,7 @@
                 </div>
                 <div class="qol-cl-dialog-actions">
                     <div class="qol-cl-action qol-secondary" data-dialog-cancel role="button" tabindex="0">Cancel</div>
-                    <div class="qol-cl-action" data-dialog-save role="button" tabindex="0">${editing ? 'Save Changes' : 'Create Checklist'}</div>
+                    <div class="qol-cl-action" data-dialog-save role="button" tabindex="0">${editing ? 'Save Changes' : creatingCopy ? 'Create Copy' : 'Create Checklist'}</div>
                 </div>
             </div>
         `;
@@ -362,7 +368,7 @@
       taskFilter = 'all';
       taskSearch = '';
       renderWorkspace();
-      showToast(editing ? 'Checklist updated.' : 'Checklist created.');
+      showToast(editing ? 'Checklist updated.' : creatingCopy ? 'Checklist copy created.' : 'Checklist created.');
     };
     layer.querySelector('[data-dialog-cancel]').addEventListener('click', closeDialog);
     layer.querySelector('[data-dialog-save]').addEventListener('click', save);
@@ -372,6 +378,7 @@
     bindKeyboardActivation(layer);
     document.body.appendChild(layer);
     titleInput.focus();
+    if (creatingCopy) titleInput.select();
   }
   function renderSidebar() {
     if (!panel) return;
@@ -494,25 +501,16 @@
     const source = getAllChecklists()[selectedChecklistId];
     if (!source) return;
     const custom = getCustomChecklists();
-    const id = `custom_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 7)}`;
-    let name = `${source.name} Copy`;
+    const baseName = cleanText(source.name.replace(/\s*(?:-\s*)?Copy(?:\s+\d+)?$/i, '')) || source.name;
+    let name = `${baseName} - Copy`;
     const names = new Set(Object.values(custom).map(item => normalizedText(item.name)));
     let suffix = 2;
-    while (names.has(normalizedText(name))) name = `${source.name} Copy ${suffix++}`;
-    custom[id] = {
+    while (names.has(normalizedText(name))) name = `${baseName} - Copy ${suffix++}`;
+    openChecklistEditor('', {
       name,
       pretext: source.pretext,
       steps: [...source.steps]
-    };
-    saveCustomChecklists(custom);
-    selectedChecklistId = id;
-    try {
-      localStorage.setItem(SELECTED_STORAGE_KEY, id);
-    } catch (_) {}
-    taskFilter = 'all';
-    taskSearch = '';
-    renderWorkspace();
-    showToast('Editable checklist copy created.');
+    });
   }
   function deleteSelectedChecklist() {
     const custom = getCustomChecklists();
