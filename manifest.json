@@ -49,6 +49,7 @@
         "js/features/checklists.js",
         "js/features/roadmaps.js",
         "js/features/roadmapsEditor.js",
+        "js/features/roadmapsCatalogSort.js",
         "js/features/roadmapsRunner.js",
         "js/features/npcCalculator.js",
         "js/ui/resourceUpgradePlannerPreference.js",
