@@ -54,6 +54,7 @@
         "js/modules/roadmaps/sharing.js",
         "js/modules/roadmaps/progress.js",
         "js/modules/roadmaps/officialGuides.js",
+        "js/modules/roadmaps/retiredGuides.js",
         "js/modules/roadmaps/legacyChecklistMigration.js",
         "js/modules/roadmaps/runner.js",
         "js/modules/roadmaps/controls.js",
