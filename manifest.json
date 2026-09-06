@@ -87,6 +87,7 @@
         "js/ui/accountOperationsCenterAccuracy.js",
         "js/ui/accountOperationsCenterActions.js",
         "js/ui/accountOperationsCenterRender.js",
+        "js/ui/accountOperationsCenterAccuracyUi.js",
         "js/ui/accountOperationsCenter.js",
         "js/modules/buildingAlarm/operationsIntegration.js",
         "js/content.js"
