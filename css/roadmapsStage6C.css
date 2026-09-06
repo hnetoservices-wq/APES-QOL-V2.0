@@ -1,0 +1,28 @@
+#qol-roadmaps-container .qol-rm-step-type.checkpoint,#qol-roadmap-runner .qol-rmr-type.checkpoint{border-color:#9b7bb1!important;background:#f1e7f7!important;color:#65427b!important}
+#qol-roadmaps-container .qol-rms6-checkpoint-row{background:linear-gradient(90deg,rgba(176,137,199,.12),transparent 42%)!important}
+#qol-roadmaps-dialog-layer .qol-rms6-checkpoint-note,#qol-roadmap-runner .qol-rms6-checkpoint-note{padding:7px 8px!important;border:1px solid #c9b5d5!important;border-radius:4px!important;background:#f4edf8!important;color:#6a4b79!important;font-size:8px!important;line-height:1.4!important}
+#qol-roadmap-runner .qol-rms6-checkpoint-note{margin-top:6px!important;font-weight:700!important}
+
+#qol-roadmap-assignment-dialog .qol-rms6-detection-block{display:flex!important;flex-direction:column!important;gap:6px!important;margin-top:8px!important;padding-top:8px!important;border-top:1px solid #d5c4aa!important}
+#qol-roadmap-assignment-dialog .qol-rms6-section-title{color:#7b664e!important;font-size:8px!important;font-weight:700!important;letter-spacing:.45px!important;text-transform:uppercase!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection-list{display:grid!important;grid-template-columns:1fr 1fr!important;gap:6px!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection{display:grid!important;grid-template-columns:22px minmax(0,1fr)!important;align-items:start!important;gap:8px!important;padding:9px!important;border:1px solid #cfbea3!important;border-radius:5px!important;background:#fffaf0!important;color:#4c3925!important;cursor:pointer!important;outline:none!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection:hover,#qol-roadmap-assignment-dialog .qol-rms6-detection:focus-visible{border-color:var(--qol-accent)!important;background:#fff!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection.active{border-color:var(--qol-accent)!important;background:var(--qol-accent-soft)!important;box-shadow:inset 3px 0 0 var(--qol-accent)!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection .qol-rma-radio{display:block!important;width:16px!important;height:16px!important;margin-top:1px!important;border:2px solid #9f8969!important;border-radius:50%!important;background:#fff!important;box-shadow:inset 0 0 0 3px #fff!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection.active .qol-rma-radio{border-color:var(--qol-accent)!important;background:var(--qol-accent)!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection>div{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection strong{font-size:9px!important}
+#qol-roadmap-assignment-dialog .qol-rms6-detection small{color:#77644d!important;font-size:7.7px!important;line-height:1.4!important}
+#qol-roadmap-assignment-dialog .qol-rms6-auto-warning{display:none!important;padding:8px 9px!important;border:1px solid #c5a752!important;border-radius:4px!important;background:#faf3d6!important;color:#775d10!important;font-size:8px!important;font-weight:700!important;line-height:1.4!important}
+#qol-roadmap-assignment-dialog .qol-rms6-auto-warning.visible{display:block!important}
+
+#qol-roadmap-runner .qol-rms6-detection-mode{display:inline-flex!important;align-items:center!important;align-self:flex-start!important;margin:0 0 6px!important;padding:2px 6px!important;border:1px solid #bfae91!important;border-radius:8px!important;background:#f2eadc!important;color:#745f46!important;font-size:7px!important;font-weight:700!important;letter-spacing:.2px!important;text-transform:uppercase!important}
+#qol-roadmap-runner .qol-rms6-detection-mode.automatic{border-color:#8ca66b!important;background:#edf4e3!important;color:#4f6d2e!important}
+#qol-roadmap-runner .qol-rms6-detection-mode.manual{border-color:#b9a68a!important;background:#f2eadc!important;color:#735f48!important}
+#qol-roadmaps-container .qol-rms6-inline-mode{font-weight:700!important}
+
+.qol-rms6-toast{position:fixed!important;left:50%!important;bottom:24px!important;z-index:2147483647!important;transform:translateX(-50%)!important;max-width:min(520px,84vw)!important;padding:9px 13px!important;border:1px solid #405f1e!important;border-radius:5px!important;background:#587d27!important;color:#fff!important;box-shadow:0 7px 20px rgba(0,0,0,.35)!important;font:700 10px Arial,sans-serif!important;text-align:center!important}
+.qol-rms6-toast.error{border-color:#7f3027!important;background:#a44539!important}
+
+@media(max-width:560px){#qol-roadmap-assignment-dialog .qol-rms6-detection-list{grid-template-columns:1fr!important}}
