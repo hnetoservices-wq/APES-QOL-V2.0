@@ -1,0 +1,9 @@
+body.qol-toolbar-collapsed #qol-roadmaps-toggle-btn{
+  visibility:hidden!important;
+  opacity:0!important;
+  pointer-events:none!important;
+}
+
+#qol-roadmaps-toggle-btn.qol-rm-official-toolbar{
+  --qol-rm-launcher-size:30px!important;
+}
