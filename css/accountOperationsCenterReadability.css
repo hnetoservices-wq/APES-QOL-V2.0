@@ -1,0 +1,57 @@
+/* Account Operations Center readability pass */
+.apes-aoc2-search,.apes-aoc2-sort{font-size:10px!important}
+.apes-aoc2-village-head{font-size:9px!important}
+.apes-aoc2-village-row{min-height:76px!important}
+.apes-aoc2-village-primary,.apes-aoc2-cell,.apes-aoc2-village-name{min-height:76px!important}
+.apes-aoc2-village-copy>strong{font-size:10.5px!important}
+.apes-aoc2-village-copy>small{font-size:8.5px!important}
+.apes-aoc2-village-copy>em>span{font-size:7.5px!important}
+.apes-aoc2-order{font-size:8.7px!important}
+.apes-aoc2-stack strong{font-size:9.5px!important}
+.apes-aoc2-stack small{font-size:8.5px!important}
+.apes-aoc2-idle{font-size:9px!important}
+
+/* Buildings and Attention are vertical lists, capped visually at three rows. */
+.apes-aoc2-building-list,.apes-aoc2-attention{
+  display:flex!important;
+  flex-direction:column!important;
+  flex-wrap:nowrap!important;
+  align-items:stretch!important;
+  justify-content:center!important;
+  gap:4px!important;
+  width:100%!important;
+  max-width:100%!important;
+}
+.apes-aoc2-building,.apes-aoc2-building-more,.apes-aoc2-status,.apes-aoc2-more{
+  width:100%!important;
+  max-width:100%!important;
+  min-height:19px!important;
+  justify-content:flex-start!important;
+  padding:3px 5px!important;
+  font-size:8.3px!important;
+}
+.apes-aoc2-building b{font-size:8.8px!important}
+.apes-aoc2-building-more{font-size:8.1px!important}
+.apes-aoc2-attention>:nth-child(n+4){display:none!important}
+
+/* Expanded village summary: noticeably larger than the compact table. */
+.apes-aoc2-village-detail{padding:10px 11px 12px!important}
+.apes-aoc2-detail-head{margin-bottom:9px!important}
+.apes-aoc2-detail-head strong{font-size:11px!important}
+.apes-aoc2-detail-head small{font-size:8.8px!important}
+.apes-aoc2-detail-open{min-height:27px!important;padding:5px 10px!important;font-size:9px!important}
+.apes-aoc2-detail-grid{gap:9px!important}
+.apes-aoc2-detail-grid>section{padding:10px!important}
+.apes-aoc2-detail-grid h4{margin-bottom:8px!important;font-size:9.5px!important}
+.apes-aoc2-detail-list{gap:6px!important}
+.apes-aoc2-detail-line{gap:4px!important;padding-bottom:6px!important}
+.apes-aoc2-detail-line>strong{font-size:10px!important}
+.apes-aoc2-detail-line>small{font-size:9px!important}
+.apes-aoc2-detail-resources{gap:6px!important}
+.apes-aoc2-detail-resource{gap:4px!important;padding:8px!important}
+.apes-aoc2-detail-resource>strong{font-size:9.5px!important}
+.apes-aoc2-detail-resource>span,.apes-aoc2-detail-resource>small{font-size:8.8px!important}
+.apes-aoc2-village-detail .apes-aoc2-status{font-size:9px!important;min-height:21px!important}
+
+.apes-aoc2-quick-action,.apes-aoc2-tool{font-size:9.5px!important}
+.apes-aoc2-side-empty,.apes-aoc2-footer{font-size:9px!important}
