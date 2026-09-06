@@ -53,7 +53,7 @@
         "js/modules/roadmaps/buildingSteps.js",
         "js/modules/roadmaps/sharing.js",
         "js/modules/roadmaps/progress.js",
-        "js/modules/roadmaps/checklistMigration.js",
+        "js/modules/roadmaps/legacyChecklistMigration.js",
         "js/modules/roadmaps/runner.js",
         "js/modules/roadmaps/controls.js",
         "js/modules/roadmaps/tracking.js",
@@ -100,9 +100,9 @@
         "css/modules/roadmaps/resourceFields.css",
         "css/modules/roadmaps/checkpointsAndDetection.css",
         "css/modules/roadmaps/tracking.css",
-        "css/modules/roadmaps/officialIntegration.css",
         "css/helpers/numberInputs.css",
-        "css/modules/roadmaps/responsive.css"
+        "css/modules/roadmaps/responsive.css",
+        "css/modules/roadmaps/officialIntegration.css"
       ],
       "run_at": "document_idle"
     }
