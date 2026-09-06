@@ -19,6 +19,7 @@
     let train = null;
     let smith = null;
     let party = null;
+    let resourceShape = null;
     try {
       build = D.construction(village).map(item => [item.type, item.loc, item.level, item.end, item.waiting ? 1 : 0]);
       const t = D.training(village);
@@ -27,6 +28,8 @@
       smith = [s.active ? 1 : 0, s.end, ...(s.entries || []).slice(0, 3).flatMap(item => [item.unitId, item.level, item.end])];
       const p = D.celebration(village);
       party = [p.active ? 1 : 0, p.type, p.end, p.ready ? 1 : 0];
+      const scan = D.scanFor?.(village?.villageId);
+      resourceShape = (scan?.resources || []).map(item => [item.key, item.capacity, item.production]);
     } catch (_) {}
     return [
       String(village?.villageId || ''),
@@ -36,7 +39,7 @@
       JSON.stringify(train),
       JSON.stringify(smith),
       JSON.stringify(party),
-      Number(D.scanFor?.(village?.villageId)?.scannedAt) || 0,
+      JSON.stringify(resourceShape),
       Number(D.intelStamp?.(village?.villageId)) || 0
     ].join('~');
   }
