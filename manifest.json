@@ -46,7 +46,6 @@
         "js/features/watchlist.js",
         "js/modules/watchlist/highlights.js",
         "js/features/reportArchive.js",
-        "js/features/checklists.js",
         "js/features/roadmaps.js",
         "js/modules/roadmaps/refreshBridge.js",
         "js/modules/roadmaps/editor.js",
@@ -63,6 +62,7 @@
         "js/modules/roadmaps/resourceFields.js",
         "js/modules/roadmaps/checkpointsAndDetection.js",
         "js/modules/roadmaps/inputGuard.js",
+        "js/modules/roadmaps/officialIntegration.js",
         "js/features/npcCalculator.js",
         "js/modules/resourceUpgradePlanner/preference.js",
         "js/features/resourceUpgradePlanner.js",
@@ -100,6 +100,7 @@
         "css/modules/roadmaps/resourceFields.css",
         "css/modules/roadmaps/checkpointsAndDetection.css",
         "css/modules/roadmaps/tracking.css",
+        "css/modules/roadmaps/officialIntegration.css",
         "css/helpers/numberInputs.css",
         "css/modules/roadmaps/responsive.css"
       ],
