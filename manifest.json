@@ -54,6 +54,7 @@
         "js/modules/roadmaps/buildingSteps.js",
         "js/modules/roadmaps/sharing.js",
         "js/modules/roadmaps/progress.js",
+        "js/modules/roadmaps/checklistMigration.js",
         "js/modules/roadmaps/runner.js",
         "js/modules/roadmaps/controls.js",
         "js/modules/roadmaps/detection.js",
