@@ -1,0 +1,149 @@
+#qol-roadmaps-container .qol-rmt-toggle,
+#qol-roadmap-runner .qol-rmt-runner-toggle,
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle{
+  box-sizing:border-box!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  text-shadow:none!important;
+}
+
+#qol-roadmaps-container .qol-rmt-toggle.active,
+#qol-roadmap-runner .qol-rmt-runner-toggle.active{
+  border-color:#6b8739!important;
+  background:#e7efd5!important;
+  color:#48651f!important;
+}
+
+#qol-roadmaps-container .qol-rmt-toggle.disabled,
+#qol-roadmap-runner .qol-rmt-runner-toggle.disabled{
+  opacity:.55!important;
+  cursor:default!important;
+}
+
+#qol-roadmap-runner .qol-rmt-runner-toggle{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:24px!important;
+  margin:0 0 8px!important;
+  padding:4px 8px!important;
+  border:1px solid #c9b58f!important;
+  border-radius:12px!important;
+  background:#f3ead9!important;
+  color:#6f5838!important;
+  font-size:8px!important;
+  font-weight:700!important;
+  letter-spacing:.25px!important;
+  text-transform:uppercase!important;
+  cursor:pointer!important;
+  user-select:none!important;
+}
+
+#qol-roadmap-runner .qol-rmt-paused-note{
+  margin-top:8px!important;
+  padding:7px 8px!important;
+  border:1px solid #d4c09a!important;
+  border-radius:4px!important;
+  background:#f4ecdc!important;
+  color:#725c3d!important;
+  font-size:8.5px!important;
+  line-height:1.35!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-block{
+  margin-top:10px!important;
+  padding-top:10px!important;
+  border-top:1px solid #d8c6a8!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle{
+  display:flex!important;
+  align-items:flex-start!important;
+  gap:10px!important;
+  margin-top:6px!important;
+  padding:9px!important;
+  border:1px solid #cdbb9d!important;
+  border-radius:5px!important;
+  background:#fffaf0!important;
+  color:#4c3824!important;
+  cursor:pointer!important;
+  user-select:none!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle.active{
+  border-color:#6b8739!important;
+  background:#edf3df!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle.disabled{
+  opacity:.55!important;
+  cursor:default!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle strong{
+  display:block!important;
+  margin-bottom:2px!important;
+  font-size:9px!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle small{
+  display:block!important;
+  color:#7d6a50!important;
+  font-size:8px!important;
+  line-height:1.35!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-switch{
+  position:relative!important;
+  flex:0 0 30px!important;
+  width:30px!important;
+  height:16px!important;
+  margin-top:1px!important;
+  border:1px solid #ab9676!important;
+  border-radius:10px!important;
+  background:#d8cdbb!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-switch i{
+  position:absolute!important;
+  left:2px!important;
+  top:2px!important;
+  width:10px!important;
+  height:10px!important;
+  border-radius:50%!important;
+  background:#fff!important;
+  box-shadow:0 1px 2px rgba(0,0,0,.22)!important;
+  transition:left .12s ease!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle.active .qol-rmt-switch{
+  border-color:#617e35!important;
+  background:#789b43!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-toggle.active .qol-rmt-switch i{
+  left:16px!important;
+}
+
+#qol-roadmap-assignment-dialog .qol-rmt-load-status{
+  margin-top:5px!important;
+  color:#78644a!important;
+  font-size:8px!important;
+  line-height:1.35!important;
+}
+
+.qol-rmt-toast{
+  position:fixed!important;
+  left:50%!important;
+  bottom:28px!important;
+  z-index:1000020!important;
+  transform:translateX(-50%)!important;
+  max-width:min(440px,calc(100vw - 24px))!important;
+  padding:8px 12px!important;
+  border:1px solid var(--qol-border)!important;
+  border-radius:5px!important;
+  background:var(--qol-accent-deep)!important;
+  color:#fffaf0!important;
+  box-shadow:0 5px 18px rgba(0,0,0,.3)!important;
+  font:700 9px Arial,Helvetica,sans-serif!important;
+  text-shadow:none!important;
+}
