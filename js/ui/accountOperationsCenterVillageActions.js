@@ -68,6 +68,27 @@
     return null;
   }
 
+  function actionForEvent(village, insight, eventItem, label) {
+    const kind = String(eventItem?.kind || '');
+    if (kind === 'incomingAttack' || kind === 'incomingResources') return { type: 'rally', subtab: 'Incoming' };
+    const text = String(eventItem?.label || label || '').toLowerCase();
+    if (text.includes('smithy')) {
+      const location = buildingLocation(village, 12);
+      return Number.isFinite(location) ? { type: 'building', location } : { type: 'village' };
+    }
+    if (text.includes('celebration')) {
+      const location = buildingLocation(village, 24);
+      return Number.isFinite(location) ? { type: 'building', location } : { type: 'village' };
+    }
+    if (text.includes('training')) {
+      const location = firstTrainingLocation(village, insight);
+      return Number.isFinite(location) ? { type: 'building', location } : { type: 'village' };
+    }
+    const queueMatch = insight?.build?.find(item => text.includes(String(item.label || '').toLowerCase()));
+    if (Number.isFinite(Number(queueMatch?.loc))) return { type: 'building', location: Number(queueMatch.loc) };
+    return { type: 'village' };
+  }
+
   function encodeAction(action) {
     try { return encodeURIComponent(JSON.stringify(action)); } catch (_) { return ''; }
   }
@@ -130,9 +151,22 @@
     head.insertAdjacentElement('afterend', bar);
   }
 
+  function capAttention(row, alerts) {
+    const attention = row.querySelector('.apes-aoc2-attention');
+    if (!attention || alerts.length <= 3) return;
+    const statuses = [...attention.querySelectorAll('.apes-aoc2-status')];
+    const more = attention.querySelector('.apes-aoc2-more');
+    if (!more || statuses.length < 3) return;
+    statuses.slice(2).forEach(node => node.remove());
+    more.textContent = `+${alerts.length - 2} more`;
+    more.style.setProperty('display', 'inline-flex', 'important');
+    attention.appendChild(more);
+  }
+
   function annotateAlerts(row, village, insight) {
-    const nodes = [...row.querySelectorAll('.apes-aoc2-attention .apes-aoc2-status')];
     const alerts = insight?.alerts || [];
+    capAttention(row, alerts);
+    const nodes = [...row.querySelectorAll('.apes-aoc2-attention .apes-aoc2-status')];
     nodes.forEach((node, index) => {
       const alert = alerts[index];
       if (!alert) return;
@@ -143,6 +177,24 @@
       node.dataset.aocAction = encodeAction(action);
       node.classList.add('apes-aoc2-actionable-chip');
       node.title = `${String(alert?.[0] || '').trim()} · click to open`;
+    });
+  }
+
+  function annotateEvents(overlay) {
+    overlay.querySelectorAll('.apes-aoc-events-list .apes-aoc-event:not([data-apes-building-alarm-event])').forEach(node => {
+      const village = villageById(node.dataset.eventVillageId);
+      if (!village) return;
+      const insight = D.insight(village);
+      const visible = String(node.querySelector('span')?.textContent || '');
+      const label = visible.includes('—') ? visible.split('—').slice(1).join('—').trim() : visible.trim();
+      const eventItem = (insight.events || []).find(item => String(item.label || '').trim() === label)
+        || (insight.events || []).find(item => label.includes(String(item.label || '').trim()));
+      const action = actionForEvent(village, insight, eventItem, label);
+      if (!action) return;
+      node.dataset.aocVillageId = String(village.villageId);
+      node.dataset.aocAction = encodeAction(action);
+      node.classList.add('apes-aoc2-actionable-event');
+      node.title = `${label || 'Account event'} · click to open`;
     });
   }
 
@@ -161,6 +213,7 @@
       if (!village) return;
       injectDetailActions(detail, village, D.insight(village));
     });
+    annotateEvents(overlay);
   }
 
   function scheduleEnhance() {
