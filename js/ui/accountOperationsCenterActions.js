@@ -1,7 +1,10 @@
 (() => {
   'use strict';
-  const A = window.APES_AOC_INTERNAL, D = A?.data;
+
+  const A = window.APES_AOC_INTERNAL;
+  const D = A?.data;
   if (!D) return;
+
   const X = A.actions = {};
   const TOOLS = [
     ['qol-rally-point-toggle-btn', 'rallyPointParser', 'Rally Point Scanner'],
@@ -18,14 +21,18 @@
   ].map(([id, key, label]) => ({ id, key, label }));
 
   let dragged = '';
-  const featureEnabled = key => typeof window.isQolEnabled === 'function' ? window.isQolEnabled(key) === true : localStorage.getItem(`qol_${key}`) !== 'false';
+  const featureEnabled = key => typeof window.isQolEnabled === 'function'
+    ? window.isQolEnabled(key) === true
+    : localStorage.getItem(`qol_${key}`) !== 'false';
   const orderKey = () => `apes_aoc_tool_order:${location.hostname}`;
 
   function order() {
-    const ids = TOOLS.map(x => x.id);
+    const ids = TOOLS.map(tool => tool.id);
     try {
-      const p = JSON.parse(localStorage.getItem(orderKey()) || '[]');
-      return Array.isArray(p) ? [...p.filter(x => ids.includes(x)), ...ids.filter(x => !p.includes(x))] : ids;
+      const persisted = JSON.parse(localStorage.getItem(orderKey()) || '[]');
+      return Array.isArray(persisted)
+        ? [...persisted.filter(id => ids.includes(id)), ...ids.filter(id => !persisted.includes(id))]
+        : ids;
     } catch (_) {
       return ids;
     }
@@ -38,18 +45,18 @@
   X.renderTools = () => {
     const target = document.querySelector(`#${D.OVERLAY_ID} .apes-aoc2-tools-list`);
     if (!target) return;
-    const map = new Map(TOOLS.map(x => [x.id, x]));
-    const tools = order().map(id => map.get(id)).filter(x => x && featureEnabled(x.key) && document.getElementById(x.id));
+    const map = new Map(TOOLS.map(tool => [tool.id, tool]));
+    const tools = order().map(id => map.get(id)).filter(tool => tool && featureEnabled(tool.key) && document.getElementById(tool.id));
     target.innerHTML = tools.length
-      ? tools.map(x => `<div class="apes-aoc2-tool apes-aoc2-control" role="button" tabindex="0" draggable="true" data-tool-id="${D.esc(x.id)}"><i>⋮⋮</i><span>${D.esc(x.label)}</span><b>›</b></div>`).join('')
+      ? tools.map(tool => `<div class="apes-aoc2-tool apes-aoc2-control" role="button" tabindex="0" draggable="true" data-tool-id="${D.esc(tool.id)}"><i>⋮⋮</i><span>${D.esc(tool.label)}</span><b>›</b></div>`).join('')
       : '<span class="apes-aoc2-side-empty">No enabled toolbar tools detected.</span>';
   };
 
   function reorder(from, to) {
     if (!from || !to || from === to) return;
-    const ids = order().filter(x => x !== from);
-    const i = ids.indexOf(to);
-    ids.splice(i < 0 ? ids.length : i, 0, from);
+    const ids = order().filter(id => id !== from);
+    const index = ids.indexOf(to);
+    ids.splice(index < 0 ? ids.length : index, 0, from);
     save(ids);
     X.renderTools();
   }
@@ -59,75 +66,108 @@
     return `#/page:village${/^\d+$/.test(id) ? `/villId:${id}` : ''}${extra ? `/${extra}` : ''}`;
   }
 
-  function clickNative(selectors, words) {
-    for (const s of selectors) {
-      const e = document.querySelector(s);
-      if (e) { e.click(); return true; }
+  function clickNative(selectors, words = []) {
+    for (const selector of selectors) {
+      const element = document.querySelector(selector);
+      if (element) {
+        element.click();
+        return true;
+      }
     }
-    const q = words.map(x => x.toLowerCase());
-    const e = [...document.querySelectorAll('a,button,[role="button"],[clickable],[ng-click]')].find(x => {
-      if (x.closest(`#${D.OVERLAY_ID}`)) return false;
-      const r = x.getBoundingClientRect();
-      const text = [x.textContent, x.title, x.getAttribute('aria-label'), x.getAttribute('tooltip'), x.getAttribute('tooltip-translate'), x.id, x.className].filter(Boolean).join(' ').toLowerCase();
-      return r.width > 0 && r.height > 0 && q.some(w => text.includes(w));
+    const query = words.map(word => word.toLowerCase());
+    const element = [...document.querySelectorAll('a,button,[role="button"],[clickable],[ng-click]')].find(candidate => {
+      if (candidate.closest(`#${D.OVERLAY_ID}`)) return false;
+      const rect = candidate.getBoundingClientRect();
+      const text = [
+        candidate.textContent,
+        candidate.title,
+        candidate.getAttribute('aria-label'),
+        candidate.getAttribute('tooltip'),
+        candidate.getAttribute('tooltip-translate'),
+        candidate.getAttribute('clickable'),
+        candidate.id,
+        candidate.className
+      ].filter(Boolean).join(' ').toLowerCase();
+      return rect.width > 0 && rect.height > 0 && query.some(word => text.includes(word));
     });
-    if (e) { e.click(); return true; }
+    if (element) {
+      element.click();
+      return true;
+    }
     return false;
   }
 
   X.quick = action => {
     if (action === 'hero') location.hash = route('window:hero/herotab:Inventory');
     else if (action === 'rally') location.hash = route('location:32/window:building/cp:1');
-    else if (action === 'chat') {
-      location.hash = route('window:igm');
-      setTimeout(() => clickNative(['#jsQuestButtonIgm'], ['message', 'chat']), 60);
-    } else if (action === 'statistics') clickNative(['#jsStatisticsButton', '[id*="statistic" i]'], ['statistics']);
-    else if (action === 'auction') clickNative(['#jsAuctionButton', '[id*="auction" i]'], ['auction']);
-    else if (action === 'quests') clickNative(['#jsQuestButton', '[id*="quest" i]'], ['quest']);
+    else if (action === 'chat') clickNative(['#jsQuestButtonIgm'], ['igm', 'chat', 'message']);
+    else if (action === 'statistics') clickNative(['#jsQuestButtonStatistics'], ['statistics']);
+    else if (action === 'auction') clickNative(['#subNavigation a.silver.subButton', '[clickable*="Auctions" i]'], ['auctions', 'silver']);
+    else if (action === 'quests') clickNative(['#jsQuestButtonQuestbook'], ['questbook', 'quest book']);
   };
 
-  X.bind = o => {
-    o.querySelector('.apes-aoc2-close').onclick = () => A.controller?.close?.();
-    o.querySelector('.apes-aoc2-refresh').onclick = () => { D.captureCurrent(); A.controller?.request?.(); };
-    o.onclick = e => {
-      if (e.target === o) return A.controller?.close?.();
-      const q = e.target.closest('[data-quick]');
-      if (q) return X.quick(q.dataset.quick);
-      const ev = e.target.closest('[data-event-village-id]');
-      if (ev) return A.controller?.openVillage?.(ev.dataset.eventVillageId);
-      const b = e.target.closest('[data-building-village-id]');
-      if (b) return A.controller?.openBuilding?.(b.dataset.buildingVillageId, b.dataset.buildingLocation);
-      const v = e.target.closest('[data-village-id]');
-      if (v) return A.controller?.openVillage?.(v.dataset.villageId);
-      const t = e.target.closest('[data-tool-id]');
-      if (t) return document.getElementById(t.dataset.toolId)?.click();
+  X.bind = overlay => {
+    overlay.querySelector('.apes-aoc2-close').onclick = () => A.controller?.close?.();
+    overlay.querySelector('.apes-aoc2-refresh').onclick = () => {
+      D.captureCurrent();
+      A.controller?.request?.();
     };
-    o.addEventListener('keydown', e => {
-      if (!['Enter', ' '].includes(e.key)) return;
-      const control = e.target.closest?.('.apes-aoc2-control,[data-event-village-id]');
+
+    overlay.onclick = event => {
+      if (event.target === overlay) return A.controller?.close?.();
+
+      const quick = event.target.closest('[data-quick]');
+      if (quick) return X.quick(quick.dataset.quick);
+
+      const eventItem = event.target.closest('[data-event-village-id]');
+      if (eventItem) return A.controller?.openVillage?.(eventItem.dataset.eventVillageId);
+
+      const building = event.target.closest('[data-building-village-id]');
+      if (building) return A.controller?.openBuilding?.(building.dataset.buildingVillageId, building.dataset.buildingLocation);
+
+      const village = event.target.closest('[data-village-id]');
+      if (village) return A.controller?.openVillage?.(village.dataset.villageId);
+
+      const tool = event.target.closest('[data-tool-id]');
+      if (tool) return document.getElementById(tool.dataset.toolId)?.click();
+
+      const expand = event.target.closest('[data-expand-village-id]');
+      if (expand) return A.rendering?.toggleExpanded?.(expand.dataset.expandVillageId);
+
+      const row = event.target.closest('[data-row-village-id]');
+      if (row && !event.target.closest('input,select')) return A.rendering?.toggleExpanded?.(row.dataset.rowVillageId);
+    };
+
+    overlay.addEventListener('keydown', event => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      const control = event.target.closest?.('.apes-aoc2-control,[data-event-village-id]');
       if (!control) return;
-      e.preventDefault();
+      event.preventDefault();
       control.click();
     });
-    o.ondragstart = e => {
-      const t = e.target.closest('[data-tool-id]');
-      if (t) {
-        dragged = t.dataset.toolId;
-        t.classList.add('dragging');
-        e.dataTransfer?.setData('text/plain', dragged);
-      }
+
+    overlay.ondragstart = event => {
+      const tool = event.target.closest('[data-tool-id]');
+      if (!tool) return;
+      dragged = tool.dataset.toolId;
+      tool.classList.add('dragging');
+      event.dataTransfer?.setData('text/plain', dragged);
     };
-    o.ondragend = e => {
-      e.target.closest('[data-tool-id]')?.classList.remove('dragging');
+
+    overlay.ondragend = event => {
+      event.target.closest('[data-tool-id]')?.classList.remove('dragging');
       dragged = '';
     };
-    o.ondragover = e => { if (e.target.closest('[data-tool-id]')) e.preventDefault(); };
-    o.ondrop = e => {
-      const t = e.target.closest('[data-tool-id]');
-      if (t) {
-        e.preventDefault();
-        reorder(dragged || e.dataTransfer?.getData('text/plain'), t.dataset.toolId);
-      }
+
+    overlay.ondragover = event => {
+      if (event.target.closest('[data-tool-id]')) event.preventDefault();
+    };
+
+    overlay.ondrop = event => {
+      const tool = event.target.closest('[data-tool-id]');
+      if (!tool) return;
+      event.preventDefault();
+      reorder(dragged || event.dataTransfer?.getData('text/plain'), tool.dataset.toolId);
     };
   };
 })();
