@@ -57,6 +57,7 @@
         "js/modules/roadmaps/checklistMigration.js",
         "js/modules/roadmaps/runner.js",
         "js/modules/roadmaps/controls.js",
+        "js/modules/roadmaps/tracking.js",
         "js/modules/roadmaps/detection.js",
         "js/modules/roadmaps/detectionScheduler.js",
         "js/modules/roadmaps/resourceFields.js",
@@ -98,6 +99,7 @@
         "css/modules/roadmaps/detection.css",
         "css/modules/roadmaps/resourceFields.css",
         "css/modules/roadmaps/checkpointsAndDetection.css",
+        "css/modules/roadmaps/tracking.css",
         "css/helpers/numberInputs.css",
         "css/modules/roadmaps/responsive.css"
       ],
