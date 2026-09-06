@@ -54,6 +54,7 @@
         "js/features/roadmapsRunner.js",
         "js/features/roadmapsRunnerControls.js",
         "js/features/roadmapsAutoComplete.js",
+        "js/features/roadmapsAutoCompleteFast.js",
         "js/features/npcCalculator.js",
         "js/ui/resourceUpgradePlannerPreference.js",
         "js/features/resourceUpgradePlanner.js",
@@ -86,7 +87,8 @@
         "css/roadmapsEditorConvenience.css",
         "css/roadmapsRunner.css",
         "css/roadmapsAssignments.css",
-        "css/roadmapsAutoComplete.css"
+        "css/roadmapsAutoComplete.css",
+        "css/numberInputFix.css"
       ],
       "run_at": "document_idle"
     }
