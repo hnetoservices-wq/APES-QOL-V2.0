@@ -1,0 +1,22 @@
+/* APES-owned numeric inputs inherit Travian/browser spinner styling in the page world.
+   Keep the native number control, but normalize the spinner so both arrows remain
+   fully visible and clickable across APES feature windows. */
+:is([id^="qol-"],[id^="apes-"],[class*="qol-"],[class*="apes-"]) input[type="number"]{
+  -webkit-appearance:auto!important;
+  appearance:auto!important;
+  line-height:normal!important;
+  overflow:visible!important;
+}
+
+:is([id^="qol-"],[id^="apes-"],[class*="qol-"],[class*="apes-"]) input[type="number"]::-webkit-inner-spin-button,
+:is([id^="qol-"],[id^="apes-"],[class*="qol-"],[class*="apes-"]) input[type="number"]::-webkit-outer-spin-button{
+  -webkit-appearance:inner-spin-button!important;
+  appearance:auto!important;
+  display:block!important;
+  opacity:1!important;
+  width:16px!important;
+  height:18px!important;
+  min-height:18px!important;
+  margin:0!important;
+  cursor:pointer!important;
+}
