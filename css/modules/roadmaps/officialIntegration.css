@@ -1,9 +1,54 @@
-body.qol-toolbar-collapsed #qol-roadmaps-toggle-btn{
-  visibility:hidden!important;
+/* Roadmaps now uses the responsive toolbar's legacy Checklists slot as a
+   compatibility source until toolbar.js is cleaned in the next source pass. */
+.qol-roadmaps-toolbar-source{
+  position:absolute!important;
+  width:1px!important;
+  height:1px!important;
+  overflow:hidden!important;
   opacity:0!important;
   pointer-events:none!important;
 }
 
-#qol-roadmaps-toggle-btn.qol-rm-official-toolbar{
-  --qol-rm-launcher-size:30px!important;
+/* Travian can decorate native checkbox inputs after APES renders Settings.
+   Keep the real input available to the label, but make every game-owned
+   decoration invisible and let our own switch track reflect the state. */
+#qol-modal .qol-switch{
+  overflow:visible!important;
+}
+
+#qol-modal .qol-switch > .qol-checkbox{
+  position:absolute!important;
+  left:-10000px!important;
+  top:auto!important;
+  width:1px!important;
+  min-width:0!important;
+  max-width:1px!important;
+  height:1px!important;
+  min-height:0!important;
+  max-height:1px!important;
+  margin:0!important;
+  padding:0!important;
+  border:0!important;
+  opacity:0!important;
+  appearance:none!important;
+  -webkit-appearance:none!important;
+  box-shadow:none!important;
+  background:none!important;
+  pointer-events:none!important;
+  clip-path:inset(50%)!important;
+}
+
+#qol-modal .qol-switch > :not(.qol-checkbox):not(.qol-switch-track):not(.qol-visually-hidden){
+  display:none!important;
+}
+
+/* Use the general-sibling selector because Travian may inject a helper node
+   between the checkbox and APES' visual switch track. */
+#qol-modal .qol-checkbox:checked ~ .qol-switch-track{
+  border-color:#4f6e25!important;
+  background:#6f9b34!important;
+}
+
+#qol-modal .qol-checkbox:checked ~ .qol-switch-track::after{
+  transform:translateX(16px)!important;
 }
