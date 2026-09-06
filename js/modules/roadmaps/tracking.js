@@ -9,7 +9,6 @@
 
   let absoluteRawGet = null;
   let installTimer = null;
-  let observer = null;
   let enhanceQueued = false;
 
   function clean(value) {
@@ -86,20 +85,24 @@
   function isActive(runtime = rawRuntime()) {
     if (!runtime?.assignment || !runtime?.roadmap) return false;
     if (detectionMode(runtime) !== 'automatic') return false;
-    const ctx = runtime.ctx || currentContext();
-    return readFlag(trackingKey(ctx, runtime.assignment.roadmapId));
+    return readFlag(trackingKey(runtime.ctx || currentContext(), runtime.assignment.roadmapId));
   }
 
   function setActiveFor(ctx, roadmapId, enabled) {
     return writeFlag(trackingKey(ctx, roadmapId), Boolean(enabled));
   }
 
+  function refreshTrackingUi() {
+    window.APES?.roadmapsRunner?.refresh?.();
+    window.APES?.roadmaps?.refresh?.();
+    scheduleEnhance();
+  }
+
   function setCurrentActive(enabled) {
     const runtime = rawRuntime();
     if (!runtime?.assignment || !runtime?.roadmap) return false;
     if (detectionMode(runtime) !== 'automatic') return false;
-    const ok = setActiveFor(runtime.ctx || currentContext(), runtime.assignment.roadmapId, enabled);
-    if (!ok) return false;
+    if (!setActiveFor(runtime.ctx || currentContext(), runtime.assignment.roadmapId, enabled)) return false;
 
     window.APES?.roadmapsAutoComplete?.reset?.();
     window.dispatchEvent(new CustomEvent('qol_roadmap_tracking_changed', {
@@ -109,17 +112,14 @@
         roadmapId: runtime.assignment.roadmapId
       }
     }));
-
-    window.APES?.roadmapsRunner?.refresh?.();
-    window.APES?.roadmaps?.refresh?.();
-    scheduleEnhance();
-
-    if (enabled) {
-      setTimeout(() => window.APES?.roadmapsAutoComplete?.checkNow?.(), 60);
-    }
+    refreshTrackingUi();
+    if (enabled) setTimeout(() => window.APES?.roadmapsAutoComplete?.checkNow?.(), 60);
     return true;
   }
 
+  // Detection modules use roadmapsRunner.getContextState(). When tracking is OFF,
+  // only that public detection-facing view is changed to a manual step. The real
+  // Roadmap, runner UI and stable-ID state remain untouched through getRawContextState().
   function gatedContext(base) {
     const runtime = base.getContextState?.();
     if (!runtime?.assignment || !runtime?.roadmap || !runtime?.progress) return runtime;
@@ -127,7 +127,6 @@
 
     const index = Math.max(0, Number(runtime.progress.currentStep) || 0);
     if (!Array.isArray(runtime.roadmap.steps) || index >= runtime.roadmap.steps.length) return runtime;
-
     const steps = [...runtime.roadmap.steps];
     steps[index] = { ...steps[index], type: 'manual' };
     return {
@@ -137,7 +136,7 @@
     };
   }
 
-  function hasTrackingMarker(value) {
+  function hasMarker(value) {
     return Boolean(value && Object.prototype.hasOwnProperty.call(value, '__roadmapTrackingWrapped'));
   }
 
@@ -149,8 +148,7 @@
       const original = base.getRawContextState || base.getContextState;
       absoluteRawGet = original.bind(base);
     }
-
-    if (hasTrackingMarker(base)) return true;
+    if (hasMarker(base)) return true;
 
     const wrapped = {
       ...base,
@@ -170,25 +168,29 @@
   function ensureRunnerWrapper() {
     const runner = window.APES?.roadmapsRunner;
     if (!runner) return false;
-    if (!hasTrackingMarker(runner)) wrapRunner();
+    if (!hasMarker(runner)) wrapRunner();
     const current = window.APES?.roadmapsRunner;
-    if (hasTrackingMarker(current) && current.__stableIdsWrapped === true && installTimer) {
+    if (hasMarker(current) && current.__stableIdsWrapped === true && installTimer) {
       clearInterval(installTimer);
       installTimer = null;
     }
-    return hasTrackingMarker(current);
+    return hasMarker(current);
   }
 
-  function showToast(message, type = 'info') {
+  function showToast(message) {
     document.querySelector('.qol-rmt-toast')?.remove();
     const toast = document.createElement('div');
-    toast.className = `qol-rmt-toast ${type}`;
+    toast.className = 'qol-rmt-toast';
     toast.textContent = message;
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2200);
   }
 
-  function updateControl(control, runtime) {
+  function setText(node, value) {
+    if (node && node.textContent !== value) node.textContent = value;
+  }
+
+  function updateControl(control, runtime, compact = false) {
     if (!control) return;
     const automatic = detectionMode(runtime) === 'automatic';
     const active = automatic && isActive(runtime);
@@ -196,18 +198,15 @@
     control.classList.toggle('disabled', !automatic);
     control.setAttribute('aria-pressed', active ? 'true' : 'false');
     control.setAttribute('tabindex', automatic ? '0' : '-1');
-    control.textContent = `Auto Tracking: ${active ? 'ON' : 'OFF'}`;
+    setText(control, compact ? `Auto: ${active ? 'ON' : 'OFF'}` : `Auto Tracking: ${active ? 'ON' : 'OFF'}`);
     control.title = automatic
-      ? (active
-        ? 'Automatic tracking is active for this village. Click to pause it.'
-        : 'Automatic tracking is paused for this village. Click to start it.')
+      ? (active ? 'Automatic tracking is active for this village. Click to pause it.' : 'Automatic tracking is paused for this village. Click to start it.')
       : 'This Roadmap uses Manual Detection. Automatic tracking is unavailable.';
   }
 
   function wireControl(control) {
     if (!control || control.dataset.rmtBound === '1') return;
     control.dataset.rmtBound = '1';
-
     const activate = event => {
       event.preventDefault();
       event.stopPropagation();
@@ -218,22 +217,18 @@
         return;
       }
       const next = !isActive(runtime);
-      if (setCurrentActive(next)) {
-        showToast(next ? 'Automatic tracking started for this village.' : 'Automatic tracking paused for this village.');
-      }
+      if (setCurrentActive(next)) showToast(next ? 'Automatic tracking started for this village.' : 'Automatic tracking paused for this village.');
     };
 
     control.addEventListener('pointerdown', event => {
-      if (event.button !== 0) return;
-      activate(event);
+      if (event.button === 0) activate(event);
     });
     control.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
     });
     control.addEventListener('keydown', event => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      activate(event);
+      if (event.key === 'Enter' || event.key === ' ') activate(event);
     });
   }
 
@@ -256,71 +251,52 @@
       actions.insertBefore(control, actions.firstChild || null);
       wireControl(control);
     }
-    updateControl(control, runtime);
+    updateControl(control, runtime, false);
   }
 
-  function restoreResourcePresentation(runtime, panel) {
-    if (!runtime?.roadmap || !runtime?.progress || !panel) return;
+  function currentRawStep(runtime) {
+    if (!runtime?.roadmap || !runtime?.progress) return null;
     const index = Math.max(0, Number(runtime.progress.currentStep) || 0);
-    const step = runtime.roadmap.steps?.[index];
-    if (!step || step.type !== 'instruction') return;
-    const info = window.APES?.roadmapsResourceFields?.parse?.(step.text);
-    if (!info) return;
+    return runtime.roadmap.steps?.[index] || null;
+  }
 
-    const badge = panel.querySelector('.qol-rmr-type');
-    if (badge) {
-      badge.textContent = 'Resource Fields';
-      badge.classList.remove('building', 'instruction');
-      badge.classList.add('resource');
-    }
+  function isResourceStep(step) {
+    if (!step || step.type !== 'instruction') return false;
+    return Boolean(window.APES?.roadmapsResourceFields?.parse?.(step.text));
   }
 
   function enhanceRunner() {
     const panel = document.getElementById(RUNNER_ID);
     const runtime = rawRuntime();
     if (!panel || !runtime?.assignment) return;
-    const body = panel.querySelector('.qol-rmr-body');
-    if (!body) return;
 
-    let control = body.querySelector('[data-rmt-runner-toggle]');
+    const header = panel.querySelector('.qol-rmr-header');
+    if (!header) return;
+    let control = header.querySelector('[data-rmt-runner-toggle]');
     if (!control) {
       control = document.createElement('div');
       control.className = 'qol-rmt-runner-toggle';
       control.dataset.rmtRunnerToggle = '1';
       control.setAttribute('role', 'button');
       control.setAttribute('aria-pressed', 'false');
-      body.prepend(control);
+      const close = header.querySelector('.qol-rmr-close');
+      if (close) header.insertBefore(control, close);
+      else header.appendChild(control);
       wireControl(control);
     }
 
-    const modeBadge = body.querySelector('.qol-rms6-detection-mode');
-    if (modeBadge && modeBadge.nextElementSibling !== control) modeBadge.after(control);
-    updateControl(control, runtime);
-
     const automatic = detectionMode(runtime) === 'automatic';
     const active = automatic && isActive(runtime);
-    const card = panel.querySelector('.qol-rmr-step-card');
-
-    if (automatic && !active && card) {
-      card.querySelector('.qol-rmac-detection')?.remove();
-      card.querySelector('.qol-rmrf-detection')?.remove();
-      let note = card.querySelector('.qol-rmt-paused-note');
-      if (!note) {
-        note = document.createElement('div');
-        note.className = 'qol-rmt-paused-note';
-        card.appendChild(note);
-      }
-      note.textContent = 'Automatic tracking is paused. No building or resource checks are running.';
-      restoreResourcePresentation(runtime, panel);
-    } else {
-      card?.querySelector('.qol-rmt-paused-note')?.remove();
-    }
+    updateControl(control, runtime, true);
+    panel.classList.toggle('qol-rmt-paused', automatic && !active);
+    panel.classList.toggle('qol-rmt-resource-paused', automatic && !active && isResourceStep(currentRawStep(runtime)));
   }
 
-  function syncLoadTrackingBlock(layer) {
+  function syncLoadBlock(layer) {
     const block = layer?.querySelector('[data-rmt-load-block]');
     const toggle = block?.querySelector('[data-rmt-load-toggle]');
-    if (!block || !toggle) return;
+    const status = block?.querySelector('[data-rmt-load-status]');
+    if (!block || !toggle || !status) return;
 
     const automatic = layer.dataset.rms6Detection !== 'manual';
     if (!automatic) layer.dataset.rmtTracking = 'off';
@@ -329,11 +305,11 @@
     toggle.classList.toggle('disabled', !automatic);
     toggle.setAttribute('aria-checked', active ? 'true' : 'false');
     toggle.setAttribute('tabindex', automatic ? '0' : '-1');
-    block.querySelector('[data-rmt-load-status]').textContent = automatic
+    setText(status, automatic
       ? (active
         ? 'ON — APES will track supported objectives for this village even while the runner is closed.'
         : 'OFF — APES will not run background building or resource checks for this village.')
-      : 'Manual Detection does not use automatic tracking.';
+      : 'Manual Detection does not use automatic tracking.');
   }
 
   function enhanceAssignmentDialog() {
@@ -364,27 +340,26 @@
       event.stopPropagation();
       if (layer.dataset.rms6Detection === 'manual') return;
       layer.dataset.rmtTracking = layer.dataset.rmtTracking === 'on' ? 'off' : 'on';
-      syncLoadTrackingBlock(layer);
+      syncLoadBlock(layer);
     };
     toggle.addEventListener('click', activate);
     toggle.addEventListener('keydown', event => {
-      if (event.key !== 'Enter' && event.key !== ' ') return;
-      activate(event);
+      if (event.key === 'Enter' || event.key === ' ') activate(event);
     });
 
-    const modeObserver = new MutationObserver(() => syncLoadTrackingBlock(layer));
-    modeObserver.observe(layer, { attributes: true, attributeFilter: ['data-rms6-detection'] });
-    syncLoadTrackingBlock(layer);
+    new MutationObserver(() => syncLoadBlock(layer)).observe(layer, {
+      attributes: true,
+      attributeFilter: ['data-rms6-detection']
+    });
+    syncLoadBlock(layer);
   }
 
   function persistAssignmentChoice(layer) {
     if (!layer) return;
-    const ctx = currentContext();
     const roadmapId = selectedRoadmapId();
     if (!roadmapId) return;
     const automatic = layer.dataset.rms6Detection !== 'manual';
-    const enabled = automatic && layer.dataset.rmtTracking === 'on';
-    setActiveFor(ctx, roadmapId, enabled);
+    setActiveFor(currentContext(), roadmapId, automatic && layer.dataset.rmtTracking === 'on');
   }
 
   function scheduleEnhance() {
@@ -397,6 +372,10 @@
       enhanceHub();
       enhanceRunner();
     });
+  }
+
+  function mutationNeedsEnhance(mutation) {
+    return [...mutation.addedNodes, ...mutation.removedNodes].some(node => node.nodeType === Node.ELEMENT_NODE);
   }
 
   function init() {
@@ -418,18 +397,18 @@
       const load = event.target.closest?.(`#${ASSIGN_DIALOG_ID} [data-load]`);
       if (load) persistAssignmentChoice(document.getElementById(ASSIGN_DIALOG_ID));
     }, true);
-
     window.addEventListener('keydown', event => {
       if (event.key !== 'Enter' && event.key !== ' ') return;
       const load = event.target.closest?.(`#${ASSIGN_DIALOG_ID} [data-load]`);
       if (load) persistAssignmentChoice(document.getElementById(ASSIGN_DIALOG_ID));
     }, true);
 
-    observer = new MutationObserver(scheduleEnhance);
-    observer.observe(document.documentElement, { childList: true, subtree: true });
+    new MutationObserver(mutations => {
+      if (mutations.some(mutationNeedsEnhance)) scheduleEnhance();
+    }).observe(document.documentElement, { childList: true, subtree: true });
+
     window.addEventListener('hashchange', scheduleEnhance);
     window.addEventListener('qol_roadmap_tracking_changed', scheduleEnhance);
-
     scheduleEnhance();
     setTimeout(scheduleEnhance, 250);
     setTimeout(scheduleEnhance, 800);
