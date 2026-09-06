@@ -55,6 +55,17 @@
     }
 
     try {
+      if (typeof TOOLBAR_ITEMS !== 'undefined' && Array.isArray(TOOLBAR_ITEMS)) {
+        const oldIndex = TOOLBAR_ITEMS.findIndex(item => item?.key === LEGACY_KEY || item?.id === LEGACY_TOOLBAR_ID);
+        const replacement = { id: LEGACY_TOOLBAR_ID, label: 'Roadmaps', key: FEATURE_KEY };
+        if (oldIndex >= 0) TOOLBAR_ITEMS.splice(oldIndex, 1, replacement);
+        else if (!TOOLBAR_ITEMS.some(item => item?.key === FEATURE_KEY)) TOOLBAR_ITEMS.splice(Math.min(3, TOOLBAR_ITEMS.length), 0, replacement);
+      }
+    } catch (error) {
+      console.warn('[APES Roadmaps] Could not update fallback toolbar registry.', error);
+    }
+
+    try {
       if (typeof menuConfigMap !== 'undefined' && menuConfigMap && typeof menuConfigMap === 'object') {
         delete menuConfigMap[LEGACY_FEATURE_ID];
         menuConfigMap[FEATURE.id] = FEATURE_KEY;
@@ -113,9 +124,7 @@
   }
 
   function detachStandaloneLauncher() {
-    const standalone = document.getElementById(STANDALONE_ROADMAP_ID);
-    if (!standalone) return;
-    standalone.remove();
+    document.getElementById(STANDALONE_ROADMAP_ID)?.remove();
   }
 
   function enhanceResponsiveToolbarMenu() {
@@ -124,9 +133,9 @@
     const entry = menu.querySelector(`[data-qol-source-id="${LEGACY_TOOLBAR_ID}"]`);
     if (!entry) return;
     const label = entry.querySelector('span');
-    if (label) label.textContent = 'Roadmaps';
-    entry.setAttribute('aria-label', 'Roadmaps');
-    entry.title = 'Roadmaps';
+    if (label && label.textContent !== 'Roadmaps') label.textContent = 'Roadmaps';
+    if (entry.getAttribute('aria-label') !== 'Roadmaps') entry.setAttribute('aria-label', 'Roadmaps');
+    if (entry.title !== 'Roadmaps') entry.title = 'Roadmaps';
   }
 
   function installToolbarBridge() {
@@ -174,9 +183,10 @@
       item.dataset.label = 'Roadmaps';
       item.title = 'Roadmaps';
       const label = item.querySelector('.apes-v2-radial-label');
-      if (label) label.textContent = 'Roadmaps';
+      if (label && label.textContent !== 'Roadmaps') label.textContent = 'Roadmaps';
       const icon = item.querySelector('.apes-v2-radial-icon');
-      if (icon) icon.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h11a3 3 0 0 1 3 3v11H8a3 3 0 0 1-3-3z"/><path d="M8 8h7M8 12h7M8 16h4"/><path d="M5 5v11a3 3 0 0 0 3 3"/></svg>';
+      const roadmapIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h11a3 3 0 0 1 3 3v11H8a3 3 0 0 1-3-3z"/><path d="M8 8h7M8 12h7M8 16h4"/><path d="M5 5v11a3 3 0 0 0 3 3"/></svg>';
+      if (icon && icon.innerHTML !== roadmapIcon) icon.innerHTML = roadmapIcon;
     });
   }
 
@@ -192,8 +202,9 @@
     const overlay = document.getElementById('qol-modal-overlay');
     const cacheBody = overlay?.querySelector('.qol-cache-dialog-body');
     if (!cacheBody) return;
-    cacheBody.innerHTML = cacheBody.innerHTML
-      .replace('Saved watchlists, checklist data, scanner results and archived reports', 'Saved watchlists, Roadmap data, legacy checklist backups, scanner results and archived reports');
+    const current = cacheBody.innerHTML;
+    const updated = current.replace('Saved watchlists, checklist data, scanner results and archived reports', 'Saved watchlists, Roadmap data, legacy checklist backups, scanner results and archived reports');
+    if (updated !== current) cacheBody.innerHTML = updated;
   }
 
   function enforceFeatureState() {
