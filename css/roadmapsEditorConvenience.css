@@ -1,0 +1,7 @@
+#qol-roadmaps-dialog-layer .qol-rmec-range{display:grid!important;grid-template-columns:125px minmax(0,1fr)!important;gap:9px!important;align-items:end!important;margin-top:2px!important;padding:9px!important;border:1px solid #d5c6af!important;border-radius:5px!important;background:#f2eadd!important}
+#qol-roadmaps-dialog-layer .qol-rmec-range-field,#qol-roadmaps-dialog-layer .qol-rmec-range-copy{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important}
+#qol-roadmaps-dialog-layer .qol-rmec-range-field input{width:100%!important;height:31px!important;padding:5px 8px!important;border:1px solid #bca789!important;border-radius:4px!important;background:#fff!important;color:#3e2d1d!important;font:10px Arial,Helvetica,sans-serif!important;outline:none!important}
+#qol-roadmaps-dialog-layer .qol-rmec-range-field input:focus{border-color:var(--qol-accent)!important;box-shadow:0 0 0 1px var(--qol-accent-soft)!important}
+#qol-roadmaps-dialog-layer .qol-rmec-range-copy strong{color:#5a432b!important;font-size:9px!important}
+#qol-roadmaps-dialog-layer .qol-rmec-range-copy small{color:#78664f!important;font-size:8px!important;line-height:1.4!important}
+@media(max-width:520px){#qol-roadmaps-dialog-layer .qol-rmec-range{grid-template-columns:1fr!important}}
