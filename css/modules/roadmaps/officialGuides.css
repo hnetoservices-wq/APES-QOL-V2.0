@@ -1,0 +1,68 @@
+#qol-roadmaps-container .qol-rmog-meta{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:5px!important;
+  flex:0 0 auto!important;
+  padding:8px 14px!important;
+  border-bottom:1px solid #ddd0bc!important;
+  background:#f8f2e7!important;
+}
+
+#qol-roadmaps-container .qol-rmog-chips{
+  display:flex!important;
+  align-items:center!important;
+  gap:5px!important;
+  flex-wrap:wrap!important;
+}
+
+#qol-roadmaps-container .qol-rmog-chips span{
+  display:inline-flex!important;
+  align-items:center!important;
+  min-height:18px!important;
+  padding:2px 7px!important;
+  border:1px solid #c6ae82!important;
+  border-radius:10px!important;
+  background:#fffaf0!important;
+  color:#6a5235!important;
+  font-size:7.5px!important;
+  font-weight:700!important;
+  letter-spacing:.2px!important;
+  text-transform:uppercase!important;
+}
+
+#qol-roadmaps-container .qol-rmog-chips span:first-child{
+  border-color:#7e9653!important;
+  background:#edf4df!important;
+  color:#4d6d24!important;
+}
+
+#qol-roadmaps-container .qol-rmog-details{
+  display:flex!important;
+  align-items:center!important;
+  gap:6px!important;
+  flex-wrap:wrap!important;
+  color:#77644c!important;
+  font-size:8px!important;
+  line-height:1.4!important;
+}
+
+#qol-roadmaps-container .qol-rmog-details strong{
+  color:#59432a!important;
+  font-weight:700!important;
+}
+
+#qol-roadmaps-container .qol-rmog-sep{
+  color:#b29b78!important;
+}
+
+@media(max-width:620px){
+  #qol-roadmaps-container .qol-rmog-details{
+    display:block!important;
+  }
+  #qol-roadmaps-container .qol-rmog-sep{
+    display:none!important;
+  }
+  #qol-roadmaps-container .qol-rmog-details>strong:not(:first-child){
+    margin-left:4px!important;
+  }
+}
