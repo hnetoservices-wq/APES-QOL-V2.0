@@ -14,7 +14,7 @@
       ],
       "js": [
         "js/core/playerIdentityBridge.js",
-        "js/ui/villageDashboardBridge.js",
+        "js/modules/villageDashboard/bridge.js",
         "js/modules/oasisScanner/networkBridge.js"
       ],
       "run_at": "document_start",
@@ -78,8 +78,8 @@
         "js/features/rallyPointScanner.js",
         "js/modules/rallyPoint/history.js",
         "js/features/buildingAlarm.js",
-        "js/ui/commandPalette.js",
-        "js/ui/villagePalette.js",
+        "js/features/commandPalette.js",
+        "js/features/villagePalette.js",
         "js/modules/buildingAlarm/operationsIntegration.js",
         "js/content.js"
       ],
@@ -87,7 +87,7 @@
         "css/style.css",
         "css/features/oasisScanner.css",
         "css/v2.css",
-        "css/villageDashboard.css",
+        "css/modules/villageDashboard/dashboard.css",
         "css/features/roadmaps.css",
         "css/modules/roadmaps/editor.css",
         "css/modules/roadmaps/buildingSteps.css",
