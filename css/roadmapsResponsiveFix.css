@@ -1,0 +1,133 @@
+/* APES Roadmaps responsive/layout corrections.
+ * These rules intentionally key off the Roadmaps window width rather than the
+ * browser viewport because the Hub itself is draggable and resizable.
+ */
+
+#qol-roadmaps-container{
+  container-type:inline-size!important;
+}
+
+/* Resource Fields should expand exactly like the Building picker instead of
+ * painting an absolutely-positioned menu into the dialog's scroll area. */
+#qol-roadmaps-dialog-layer .qol-rmrf-dialog{
+  width:min(560px,calc(100vw - 32px))!important;
+}
+#qol-roadmaps-dialog-layer .qol-rmrf-grid{
+  align-items:start!important;
+}
+#qol-roadmaps-dialog-layer .qol-rmrf-picker-menu{
+  position:static!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  z-index:auto!important;
+  display:none!important;
+  flex-direction:column!important;
+  width:100%!important;
+  max-height:210px!important;
+  margin-top:4px!important;
+  overflow-y:auto!important;
+  border:1px solid #a9906d!important;
+  border-radius:4px!important;
+  background:#fffaf0!important;
+  box-shadow:0 5px 14px rgba(0,0,0,.18)!important;
+  scrollbar-width:thin!important;
+  scrollbar-color:var(--qol-scroll-thumb) #eee5d6!important;
+}
+#qol-roadmaps-dialog-layer .qol-rmrf-picker-menu.open{
+  display:flex!important;
+}
+
+/* The existing CSS uses viewport media queries. Container queries are needed
+ * here because a 620px Roadmaps window can live inside a 1900px browser. */
+@container (max-width:720px){
+  #qol-roadmaps-container .qol-rm-workspace{
+    grid-template-columns:180px minmax(0,1fr)!important;
+  }
+
+  #qol-roadmaps-container .qol-rm-main-head{
+    flex-direction:column!important;
+    align-items:stretch!important;
+    gap:8px!important;
+    padding:10px 11px 9px!important;
+  }
+  #qol-roadmaps-container .qol-rm-title-copy{
+    width:100%!important;
+  }
+  #qol-roadmaps-container .qol-rm-actions{
+    width:100%!important;
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+  }
+
+  #qol-roadmaps-container .qol-rm-summary{
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    padding:8px 11px!important;
+  }
+
+  #qol-roadmaps-container .qol-rma-context{
+    grid-template-columns:minmax(0,1fr)!important;
+    align-items:start!important;
+    gap:6px!important;
+    padding:8px 11px!important;
+  }
+  #qol-roadmaps-container .qol-rma-context-progress{
+    grid-column:1!important;
+    grid-row:auto!important;
+    width:100%!important;
+  }
+  #qol-roadmaps-container .qol-rma-context-actions{
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+  }
+  #qol-roadmaps-container .qol-rma-context-copy small{
+    white-space:normal!important;
+  }
+
+  #qol-roadmaps-container .qol-rm-route-head{
+    flex-direction:column!important;
+    align-items:flex-start!important;
+    gap:6px!important;
+    padding:9px 11px 7px!important;
+  }
+  #qol-roadmaps-container .qol-rm-route-head>span{
+    width:100%!important;
+    text-align:left!important;
+  }
+  #qol-roadmaps-container .qol-rme-add{
+    width:100%!important;
+    justify-content:flex-start!important;
+    flex-wrap:wrap!important;
+  }
+
+  #qol-roadmaps-container .qol-rm-route{
+    padding:0 11px 12px!important;
+  }
+  #qol-roadmaps-container .qol-rm-step.qol-rme-editable{
+    grid-template-columns:26px 64px minmax(0,1fr)!important;
+  }
+  #qol-roadmaps-container .qol-rme-step-actions{
+    grid-column:2/-1!important;
+    justify-content:flex-start!important;
+  }
+}
+
+@container (max-width:640px){
+  #qol-roadmaps-container .qol-rm-workspace{
+    grid-template-columns:165px minmax(0,1fr)!important;
+  }
+  #qol-roadmaps-container .qol-rm-action{
+    min-height:24px!important;
+    padding:3px 7px!important;
+    font-size:8px!important;
+  }
+  #qol-roadmaps-container .qol-rm-summary span{
+    padding:6px 7px!important;
+  }
+}
+
+@media(max-width:520px){
+  #qol-roadmaps-dialog-layer .qol-rmrf-dialog{
+    width:calc(100vw - 20px)!important;
+  }
+}
