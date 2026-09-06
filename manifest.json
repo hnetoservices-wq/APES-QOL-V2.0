@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.81",
+  "version": "2.0.0.82",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -97,6 +97,7 @@
         "css/modules/villageDashboard/dashboard.css",
         "css/accountOperationsCenter.css",
         "css/accountOperationsCenterTable.css",
+        "css/accountOperationsCenterReadability.css",
         "css/features/roadmaps.css",
         "css/modules/roadmaps/editor.css",
         "css/modules/roadmaps/buildingSteps.css",
