@@ -6,8 +6,7 @@
   text-shadow:none!important;
 }
 
-#qol-roadmaps-container .qol-rmt-toggle.active,
-#qol-roadmap-runner .qol-rmt-runner-toggle.active{
+#qol-roadmaps-container .qol-rmt-toggle.active{
   border-color:#6b8739!important;
   background:#e7efd5!important;
   color:#48651f!important;
@@ -23,30 +22,58 @@
   display:flex!important;
   align-items:center!important;
   justify-content:center!important;
-  min-height:24px!important;
-  margin:0 0 8px!important;
-  padding:4px 8px!important;
-  border:1px solid #c9b58f!important;
-  border-radius:12px!important;
-  background:#f3ead9!important;
-  color:#6f5838!important;
-  font-size:8px!important;
+  flex:0 0 auto!important;
+  min-height:21px!important;
+  padding:3px 7px!important;
+  border:1px solid rgba(255,255,255,.28)!important;
+  border-radius:10px!important;
+  background:rgba(0,0,0,.16)!important;
+  color:#f5ead6!important;
+  font-size:7px!important;
   font-weight:700!important;
-  letter-spacing:.25px!important;
+  letter-spacing:.2px!important;
   text-transform:uppercase!important;
   cursor:pointer!important;
   user-select:none!important;
 }
 
-#qol-roadmap-runner .qol-rmt-paused-note{
-  margin-top:8px!important;
+#qol-roadmap-runner .qol-rmt-runner-toggle.active{
+  border-color:#b7d67e!important;
+  background:#5e7d32!important;
+  color:#fff!important;
+}
+
+#qol-roadmap-runner.qol-rmt-paused .qol-rmac-detection,
+#qol-roadmap-runner.qol-rmt-paused .qol-rmrf-detection{
+  display:none!important;
+}
+
+#qol-roadmap-runner.qol-rmt-paused .qol-rmr-step-card::after{
+  content:'Automatic tracking is paused. No building or resource checks are running.'!important;
+  display:block!important;
+  margin-top:1px!important;
   padding:7px 8px!important;
   border:1px solid #d4c09a!important;
   border-radius:4px!important;
   background:#f4ecdc!important;
   color:#725c3d!important;
   font-size:8.5px!important;
+  font-weight:400!important;
   line-height:1.35!important;
+}
+
+#qol-roadmap-runner.qol-rmt-resource-paused .qol-rmr-type{
+  border-color:#b59a49!important;
+  background:#f7efc9!important;
+  color:#70570c!important;
+  font-size:0!important;
+}
+
+#qol-roadmap-runner.qol-rmt-resource-paused .qol-rmr-type::after{
+  content:'Resource Fields'!important;
+  font-size:7px!important;
+  font-weight:700!important;
+  letter-spacing:.25px!important;
 }
 
 #qol-roadmap-assignment-dialog .qol-rmt-load-block{
