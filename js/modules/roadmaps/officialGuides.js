@@ -295,7 +295,7 @@
     }
 
     const routeHead = hub.querySelector('.qol-rm-route-head span');
-    const routeHint = 'Exact authored order. Automatic detection advances only supported building and resource objectives.';
+    const routeHint = 'Exact order followed by the runner.';
     if (routeHead && routeHead.textContent !== routeHint) routeHead.textContent = routeHint;
   }
 
