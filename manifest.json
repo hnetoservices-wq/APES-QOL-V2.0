@@ -48,7 +48,6 @@
         "js/features/reportArchive.js",
         "js/features/checklists.js",
         "js/features/roadmaps.js",
-        "js/features/roadmapsRefreshBridge.js",
         "js/features/roadmapsEditor.js",
         "js/features/roadmapsCatalogSort.js",
         "js/features/roadmapsEditorConvenience.js",
@@ -93,7 +92,8 @@
         "css/roadmapsAssignments.css",
         "css/roadmapsAutoComplete.css",
         "css/roadmapsResourceFields.css",
-        "css/numberInputFix.css"
+        "css/numberInputFix.css",
+        "css/roadmapsResponsiveFix.css"
       ],
       "run_at": "document_idle"
     }
