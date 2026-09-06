@@ -12,6 +12,7 @@
   let refreshTimer = null;
   let countdownTimer = null;
   let captureTimer = null;
+  let pendingRender = false;
 
   function enabled() {
     try {
@@ -27,6 +28,38 @@
 
   function isOpen() {
     return document.getElementById(D.OVERLAY_ID)?.classList.contains('open') || false;
+  }
+
+  function tableIsBeingUsed() {
+    const table = document.querySelector(`#${D.OVERLAY_ID} .apes-aoc2-table-scroll`);
+    return Boolean(table?.matches?.(':hover'));
+  }
+
+  function renderOrDefer() {
+    if (!isOpen()) return;
+    if (tableIsBeingUsed()) {
+      pendingRender = true;
+      R.updateCountdowns?.();
+      return;
+    }
+    pendingRender = false;
+    R.render();
+  }
+
+  function flushDeferredRender() {
+    if (!isOpen() || !pendingRender || tableIsBeingUsed()) return;
+    pendingRender = false;
+    R.render();
+  }
+
+  function bindInteractionGuard() {
+    const table = document.querySelector(`#${D.OVERLAY_ID} .apes-aoc2-table-scroll`);
+    if (!table || table.dataset.apesAocRefreshGuard === '1') return;
+    table.dataset.apesAocRefreshGuard = '1';
+    table.addEventListener('pointerleave', () => {
+      if (!pendingRender) return;
+      requestAnimationFrame(flushDeferredRender);
+    });
   }
 
   function stopTimers() {
@@ -47,7 +80,7 @@
     captureTimer = window.setTimeout(() => {
       captureTimer = null;
       D.captureCurrent?.();
-      if (isOpen()) R.render();
+      renderOrDefer();
     }, delay);
   }
 
@@ -55,6 +88,7 @@
     if (!enabled()) return;
     APES.ui.closeOtherTools?.('accountOperationsCenter');
     const overlay = R.mount();
+    bindInteractionGuard();
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
     requestSnapshot();
@@ -65,6 +99,7 @@
 
   function close() {
     stopTimers();
+    pendingRender = false;
     const overlay = document.getElementById(D.OVERLAY_ID);
     overlay?.classList.remove('open');
     overlay?.setAttribute('aria-hidden', 'true');
@@ -107,7 +142,7 @@
     D.snapshot = event.data.payload;
     if (String(previousPlayer ?? '') !== String(D.snapshot?.playerId ?? '')) D.resetScanCache?.();
     scheduleCapture(180);
-    if (isOpen()) R.render();
+    renderOrDefer();
   });
 
   window.addEventListener('keydown', event => {
@@ -135,7 +170,7 @@
     if (event.detail?.key === D.SETTING_KEY && !event.detail?.enabled) close();
     if (isOpen()) {
       A.actions?.renderTools?.();
-      R.render();
+      renderOrDefer();
     }
   });
 
@@ -159,6 +194,7 @@
   window.APES_VILLAGE_PALETTE = api;
 
   R.mount();
+  bindInteractionGuard();
   syncMenuLabel();
   requestSnapshot();
   scheduleCapture(900);
