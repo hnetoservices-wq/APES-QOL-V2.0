@@ -92,6 +92,17 @@
     return [...table.querySelectorAll('thead th')].map(cell => cleanText(cell.textContent).toLowerCase());
   }
 
+  function isVisible(element) {
+    if (!element?.isConnected) return false;
+    const rectangle = element.getBoundingClientRect();
+    if (rectangle.width <= 0 || rectangle.height <= 0) return false;
+    for (let current = element; current && current !== document.body; current = current.parentElement) {
+      const style = getComputedStyle(current);
+      if (style.display === 'none' || style.visibility === 'hidden') return false;
+    }
+    return true;
+  }
+
   function category(type) {
     const text = String(type || '').toLowerCase();
     if (text.includes('siege')) return 'siege';
@@ -168,11 +179,21 @@
     saveSection(id, 'outgoings', items);
   }
 
+  function inspectEmptyStates(id) {
+    document.querySelectorAll('.qol-rp-empty,.qol-ir-empty').forEach(empty => {
+      if (!isVisible(empty)) return;
+      const text = cleanText(empty.textContent).toLowerCase();
+      if (text.includes('scan completed without finding any of the selected movement types')) saveSection(id, 'incomingMovements', []);
+      else if (text.includes('scan completed without finding any active incoming resource shipments')) saveSection(id, 'incomingResources', []);
+    });
+  }
+
   function inspectTables() {
     observeTimer = null;
     const id = villageId();
     if (!id) return;
     document.querySelectorAll('table').forEach(table => {
+      if (!isVisible(table)) return;
       const head = headers(table);
       if (head.length < 5) return;
       const signature = head.join('|');
@@ -180,6 +201,7 @@
       else if (signature === 'player|village|remaining|wood|clay|iron|crop|total') parseIncomingResources(table, id);
       else if (signature === 'target|village|type|remaining|landing') parseOutgoings(table, id);
     });
+    inspectEmptyStates(id);
   }
 
   function scheduleInspect() {
@@ -240,7 +262,6 @@
 
   const observer = new MutationObserver(scheduleInspect);
   observer.observe(document.documentElement, { childList: true, subtree: true });
-  window.addEventListener('hashchange', scheduleInspect);
   window.addEventListener('qol_setting_changed', scheduleInspect);
 
   window.APES_AOC_INTEL = Object.freeze({
