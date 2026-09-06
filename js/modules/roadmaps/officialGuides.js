@@ -249,6 +249,10 @@
       <div class="qol-rmog-details">${details.join('<span class="qol-rmog-sep">·</span>')}</div>`;
   }
 
+  function metadataSignature(id, meta) {
+    return [id, clean(meta.version), clean(meta.speed), clean(meta.villageType), clean(meta.author), clean(meta.goal), ...(meta.contributors || []).map(clean)].join('|');
+  }
+
   function decorateHub() {
     decorateQueued = false;
     const hub = document.getElementById(HUB_ID);
@@ -257,7 +261,8 @@
     for (const [id, definition] of Object.entries(DEFINITIONS)) {
       const item = hub.querySelector(`[data-roadmap-select="${CSS.escape(id)}"]`);
       const small = item?.querySelector('small');
-      if (small) small.textContent = `APES Official · ${definition.meta.speed} · v${definition.meta.version}`;
+      const desired = `APES Official · ${definition.meta.speed} · v${definition.meta.version}`;
+      if (small && small.textContent !== desired) small.textContent = desired;
     }
 
     const id = selectedId();
@@ -265,20 +270,33 @@
     const head = hub.querySelector('.qol-rm-main-head');
     if (!head) return;
 
-    hub.querySelector('.qol-rmog-meta')?.remove();
-    if (!definition) return;
+    const currentMeta = hub.querySelector('.qol-rmog-meta');
+    if (!definition) {
+      currentMeta?.remove();
+      return;
+    }
 
     const badge = head.querySelector('.qol-rm-badge');
-    if (badge) badge.textContent = 'APES Official';
+    if (badge && badge.textContent !== 'APES Official') badge.textContent = 'APES Official';
 
-    const meta = document.createElement('div');
-    meta.className = 'qol-rmog-meta';
-    meta.dataset.roadmapId = id;
-    meta.innerHTML = metadataMarkup(definition.meta);
-    head.insertAdjacentElement('afterend', meta);
+    const signature = metadataSignature(id, definition.meta);
+    let meta = currentMeta;
+    if (!meta || meta.dataset.roadmapId !== id) {
+      currentMeta?.remove();
+      meta = document.createElement('div');
+      meta.className = 'qol-rmog-meta';
+      meta.dataset.roadmapId = id;
+      meta.dataset.signature = signature;
+      meta.innerHTML = metadataMarkup(definition.meta);
+      head.insertAdjacentElement('afterend', meta);
+    } else if (meta.dataset.signature !== signature) {
+      meta.dataset.signature = signature;
+      meta.innerHTML = metadataMarkup(definition.meta);
+    }
 
     const routeHead = hub.querySelector('.qol-rm-route-head span');
-    if (routeHead) routeHead.textContent = 'Exact authored order. Automatic detection advances only supported building and resource objectives.';
+    const routeHint = 'Exact authored order. Automatic detection advances only supported building and resource objectives.';
+    if (routeHead && routeHead.textContent !== routeHint) routeHead.textContent = routeHint;
   }
 
   function scheduleDecorate() {
