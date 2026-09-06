@@ -50,6 +50,7 @@
         "js/features/roadmaps.js",
         "js/features/roadmapsEditor.js",
         "js/features/roadmapsCatalogSort.js",
+        "js/features/roadmapsEditorConvenience.js",
         "js/features/roadmapsRunner.js",
         "js/features/roadmapsRunnerControls.js",
         "js/features/roadmapsAutoComplete.js",
@@ -82,6 +83,7 @@
         "css/villageDashboard.css",
         "css/roadmaps.css",
         "css/roadmapsEditor.css",
+        "css/roadmapsEditorConvenience.css",
         "css/roadmapsRunner.css",
         "css/roadmapsAssignments.css",
         "css/roadmapsAutoComplete.css"
