@@ -60,6 +60,7 @@
         "js/features/roadmapsAutoCompleteFast.js",
         "js/features/roadmapsResourceFields.js",
         "js/features/roadmapsStage6C.js",
+        "js/features/roadmapsRunnerReliability.js",
         "js/features/npcCalculator.js",
         "js/ui/resourceUpgradePlannerPreference.js",
         "js/features/resourceUpgradePlanner.js",
