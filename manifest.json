@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.86",
+  "version": "2.0.0.87",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -91,9 +91,11 @@
         "js/ui/accountOperationsCenterRender.js",
         "js/ui/accountOperationsCenterAccuracyUi.js",
         "js/ui/accountOperationsCenterSettings.js",
+        "js/ui/accountOperationsCenterSettingsUiFix.js",
         "js/ui/accountOperationsCenterVillageActions.js",
         "js/ui/accountOperationsCenterPerformance.js",
         "js/ui/accountOperationsCenter.js",
+        "js/ui/accountOperationsCenterRefresh.js",
         "js/modules/buildingAlarm/operationsIntegration.js",
         "js/content.js"
       ],
@@ -106,6 +108,7 @@
         "css/accountOperationsCenterTable.css",
         "css/accountOperationsCenterReadability.css",
         "css/accountOperationsCenterAdvanced.css",
+        "css/accountOperationsCenterSettingsUiFix.css",
         "css/features/roadmaps.css",
         "css/modules/roadmaps/editor.css",
         "css/modules/roadmaps/buildingSteps.css",
@@ -115,8 +118,7 @@
         "css/modules/roadmaps/detection.css",
         "css/modules/roadmaps/resourceFields.css",
         "css/modules/roadmaps/checkpointsAndDetection.css",
-        "css/modules/roadmaps/tracking.css",
-        "css/helpers/numberInputs.css",
+        "css/modules/roadmaps/inputGuard.css",
         "css/modules/roadmaps/responsive.css",
         "css/modules/roadmaps/officialIntegration.css",
         "css/modules/roadmaps/officialGuides.css"
