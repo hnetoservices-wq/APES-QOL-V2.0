@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.88",
+  "version": "2.0.0.89",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -89,6 +89,8 @@
         "js/ui/accountOperationsCenterIntelligence.js",
         "js/ui/accountOperationsCenterActions.js",
         "js/ui/accountOperationsCenterRender.js",
+        "js/ui/accountOperationsCenterWorkspace.js",
+        "js/ui/accountOperationsCenterToolAdapters.js",
         "js/ui/accountOperationsCenterAccuracyUi.js",
         "js/ui/accountOperationsCenterSettings.js",
         "js/ui/accountOperationsCenterSettingsUiFix.js",
@@ -109,6 +111,7 @@
         "css/accountOperationsCenterReadability.css",
         "css/accountOperationsCenterAdvanced.css",
         "css/accountOperationsCenterSettingsUiFix.css",
+        "css/accountOperationsCenterWorkspace.css",
         "css/features/roadmaps.css",
         "css/modules/roadmaps/editor.css",
         "css/modules/roadmaps/buildingSteps.css",
