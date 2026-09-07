@@ -98,6 +98,10 @@
   }
 
   X.quick = action => {
+    // Quick Access is navigation, not a stacked APES tool. Close the AOC first so
+    // the destination is immediately visible and native Travian controls can open cleanly.
+    A.controller?.close?.();
+
     if (action === 'hero') location.hash = route('window:hero/herotab:Inventory');
     else if (action === 'rally') location.hash = route('location:32/window:building/cp:1');
     else if (action === 'chat') clickNative(['#jsQuestButtonIgm'], ['igm', 'chat', 'message']);
