@@ -118,7 +118,8 @@
         "css/modules/roadmaps/detection.css",
         "css/modules/roadmaps/resourceFields.css",
         "css/modules/roadmaps/checkpointsAndDetection.css",
-        "css/modules/roadmaps/inputGuard.css",
+        "css/modules/roadmaps/tracking.css",
+        "css/helpers/numberInputs.css",
         "css/modules/roadmaps/responsive.css",
         "css/modules/roadmaps/officialIntegration.css",
         "css/modules/roadmaps/officialGuides.css"
