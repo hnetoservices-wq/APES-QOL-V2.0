@@ -1,4 +1,4 @@
-/* Account Operations Center — embedded Report Archive + Watchlists */
+/* Account Operations Center — embedded tool layouts */
 
 /* Report Archive */
 #apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool{
@@ -25,21 +25,15 @@
   overflow:hidden!important;
   z-index:auto!important;
 }
-#apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool>.qol-ra-header{
-  display:none!important;
-}
+#apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool>.qol-ra-header{display:none!important}
 #apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool>.qol-ra-layout{
   flex:1 1 auto!important;
   min-width:0!important;
   min-height:0!important;
   height:100%!important;
 }
-#apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool>.qol-ra-detail{
-  inset:0!important;
-}
-#apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool .qol-ra-close{
-  display:none!important;
-}
+#apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool>.qol-ra-detail{inset:0!important}
+#apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool .qol-ra-close{display:none!important}
 
 /* Watchlists */
 #apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool{
@@ -67,9 +61,7 @@
   resize:none!important;
   z-index:auto!important;
 }
-#apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool>.qol-wl-header{
-  display:none!important;
-}
+#apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool>.qol-wl-header{display:none!important}
 #apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool>.qol-wl-body{
   flex:1 1 auto!important;
   min-width:0!important;
@@ -78,16 +70,185 @@
   padding:10px!important;
   overflow:hidden!important;
 }
-#apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool>.qol-resize-handle{
-  display:none!important;
-}
-#apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool .qol-wl-close{
-  display:none!important;
-}
+#apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool>.qol-resize-handle{display:none!important}
+#apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool .qol-wl-close{display:none!important}
 #apes-v2-village-overlay #qol-watchlist-container.apes-aoc-embedded-tool .qol-wl-table-scroll-container{
   flex:1 1 auto!important;
   min-height:0!important;
 }
+
+/* Rally Point Scanner */
+#apes-v2-village-overlay #qol-rally-point-scanner.apes-aoc-embedded-tool{
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:auto!important;
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  transform:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  resize:none!important;
+  z-index:auto!important;
+}
+#apes-v2-village-overlay #qol-rally-point-scanner.apes-aoc-embedded-tool>.qol-rally-scanner-header{display:none!important}
+#apes-v2-village-overlay #qol-rally-point-scanner.apes-aoc-embedded-tool>.qol-rally-tabs{flex:0 0 38px!important}
+#apes-v2-village-overlay #qol-rally-point-scanner.apes-aoc-embedded-tool>.qol-rally-scanner-content{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:auto!important;
+}
+#apes-v2-village-overlay #qol-rally-point-scanner.apes-aoc-embedded-tool .qol-rally-tab-panel,
+#apes-v2-village-overlay #qol-rally-point-scanner.apes-aoc-embedded-tool .qol-rp-body,
+#apes-v2-village-overlay #qol-rally-point-scanner.apes-aoc-embedded-tool .qol-ir-body{
+  min-width:0!important;
+  min-height:0!important;
+  max-width:none!important;
+  max-height:none!important;
+}
+
+/* CP Manager */
+#apes-v2-village-overlay #qol-cp-manager-panel.apes-aoc-embedded-tool{
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:auto!important;
+  display:flex!important;
+  flex:1 1 auto!important;
+  flex-direction:column!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  transform:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  resize:none!important;
+  z-index:auto!important;
+}
+#apes-v2-village-overlay #qol-cp-manager-panel.apes-aoc-embedded-tool>.qol-cp-header{display:none!important}
+#apes-v2-village-overlay #qol-cp-manager-panel.apes-aoc-embedded-tool>.qol-cp-body{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+  overflow:auto!important;
+}
+#apes-v2-village-overlay #qol-cp-planner-panel.apes-aoc-embedded-subtool,
+#apes-v2-village-overlay #qol-cp-trade-planner-panel.apes-aoc-embedded-subtool{
+  position:absolute!important;
+  inset:0!important;
+  left:0!important;
+  right:0!important;
+  top:0!important;
+  bottom:0!important;
+  display:flex!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  transform:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  resize:none!important;
+  overflow:hidden!important;
+  z-index:6!important;
+}
+#apes-v2-village-overlay #qol-cp-planner-panel.apes-aoc-embedded-subtool>.qol-cp-planner-body,
+#apes-v2-village-overlay #qol-cp-trade-planner-panel.apes-aoc-embedded-subtool>.qol-cp-trade-body{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  overflow:auto!important;
+}
+
+/* Resource Upgrade Planner */
+#apes-v2-village-overlay #qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool{
+  position:relative!important;
+  inset:auto!important;
+  left:auto!important;
+  right:auto!important;
+  top:auto!important;
+  bottom:auto!important;
+  display:flex!important;
+  flex:1 1 auto!important;
+  align-items:stretch!important;
+  justify-content:stretch!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  padding:0!important;
+  transform:none!important;
+  background:transparent!important;
+  overflow:hidden!important;
+  z-index:auto!important;
+}
+#apes-v2-village-overlay #qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool>.qol-rup-window{
+  display:flex!important;
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+#apes-v2-village-overlay #qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool .qol-rup-header{display:none!important}
+#apes-v2-village-overlay #qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool .qol-rup-body{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+  max-height:none!important;
+  overflow:auto!important;
+}
+
+#apes-v2-village-overlay .apes-aoc-tool-loading{
+  display:flex!important;
+  flex:1 1 auto!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-width:0!important;
+  min-height:0!important;
+  padding:24px!important;
+  color:rgba(239,231,211,.62)!important;
+  font:700 10px Arial,sans-serif!important;
+  text-align:center!important;
+}
+#apes-v2-village-overlay .apes-aoc-tool-loading.error{color:#d7a08f!important}
 
 @media(max-width:1050px){
   #apes-v2-village-overlay #qol-report-archive-panel.apes-aoc-embedded-tool>.qol-ra-layout{
