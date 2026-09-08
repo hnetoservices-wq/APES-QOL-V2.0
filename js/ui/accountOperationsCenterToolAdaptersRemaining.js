@@ -74,6 +74,14 @@
     return panel;
   }
 
+  function loading(host, text) {
+    const node = document.createElement('div');
+    node.className = 'apes-aoc-tool-loading';
+    node.textContent = text;
+    host.replaceChildren(node);
+    return node;
+  }
+
   function makeAdapter({ panelId, open, close, openClass = '', overlay = false, onMount, onUnmount }) {
     let panel = null;
     let host = null;
@@ -115,14 +123,39 @@
     openClass: 'qol-rm-open'
   }));
 
-  workspace.register('rallyPoint', makeAdapter({
-    panelId: 'qol-rally-point-scanner',
-    open() {
-      return openByButton('qol-rally-point-scanner', 'qol-rally-point-toggle-btn');
-    },
-    close(panel) { panel.style.setProperty('display', 'none', 'important'); }
-  }));
+  // Rally Point Scanner: keep its scan/navigation logic untouched, but treat the
+  // floating panel as a proper hosted application while it lives in the AOC.
+  workspace.register('rallyPoint', (() => {
+    const PANEL_ID = 'qol-rally-point-scanner';
+    let panel = null;
+    let host = null;
 
+    function mount(nextHost) {
+      host = nextHost;
+      panel = openByButton(PANEL_ID, 'qol-rally-point-toggle-btn');
+      panel.classList.add('apes-aoc-embedded-tool');
+      host.appendChild(panel);
+      forceEmbeddedBox(panel);
+      return unmount;
+    }
+
+    function unmount() {
+      if (!panel) return;
+      panel.style.setProperty('display', 'none', 'important');
+      returnToBody(panel);
+      // The scanner's native open/close contract is inline display, so leave it
+      // definitively closed after restoring its standalone positioning styles.
+      panel.style.setProperty('display', 'none', 'important');
+      panel = null;
+      host = null;
+    }
+
+    return { mount, unmount };
+  })());
+
+  // CP Manager: the main panel is hosted normally. Plan CP and Plan Trade Routes
+  // remain the existing CP sub-applications, but they are pinned over the host
+  // every time CP repositions them, so they never escape back into floating mode.
   workspace.register('cpManager', (() => {
     const MAIN_ID = 'qol-cp-manager-panel';
     const SUB_IDS = ['qol-cp-planner-panel', 'qol-cp-trade-planner-panel'];
@@ -130,17 +163,31 @@
     let host = null;
     let observer = null;
     let clickListener = null;
+    let scheduled = [];
+
+    function clearScheduled() {
+      scheduled.forEach(id => clearTimeout(id));
+      scheduled = [];
+    }
 
     function adoptSubpanels() {
       if (!host?.isConnected) return;
       for (const id of SUB_IDS) {
         const sub = document.getElementById(id);
         if (!sub || !isDisplayed(sub)) continue;
-        const needsAdoption = sub.parentElement !== host || !sub.classList.contains('apes-aoc-embedded-subtool');
         if (sub.parentElement !== host) host.appendChild(sub);
         sub.classList.add('apes-aoc-embedded-subtool');
-        if (needsAdoption) forceEmbeddedBox(sub, { absolute: true });
+        // CP's native renderer deliberately repositions these after opening.
+        // Re-assert the embedded geometry every time, not only the first time.
+        forceEmbeddedBox(sub, { absolute: true });
       }
+    }
+
+    function scheduleAdoption() {
+      clearScheduled();
+      [0, 40, 120, 260].forEach(delay => {
+        scheduled.push(setTimeout(adoptSubpanels, delay));
+      });
     }
 
     function mount(nextHost) {
@@ -151,11 +198,15 @@
       forceEmbeddedBox(panel);
 
       clickListener = event => {
-        if (!event.target.closest('.qol-cp-plan-btn,.qol-cp-trade-btn')) return;
-        setTimeout(adoptSubpanels, 0);
-        setTimeout(adoptSubpanels, 60);
+        if (event.target.closest('.qol-cp-plan-btn,.qol-cp-trade-btn')) {
+          scheduleAdoption();
+          return;
+        }
+        if (event.target.closest('.qol-cp-open-market-btn')) {
+          setTimeout(() => window.APES_ACCOUNT_OPERATIONS_CENTER?.close?.(), 0);
+        }
       };
-      panel.addEventListener('click', clickListener, true);
+      host.addEventListener('click', clickListener, true);
 
       observer = new MutationObserver(() => adoptSubpanels());
       observer.observe(document.body, { childList: true, subtree: true });
@@ -164,9 +215,10 @@
     }
 
     function unmount() {
+      clearScheduled();
       observer?.disconnect();
       observer = null;
-      if (panel && clickListener) panel.removeEventListener('click', clickListener, true);
+      if (host && clickListener) host.removeEventListener('click', clickListener, true);
       clickListener = null;
 
       for (const id of SUB_IDS) {
@@ -174,10 +226,12 @@
         if (!sub) continue;
         sub.style.setProperty('display', 'none', 'important');
         returnToBody(sub);
+        sub.style.setProperty('display', 'none', 'important');
       }
       if (panel) {
         panel.style.setProperty('display', 'none', 'important');
         returnToBody(panel);
+        panel.style.setProperty('display', 'none', 'important');
       }
       panel = null;
       host = null;
@@ -186,18 +240,60 @@
     return { mount, unmount };
   })());
 
-  workspace.register('resourcePlanner', makeAdapter({
-    panelId: 'qol-resource-upgrade-planner-overlay',
-    open() {
+  // Resource Upgrade Planner's open() is asynchronous because it loads persisted
+  // planner state before constructing the panel. The workspace therefore mounts a
+  // temporary loading state and adopts the real panel only after open() resolves.
+  workspace.register('resourcePlanner', (() => {
+    const PANEL_ID = 'qol-resource-upgrade-planner-overlay';
+    let panel = null;
+    let host = null;
+    let cancelled = false;
+    let generation = 0;
+
+    async function attach(myGeneration) {
       const api = window.APES_RESOURCE_UPGRADE_PLANNER;
       if (!api?.open) throw new Error('Resource Upgrade Planner API is unavailable.');
-      api.open();
-      return document.getElementById('qol-resource-upgrade-planner-overlay');
-    },
-    close() { window.APES_RESOURCE_UPGRADE_PLANNER?.close?.(); },
-    openClass: 'qol-open',
-    overlay: true
-  }));
+      await api.open();
+      if (cancelled || myGeneration !== generation || !host?.isConnected) {
+        api.close?.();
+        return;
+      }
+      panel = document.getElementById(PANEL_ID);
+      if (!panel) throw new Error('Resource Upgrade Planner UI is unavailable.');
+      panel.classList.add('qol-open', 'apes-aoc-embedded-tool');
+      host.replaceChildren(panel);
+      forceEmbeddedBox(panel, { overlay: true });
+    }
+
+    function mount(nextHost) {
+      host = nextHost;
+      cancelled = false;
+      const myGeneration = ++generation;
+      const status = loading(host, 'Loading Resource Upgrade Planner…');
+      void attach(myGeneration).catch(error => {
+        console.error('[APES AOC] Resource Upgrade Planner embed failed.', error);
+        if (!cancelled && status.isConnected) {
+          status.textContent = 'Resource Upgrade Planner could not be loaded in the workspace.';
+          status.classList.add('error');
+        }
+      });
+      return unmount;
+    }
+
+    function unmount() {
+      cancelled = true;
+      generation += 1;
+      window.APES_RESOURCE_UPGRADE_PLANNER?.close?.();
+      if (panel) {
+        panel.classList.remove('qol-open');
+        returnToBody(panel);
+      }
+      panel = null;
+      host = null;
+    }
+
+    return { mount, unmount };
+  })());
 
   workspace.register('secretSociety', makeAdapter({
     panelId: 'qol-ss-scanner-panel',
