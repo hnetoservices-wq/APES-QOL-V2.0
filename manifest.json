@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.97",
+  "version": "2.0.0.98",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -63,6 +63,7 @@
         "js/modules/roadmaps/detectionScheduler.js",
         "js/modules/roadmaps/resourceFields.js",
         "js/modules/roadmaps/resourcePlannerImports.js",
+        "js/modules/roadmaps/resourcePlannerRunnerClarity.js",
         "js/modules/roadmaps/checkpointsAndDetection.js",
         "js/modules/roadmaps/inputGuard.js",
         "js/modules/roadmaps/officialIntegration.js",
