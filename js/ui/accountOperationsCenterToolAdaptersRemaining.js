@@ -103,7 +103,6 @@
     return { mount, unmount };
   }
 
-  // Roadmaps — same Roadmaps application, simply hosted by the AOC.
   workspace.register('roadmaps', makeAdapter({
     panelId: 'qol-roadmaps-container',
     open() {
@@ -116,7 +115,6 @@
     openClass: 'qol-rm-open'
   }));
 
-  // Rally Point Scanner — scans keep using the scanner's existing full-screen lock.
   workspace.register('rallyPoint', makeAdapter({
     panelId: 'qol-rally-point-scanner',
     open() {
@@ -125,8 +123,6 @@
     close(panel) { panel.style.setProperty('display', 'none', 'important'); }
   }));
 
-  // CP Manager — its Plan CP and Trade Route planner subwindows are adopted into
-  // the same AOC host as overlays, rather than appearing as separate floating windows.
   workspace.register('cpManager', (() => {
     const MAIN_ID = 'qol-cp-manager-panel';
     const SUB_IDS = ['qol-cp-planner-panel', 'qol-cp-trade-planner-panel'];
@@ -140,9 +136,10 @@
       for (const id of SUB_IDS) {
         const sub = document.getElementById(id);
         if (!sub || !isDisplayed(sub)) continue;
+        const needsAdoption = sub.parentElement !== host || !sub.classList.contains('apes-aoc-embedded-subtool');
         if (sub.parentElement !== host) host.appendChild(sub);
         sub.classList.add('apes-aoc-embedded-subtool');
-        forceEmbeddedBox(sub, { absolute: true });
+        if (needsAdoption) forceEmbeddedBox(sub, { absolute: true });
       }
     }
 
@@ -161,7 +158,7 @@
       panel.addEventListener('click', clickListener, true);
 
       observer = new MutationObserver(() => adoptSubpanels());
-      observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['style'] });
+      observer.observe(document.body, { childList: true, subtree: true });
       adoptSubpanels();
       return unmount;
     }
@@ -189,8 +186,6 @@
     return { mount, unmount };
   })());
 
-  // Resource Upgrade Planner — its existing scanner lock remains global while the
-  // planner itself occupies the AOC workspace.
   workspace.register('resourcePlanner', makeAdapter({
     panelId: 'qol-resource-upgrade-planner-overlay',
     open() {
@@ -204,8 +199,6 @@
     overlay: true
   }));
 
-  // Secret Society Scanner — scanning and messaging locks continue to cover the
-  // game, but the normal scanner UI stays inside the AOC Tools tab.
   workspace.register('secretSociety', makeAdapter({
     panelId: 'qol-ss-scanner-panel',
     open() {
