@@ -1,0 +1,120 @@
+/* Remaining AOC embedded tools */
+
+/* Once all APES applications live under Tools, the old Enabled Tools sidebar is redundant. */
+#apes-v2-village-overlay .apes-aoc2-tools-card{display:none!important}
+
+/* Shared embedded panel shell. Inline fixed-position values are also cleared by the adapter. */
+#qol-roadmaps-container.apes-aoc-embedded-tool,
+#qol-rally-point-scanner.apes-aoc-embedded-tool,
+#qol-cp-manager-panel.apes-aoc-embedded-tool,
+#qol-ss-scanner-panel.apes-aoc-embedded-tool{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+  resize:none!important;
+}
+
+/* Roadmaps */
+#qol-roadmaps-container.apes-aoc-embedded-tool>.qol-rm-header{display:none!important}
+#qol-roadmaps-container.apes-aoc-embedded-tool>.qol-rm-workspace{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+}
+
+/* Rally Point Scanner */
+#qol-rally-point-scanner.apes-aoc-embedded-tool>.qol-rally-scanner-header{display:none!important}
+#qol-rally-point-scanner.apes-aoc-embedded-tool>.qol-rally-tabs{flex:0 0 38px!important}
+#qol-rally-point-scanner.apes-aoc-embedded-tool>.qol-rally-scanner-content{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+}
+
+/* CP Manager */
+#qol-cp-manager-panel.apes-aoc-embedded-tool>.qol-cp-header{display:none!important}
+#qol-cp-manager-panel.apes-aoc-embedded-tool>.qol-cp-body{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+  overflow:auto!important;
+}
+#apes-v2-village-overlay .apes-aoc-tool-host:has(#qol-cp-manager-panel){position:relative!important}
+#qol-cp-planner-panel.apes-aoc-embedded-subtool,
+#qol-cp-trade-planner-panel.apes-aoc-embedded-subtool{
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  margin:0!important;
+  transform:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+  resize:none!important;
+  overflow:hidden!important;
+}
+#qol-cp-planner-panel.apes-aoc-embedded-subtool>.qol-cp-planner-body,
+#qol-cp-trade-planner-panel.apes-aoc-embedded-subtool>.qol-cp-trade-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+}
+
+/* Resource Upgrade Planner: the feature's PANEL_ID is itself a full-screen overlay,
+   so remove the overlay treatment and let its inner window fill the Tool host. */
+#qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  border:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  overflow:hidden!important;
+}
+#qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool>.qol-rup-window{
+  flex:1 1 auto!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:none!important;
+  height:100%!important;
+  min-height:0!important;
+  max-height:none!important;
+  border:0!important;
+  border-radius:0!important;
+  box-shadow:none!important;
+}
+#qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool .qol-rup-header{display:none!important}
+#qol-resource-upgrade-planner-overlay.apes-aoc-embedded-tool .qol-rup-body{
+  flex:1 1 auto!important;
+  min-height:0!important;
+  overflow:auto!important;
+}
+
+/* Secret Society Scanner */
+#qol-ss-scanner-panel.apes-aoc-embedded-tool>.qol-ss-head{display:none!important}
+#qol-ss-scanner-panel.apes-aoc-embedded-tool>.qol-ss-body{
+  flex:1 1 auto!important;
+  min-width:0!important;
+  min-height:0!important;
+  height:100%!important;
+}
+
+/* Keep standalone behavior untouched: these overrides only apply while the adapter
+   has added the embedded classes above. */
