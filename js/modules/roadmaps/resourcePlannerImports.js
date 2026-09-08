@@ -203,7 +203,73 @@
       return;
     }
     enhanceRunner();
-    window.postMessage({ source: UI_SOURCE, type: REQUEST_TYPE }, location.origin);
+    window.postMessage({ source: UI_SOURCE, type: REQUEST_TYPE }, window.location.origin);
+  }
+
+  function queueItems(village) {
+    const queues = village?.buildingQueue?.queues;
+    if (!queues || typeof queues !== 'object') return [];
+    const now = Date.now() / 1000;
+    return Object.values(queues).flatMap(bucket => Array.isArray(bucket) ? bucket : []).filter(item => {
+      if (!item || typeof item !== 'object') return false;
+      const finished = Number(item.finishTime ?? item.finished);
+      return !Number.isFinite(finished) || finished <= 0 || finished > now;
+    });
+  }
+
+  function pendingQueueCount(village, locationId) {
+    const location = Number(locationId);
+    if (!Number.isFinite(location)) return 0;
+    return queueItems(village).filter(item => Number(item?.locationId) === location).length;
+  }
+
+  function completedCacheLevel(village, field) {
+    const raw = Math.max(0, Number(field?.lvl) || 0);
+    const pending = pendingQueueCount(village, field?.locationId);
+    // Travian can expose an optimistic building level as soon as an upgrade enters
+    // the building queue. Treat every still-pending queue entry as not yet built.
+    return Math.max(0, raw - pending);
+  }
+
+  function classNumber(element, expression) {
+    const className = typeof element?.className === 'string' ? element.className : element?.getAttribute?.('class') || '';
+    const match = String(className).match(expression);
+    return match ? Number(match[1]) : null;
+  }
+
+  function visibleCompletedFields(typeId) {
+    const root = document.querySelector('#villageViewRes');
+    if (!root) return null;
+    const fields = [];
+    root.querySelectorAll('building-location').forEach(wrapper => {
+      const marker = wrapper.querySelector('.buildingStatusButton[class*="type_"], [class*="type_"]');
+      if (classNumber(marker, /type_(\d+)/i) !== Number(typeId)) return;
+      const levelNode = wrapper.querySelector('.buildingLevel');
+      if (!levelNode) return;
+      const level = Number.parseInt(clean(levelNode.textContent), 10);
+      if (!Number.isFinite(level)) return;
+      const location = classNumber(wrapper, /buildingLocation(\d+)/i) ?? classNumber(marker, /location_(\d+)/i);
+      fields.push({ locationId: Number.isFinite(location) ? location : 999, level: Math.max(0, level) });
+    });
+    if (!fields.length) return null;
+    fields.sort((a, b) => Number(a.locationId) - Number(b.locationId));
+    return fields;
+  }
+
+  function completedFieldState(village, matches, info) {
+    const visible = visibleCompletedFields(info.typeId);
+    if (visible && visible.length >= info.totalCount) {
+      return {
+        source: 'live field view',
+        levels: visible.slice(0, info.totalCount).map(field => field.level),
+        pending: matches.reduce((sum, field) => sum + pendingQueueCount(village, field?.locationId), 0)
+      };
+    }
+    return {
+      source: 'queue-safe cache',
+      levels: matches.slice(0, info.totalCount).map(field => completedCacheLevel(village, field)),
+      pending: matches.reduce((sum, field) => sum + pendingQueueCount(village, field?.locationId), 0)
+    };
   }
 
   function onSnapshot(event) {
@@ -233,38 +299,42 @@
         return;
       }
 
-      const atTarget = matches.filter(field => Math.max(0, Number(field?.lvl) || 0) >= current.info.level).length;
+      const completed = completedFieldState(village, matches, current.info);
+      const atTarget = completed.levels.filter(level => level >= current.info.level).length;
       if (atTarget < current.info.requiredCount) {
         resetConfirmation();
-        renderDetection(`${atTarget}/${current.info.totalCount} at Lv ${current.info.level}+ · needs ${current.info.requiredCount}/${current.info.totalCount}`, 'waiting');
+        const upgrading = completed.pending > 0 ? ` · ${completed.pending} upgrade${completed.pending === 1 ? '' : 's'} queued/running` : '';
+        renderDetection(`${atTarget}/${current.info.totalCount} completed at Lv ${current.info.level}+${upgrading} · needs ${current.info.requiredCount}/${current.info.totalCount}`, 'waiting');
         return;
       }
 
-      const key = `${current.rt.ctx?.server}|${current.rt.ctx?.playerId}|${villageId}|${current.rt.assignment?.roadmapId}|${current.index}|count|${current.info.typeId}|${current.info.requiredCount}|${current.info.totalCount}|${current.info.level}`;
+      const key = `${current.rt.ctx?.server}|${current.rt.ctx?.playerId}|${villageId}|${current.rt.assignment?.roadmapId}|${current.index}|count|${current.info.typeId}|${current.info.requiredCount}|${current.info.totalCount}|${current.info.level}|${completed.source}`;
       if (confirmationKey === key) confirmationCount += 1;
       else { confirmationKey = key; confirmationCount = 1; }
 
       if (confirmationCount < REQUIRED_CONFIRMATIONS) {
-        renderDetection(`${atTarget}/${current.info.totalCount} at Lv ${current.info.level}+ · confirming…`, 'confirming');
+        renderDetection(`${atTarget}/${current.info.totalCount} completed at Lv ${current.info.level}+ · confirming…`, 'confirming');
         return;
       }
 
-      renderDetection(`${atTarget}/${current.info.totalCount} at Lv ${current.info.level}+ · complete`, 'complete');
+      renderDetection(`${atTarget}/${current.info.totalCount} completed at Lv ${current.info.level}+ · complete`, 'complete');
       completeCurrent(current);
       return;
     }
 
     // Legacy exact-field behavior for roadmaps already imported in 2.0.0.95.
+    const visibleLegacy = visibleCompletedFields(current.info.typeId);
     const field = matches[current.info.index];
     if (!field) {
       resetConfirmation();
       renderDetection(`${current.info.resourceLabel} Field #${current.info.fieldNumber} has not been detected yet.`, 'waiting');
       return;
     }
-    const currentLevel = Math.max(0, Number(field?.lvl) || 0);
+    const currentLevel = visibleLegacy?.[current.info.index]?.level ?? completedCacheLevel(village, field);
     if (currentLevel < current.info.level) {
       resetConfirmation();
-      renderDetection(`${current.info.resourceLabel} Field #${current.info.fieldNumber} Lv ${currentLevel} · needs Lv ${current.info.level}`, 'waiting');
+      const pending = pendingQueueCount(village, field?.locationId);
+      renderDetection(`${current.info.resourceLabel} Field #${current.info.fieldNumber} Lv ${currentLevel} · needs Lv ${current.info.level}${pending ? ' · upgrade queued/running' : ''}`, 'waiting');
       return;
     }
     const key = `${current.rt.ctx?.server}|${current.rt.ctx?.playerId}|${villageId}|${current.rt.assignment?.roadmapId}|${current.index}|exact|${current.info.typeId}|${current.info.index}|${current.info.level}`;
@@ -510,7 +580,7 @@
         : `${current.info.resourceLabel} Field #${current.info.fieldNumber} → Level ${current.info.level}`;
     }
     if (!panel.querySelector('.qol-rmpi-detection')) {
-      renderDetection(current.info.mode === 'count' ? 'Counting matching resource fields…' : 'Checking legacy exact resource field…', 'waiting');
+      renderDetection(current.info.mode === 'count' ? 'Counting completed resource fields…' : 'Checking legacy exact resource field…', 'waiting');
     }
   }
 
