@@ -54,13 +54,6 @@
       description: 'Track players, villages, notes and changes across organized watchlist tabs.'
     },
     {
-      key: 'resourcePlanner',
-      featureKey: 'resourceUpgradePlanner',
-      label: 'Resource Upgrade Planner',
-      icon: '◇',
-      description: 'Optimize resource-field and production-building upgrade sequences for a village.'
-    },
-    {
       key: 'secretSociety',
       featureKey: 'secretSocietyScanner',
       label: 'Secret Society Scanner',
