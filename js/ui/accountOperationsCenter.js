@@ -13,6 +13,7 @@
   let countdownTimer = null;
   let captureTimer = null;
   let pendingRender = false;
+  let suspendDepth = 0;
 
   function enabled() {
     try {
@@ -22,7 +23,12 @@
     }
   }
 
+  function isSuspended() {
+    return suspendDepth > 0;
+  }
+
   function requestSnapshot() {
+    if (isSuspended()) return;
     window.postMessage({ source: D.UI_SOURCE, type: D.REQUEST_TYPE }, location.origin);
   }
 
@@ -36,7 +42,7 @@
   }
 
   function renderOrDefer() {
-    if (!isOpen()) return;
+    if (!isOpen() || isSuspended()) return;
     if (tableIsBeingUsed()) {
       pendingRender = true;
       R.updateCountdowns?.();
@@ -47,7 +53,7 @@
   }
 
   function flushDeferredRender() {
-    if (!isOpen() || !pendingRender || tableIsBeingUsed()) return;
+    if (!isOpen() || isSuspended() || !pendingRender || tableIsBeingUsed()) return;
     pendingRender = false;
     R.render();
   }
@@ -71,17 +77,43 @@
 
   function startTimers() {
     stopTimers();
+    if (isSuspended()) return;
     refreshTimer = window.setInterval(requestSnapshot, REFRESH_MS);
     countdownTimer = window.setInterval(() => R.updateCountdowns?.(), COUNTDOWN_MS);
   }
 
   function scheduleCapture(delay = 450) {
+    if (isSuspended()) return;
     if (captureTimer !== null) clearTimeout(captureTimer);
     captureTimer = window.setTimeout(() => {
       captureTimer = null;
+      if (isSuspended()) return;
       D.captureCurrent?.();
       renderOrDefer();
     }, delay);
+  }
+
+  function suspend() {
+    suspendDepth += 1;
+    stopTimers();
+    if (captureTimer !== null) clearTimeout(captureTimer);
+    captureTimer = null;
+    pendingRender = false;
+    return suspendDepth;
+  }
+
+  function resume() {
+    if (suspendDepth > 0) suspendDepth -= 1;
+    if (suspendDepth > 0) return suspendDepth;
+    suspendDepth = 0;
+    if (isOpen()) {
+      window.postMessage({ source: D.UI_SOURCE, type: D.REQUEST_TYPE }, location.origin);
+      scheduleCapture(180);
+      R.render();
+      bindInteractionGuard();
+      startTimers();
+    }
+    return 0;
   }
 
   function open() {
@@ -91,10 +123,12 @@
     bindInteractionGuard();
     overlay.classList.add('open');
     overlay.setAttribute('aria-hidden', 'false');
-    requestSnapshot();
-    scheduleCapture(200);
-    R.render();
-    startTimers();
+    if (!isSuspended()) {
+      requestSnapshot();
+      scheduleCapture(200);
+      R.render();
+      startTimers();
+    }
   }
 
   function close() {
@@ -141,6 +175,7 @@
     const previousPlayer = D.snapshot?.playerId;
     D.snapshot = event.data.payload;
     if (String(previousPlayer ?? '') !== String(D.snapshot?.playerId ?? '')) D.resetScanCache?.();
+    if (isSuspended()) return;
     scheduleCapture(180);
     renderOrDefer();
   });
@@ -162,13 +197,14 @@
   }, true);
 
   window.addEventListener('hashchange', () => {
+    if (isSuspended()) return;
     requestSnapshot();
     scheduleCapture(650);
   });
 
   window.addEventListener('qol_setting_changed', event => {
     if (event.detail?.key === D.SETTING_KEY && !event.detail?.enabled) close();
-    if (isOpen()) {
+    if (isOpen() && !isSuspended()) {
       A.actions?.renderTools?.();
       renderOrDefer();
     }
@@ -183,6 +219,9 @@
     toggle,
     refresh: requestSnapshot,
     request: requestSnapshot,
+    suspend,
+    resume,
+    isSuspended,
     captureCurrentVillage: () => D.captureCurrent?.(),
     openVillage,
     openBuilding,
