@@ -4,7 +4,6 @@
   const FEATURE_KEY = 'igmEnhanced';
   const ROOT_CLASS = 'qol-message-center-active';
   const TABS_ID = 'qol-message-center-tabs';
-  const ACTIONS_ID = 'qol-message-center-actions';
   const CUSTOM_FOLDERS_KEY = 'qol_custom_chat_tags';
   const FILTER_BUTTON_ID = 'qol-igm-filter-button';
   const CREATE_BUTTON_ID = 'qol-igm-create-folder';
@@ -26,28 +25,20 @@
     return String(value ?? '').replace(/\s+/g, ' ').trim();
   }
 
-  function esc(value) {
-    return String(value ?? '')
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#039;');
-  }
-
   function getCustomFolders() {
     try {
       const parsed = JSON.parse(localStorage.getItem(CUSTOM_FOLDERS_KEY) || '[]');
       if (!Array.isArray(parsed)) return [];
       const seen = new Set();
+      const reserved = BASE_BEFORE_CUSTOM.concat(BASE_AFTER_CUSTOM).map(value => value.toLocaleLowerCase());
       return parsed
         .map(clean)
         .filter(Boolean)
         .filter(name => {
           const key = name.toLocaleLowerCase();
-          if (seen.has(key)) return false;
+          if (seen.has(key) || reserved.includes(key)) return false;
           seen.add(key);
-          return !BASE_BEFORE_CUSTOM.concat(BASE_AFTER_CUSTOM).some(base => base.toLocaleLowerCase() === key);
+          return true;
         })
         .sort((a, b) => a.localeCompare(b, undefined, { sensitivity: 'base' }));
     } catch (_) {
@@ -56,18 +47,19 @@
   }
 
   function findWindow() {
-    const windows = Array.from(document.querySelectorAll('window.modalWrapper.igm, .modalWrapper.igm'));
-    return windows.find(node => node.querySelector('.igmSystem')) || null;
+    return Array.from(document.querySelectorAll('window.modalWrapper.igm, .modalWrapper.igm'))
+      .find(node => node.querySelector('.igmSystem')) || null;
   }
 
   function activeFilter() {
-    const text = clean(document.querySelector(`#${FILTER_BUTTON_ID} .qol-igm-filter-label`)?.textContent);
-    return text === 'All Conversations' || !text ? 'All' : text;
+    const label = clean(document.querySelector(`#${FILTER_BUTTON_ID} .qol-igm-filter-label`)?.textContent);
+    return !label || label === 'All Conversations' ? 'All' : label;
   }
 
   function chooseFilter(value) {
     const button = document.getElementById(FILTER_BUTTON_ID);
     if (!button) return false;
+
     if (activeFilter() === value) {
       syncActiveTab();
       return true;
@@ -92,6 +84,15 @@
     });
   }
 
+  function activateOnKeyboard(node, callback) {
+    node.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      event.stopPropagation();
+      callback(event);
+    });
+  }
+
   function makeTab(value, custom = false) {
     const tab = document.createElement('div');
     tab.className = `qol-message-tab${custom ? ' custom' : ''}`;
@@ -112,25 +113,24 @@
       remove.setAttribute('aria-label', `Delete ${value} tab`);
       remove.title = `Delete ${value}`;
       remove.textContent = '×';
-      remove.addEventListener('click', event => {
+      const removeTab = event => {
         event.preventDefault();
         event.stopPropagation();
         chooseFilter(value);
         window.setTimeout(() => document.getElementById(DELETE_BUTTON_ID)?.click(), 0);
-      });
+      };
+      remove.addEventListener('click', removeTab);
+      activateOnKeyboard(remove, removeTab);
       tab.appendChild(remove);
     }
 
-    function activate(event) {
+    const select = event => {
       event?.preventDefault?.();
       event?.stopPropagation?.();
       chooseFilter(value);
-    }
-
-    tab.addEventListener('click', activate);
-    tab.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') activate(event);
-    });
+    };
+    tab.addEventListener('click', select);
+    activateOnKeyboard(tab, select);
     return tab;
   }
 
@@ -141,7 +141,7 @@
 
     if (tabs && signature === lastFolderSignature) {
       syncActiveTab();
-      return tabs;
+      return;
     }
 
     tabs?.remove();
@@ -158,87 +158,65 @@
     create.setAttribute('role', 'button');
     create.tabIndex = 0;
     create.innerHTML = '<span class="qol-message-tab-plus">+</span><span>Create Tab</span>';
-    const createAction = event => {
+    const createTab = event => {
       event.preventDefault();
       event.stopPropagation();
       document.getElementById(CREATE_BUTTON_ID)?.click();
     };
-    create.addEventListener('click', createAction);
-    create.addEventListener('keydown', event => {
-      if (event.key === 'Enter' || event.key === ' ') createAction(event);
-    });
+    create.addEventListener('click', createTab);
+    activateOnKeyboard(create, createTab);
     tabs.appendChild(create);
 
     BASE_AFTER_CUSTOM.forEach(name => tabs.appendChild(makeTab(name)));
 
-    system.insertBefore(tabs, system.firstChild);
+    const firstHalf = system.querySelector(':scope > .firstHalf');
+    if (firstHalf) system.insertBefore(tabs, firstHalf);
+    else system.insertBefore(tabs, system.firstChild);
+
     lastFolderSignature = signature;
     syncActiveTab();
-    return tabs;
-  }
-
-  function buildHeaderActions(windowNode) {
-    let actions = windowNode.querySelector(`#${ACTIONS_ID}`);
-    if (!actions) {
-      const header = windowNode.querySelector('.contentHeader');
-      if (!header) return;
-      actions = document.createElement('div');
-      actions.id = ACTIONS_ID;
-      actions.innerHTML = `
-        <div class="qol-message-header-button" data-qol-message-new role="button" tabindex="0">+ New Conversation</div>
-      `;
-      header.appendChild(actions);
-      const button = actions.querySelector('[data-qol-message-new]');
-      const openNew = event => {
-        event.preventDefault();
-        event.stopPropagation();
-        windowNode.querySelector('.newThreadContainer .clickableContainer')?.click();
-      };
-      button.addEventListener('click', openNew);
-      button.addEventListener('keydown', event => {
-        if (event.key === 'Enter' || event.key === ' ') openNew(event);
-      });
-    }
   }
 
   function renameHeader(windowNode) {
-    const title = windowNode.querySelector('.contentHeader h2 span span') || windowNode.querySelector('.contentHeader h2 span');
-    if (title && clean(title.textContent) !== 'APES Message Center') title.textContent = 'APES Message Center';
+    const title = windowNode.querySelector('.contentHeader h2 span span')
+      || windowNode.querySelector('.contentHeader h2 span');
+    if (title && clean(title.textContent) !== 'APES Message Center') {
+      title.textContent = 'APES Message Center';
+    }
   }
 
-  function addConversationMeta(windowNode) {
-    windowNode.querySelectorAll('li.igmConversationEntry.qol-igm-enhanced-row').forEach(row => {
-      const name = row.querySelector('.igmInfos .name') || row.querySelector('.igmInfos [ng-if*="group"]');
-      if (name) name.classList.add('qol-message-conversation-name');
-      const preview = row.querySelector('.linePreview');
-      if (preview) preview.classList.add('qol-message-conversation-preview');
+  function markNativeParts(windowNode) {
+    windowNode.querySelectorAll('li.igmConversationEntry').forEach(row => {
+      row.classList.add('qol-message-center-row');
     });
-  }
 
-  function enhanceNewConversation(windowNode) {
+    windowNode.querySelectorAll('.chatBody li.line').forEach(line => {
+      line.classList.add('qol-message-center-line');
+    });
+
+    const nativeNew = windowNode.querySelector('.newThreadContainer .clickableContainer');
+    if (nativeNew) nativeNew.classList.add('qol-message-center-new');
+
     const popup = windowNode.querySelector('#igmSystemNewConversation .inWindowPopup');
-    if (!popup) return;
-    popup.classList.add('qol-message-new-popup');
-    const title = popup.querySelector('.inWindowPopupHeader h4 span, .inWindowPopupHeader h4');
-    if (title) title.textContent = 'New Conversation';
+    if (popup) popup.classList.add('qol-message-center-new-popup');
   }
 
   function enhance(windowNode) {
     if (!enabled() || !windowNode) return;
     windowNode.classList.add(ROOT_CLASS);
     renameHeader(windowNode);
-    buildHeaderActions(windowNode);
     const system = windowNode.querySelector('.igmSystem');
     if (system) buildTabs(system);
-    addConversationMeta(windowNode);
-    enhanceNewConversation(windowNode);
+    markNativeParts(windowNode);
     syncActiveTab();
   }
 
   function cleanup() {
     document.querySelectorAll(`.${ROOT_CLASS}`).forEach(node => node.classList.remove(ROOT_CLASS));
     document.getElementById(TABS_ID)?.remove();
-    document.getElementById(ACTIONS_ID)?.remove();
+    document.getElementById('qol-message-center-actions')?.remove();
+    document.querySelectorAll('.qol-message-center-row, .qol-message-center-line, .qol-message-center-new, .qol-message-center-new-popup')
+      .forEach(node => node.classList.remove('qol-message-center-row', 'qol-message-center-line', 'qol-message-center-new', 'qol-message-center-new-popup'));
   }
 
   function refresh() {
@@ -265,9 +243,9 @@
         return [...mutation.addedNodes, ...mutation.removedNodes].some(node => {
           if (node.nodeType !== Node.ELEMENT_NODE) return false;
           const element = node;
-          if (element.id === TABS_ID || element.id === ACTIONS_ID) return false;
-          return element.matches?.('.modalWrapper.igm, .igmSystem, .threadView, .windowOverlay, .igmConversationEntry, .qol-igm-modal-overlay')
-            || element.querySelector?.('.modalWrapper.igm, .igmSystem, .threadView, .windowOverlay, .igmConversationEntry, .qol-igm-modal-overlay');
+          if (element.id === TABS_ID) return false;
+          return element.matches?.('.modalWrapper.igm, .igmSystem, .threadView, .windowOverlay, .igmConversationEntry, .chatBody, .line')
+            || element.querySelector?.('.modalWrapper.igm, .igmSystem, .threadView, .windowOverlay, .igmConversationEntry, .chatBody, .line');
         });
       });
       if (relevant) schedule();
@@ -296,8 +274,13 @@
     schedule();
     window.setInterval(() => {
       const signature = getCustomFolders().join('\u0001');
-      if (signature !== lastFolderSignature || (enabled() && findWindow() && !document.getElementById(TABS_ID))) schedule();
-      else syncActiveTab();
+      const windowNode = findWindow();
+      if (signature !== lastFolderSignature || (enabled() && windowNode && !document.getElementById(TABS_ID))) {
+        schedule();
+      } else if (windowNode) {
+        markNativeParts(windowNode);
+        syncActiveTab();
+      }
     }, 1000);
 
     window.APES = window.APES || {};
@@ -309,6 +292,9 @@
     });
   }
 
-  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
-  else init();
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init, { once: true });
+  } else {
+    init();
+  }
 })();
