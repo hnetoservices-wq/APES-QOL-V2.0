@@ -1,13 +1,14 @@
 /*
  * APES Message Center
- * Visual polish pass. Travian keeps ownership of the real IGM window geometry.
+ * Stability pass: Travian fully owns chat rendering and message-window geometry.
+ * APES styles the title, list, folders, tabs and new-conversation overlay only.
  */
 
 .qol-message-center-active #qol-igm-toolbar {
   display: none !important;
 }
 
-/* Native title bar: APES skin only, no geometry changes. */
+/* Native title bar: APES skin only. */
 .qol-message-center-active .contentHeader {
   background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
 }
@@ -20,22 +21,27 @@
   text-shadow: none !important;
 }
 
-/* Folder tabs */
+/*
+ * Folder tabs now live inside the native left-hand history scroller.
+ * This avoids inserting a new sibling next to Travian's floated firstHalf/threadView.
+ */
 .qol-message-center-active #qol-message-center-tabs {
   box-sizing: border-box !important;
+  position: sticky !important;
+  top: 0 !important;
+  z-index: 20 !important;
   display: flex !important;
-  align-items: stretch !important;
-  width: 700px !important;
-  max-width: 100% !important;
-  height: 34px !important;
-  min-height: 34px !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  align-content: flex-start !important;
+  gap: 3px !important;
+  width: 256px !important;
+  min-height: 31px !important;
   margin: 0 !important;
-  padding: 0 5px !important;
+  padding: 4px !important;
   border-bottom: 1px solid #bba47c !important;
   background: #eadfca !important;
-  overflow-x: auto !important;
-  overflow-y: hidden !important;
-  scrollbar-width: thin !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, .08) !important;
 }
 
 .qol-message-center-active .qol-message-tab {
@@ -46,42 +52,46 @@
   align-items: center !important;
   justify-content: center !important;
   flex: 0 0 auto !important;
-  min-width: 58px !important;
-  height: 33px !important;
-  padding: 0 9px !important;
-  border-right: 1px solid rgba(91, 67, 39, .14) !important;
+  height: 23px !important;
+  padding: 0 7px !important;
+  border: 1px solid #b9a17d !important;
+  border-radius: 3px !important;
+  background: #f8f1e4 !important;
   color: #604c33 !important;
   font-family: Arial, sans-serif !important;
-  font-size: 9px !important;
+  font-size: 8px !important;
   font-weight: 800 !important;
-  line-height: 33px !important;
+  line-height: 21px !important;
   white-space: nowrap !important;
   cursor: pointer !important;
   user-select: none !important;
 }
 
 .qol-message-center-active .qol-message-tab:hover {
-  background: rgba(109, 80, 42, .08) !important;
+  border-color: #927650 !important;
+  background: #fffaf0 !important;
 }
 
 .qol-message-center-active .qol-message-tab.active {
+  border-color: var(--qol-accent) !important;
   background: #fffaf0 !important;
   color: var(--qol-accent-dark) !important;
-  box-shadow: inset 0 -3px 0 var(--qol-accent) !important;
+  box-shadow: inset 0 -2px 0 var(--qol-accent) !important;
 }
 
 .qol-message-center-active .qol-message-tab.create {
   color: #725735 !important;
+  font-weight: 900 !important;
 }
 
 .qol-message-center-active .qol-message-tab-plus {
-  margin-right: 3px !important;
-  font-size: 13px !important;
+  margin-right: 2px !important;
+  font-size: 11px !important;
   line-height: 1 !important;
 }
 
 .qol-message-center-active .qol-message-tab.custom {
-  padding-right: 21px !important;
+  padding-right: 19px !important;
 }
 
 .qol-message-center-active .qol-message-tab-remove {
@@ -89,14 +99,14 @@
   top: 50% !important;
   right: 4px !important;
   display: none !important;
-  width: 13px !important;
-  height: 13px !important;
-  margin-top: -7px !important;
+  width: 12px !important;
+  height: 12px !important;
+  margin-top: -6px !important;
   border-radius: 50% !important;
   color: #913c32 !important;
-  font-size: 11px !important;
+  font-size: 10px !important;
   font-weight: 900 !important;
-  line-height: 13px !important;
+  line-height: 11px !important;
   text-align: center !important;
   cursor: pointer !important;
 }
@@ -106,7 +116,7 @@
   display: block !important;
 }
 
-/* Native New Conversation button, APES skin. */
+/* Native New Conversation control, APES appearance only. */
 .qol-message-center-active .newThreadContainer .qol-message-center-new {
   box-sizing: border-box !important;
   border: 1px solid var(--qol-action-border) !important;
@@ -124,7 +134,7 @@
   filter: brightness(1.07) !important;
 }
 
-/* Conversation list */
+/* Conversation list. No width/float changes. */
 .qol-message-center-active .history li.divider h6.divider {
   color: #806b4d !important;
   font-family: Arial, sans-serif !important;
@@ -148,7 +158,7 @@
   padding-right: 8px !important;
   border: 1px solid transparent !important;
   border-radius: 4px !important;
-  background: rgba(255,255,255,.22) !important;
+  background: rgba(255, 255, 255, .22) !important;
 }
 
 .qol-message-center-active li.igmConversationEntry.qol-message-center-row:hover {
@@ -175,7 +185,7 @@
   height: 6px !important;
   border-radius: 50% !important;
   background: #7da13d !important;
-  box-shadow: 0 0 0 2px rgba(255,255,255,.75) !important;
+  box-shadow: 0 0 0 2px rgba(255, 255, 255, .75) !important;
 }
 
 .qol-message-center-active .qol-message-center-row .igmInfos .name,
@@ -202,7 +212,7 @@
   text-shadow: none !important;
 }
 
-/* Folder pill is now an on-demand control instead of permanent row clutter. */
+/* Folder assignment is available on hover/selection instead of permanent clutter. */
 .qol-message-center-active .qol-message-center-row .qol-igm-row-folder {
   display: none !important;
   right: 5px !important;
@@ -220,7 +230,7 @@
   display: inline-flex !important;
 }
 
-/* Active conversation header */
+/* Active conversation header. */
 .qol-message-center-active .conversationHeader {
   border-bottom-color: #cdbb99 !important;
   background: #faf4e8 !important;
@@ -269,7 +279,7 @@
   opacity: .7 !important;
 }
 
-/* Empty right-pane state */
+/* Empty right-pane state only when Travian has no active conversation. */
 .qol-message-center-active #qol-message-center-empty {
   box-sizing: border-box !important;
   position: absolute !important;
@@ -281,7 +291,7 @@
   transform: translate(-50%, -50%) !important;
   border: 1px solid #d8c6a7 !important;
   border-radius: 6px !important;
-  background: rgba(255,250,240,.92) !important;
+  background: rgba(255, 250, 240, .92) !important;
   color: #625038 !important;
   font-family: Arial, sans-serif !important;
   text-align: center !important;
@@ -308,151 +318,12 @@
   line-height: 14px !important;
 }
 
-/* Thread bubbles: inner content only. */
-.qol-message-center-active .chatBody ul {
-  display: flow-root !important;
-}
+/*
+ * IMPORTANT: no .chatBody, .chatRoomBody, li.line or textarea.chatInput geometry here.
+ * Travian's native chat renderer, scrolling and send behavior remain completely untouched.
+ */
 
-.qol-message-center-active .chatBody li.qol-message-center-line {
-  box-sizing: border-box !important;
-  clear: both !important;
-  width: fit-content !important;
-  min-width: 108px !important;
-  max-width: 78% !important;
-  margin-top: 5px !important;
-  margin-bottom: 7px !important;
-  padding: 7px 9px 8px !important;
-  border: 1px solid #d4b878 !important;
-  border-radius: 7px !important;
-  background: #ffe6a8 !important;
-  color: #342a1d !important;
-  box-shadow: 0 1px 2px rgba(0,0,0,.07) !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line.otherPlayer {
-  float: left !important;
-  margin-left: 7px !important;
-  margin-right: 22% !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line.currentPlayer {
-  float: right !important;
-  margin-left: 22% !important;
-  margin-right: 7px !important;
-  border-color: #7fa34e !important;
-  background: #cde5a9 !important;
-  color: #29371d !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line.samePlayerAndTime {
-  margin-top: 1px !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line .lineHead {
-  margin-bottom: 3px !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line .lineHead .name,
-.qol-message-center-active .chatBody li.qol-message-center-line .lineHead .name * {
-  color: #4b3820 !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 9px !important;
-  font-weight: 900 !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line.currentPlayer .lineHead .name,
-.qol-message-center-active .chatBody li.qol-message-center-line.currentPlayer .lineHead .name * {
-  color: #36531f !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line .lineHead .date {
-  color: #89775d !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 8px !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line .lineBody,
-.qol-message-center-active .chatBody li.qol-message-center-line .lineBody span {
-  color: inherit !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 10px !important;
-  line-height: 14px !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .chatBody li.qol-message-center-line .lineBody a {
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .chatBody h6.divider {
-  clear: both !important;
-  color: #917c5d !important;
-  font-size: 8px !important;
-  text-transform: uppercase !important;
-}
-
-/* Reply area */
-.qol-message-center-active .chatRoomBody {
-  position: relative !important;
-}
-
-.qol-message-center-active .openWrite .inputWrapper input {
-  box-sizing: border-box !important;
-  background: #fffdf8 !important;
-  color: #493820 !important;
-  font-family: Arial, sans-serif !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active textarea.chatInput {
-  box-sizing: border-box !important;
-  padding-right: 66px !important;
-  border-color: #a68d67 !important;
-  background: #fffdf8 !important;
-  color: #332719 !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 10px !important;
-  line-height: 15px !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active #qol-message-center-send {
-  all: unset !important;
-  box-sizing: border-box !important;
-  position: absolute !important;
-  right: 7px !important;
-  bottom: 6px !important;
-  z-index: 12 !important;
-  display: none !important;
-  align-items: center !important;
-  justify-content: center !important;
-  width: 54px !important;
-  height: 26px !important;
-  border: 1px solid var(--qol-action-border) !important;
-  border-radius: 3px !important;
-  background: linear-gradient(to bottom, var(--qol-accent), var(--qol-accent-dark)) !important;
-  color: #fff !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 9px !important;
-  font-weight: 900 !important;
-  line-height: 24px !important;
-  text-align: center !important;
-  cursor: pointer !important;
-  user-select: none !important;
-}
-
-.qol-message-center-active .chatRoomBody.smaller #qol-message-center-send {
-  display: inline-flex !important;
-}
-
-.qol-message-center-active #qol-message-center-send:hover {
-  filter: brightness(1.08) !important;
-}
-
-/* New Conversation overlay */
+/* New Conversation overlay: visual skin only. */
 .qol-message-center-active #igmSystemNewConversation .qol-message-center-new-popup {
   color: #44331f !important;
   font-family: Arial, sans-serif !important;
@@ -498,7 +369,7 @@
   text-shadow: none !important;
 }
 
-/* Completely remove Travian's skinned button appearance here to avoid green-block rendering. */
+/* APES-owned visual skin for New Conversation buttons; native click handlers remain. */
 .qol-message-center-active #igmSystemNewConversation .buttonContainer button.share,
 .qol-message-center-active #igmSystemNewConversation .buttonContainer button.cancel {
   all: unset !important;
@@ -548,7 +419,8 @@
   display: none !important;
 }
 
-/* Hot-reload cleanup from the abandoned wide-window experiment. */
-.qol-message-center-active #qol-message-center-actions {
+/* Hot-reload cleanup from older Message Center experiments. */
+.qol-message-center-active #qol-message-center-actions,
+.qol-message-center-active #qol-message-center-send {
   display: none !important;
 }
