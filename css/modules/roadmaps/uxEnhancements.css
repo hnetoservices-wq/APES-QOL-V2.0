@@ -1,0 +1,293 @@
+/* APES Roadmaps — compact UX, drag ordering and comments */
+#qol-roadmaps-container.qol-rmux-clean .qol-rm-title-copy p,
+#qol-roadmaps-container.qol-rmux-clean .qol-rm-summary,
+#qol-roadmaps-container.qol-rmux-clean .qol-rm-route-head > span{
+  display:none!important;
+}
+#qol-roadmaps-container.qol-rmux-clean .qol-rm-main-head{
+  align-items:center!important;
+  padding:8px 12px!important;
+}
+#qol-roadmaps-container.qol-rmux-clean .qol-rm-route-head{
+  align-items:center!important;
+  padding:7px 12px 6px!important;
+}
+#qol-roadmaps-container.qol-rmux-clean .qol-rm-route{
+  padding:0 12px 12px!important;
+}
+
+#qol-roadmaps-container .qol-rm-group-title{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:space-between!important;
+  gap:6px!important;
+}
+#qol-roadmaps-container .qol-rmux-order-controls{
+  display:inline-flex!important;
+  align-items:center!important;
+  gap:2px!important;
+  margin-left:auto!important;
+}
+#qol-roadmaps-container .qol-rmux-sort{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:18px!important;
+  padding:2px 5px!important;
+  border:1px solid #c2b092!important;
+  border-radius:3px!important;
+  background:#f4ecdf!important;
+  color:#715d44!important;
+  font-size:7px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  text-transform:none!important;
+  letter-spacing:0!important;
+  cursor:pointer!important;
+  user-select:none!important;
+}
+#qol-roadmaps-container .qol-rmux-sort:hover,
+#qol-roadmaps-container .qol-rmux-sort:focus-visible{
+  border-color:var(--qol-accent)!important;
+  outline:none!important;
+}
+#qol-roadmaps-container .qol-rmux-sort.active{
+  border-color:var(--qol-accent)!important;
+  background:var(--qol-accent)!important;
+  color:#fff8e9!important;
+}
+#qol-roadmaps-container .qol-rmux-roadmap-drag{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  flex:0 0 15px!important;
+  width:15px!important;
+  height:18px!important;
+  margin:-2px 4px -2px -3px!important;
+  color:#8a765c!important;
+  font-size:10px!important;
+  font-weight:900!important;
+  letter-spacing:-2px!important;
+  cursor:grab!important;
+  user-select:none!important;
+}
+#qol-roadmaps-container .qol-rmux-roadmap-drag:active{cursor:grabbing!important}
+#qol-roadmaps-container .qol-rmux-roadmap-draggable.qol-rmux-drop-target{
+  border-color:var(--qol-accent)!important;
+  box-shadow:inset 0 2px 0 var(--qol-accent)!important;
+}
+
+#qol-roadmaps-container .qol-rm-step.qol-rme-editable.qol-rmux-step{
+  grid-template-columns:18px 28px 72px minmax(0,1fr) auto!important;
+}
+#qol-roadmaps-container .qol-rmux-step-drag{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:18px!important;
+  height:24px!important;
+  color:#917b5e!important;
+  font-size:11px!important;
+  font-weight:900!important;
+  letter-spacing:-2px!important;
+  cursor:grab!important;
+  user-select:none!important;
+}
+#qol-roadmaps-container .qol-rmux-step-drag:hover{color:var(--qol-accent)!important}
+#qol-roadmaps-container .qol-rmux-step-drag:active{cursor:grabbing!important}
+#qol-roadmaps-container .qol-rmux-step.qol-rmux-dragging{opacity:.45!important}
+#qol-roadmaps-container .qol-rmux-step.qol-rmux-drop-target{
+  border-color:var(--qol-accent)!important;
+  box-shadow:inset 0 2px 0 var(--qol-accent)!important;
+}
+#qol-roadmaps-container .qol-rmux-step .qol-rme-icon[data-rme-step="up"],
+#qol-roadmaps-container .qol-rmux-step .qol-rme-icon[data-rme-step="down"]{
+  display:none!important;
+}
+#qol-roadmaps-container .qol-rmux-comment-btn{
+  width:28px!important;
+  font-size:8px!important;
+  letter-spacing:-.4px!important;
+}
+#qol-roadmaps-container .qol-rmux-comment-btn.has-comment{
+  border-color:#b99035!important;
+  background:#f6e9be!important;
+  color:#7b5910!important;
+}
+#qol-roadmaps-container .qol-rmux-step-comment{
+  grid-column:4/5!important;
+  margin-top:-1px!important;
+  padding:5px 7px!important;
+  border-left:3px solid #c79b39!important;
+  border-radius:2px!important;
+  background:#fff5d9!important;
+  color:#6e582a!important;
+  font-size:8.5px!important;
+  font-style:italic!important;
+  line-height:1.4!important;
+  white-space:pre-line!important;
+}
+
+#qol-roadmap-runner .qol-rmux-runner-comment{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:3px!important;
+  margin-top:8px!important;
+  padding:7px 8px!important;
+  border:1px solid #cfb36d!important;
+  border-left:3px solid #b98927!important;
+  border-radius:4px!important;
+  background:#fff4d5!important;
+  color:#684f1e!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  text-shadow:none!important;
+}
+#qol-roadmap-runner .qol-rmux-runner-comment strong{
+  color:#8a6416!important;
+  font-size:7.5px!important;
+  text-transform:uppercase!important;
+  letter-spacing:.35px!important;
+}
+#qol-roadmap-runner .qol-rmux-runner-comment span{
+  font-size:9px!important;
+  font-style:italic!important;
+  line-height:1.4!important;
+}
+
+#qol-roadmap-ux-dialog,#qol-roadmap-ux-dialog *{
+  box-sizing:border-box!important;
+  font-family:Arial,Helvetica,sans-serif!important;
+  text-shadow:none!important;
+}
+#qol-roadmap-ux-dialog{
+  position:fixed!important;
+  inset:0!important;
+  z-index:2147483647!important;
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  padding:20px!important;
+  background:rgba(18,15,11,.68)!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-dialog{
+  width:min(520px,calc(100vw - 32px))!important;
+  overflow:hidden!important;
+  border:3px solid var(--qol-border)!important;
+  border-radius:7px!important;
+  background:#f7f5f0!important;
+  color:#3e2d1d!important;
+  box-shadow:0 18px 48px rgba(0,0,0,.55)!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-dialog-head{
+  padding:11px 13px!important;
+  background:linear-gradient(var(--qol-accent-mid),var(--qol-accent-deep))!important;
+  color:#fffaf0!important;
+  font-size:12px!important;
+  font-weight:800!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-dialog-body{
+  display:flex!important;
+  flex-direction:column!important;
+  gap:7px!important;
+  padding:13px!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-dialog-step{
+  padding:7px 8px!important;
+  border:1px solid #d4c4ab!important;
+  border-radius:4px!important;
+  background:#fffaf0!important;
+  color:#5a432b!important;
+  font-size:9px!important;
+  font-weight:800!important;
+}
+#qol-roadmap-ux-dialog label{
+  color:#69543c!important;
+  font-size:8.5px!important;
+  font-weight:800!important;
+  text-transform:uppercase!important;
+}
+#qol-roadmap-ux-dialog textarea{
+  width:100%!important;
+  min-height:92px!important;
+  resize:vertical!important;
+  padding:8px!important;
+  border:1px solid #bca789!important;
+  border-radius:4px!important;
+  background:#fff!important;
+  color:#3e2d1d!important;
+  font:10px/1.45 Arial,Helvetica,sans-serif!important;
+  outline:none!important;
+}
+#qol-roadmap-ux-dialog textarea:focus{
+  border-color:var(--qol-accent)!important;
+  box-shadow:0 0 0 1px var(--qol-accent-soft)!important;
+}
+#qol-roadmap-ux-dialog small{
+  color:#88745b!important;
+  font-size:8px!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-dialog-actions{
+  display:flex!important;
+  align-items:center!important;
+  justify-content:flex-end!important;
+  gap:7px!important;
+  padding:0 13px 13px!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-btn,
+#qol-roadmap-sharing-dialog .qol-rm-action{
+  display:inline-flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  min-height:27px!important;
+  padding:4px 10px!important;
+  border:1px solid var(--qol-action-border)!important;
+  border-radius:4px!important;
+  background:linear-gradient(var(--qol-accent),var(--qol-accent-gradient-end))!important;
+  color:#fff8e9!important;
+  font-size:8.5px!important;
+  font-weight:800!important;
+  line-height:1!important;
+  cursor:pointer!important;
+  user-select:none!important;
+  white-space:nowrap!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-btn.secondary,
+#qol-roadmap-sharing-dialog .qol-rm-action.qol-secondary{
+  border-color:#a9906d!important;
+  background:linear-gradient(#fffaf0,#e8d6b6)!important;
+  color:#4d351d!important;
+}
+#qol-roadmap-ux-dialog .qol-rmux-btn:hover,
+#qol-roadmap-sharing-dialog .qol-rm-action:hover{
+  filter:brightness(1.06)!important;
+}
+.qol-rmux-toast{
+  position:fixed!important;
+  left:50%!important;
+  bottom:24px!important;
+  z-index:2147483647!important;
+  transform:translateX(-50%)!important;
+  max-width:min(520px,calc(100vw - 24px))!important;
+  padding:8px 12px!important;
+  border:1px solid #5d7b33!important;
+  border-radius:5px!important;
+  background:#edf5df!important;
+  color:#3f5f1d!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.32)!important;
+  font:700 9px Arial,Helvetica,sans-serif!important;
+  text-shadow:none!important;
+}
+.qol-rmux-toast.info{border-color:#b28a31!important;background:#fff0c8!important;color:#735315!important}
+.qol-rmux-toast.error{border-color:#a85b50!important;background:#f6e5e1!important;color:#8b342c!important}
+
+@media(max-width:760px){
+  #qol-roadmaps-container .qol-rm-step.qol-rme-editable.qol-rmux-step{
+    grid-template-columns:18px 26px 64px minmax(0,1fr)!important;
+  }
+  #qol-roadmaps-container .qol-rmux-step .qol-rme-step-actions{
+    grid-column:3/-1!important;
+  }
+  #qol-roadmaps-container .qol-rmux-step-comment{
+    grid-column:4/-1!important;
+  }
+}
