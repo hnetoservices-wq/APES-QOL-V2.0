@@ -69,15 +69,19 @@
       const beforeRoadmap = beforeCustom[roadmapId];
       if (!beforeRoadmap || !Array.isArray(beforeRoadmap.steps) || !Array.isArray(afterRoadmap?.steps)) return;
 
+      let roadmapChanged = false;
       const mergedSteps = afterRoadmap.steps.map((step, index) => {
         const previous = beforeRoadmap.steps[index];
         if (!previous) return step;
         const merged = mergeStepMetadata(previous, step);
-        if (JSON.stringify(merged) !== JSON.stringify(step)) changed = true;
+        if (JSON.stringify(merged) !== JSON.stringify(step)) {
+          changed = true;
+          roadmapChanged = true;
+        }
         return merged;
       });
 
-      if (changed) afterRoadmap.steps = mergedSteps;
+      if (roadmapChanged) afterRoadmap.steps = mergedSteps;
     });
 
     if (!changed) return false;
@@ -130,13 +134,15 @@
   }
 
   function protectRoadmapMutation(event) {
-    const confirm = event.target.closest?.(`#${ROADMAP_DIALOG_ID} [data-rm-confirm]`);
+    const confirm = event.target.closest?.(
+      `#${ROADMAP_DIALOG_ID} [data-rm-confirm], #${ROADMAP_DIALOG_ID} [data-rme-confirm]`
+    );
     if (!confirm) return;
 
     const beforeCustom = clone(rawCustom());
     if (!beforeCustom) return;
 
-    // Queue before the base handler runs. It executes after the full click event,
+    // Queue before the base/editor handler runs. It executes after the full event,
     // but before the next render/sync frame can regenerate stable IDs.
     queueMicrotask(() => restoreSurvivingRoadmapMetadata(beforeCustom));
   }
