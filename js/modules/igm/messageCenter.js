@@ -4,6 +4,9 @@
   const FEATURE_KEY = 'igmEnhanced';
   const ROOT_CLASS = 'qol-message-center-active';
   const TABS_ID = 'qol-message-center-tabs';
+  const EMPTY_ID = 'qol-message-center-empty';
+  const HEADER_FOLDER_ID = 'qol-message-center-folder';
+  const SEND_ID = 'qol-message-center-send';
   const CUSTOM_FOLDERS_KEY = 'qol_custom_chat_tags';
   const FILTER_BUTTON_ID = 'qol-igm-filter-button';
   const CREATE_BUTTON_ID = 'qol-igm-create-folder';
@@ -185,6 +188,117 @@
     }
   }
 
+  function selectedConversationRow(windowNode) {
+    return windowNode.querySelector('.history li.igmConversationEntry.selected');
+  }
+
+  function syncConversationFolder(windowNode) {
+    const header = windowNode.querySelector('.conversationHeaderInner');
+    const selected = selectedConversationRow(windowNode);
+    let chip = windowNode.querySelector(`#${HEADER_FOLDER_ID}`);
+
+    if (!header || !selected) {
+      chip?.remove();
+      return;
+    }
+
+    const badge = selected.querySelector('.qol-igm-row-folder');
+    const folder = clean(badge?.dataset.currentTag || badge?.textContent) || 'Unsorted';
+
+    if (!chip) {
+      chip = document.createElement('div');
+      chip.id = HEADER_FOLDER_ID;
+      chip.setAttribute('role', 'button');
+      chip.tabIndex = 0;
+      chip.title = 'Move this conversation to another tab';
+      const openFolder = event => {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        const liveSelected = selectedConversationRow(windowNode);
+        liveSelected?.querySelector('.qol-igm-row-folder')?.click();
+      };
+      chip.addEventListener('click', openFolder);
+      activateOnKeyboard(chip, openFolder);
+      const menu = header.querySelector('.menu');
+      if (menu) header.insertBefore(chip, menu);
+      else header.appendChild(chip);
+    }
+
+    chip.dataset.folder = folder;
+    chip.innerHTML = `<span class="qol-message-folder-label">${folder}</span><span class="qol-message-folder-arrow">▾</span>`;
+  }
+
+  function syncEmptyState(windowNode) {
+    const thread = windowNode.querySelector('.threadView');
+    if (!thread) return;
+    const hasConversation = thread.classList.contains('filled') || !!thread.querySelector('.chatRoomBody');
+    let empty = thread.querySelector(`#${EMPTY_ID}`);
+
+    if (hasConversation) {
+      empty?.remove();
+      return;
+    }
+
+    if (!empty) {
+      empty = document.createElement('div');
+      empty.id = EMPTY_ID;
+      empty.innerHTML = `
+        <div class="qol-message-empty-mark">✉</div>
+        <div class="qol-message-empty-title">APES Message Center</div>
+        <div class="qol-message-empty-copy">Select a conversation on the left, or start a new one.</div>
+      `;
+      thread.appendChild(empty);
+    }
+  }
+
+  function dispatchEnter(textarea) {
+    if (!textarea || textarea.disabled) return;
+    textarea.focus();
+    ['keydown', 'keypress', 'keyup'].forEach(type => {
+      const event = new KeyboardEvent(type, {
+        key: 'Enter',
+        code: 'Enter',
+        bubbles: true,
+        cancelable: true
+      });
+      try {
+        Object.defineProperty(event, 'which', { configurable: true, get: () => 13 });
+        Object.defineProperty(event, 'keyCode', { configurable: true, get: () => 13 });
+      } catch (_) {}
+      textarea.dispatchEvent(event);
+    });
+  }
+
+  function syncSendButton(windowNode) {
+    const room = windowNode.querySelector('.chatRoomBody');
+    const textarea = room?.querySelector('textarea.chatInput[send-function="send"]');
+    let send = windowNode.querySelector(`#${SEND_ID}`);
+
+    if (!room || !textarea) {
+      send?.remove();
+      return;
+    }
+
+    if (!send || send.parentNode !== room) {
+      send?.remove();
+      send = document.createElement('div');
+      send.id = SEND_ID;
+      send.setAttribute('role', 'button');
+      send.tabIndex = 0;
+      send.textContent = 'Send';
+      send.title = 'Send message';
+      const submit = event => {
+        event?.preventDefault?.();
+        event?.stopPropagation?.();
+        dispatchEnter(room.querySelector('textarea.chatInput[send-function="send"]'));
+      };
+      send.addEventListener('mousedown', event => event.preventDefault());
+      send.addEventListener('click', submit);
+      activateOnKeyboard(send, submit);
+      room.appendChild(send);
+    }
+  }
+
   function markNativeParts(windowNode) {
     windowNode.querySelectorAll('li.igmConversationEntry').forEach(row => {
       row.classList.add('qol-message-center-row');
@@ -208,12 +322,18 @@
     const system = windowNode.querySelector('.igmSystem');
     if (system) buildTabs(system);
     markNativeParts(windowNode);
+    syncConversationFolder(windowNode);
+    syncEmptyState(windowNode);
+    syncSendButton(windowNode);
     syncActiveTab();
   }
 
   function cleanup() {
     document.querySelectorAll(`.${ROOT_CLASS}`).forEach(node => node.classList.remove(ROOT_CLASS));
     document.getElementById(TABS_ID)?.remove();
+    document.getElementById(EMPTY_ID)?.remove();
+    document.getElementById(HEADER_FOLDER_ID)?.remove();
+    document.getElementById(SEND_ID)?.remove();
     document.getElementById('qol-message-center-actions')?.remove();
     document.querySelectorAll('.qol-message-center-row, .qol-message-center-line, .qol-message-center-new, .qol-message-center-new-popup')
       .forEach(node => node.classList.remove('qol-message-center-row', 'qol-message-center-line', 'qol-message-center-new', 'qol-message-center-new-popup'));
@@ -243,9 +363,9 @@
         return [...mutation.addedNodes, ...mutation.removedNodes].some(node => {
           if (node.nodeType !== Node.ELEMENT_NODE) return false;
           const element = node;
-          if (element.id === TABS_ID) return false;
-          return element.matches?.('.modalWrapper.igm, .igmSystem, .threadView, .windowOverlay, .igmConversationEntry, .chatBody, .line')
-            || element.querySelector?.('.modalWrapper.igm, .igmSystem, .threadView, .windowOverlay, .igmConversationEntry, .chatBody, .line');
+          if ([TABS_ID, EMPTY_ID, HEADER_FOLDER_ID, SEND_ID].includes(element.id)) return false;
+          return element.matches?.('.modalWrapper.igm, .igmSystem, .threadView, .conversationHeaderInner, .windowOverlay, .igmConversationEntry, .chatRoomBody, .chatBody, .line, .chatInput')
+            || element.querySelector?.('.modalWrapper.igm, .igmSystem, .threadView, .conversationHeaderInner, .windowOverlay, .igmConversationEntry, .chatRoomBody, .chatBody, .line, .chatInput');
         });
       });
       if (relevant) schedule();
@@ -254,8 +374,8 @@
   }
 
   document.addEventListener('click', event => {
-    if (event.target.closest(`#${FILTER_BUTTON_ID}, #qol-igm-menu .qol-igm-menu-option`)) {
-      window.setTimeout(syncActiveTab, 0);
+    if (event.target.closest(`#${FILTER_BUTTON_ID}, #qol-igm-menu .qol-igm-menu-option, .igmConversationEntry`)) {
+      window.setTimeout(schedule, 0);
     }
   }, true);
 
@@ -279,9 +399,12 @@
         schedule();
       } else if (windowNode) {
         markNativeParts(windowNode);
+        syncConversationFolder(windowNode);
+        syncEmptyState(windowNode);
+        syncSendButton(windowNode);
         syncActiveTab();
       }
-    }, 1000);
+    }, 750);
 
     window.APES = window.APES || {};
     window.APES.messageCenter = Object.freeze({
