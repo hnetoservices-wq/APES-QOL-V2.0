@@ -79,10 +79,6 @@
     return writeJson(CUSTOM_KEY, custom);
   }
 
-  function selectedRawRoadmap() {
-    return readCustom()[selectedId()] || null;
-  }
-
   function getSortMode() {
     try { return localStorage.getItem(SORT_KEY) === 'alpha' ? 'alpha' : 'manual'; }
     catch (_) { return 'manual'; }
@@ -107,9 +103,7 @@
         }
       });
     }
-    ids.forEach(id => {
-      if (!seen.has(id)) ordered.push(id);
-    });
+    ids.forEach(id => { if (!seen.has(id)) ordered.push(id); });
     if (JSON.stringify(saved) !== JSON.stringify(ordered)) writeJson(ORDER_KEY, ordered);
     return ordered;
   }
@@ -128,7 +122,8 @@
   }
 
   function wirePress(element, handler) {
-    if (!element) return;
+    if (!element || element.dataset.rmuxBound === '1') return;
+    element.dataset.rmuxBound = '1';
     element.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();
@@ -150,13 +145,16 @@
     if (!step) return;
 
     closeDialog();
+    const label = step.type === 'building'
+      ? `${step.building}${step.instance ? ` #${step.instance}` : ''} → Level ${step.level}`
+      : step.text || '';
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
     layer.innerHTML = `
       <div class="qol-rmux-dialog" role="dialog" aria-modal="true" aria-label="Step comment">
         <div class="qol-rmux-dialog-head">Step ${index + 1} Comment</div>
         <div class="qol-rmux-dialog-body">
-          <div class="qol-rmux-dialog-step">${escapeHtml(step.type === 'building' ? `${step.building}${step.instance ? ` #${step.instance}` : ''} → Level ${step.level}` : step.text || '')}</div>
+          <div class="qol-rmux-dialog-step">${escapeHtml(label)}</div>
           <label for="qol-rmux-comment-input">Comment</label>
           <textarea id="qol-rmux-comment-input" maxlength="700" rows="5" placeholder="Optional note shown with this step..."></textarea>
           <small>Comments are informational. They do not affect automatic detection.</small>
@@ -198,8 +196,7 @@
   }
 
   function restorePendingEditComment() {
-    if (!pendingEditedComment) return;
-    if (document.getElementById('qol-roadmaps-dialog-layer')) return;
+    if (!pendingEditedComment || document.getElementById('qol-roadmaps-dialog-layer')) return;
     const { id, index, comment } = pendingEditedComment;
     pendingEditedComment = null;
     if (!comment) return;
@@ -219,8 +216,7 @@
     const target = custom[targetId];
     if (!target || !Array.isArray(target.steps)) return;
     pendingDuplicateSource.comments.forEach((comment, index) => {
-      if (!comment || !target.steps[index]) return;
-      target.steps[index].comment = comment;
+      if (comment && target.steps[index]) target.steps[index].comment = comment;
     });
     writeCustom(custom);
     pendingDuplicateSource = null;
@@ -268,9 +264,7 @@
     if (!controls) {
       controls = document.createElement('span');
       controls.className = 'qol-rmux-order-controls';
-      controls.innerHTML = `
-        <span class="qol-rmux-sort" data-rmux-sort="manual" role="button" tabindex="0" title="Drag custom roadmaps to reorder">Manual</span>
-        <span class="qol-rmux-sort" data-rmux-sort="alpha" role="button" tabindex="0" title="Sort custom roadmaps alphabetically">A–Z</span>`;
+      controls.innerHTML = '<span class="qol-rmux-sort" data-rmux-sort="manual" role="button" tabindex="0" title="Drag custom roadmaps to reorder">Manual</span><span class="qol-rmux-sort" data-rmux-sort="alpha" role="button" tabindex="0" title="Sort custom roadmaps alphabetically">A–Z</span>';
       groupTitle.appendChild(controls);
       controls.querySelectorAll('[data-rmux-sort]').forEach(control => wirePress(control, () => {
         setSortMode(control.dataset.rmuxSort);
@@ -280,9 +274,7 @@
 
     const mode = getSortMode();
     controls.querySelectorAll('[data-rmux-sort]').forEach(control => control.classList.toggle('active', control.dataset.rmuxSort === mode));
-
-    const items = [...library.querySelectorAll('.qol-rm-nav-item[data-roadmap-select]')]
-      .filter(item => customIds.has(item.dataset.roadmapSelect));
+    const items = [...library.querySelectorAll('.qol-rm-nav-item[data-roadmap-select]')].filter(item => customIds.has(item.dataset.roadmapSelect));
     const byId = new Map(items.map(item => [item.dataset.roadmapSelect, item]));
     const order = mode === 'alpha'
       ? Object.keys(custom).sort((a, b) => clean(custom[a]?.name).localeCompare(clean(custom[b]?.name), undefined, { sensitivity: 'base', numeric: true }))
@@ -292,10 +284,9 @@
     order.forEach(id => {
       const item = byId.get(id);
       if (!item) return;
-      anchor.insertAdjacentElement('afterend', item);
+      if (anchor.nextElementSibling !== item) anchor.insertAdjacentElement('afterend', item);
       anchor = item;
       item.classList.toggle('qol-rmux-roadmap-draggable', mode === 'manual');
-      item.setAttribute('draggable', 'false');
       let handle = item.querySelector('.qol-rmux-roadmap-drag');
       if (mode === 'manual' && !handle) {
         handle = document.createElement('span');
@@ -306,16 +297,32 @@
         handle.textContent = '⋮⋮';
         item.querySelector('.qol-rm-nav-row')?.prepend(handle);
       }
-      if (mode !== 'manual') handle?.remove();
+      if (mode !== 'manual' && handle) handle.remove();
     });
   }
 
+  function syncStepComment(row, step) {
+    const comment = cleanComment(step?.comment);
+    let note = row.querySelector('.qol-rmux-step-comment');
+    if (!comment) {
+      note?.remove();
+      return;
+    }
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'qol-rmux-step-comment';
+      const text = row.querySelector('.qol-rm-step-text');
+      if (text) text.insertAdjacentElement('afterend', note);
+      else row.appendChild(note);
+    }
+    if (note.textContent !== comment) note.textContent = comment;
+  }
+
   function enhanceSteps(panel) {
-    const id = selectedId();
     const custom = readCustom();
-    const roadmap = custom[id];
-    const rows = [...panel.querySelectorAll('.qol-rm-route .qol-rm-step')];
+    const roadmap = custom[selectedId()];
     if (!roadmap || !Array.isArray(roadmap.steps)) return;
+    const rows = [...panel.querySelectorAll('.qol-rm-route .qol-rm-step')];
 
     rows.forEach((row, index) => {
       const step = roadmap.steps[index];
@@ -323,9 +330,8 @@
       row.dataset.rmuxStepIndex = String(index);
       row.classList.add('qol-rmux-step');
 
-      let handle = row.querySelector('.qol-rmux-step-drag');
-      if (!handle) {
-        handle = document.createElement('span');
+      if (!row.querySelector('.qol-rmux-step-drag')) {
+        const handle = document.createElement('span');
         handle.className = 'qol-rmux-step-drag';
         handle.setAttribute('draggable', 'true');
         handle.setAttribute('title', 'Drag to reorder step');
@@ -335,50 +341,49 @@
       }
 
       const actions = row.querySelector('.qol-rme-step-actions');
-      if (actions && !actions.querySelector('[data-rmux-comment]')) {
-        const comment = document.createElement('div');
-        comment.className = 'qol-rme-icon qol-rmux-comment-btn';
-        comment.dataset.rmuxComment = String(index);
-        comment.setAttribute('role', 'button');
-        comment.setAttribute('tabindex', '0');
-        comment.setAttribute('title', 'Add or edit comment');
-        comment.textContent = '✎+';
-        actions.prepend(comment);
-        wirePress(comment, () => openCommentDialog(Number(comment.dataset.rmuxComment)));
+      let commentButton = actions?.querySelector('[data-rmux-comment]');
+      if (actions && !commentButton) {
+        commentButton = document.createElement('div');
+        commentButton.className = 'qol-rme-icon qol-rmux-comment-btn';
+        commentButton.setAttribute('role', 'button');
+        commentButton.setAttribute('tabindex', '0');
+        commentButton.setAttribute('title', 'Add or edit comment');
+        commentButton.textContent = '✎+';
+        actions.prepend(commentButton);
+        wirePress(commentButton, () => openCommentDialog(Number(commentButton.dataset.rmuxComment)));
       }
-      const commentButton = actions?.querySelector('[data-rmux-comment]');
       if (commentButton) {
         commentButton.dataset.rmuxComment = String(index);
         commentButton.classList.toggle('has-comment', Boolean(cleanComment(step.comment)));
       }
-
-      row.querySelector('.qol-rmux-step-comment')?.remove();
-      if (cleanComment(step.comment)) {
-        const note = document.createElement('div');
-        note.className = 'qol-rmux-step-comment';
-        note.textContent = step.comment;
-        const text = row.querySelector('.qol-rm-step-text');
-        if (text) text.insertAdjacentElement('afterend', note);
-        else row.appendChild(note);
-      }
+      syncStepComment(row, step);
     });
   }
 
   function enhanceRunnerComment() {
     const runner = document.getElementById(RUNNER_ID);
     if (!runner) return;
-    runner.querySelector('.qol-rmux-runner-comment')?.remove();
     const rt = window.APES?.roadmapsRunner?.getContextState?.() || window.APES?.roadmapsRunner?.getRawContextState?.();
     const roadmapId = clean(rt?.assignment?.roadmapId || selectedId());
     const index = Math.max(0, Number(rt?.progress?.currentStep) || 0);
     const comment = cleanComment(readCustom()?.[roadmapId]?.steps?.[index]?.comment);
-    if (!comment) return;
+    let note = runner.querySelector('.qol-rmux-runner-comment');
+    if (!comment) {
+      note?.remove();
+      return;
+    }
     const card = runner.querySelector('.qol-rmr-step-card');
     if (!card) return;
-    const note = document.createElement('div');
-    note.className = 'qol-rmux-runner-comment';
-    note.innerHTML = `<strong>Note</strong><span>${escapeHtml(comment).replace(/\n/g, '<br>')}</span>`;
-    card.appendChild(note);
+    if (!note) {
+      note = document.createElement('div');
+      note.className = 'qol-rmux-runner-comment';
+      note.innerHTML = '<strong>Note</strong><span></span>';
+      card.appendChild(note);
+    } else if (note.parentElement !== card) {
+      card.appendChild(note);
+    }
+    const span = note.querySelector('span');
+    if (span && span.textContent !== comment) span.textContent = comment;
   }
 
   function enhancePanel() {
@@ -402,33 +407,22 @@
     });
   }
 
-  function startStepDrag(event) {
-    const handle = event.target?.closest?.('.qol-rmux-step-drag');
-    const row = handle?.closest?.('.qol-rm-step[data-rmux-step-index]');
-    if (!handle || !row) return;
-    stepDrag = { id: selectedId(), index: Number(row.dataset.rmuxStepIndex) };
-    row.classList.add('qol-rmux-dragging');
-    try {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', `step:${stepDrag.index}`);
-    } catch (_) {}
-  }
-
-  function startRoadmapDrag(event) {
-    const handle = event.target?.closest?.('.qol-rmux-roadmap-drag');
-    const item = handle?.closest?.('.qol-rm-nav-item[data-roadmap-select]');
-    if (!handle || !item || getSortMode() !== 'manual') return;
-    roadmapDrag = { id: item.dataset.roadmapSelect };
-    item.classList.add('qol-rmux-dragging');
-    try {
-      event.dataTransfer.effectAllowed = 'move';
-      event.dataTransfer.setData('text/plain', `roadmap:${roadmapDrag.id}`);
-    } catch (_) {}
-  }
-
   function onDragStart(event) {
-    if (event.target?.closest?.('.qol-rmux-step-drag')) startStepDrag(event);
-    else if (event.target?.closest?.('.qol-rmux-roadmap-drag')) startRoadmapDrag(event);
+    const stepHandle = event.target?.closest?.('.qol-rmux-step-drag');
+    const stepRow = stepHandle?.closest?.('.qol-rm-step[data-rmux-step-index]');
+    if (stepHandle && stepRow) {
+      stepDrag = { id: selectedId(), index: Number(stepRow.dataset.rmuxStepIndex) };
+      stepRow.classList.add('qol-rmux-dragging');
+      try { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', `step:${stepDrag.index}`); } catch (_) {}
+      return;
+    }
+    const roadmapHandle = event.target?.closest?.('.qol-rmux-roadmap-drag');
+    const roadmapItem = roadmapHandle?.closest?.('.qol-rm-nav-item[data-roadmap-select]');
+    if (roadmapHandle && roadmapItem && getSortMode() === 'manual') {
+      roadmapDrag = { id: roadmapItem.dataset.roadmapSelect };
+      roadmapItem.classList.add('qol-rmux-dragging');
+      try { event.dataTransfer.effectAllowed = 'move'; event.dataTransfer.setData('text/plain', `roadmap:${roadmapDrag.id}`); } catch (_) {}
+    }
   }
 
   function onDragOver(event) {
@@ -449,14 +443,19 @@
     event.target?.closest?.('.qol-rmux-drop-target')?.classList.remove('qol-rmux-drop-target');
   }
 
+  function clearDragState() {
+    stepDrag = null;
+    roadmapDrag = null;
+    document.querySelectorAll('.qol-rmux-drop-target,.qol-rmux-dragging').forEach(node => node.classList.remove('qol-rmux-drop-target', 'qol-rmux-dragging'));
+  }
+
   function onDrop(event) {
     const stepRow = event.target?.closest?.('.qol-rm-step[data-rmux-step-index]');
     if (stepDrag && stepRow && stepDrag.id === selectedId()) {
       event.preventDefault();
-      const target = Number(stepRow.dataset.rmuxStepIndex);
       const source = stepDrag.index;
-      stepDrag = null;
-      document.querySelectorAll('.qol-rmux-drop-target,.qol-rmux-dragging').forEach(node => node.classList.remove('qol-rmux-drop-target', 'qol-rmux-dragging'));
+      const target = Number(stepRow.dataset.rmuxStepIndex);
+      clearDragState();
       reorderSteps(source, target);
       return;
     }
@@ -465,16 +464,9 @@
       event.preventDefault();
       const source = roadmapDrag.id;
       const target = nav.dataset.roadmapSelect;
-      roadmapDrag = null;
-      document.querySelectorAll('.qol-rmux-drop-target,.qol-rmux-dragging').forEach(node => node.classList.remove('qol-rmux-drop-target', 'qol-rmux-dragging'));
+      clearDragState();
       reorderRoadmaps(source, target);
     }
-  }
-
-  function onDragEnd() {
-    stepDrag = null;
-    roadmapDrag = null;
-    document.querySelectorAll('.qol-rmux-drop-target,.qol-rmux-dragging').forEach(node => node.classList.remove('qol-rmux-drop-target', 'qol-rmux-dragging'));
   }
 
   function preserveEditAndDuplicate(event) {
@@ -482,8 +474,7 @@
     if (edit) {
       const id = selectedId();
       const index = Number(edit.dataset.index);
-      const comment = cleanComment(readCustom()?.[id]?.steps?.[index]?.comment);
-      pendingEditedComment = { id, index, comment };
+      pendingEditedComment = { id, index, comment: cleanComment(readCustom()?.[id]?.steps?.[index]?.comment) };
       return;
     }
     const duplicate = event.target?.closest?.('[data-roadmap-action="duplicate"]');
@@ -502,8 +493,7 @@
       const level = Number(step.level);
       if (!building || !Number.isInteger(level) || level < 1) throw new Error('A building step is invalid.');
       return {
-        type: 'building',
-        building,
+        type: 'building', building,
         buildingId: Number.isFinite(Number(step.buildingId)) ? Number(step.buildingId) : null,
         level,
         ...(step.exact === true ? { exact: true } : {}),
@@ -523,11 +513,7 @@
     const name = clean(source.name);
     if (!name) throw new Error('The roadmap has no name.');
     if (!Array.isArray(source.steps)) throw new Error('The roadmap has no valid step list.');
-    return {
-      name,
-      description: clean(source.description ?? source.pretext),
-      steps: source.steps.map(sanitizeStep)
-    };
+    return { name, description: clean(source.description ?? source.pretext), steps: source.steps.map(sanitizeStep) };
   }
 
   function selectedForSharing() {
@@ -537,19 +523,12 @@
   function exportJson() {
     const roadmap = selectedForSharing();
     if (!roadmap) return '';
-    return JSON.stringify({
-      format: FORMAT,
-      version: FORMAT_VERSION,
-      exportedAt: new Date().toISOString(),
-      roadmap: sanitizeRoadmap(roadmap)
-    }, null, 2);
+    return JSON.stringify({ format: FORMAT, version: FORMAT_VERSION, exportedAt: new Date().toISOString(), roadmap: sanitizeRoadmap(roadmap) }, null, 2);
   }
 
   async function copyText(text) {
-    try {
-      await navigator.clipboard.writeText(text);
-      return true;
-    } catch (_) {
+    try { await navigator.clipboard.writeText(text); return true; }
+    catch (_) {
       const area = document.createElement('textarea');
       area.value = text;
       area.setAttribute('readonly', '');
@@ -604,8 +583,7 @@
   async function handleSharingAction(event) {
     const layer = event.target?.closest?.(`#${SHARING_DIALOG_ID}`);
     if (!layer) return;
-    const keyboard = event.type === 'keydown';
-    if (keyboard && !['Enter', ' '].includes(event.key)) return;
+    if (event.type === 'keydown' && !['Enter', ' '].includes(event.key)) return;
 
     const copy = event.target?.closest?.('[data-rms-copy]');
     if (copy) {
@@ -629,9 +607,8 @@
     event.stopImmediatePropagation();
     const status = layer.querySelector('[data-rms-status]');
     let roadmap;
-    try {
-      roadmap = parseImportedRoadmap(layer.querySelector('[data-rms-import]')?.value || '');
-    } catch (error) {
+    try { roadmap = parseImportedRoadmap(layer.querySelector('[data-rms-import]')?.value || ''); }
+    catch (error) {
       if (status) {
         status.textContent = error.message || 'Could not import this roadmap.';
         status.classList.add('error');
@@ -672,7 +649,7 @@
     document.addEventListener('dragover', onDragOver, true);
     document.addEventListener('dragleave', onDragLeave, true);
     document.addEventListener('drop', onDrop, true);
-    document.addEventListener('dragend', onDragEnd, true);
+    document.addEventListener('dragend', clearDragState, true);
     document.addEventListener('click', preserveEditAndDuplicate, true);
     document.addEventListener('click', handleSharingAction, true);
     document.addEventListener('keydown', handleSharingAction, true);
@@ -687,11 +664,7 @@
     }, 1200);
 
     window.APES = window.APES || {};
-    window.APES.roadmapsUx = Object.freeze({
-      refresh: scheduleEnhance,
-      openComment: openCommentDialog,
-      sortMode: getSortMode
-    });
+    window.APES.roadmapsUx = Object.freeze({ refresh: scheduleEnhance, openComment: openCommentDialog, sortMode: getSortMode });
   }
 
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
