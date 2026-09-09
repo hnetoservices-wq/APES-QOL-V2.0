@@ -22,8 +22,7 @@
 }
 
 /*
- * Folder tabs now live inside the native left-hand history scroller.
- * This avoids inserting a new sibling next to Travian's floated firstHalf/threadView.
+ * Folder tabs live inside the native left-hand history scroller.
  */
 .qol-message-center-active #qol-message-center-tabs {
   box-sizing: border-box !important;
@@ -134,7 +133,7 @@
   filter: brightness(1.07) !important;
 }
 
-/* Conversation list. No width/float changes. */
+/* Conversation list. Keep the visible card/separator treatment after APES finishes loading. */
 .qol-message-center-active .history li.divider h6.divider {
   color: #806b4d !important;
   font-family: Arial, sans-serif !important;
@@ -155,14 +154,15 @@
   position: relative !important;
   min-height: 48px !important;
   margin: 0 3px 3px !important;
-  padding-right: 8px !important;
-  border: 1px solid transparent !important;
-  border-radius: 4px !important;
-  background: rgba(255, 255, 255, .22) !important;
+  padding-right: 76px !important;
+  border: 1px solid #d4c8b5 !important;
+  border-radius: 2px !important;
+  background: #f3f0ea !important;
+  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset !important;
 }
 
 .qol-message-center-active li.igmConversationEntry.qol-message-center-row:hover {
-  border-color: #d2bb94 !important;
+  border-color: #bca47d !important;
   background: #fff8e9 !important;
 }
 
@@ -212,22 +212,36 @@
   text-shadow: none !important;
 }
 
-/* Folder assignment is available on hover/selection instead of permanent clutter. */
+/* Folder assignment is always visible and rectangular. */
 .qol-message-center-active .qol-message-center-row .qol-igm-row-folder {
-  display: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   right: 5px !important;
   bottom: 4px !important;
-  max-width: 62px !important;
-  height: 17px !important;
+  max-width: 68px !important;
+  height: 18px !important;
   padding: 1px 5px !important;
-  border-radius: 9px !important;
+  border: 1px solid #a8906c !important;
+  border-radius: 2px !important;
+  background: linear-gradient(to bottom, #fffdf8, #e8dfd1) !important;
+  color: #493720 !important;
   font-size: 8px !important;
+  line-height: 14px !important;
   z-index: 6 !important;
+  box-shadow: none !important;
 }
 
-.qol-message-center-active .qol-message-center-row:hover .qol-igm-row-folder,
-.qol-message-center-active .qol-message-center-row.selected .qol-igm-row-folder {
-  display: inline-flex !important;
+.qol-message-center-active .qol-message-center-row .qol-igm-row-folder:hover {
+  border-color: #725735 !important;
+  background: #fffaf0 !important;
+}
+
+.qol-message-center-active .qol-message-center-row .qol-igm-row-folder.trash,
+.qol-message-center-active .qol-message-center-row .qol-igm-row-folder.spam {
+  border-color: #a9625d !important;
+  background: linear-gradient(to bottom, #f8e1df, #e8c2bf) !important;
+  color: #7d2924 !important;
 }
 
 /* Active conversation header. */
@@ -258,7 +272,7 @@
   margin: 0 5px 0 auto !important;
   padding: 0 8px !important;
   border: 1px solid #ad9571 !important;
-  border-radius: 11px !important;
+  border-radius: 2px !important;
   background: #fffaf0 !important;
   color: #5d482d !important;
   font-family: Arial, sans-serif !important;
