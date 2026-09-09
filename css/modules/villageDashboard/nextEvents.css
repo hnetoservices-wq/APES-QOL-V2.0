@@ -1,0 +1,182 @@
+/* APES QoL v2 — Village Dashboard Next Events */
+
+#apes-v2-village-overlay .apes-vd-next-events {
+    flex: 0 0 auto !important;
+    display: grid !important;
+    grid-template-columns: 112px minmax(0, 1fr) !important;
+    min-height: 68px !important;
+    margin: -2px 4px 0 !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(199, 166, 97, .3) !important;
+    border-radius: 7px !important;
+    background: rgba(13, 15, 14, .83) !important;
+    box-shadow: inset 0 1px 0 rgba(255, 243, 208, .04), 0 5px 16px rgba(0, 0, 0, .18) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-events-head {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 3px !important;
+    padding: 9px 11px !important;
+    border-right: 1px solid rgba(199, 166, 97, .16) !important;
+    background: linear-gradient(135deg, rgba(79, 61, 36, .72), rgba(44, 39, 29, .48)) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-events-head strong {
+    color: #f4dfad !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    letter-spacing: .4px !important;
+    text-transform: uppercase !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-events-head small {
+    color: rgba(255, 246, 223, .46) !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    line-height: 1 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-events-list {
+    display: flex !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    min-width: 0 !important;
+    padding: 6px !important;
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    overscroll-behavior-x: contain !important;
+    scrollbar-width: thin !important;
+    scrollbar-color: rgba(206, 174, 100, .45) transparent !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-events-list::-webkit-scrollbar {
+    height: 6px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-events-list::-webkit-scrollbar-thumb {
+    border-radius: 999px !important;
+    background: rgba(206, 174, 100, .42) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    display: grid !important;
+    grid-template-columns: 20px minmax(130px, 1fr) auto !important;
+    align-items: center !important;
+    gap: 7px !important;
+    flex: 0 0 230px !important;
+    min-width: 230px !important;
+    max-width: 260px !important;
+    min-height: 54px !important;
+    padding: 7px 8px !important;
+    border: 1px solid rgba(199, 166, 97, .25) !important;
+    border-radius: 5px !important;
+    background: linear-gradient(100deg, rgba(62, 48, 31, .8), rgba(31, 33, 29, .9)) !important;
+    color: #eee7d8 !important;
+    box-shadow: inset 0 1px 0 rgba(255, 243, 208, .04) !important;
+    cursor: pointer !important;
+    outline: none !important;
+    user-select: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event:hover,
+#apes-v2-village-overlay .apes-vd-next-event:focus-visible {
+    border-color: rgba(232, 199, 119, .65) !important;
+    background: linear-gradient(100deg, rgba(79, 60, 35, .91), rgba(38, 40, 34, .94)) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event.ready {
+    border-color: rgba(142, 211, 63, .68) !important;
+    background: linear-gradient(100deg, rgba(50, 76, 33, .9), rgba(28, 43, 25, .92)) !important;
+    box-shadow: inset 0 1px 0 rgba(221, 255, 190, .05), 0 0 12px rgba(126, 205, 43, .12) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 20px !important;
+    height: 20px !important;
+    border: 1px solid rgba(226, 193, 116, .3) !important;
+    border-radius: 50% !important;
+    background: rgba(0, 0, 0, .16) !important;
+    color: #e7c878 !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event.ready .apes-vd-next-event-icon {
+    border-color: rgba(142, 211, 63, .45) !important;
+    color: #cfff9f !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event-copy {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 4px !important;
+    min-width: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event-copy strong,
+#apes-v2-village-overlay .apes-vd-next-event-copy small {
+    display: block !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event-copy strong {
+    color: #fff7e5 !important;
+    font-size: 9px !important;
+    font-weight: 800 !important;
+    line-height: 1.1 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event-copy small {
+    color: rgba(255, 246, 223, .58) !important;
+    font-size: 8px !important;
+    font-weight: 600 !important;
+    line-height: 1.15 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event-countdown {
+    align-self: center !important;
+    padding: 3px 5px !important;
+    border: 1px solid rgba(199, 166, 97, .18) !important;
+    border-radius: 4px !important;
+    background: rgba(0, 0, 0, .15) !important;
+    color: rgba(232, 199, 119, .86) !important;
+    font-family: Consolas, monospace !important;
+    font-size: 8px !important;
+    font-weight: 700 !important;
+    white-space: nowrap !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-event.ready .apes-vd-next-event-countdown {
+    border-color: rgba(142, 211, 63, .28) !important;
+    color: #cfff9f !important;
+}
+
+#apes-v2-village-overlay .apes-vd-next-events-empty {
+    display: flex !important;
+    align-items: center !important;
+    padding: 0 12px !important;
+    color: rgba(255, 246, 223, .4) !important;
+    font-size: 9px !important;
+    font-style: italic !important;
+}
+
+@media (max-width: 760px) {
+    #apes-v2-village-overlay .apes-vd-next-events {
+        grid-template-columns: 92px minmax(0, 1fr) !important;
+    }
+    #apes-v2-village-overlay .apes-vd-next-event {
+        flex-basis: 210px !important;
+        min-width: 210px !important;
+    }
+}
