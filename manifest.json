@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.100",
+  "version": "2.0.0.101",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -66,6 +66,7 @@
         "js/modules/roadmaps/checkpointsAndDetection.js",
         "js/modules/roadmaps/inputGuard.js",
         "js/modules/roadmaps/officialIntegration.js",
+        "js/modules/roadmaps/uxEnhancements.js",
         "js/features/npcCalculator.js",
         "js/modules/resourceUpgradePlanner/preference.js",
         "js/features/resourceUpgradePlanner.js",
@@ -105,7 +106,8 @@
         "css/helpers/numberInputs.css",
         "css/modules/roadmaps/responsive.css",
         "css/modules/roadmaps/officialIntegration.css",
-        "css/modules/roadmaps/officialGuides.css"
+        "css/modules/roadmaps/officialGuides.css",
+        "css/modules/roadmaps/uxEnhancements.css"
       ],
       "run_at": "document_idle"
     }
