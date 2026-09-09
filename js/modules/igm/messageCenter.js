@@ -178,6 +178,7 @@
 
     BASE_BEFORE_CUSTOM.forEach(name => tabs.appendChild(makeTab(name)));
     custom.forEach(name => tabs.appendChild(makeTab(name, true)));
+    BASE_AFTER_CUSTOM.forEach(name => tabs.appendChild(makeTab(name)));
 
     const create = document.createElement('div');
     create.className = 'qol-message-tab create';
@@ -193,8 +194,6 @@
     create.addEventListener('click', createTab);
     activateOnKeyboard(create, createTab);
     tabs.appendChild(create);
-
-    BASE_AFTER_CUSTOM.forEach(name => tabs.appendChild(makeTab(name)));
 
     const toolbar = host.querySelector(':scope > #qol-igm-toolbar');
     if (toolbar) toolbar.insertAdjacentElement('afterend', tabs);
