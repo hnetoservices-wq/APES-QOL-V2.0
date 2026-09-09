@@ -6,7 +6,6 @@
   const TABS_ID = 'qol-message-center-tabs';
   const EMPTY_ID = 'qol-message-center-empty';
   const HEADER_FOLDER_ID = 'qol-message-center-folder';
-  const SEND_ID = 'qol-message-center-send';
   const CUSTOM_FOLDERS_KEY = 'qol_custom_chat_tags';
   const FILTER_BUTTON_ID = 'qol-igm-filter-button';
   const CREATE_BUTTON_ID = 'qol-igm-create-folder';
@@ -59,24 +58,6 @@
     return !label || label === 'All Conversations' ? 'All' : label;
   }
 
-  function chooseFilter(value) {
-    const button = document.getElementById(FILTER_BUTTON_ID);
-    if (!button) return false;
-
-    if (activeFilter() === value) {
-      syncActiveTab();
-      return true;
-    }
-
-    button.click();
-    const option = Array.from(document.querySelectorAll('#qol-igm-menu .qol-igm-menu-option'))
-      .find(node => node.dataset.value === value);
-    if (!option) return false;
-    option.click();
-    window.setTimeout(syncActiveTab, 0);
-    return true;
-  }
-
   function syncActiveTab() {
     const current = activeFilter();
     document.querySelectorAll(`#${TABS_ID} [data-qol-message-filter]`).forEach(tab => {
@@ -94,6 +75,39 @@
       event.stopPropagation();
       callback(event);
     });
+  }
+
+  function clickNativeFilterOption(value, attempt = 0) {
+    const option = Array.from(document.querySelectorAll('#qol-igm-menu .qol-igm-menu-option'))
+      .find(node => node.dataset.value === value);
+
+    if (option) {
+      option.click();
+      window.setTimeout(() => {
+        syncActiveTab();
+        schedule();
+      }, 0);
+      return true;
+    }
+
+    if (attempt < 3) {
+      window.setTimeout(() => clickNativeFilterOption(value, attempt + 1), 0);
+    }
+    return false;
+  }
+
+  function chooseFilter(value) {
+    const button = document.getElementById(FILTER_BUTTON_ID);
+    if (!button) return false;
+
+    if (activeFilter() === value) {
+      syncActiveTab();
+      return true;
+    }
+
+    button.click();
+    clickNativeFilterOption(value);
+    return true;
   }
 
   function makeTab(value, custom = false) {
@@ -120,7 +134,7 @@
         event.preventDefault();
         event.stopPropagation();
         chooseFilter(value);
-        window.setTimeout(() => document.getElementById(DELETE_BUTTON_ID)?.click(), 0);
+        window.setTimeout(() => document.getElementById(DELETE_BUTTON_ID)?.click(), 20);
       };
       remove.addEventListener('click', removeTab);
       activateOnKeyboard(remove, removeTab);
@@ -137,12 +151,21 @@
     return tab;
   }
 
+  function findTabHost(system) {
+    const toolbar = system.querySelector('#qol-igm-toolbar');
+    if (toolbar?.parentElement) return toolbar.parentElement;
+    return system.querySelector('.history > .scrollContentOuterWrapper > .scrollContent') || null;
+  }
+
   function buildTabs(system) {
+    const host = findTabHost(system);
+    if (!host) return;
+
     const custom = getCustomFolders();
     const signature = custom.join('\u0001');
     let tabs = system.querySelector(`#${TABS_ID}`);
 
-    if (tabs && signature === lastFolderSignature) {
+    if (tabs && tabs.parentElement === host && signature === lastFolderSignature) {
       syncActiveTab();
       return;
     }
@@ -160,7 +183,8 @@
     create.className = 'qol-message-tab create';
     create.setAttribute('role', 'button');
     create.tabIndex = 0;
-    create.innerHTML = '<span class="qol-message-tab-plus">+</span><span>Create Tab</span>';
+    create.title = 'Create a custom message tab';
+    create.innerHTML = '<span class="qol-message-tab-plus">+</span><span>Tab</span>';
     const createTab = event => {
       event.preventDefault();
       event.stopPropagation();
@@ -172,9 +196,9 @@
 
     BASE_AFTER_CUSTOM.forEach(name => tabs.appendChild(makeTab(name)));
 
-    const firstHalf = system.querySelector(':scope > .firstHalf');
-    if (firstHalf) system.insertBefore(tabs, firstHalf);
-    else system.insertBefore(tabs, system.firstChild);
+    const toolbar = host.querySelector(':scope > #qol-igm-toolbar');
+    if (toolbar) toolbar.insertAdjacentElement('afterend', tabs);
+    else host.insertBefore(tabs, host.firstChild);
 
     lastFolderSignature = signature;
     syncActiveTab();
@@ -214,8 +238,7 @@
       const openFolder = event => {
         event?.preventDefault?.();
         event?.stopPropagation?.();
-        const liveSelected = selectedConversationRow(windowNode);
-        liveSelected?.querySelector('.qol-igm-row-folder')?.click();
+        selectedConversationRow(windowNode)?.querySelector('.qol-igm-row-folder')?.click();
       };
       chip.addEventListener('click', openFolder);
       activateOnKeyboard(chip, openFolder);
@@ -251,61 +274,9 @@
     }
   }
 
-  function dispatchEnter(textarea) {
-    if (!textarea || textarea.disabled) return;
-    textarea.focus();
-    ['keydown', 'keypress', 'keyup'].forEach(type => {
-      const event = new KeyboardEvent(type, {
-        key: 'Enter',
-        code: 'Enter',
-        bubbles: true,
-        cancelable: true
-      });
-      try {
-        Object.defineProperty(event, 'which', { configurable: true, get: () => 13 });
-        Object.defineProperty(event, 'keyCode', { configurable: true, get: () => 13 });
-      } catch (_) {}
-      textarea.dispatchEvent(event);
-    });
-  }
-
-  function syncSendButton(windowNode) {
-    const room = windowNode.querySelector('.chatRoomBody');
-    const textarea = room?.querySelector('textarea.chatInput[send-function="send"]');
-    let send = windowNode.querySelector(`#${SEND_ID}`);
-
-    if (!room || !textarea) {
-      send?.remove();
-      return;
-    }
-
-    if (!send || send.parentNode !== room) {
-      send?.remove();
-      send = document.createElement('div');
-      send.id = SEND_ID;
-      send.setAttribute('role', 'button');
-      send.tabIndex = 0;
-      send.textContent = 'Send';
-      send.title = 'Send message';
-      const submit = event => {
-        event?.preventDefault?.();
-        event?.stopPropagation?.();
-        dispatchEnter(room.querySelector('textarea.chatInput[send-function="send"]'));
-      };
-      send.addEventListener('mousedown', event => event.preventDefault());
-      send.addEventListener('click', submit);
-      activateOnKeyboard(send, submit);
-      room.appendChild(send);
-    }
-  }
-
   function markNativeParts(windowNode) {
     windowNode.querySelectorAll('li.igmConversationEntry').forEach(row => {
       row.classList.add('qol-message-center-row');
-    });
-
-    windowNode.querySelectorAll('.chatBody li.line').forEach(line => {
-      line.classList.add('qol-message-center-line');
     });
 
     const nativeNew = windowNode.querySelector('.newThreadContainer .clickableContainer');
@@ -313,6 +284,13 @@
 
     const popup = windowNode.querySelector('#igmSystemNewConversation .inWindowPopup');
     if (popup) popup.classList.add('qol-message-center-new-popup');
+
+    // v2.0.0.108 experimented with custom thread layout/send controls.
+    // Remove those artifacts and leave the live chat DOM entirely to Travian.
+    windowNode.querySelector('#qol-message-center-send')?.remove();
+    windowNode.querySelectorAll('.qol-message-center-line').forEach(line => {
+      line.classList.remove('qol-message-center-line');
+    });
   }
 
   function enhance(windowNode) {
@@ -324,7 +302,6 @@
     markNativeParts(windowNode);
     syncConversationFolder(windowNode);
     syncEmptyState(windowNode);
-    syncSendButton(windowNode);
     syncActiveTab();
   }
 
@@ -333,10 +310,10 @@
     document.getElementById(TABS_ID)?.remove();
     document.getElementById(EMPTY_ID)?.remove();
     document.getElementById(HEADER_FOLDER_ID)?.remove();
-    document.getElementById(SEND_ID)?.remove();
+    document.getElementById('qol-message-center-send')?.remove();
     document.getElementById('qol-message-center-actions')?.remove();
-    document.querySelectorAll('.qol-message-center-row, .qol-message-center-line, .qol-message-center-new, .qol-message-center-new-popup')
-      .forEach(node => node.classList.remove('qol-message-center-row', 'qol-message-center-line', 'qol-message-center-new', 'qol-message-center-new-popup'));
+    document.querySelectorAll('.qol-message-center-row, .qol-message-center-new, .qol-message-center-new-popup, .qol-message-center-line')
+      .forEach(node => node.classList.remove('qol-message-center-row', 'qol-message-center-new', 'qol-message-center-new-popup', 'qol-message-center-line'));
   }
 
   function refresh() {
@@ -363,9 +340,9 @@
         return [...mutation.addedNodes, ...mutation.removedNodes].some(node => {
           if (node.nodeType !== Node.ELEMENT_NODE) return false;
           const element = node;
-          if ([TABS_ID, EMPTY_ID, HEADER_FOLDER_ID, SEND_ID].includes(element.id)) return false;
-          return element.matches?.('.modalWrapper.igm, .igmSystem, .threadView, .conversationHeaderInner, .windowOverlay, .igmConversationEntry, .chatRoomBody, .chatBody, .line, .chatInput')
-            || element.querySelector?.('.modalWrapper.igm, .igmSystem, .threadView, .conversationHeaderInner, .windowOverlay, .igmConversationEntry, .chatRoomBody, .chatBody, .line, .chatInput');
+          if ([TABS_ID, EMPTY_ID, HEADER_FOLDER_ID].includes(element.id)) return false;
+          return element.matches?.('.modalWrapper.igm, .igmSystem, .threadView, .conversationHeaderInner, .windowOverlay, .igmConversationEntry, .chatRoomBody, .chatBody, .line')
+            || element.querySelector?.('.modalWrapper.igm, .igmSystem, .threadView, .conversationHeaderInner, .windowOverlay, .igmConversationEntry, .chatRoomBody, .chatBody, .line');
         });
       });
       if (relevant) schedule();
@@ -401,7 +378,6 @@
         markNativeParts(windowNode);
         syncConversationFolder(windowNode);
         syncEmptyState(windowNode);
-        syncSendButton(windowNode);
         syncActiveTab();
       }
     }, 750);
