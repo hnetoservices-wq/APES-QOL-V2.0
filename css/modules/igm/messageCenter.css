@@ -1,30 +1,15 @@
 /*
- * APES Message Center
- * Stability pass: Travian fully owns chat rendering and message-window geometry.
- * APES styles the title, list, folders, tabs and new-conversation overlay only.
+ * APES IGM folder tabs only.
+ * All message-window, conversation-list, thread and composer presentation is left
+ * to the original IGM Enhancer / Travian UI.
  */
 
-.qol-message-center-active #qol-igm-toolbar {
+/* Replace the old folder toolbar with the compact tab presentation. */
+#qol-igm-toolbar {
   display: none !important;
 }
 
-/* Native title bar: APES skin only. */
-.qol-message-center-active .contentHeader {
-  background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
-}
-
-.qol-message-center-active .contentHeader h2,
-.qol-message-center-active .contentHeader h2 span {
-  color: #fff8e8 !important;
-  font-family: Arial, sans-serif !important;
-  font-weight: 800 !important;
-  text-shadow: none !important;
-}
-
-/*
- * Folder tabs live inside the native left-hand history scroller.
- */
-.qol-message-center-active #qol-message-center-tabs {
+#qol-message-center-tabs {
   box-sizing: border-box !important;
   position: sticky !important;
   top: 0 !important;
@@ -40,10 +25,10 @@
   padding: 4px !important;
   border-bottom: 1px solid #bba47c !important;
   background: #eadfca !important;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, .08) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,.08) !important;
 }
 
-.qol-message-center-active .qol-message-tab {
+#qol-message-center-tabs .qol-message-tab {
   all: unset !important;
   box-sizing: border-box !important;
   position: relative !important;
@@ -66,34 +51,35 @@
   user-select: none !important;
 }
 
-.qol-message-center-active .qol-message-tab:hover {
+#qol-message-center-tabs .qol-message-tab:hover {
   border-color: #927650 !important;
   background: #fffaf0 !important;
 }
 
-.qol-message-center-active .qol-message-tab.active {
+#qol-message-center-tabs .qol-message-tab.active {
   border-color: var(--qol-accent) !important;
   background: #fffaf0 !important;
   color: var(--qol-accent-dark) !important;
   box-shadow: inset 0 -2px 0 var(--qol-accent) !important;
 }
 
-.qol-message-center-active .qol-message-tab.create {
+#qol-message-center-tabs .qol-message-tab.create {
+  order: 999 !important;
   color: #725735 !important;
   font-weight: 900 !important;
 }
 
-.qol-message-center-active .qol-message-tab-plus {
+#qol-message-center-tabs .qol-message-tab-plus {
   margin-right: 2px !important;
   font-size: 11px !important;
   line-height: 1 !important;
 }
 
-.qol-message-center-active .qol-message-tab.custom {
+#qol-message-center-tabs .qol-message-tab.custom {
   padding-right: 19px !important;
 }
 
-.qol-message-center-active .qol-message-tab-remove {
+#qol-message-center-tabs .qol-message-tab-remove {
   position: absolute !important;
   top: 50% !important;
   right: 4px !important;
@@ -101,7 +87,6 @@
   width: 12px !important;
   height: 12px !important;
   margin-top: -6px !important;
-  border-radius: 50% !important;
   color: #913c32 !important;
   font-size: 10px !important;
   font-weight: 900 !important;
@@ -110,331 +95,7 @@
   cursor: pointer !important;
 }
 
-.qol-message-center-active .qol-message-tab.custom:hover .qol-message-tab-remove,
-.qol-message-center-active .qol-message-tab.custom.active .qol-message-tab-remove {
+#qol-message-center-tabs .qol-message-tab.custom:hover .qol-message-tab-remove,
+#qol-message-center-tabs .qol-message-tab.custom.active .qol-message-tab-remove {
   display: block !important;
-}
-
-/* Native New Conversation control, APES appearance only. */
-.qol-message-center-active .newThreadContainer .qol-message-center-new {
-  box-sizing: border-box !important;
-  border: 1px solid var(--qol-action-border) !important;
-  border-radius: 3px !important;
-  background: linear-gradient(to bottom, var(--qol-accent), var(--qol-accent-dark)) !important;
-  color: #fff !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 10px !important;
-  font-weight: 800 !important;
-  text-shadow: none !important;
-  box-shadow: none !important;
-}
-
-.qol-message-center-active .newThreadContainer .qol-message-center-new:hover {
-  filter: brightness(1.07) !important;
-}
-
-/* Conversation list. Keep the visible card/separator treatment after APES finishes loading. */
-.qol-message-center-active .history li.divider h6.divider {
-  color: #806b4d !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 8px !important;
-  font-weight: 900 !important;
-  letter-spacing: .5px !important;
-  text-transform: uppercase !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .history li.divider h6 .fadeIn,
-.qol-message-center-active .history li.divider h6 .fadeOut {
-  opacity: .18 !important;
-}
-
-.qol-message-center-active li.igmConversationEntry.qol-igm-enhanced-row.qol-message-center-row {
-  box-sizing: border-box !important;
-  position: relative !important;
-  min-height: 48px !important;
-  margin: 0 3px 3px !important;
-  padding-right: 76px !important;
-  border: 1px solid #d4c8b5 !important;
-  border-radius: 2px !important;
-  background: #f3f0ea !important;
-  box-shadow: 0 1px 0 rgba(255,255,255,.5) inset !important;
-}
-
-.qol-message-center-active li.igmConversationEntry.qol-message-center-row:hover {
-  border-color: #bca47d !important;
-  background: #fff8e9 !important;
-}
-
-.qol-message-center-active li.igmConversationEntry.qol-message-center-row.selected {
-  border-color: #9f835a !important;
-  background: #ead9b8 !important;
-  box-shadow: inset 3px 0 0 var(--qol-accent) !important;
-}
-
-.qol-message-center-active li.igmConversationEntry.qol-message-center-row.new {
-  background: #fff0c8 !important;
-}
-
-.qol-message-center-active li.igmConversationEntry.qol-message-center-row.new::after {
-  content: '' !important;
-  position: absolute !important;
-  top: 7px !important;
-  right: 6px !important;
-  width: 6px !important;
-  height: 6px !important;
-  border-radius: 50% !important;
-  background: #7da13d !important;
-  box-shadow: 0 0 0 2px rgba(255, 255, 255, .75) !important;
-}
-
-.qol-message-center-active .qol-message-center-row .igmInfos .name,
-.qol-message-center-active .qol-message-center-row .igmInfos .name * {
-  color: #43321f !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 10px !important;
-  font-weight: 900 !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .qol-message-center-row .linePreview,
-.qol-message-center-active .qol-message-center-row .linePreview * {
-  color: #77654d !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 9px !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active .qol-message-center-row .igmInfos .date {
-  color: #988467 !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 8px !important;
-  text-shadow: none !important;
-}
-
-/* Folder assignment is always visible and rectangular. */
-.qol-message-center-active .qol-message-center-row .qol-igm-row-folder {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  right: 5px !important;
-  bottom: 4px !important;
-  max-width: 68px !important;
-  height: 18px !important;
-  padding: 1px 5px !important;
-  border: 1px solid #a8906c !important;
-  border-radius: 2px !important;
-  background: linear-gradient(to bottom, #fffdf8, #e8dfd1) !important;
-  color: #493720 !important;
-  font-size: 8px !important;
-  line-height: 14px !important;
-  z-index: 6 !important;
-  box-shadow: none !important;
-}
-
-.qol-message-center-active .qol-message-center-row .qol-igm-row-folder:hover {
-  border-color: #725735 !important;
-  background: #fffaf0 !important;
-}
-
-.qol-message-center-active .qol-message-center-row .qol-igm-row-folder.trash,
-.qol-message-center-active .qol-message-center-row .qol-igm-row-folder.spam {
-  border-color: #a9625d !important;
-  background: linear-gradient(to bottom, #f8e1df, #e8c2bf) !important;
-  color: #7d2924 !important;
-}
-
-/* Active conversation header. */
-.qol-message-center-active .conversationHeader {
-  border-bottom-color: #cdbb99 !important;
-  background: #faf4e8 !important;
-}
-
-.qol-message-center-active .conversationHeaderInner {
-  box-sizing: border-box !important;
-}
-
-.qol-message-center-active .conversationHeaderInner .title,
-.qol-message-center-active .conversationHeaderInner .title span {
-  color: #493820 !important;
-  font-family: Arial, sans-serif !important;
-  font-weight: 900 !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active #qol-message-center-folder {
-  all: unset !important;
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  gap: 4px !important;
-  height: 23px !important;
-  margin: 0 5px 0 auto !important;
-  padding: 0 8px !important;
-  border: 1px solid #ad9571 !important;
-  border-radius: 2px !important;
-  background: #fffaf0 !important;
-  color: #5d482d !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 8px !important;
-  font-weight: 800 !important;
-  line-height: 21px !important;
-  cursor: pointer !important;
-  user-select: none !important;
-}
-
-.qol-message-center-active #qol-message-center-folder:hover {
-  border-color: var(--qol-accent) !important;
-  background: #f5ead5 !important;
-}
-
-.qol-message-center-active .qol-message-folder-arrow {
-  font-size: 8px !important;
-  opacity: .7 !important;
-}
-
-/* Empty right-pane state only when Travian has no active conversation. */
-.qol-message-center-active #qol-message-center-empty {
-  box-sizing: border-box !important;
-  position: absolute !important;
-  left: 50% !important;
-  top: 50% !important;
-  width: 250px !important;
-  margin: 0 !important;
-  padding: 18px 16px !important;
-  transform: translate(-50%, -50%) !important;
-  border: 1px solid #d8c6a7 !important;
-  border-radius: 6px !important;
-  background: rgba(255, 250, 240, .92) !important;
-  color: #625038 !important;
-  font-family: Arial, sans-serif !important;
-  text-align: center !important;
-  text-shadow: none !important;
-  pointer-events: none !important;
-}
-
-.qol-message-center-active .qol-message-empty-mark {
-  margin-bottom: 6px !important;
-  color: #9a7d54 !important;
-  font-size: 24px !important;
-  line-height: 1 !important;
-}
-
-.qol-message-center-active .qol-message-empty-title {
-  margin-bottom: 4px !important;
-  color: #493820 !important;
-  font-size: 12px !important;
-  font-weight: 900 !important;
-}
-
-.qol-message-center-active .qol-message-empty-copy {
-  font-size: 9px !important;
-  line-height: 14px !important;
-}
-
-/*
- * IMPORTANT: no .chatBody, .chatRoomBody, li.line or textarea.chatInput geometry here.
- * Travian's native chat renderer, scrolling and send behavior remain completely untouched.
- */
-
-/* New Conversation overlay: visual skin only. */
-.qol-message-center-active #igmSystemNewConversation .qol-message-center-new-popup {
-  color: #44331f !important;
-  font-family: Arial, sans-serif !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .inWindowPopupHeader {
-  background: linear-gradient(to bottom, var(--qol-accent-mid), var(--qol-accent-dark)) !important;
-  color: #fff8e8 !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .inWindowPopupHeader h4,
-.qol-message-center-active #igmSystemNewConversation .inWindowPopupHeader h4 span,
-.qol-message-center-active #igmSystemNewConversation .inWindowPopupHeader .closeOverlay,
-.qol-message-center-active #igmSystemNewConversation .inWindowPopupHeader .closeOverlay span {
-  color: #fff8e8 !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .inWindowPopupContent {
-  background: #f7f2e8 !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .newIgmConversation .optionContainer > .clickableContainer {
-  box-sizing: border-box !important;
-  border-color: #d0bc99 !important;
-  background: #fffaf0 !important;
-  text-shadow: none !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .newIgmConversation .optionContainer > .clickableContainer.active {
-  border-color: var(--qol-accent) !important;
-  background: #ead9b8 !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation input,
-.qol-message-center-active #igmSystemNewConversation textarea {
-  box-sizing: border-box !important;
-  border-color: #a88e68 !important;
-  background: #fffdf8 !important;
-  color: #332719 !important;
-  font-family: Arial, sans-serif !important;
-  text-shadow: none !important;
-}
-
-/* APES-owned visual skin for New Conversation buttons; native click handlers remain. */
-.qol-message-center-active #igmSystemNewConversation .buttonContainer button.share,
-.qol-message-center-active #igmSystemNewConversation .buttonContainer button.cancel {
-  all: unset !important;
-  box-sizing: border-box !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  min-width: 92px !important;
-  height: 29px !important;
-  margin-left: 6px !important;
-  padding: 0 11px !important;
-  border: 1px solid var(--qol-action-border) !important;
-  border-radius: 3px !important;
-  background: linear-gradient(to bottom, var(--qol-accent), var(--qol-accent-dark)) !important;
-  color: #fff !important;
-  font-family: Arial, sans-serif !important;
-  font-size: 9px !important;
-  font-weight: 900 !important;
-  line-height: 27px !important;
-  text-align: center !important;
-  cursor: pointer !important;
-  user-select: none !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .buttonContainer button.cancel {
-  border-color: #9b8463 !important;
-  background: linear-gradient(to bottom, #fffdf8, #e6dac7) !important;
-  color: #5a452d !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .buttonContainer button.disabled {
-  opacity: .45 !important;
-  cursor: default !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .buttonContainer button > .content {
-  all: unset !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  color: inherit !important;
-  font: inherit !important;
-}
-
-.qol-message-center-active #igmSystemNewConversation .buttonContainer button .animationOverlay,
-.qol-message-center-active #igmSystemNewConversation .buttonContainer button .checkmark {
-  display: none !important;
-}
-
-/* Hot-reload cleanup from older Message Center experiments. */
-.qol-message-center-active #qol-message-center-actions,
-.qol-message-center-active #qol-message-center-send {
-  display: none !important;
 }
