@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.113",
+  "version": "2.0.0.114",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -41,6 +41,7 @@
         "js/features/oasisScanner.js",
         "js/features/rallyPointEnhancer.js",
         "js/features/igmEnhancer.js",
+        "js/modules/igm/autoSort.js",
         "js/modules/igm/messageCenter.js",
         "js/features/sendButtonsEnhancer.js",
         "js/features/chatSilencer.js",
