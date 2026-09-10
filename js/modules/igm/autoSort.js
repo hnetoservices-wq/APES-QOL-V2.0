@@ -7,7 +7,6 @@
   const OVERRIDES_KEY = 'qol_conversation_tag_overrides_v1';
   const SECRET_SOCIETY = 'Secret Society';
   const SYSTEM_CATEGORIES = new Set(['Unsorted', 'Kingdom', SECRET_SOCIETY, 'Private']);
-  const PRESERVE_CATEGORIES = new Set(['Spam', 'Trash']);
 
   let observer = null;
   let queued = false;
@@ -43,16 +42,17 @@
   }
 
   function inferCategory(row) {
+    // Only inspect elements Angular actually rendered. The original template keeps
+    // inactive room-type expressions in HTML comments, so matching innerHTML would
+    // falsely classify every group conversation as both types.
     if (
       row.querySelector('[class*="conversation_secretSociety_"]') ||
-      row.querySelector('.igmInfos .name.roomType7') ||
-      row.innerHTML.includes('ChatRoom.TYPE_SECRET_SOCIETY')
+      row.querySelector('.igmInfos .name.roomType7')
     ) return SECRET_SOCIETY;
 
     if (
       row.querySelector('[class*="conversation_kingdom_"]') ||
-      row.querySelector('.igmInfos .name.roomType5') ||
-      row.innerHTML.includes('ChatRoom.TYPE_KINGDOM')
+      row.querySelector('.igmInfos .name.roomType5')
     ) return 'Kingdom';
 
     return 'Private';
@@ -161,12 +161,12 @@
       let desired = valid.has(safeOverrides[stableKey]) ? safeOverrides[stableKey] : null;
       const existing = safeTags[id];
 
-      if (!desired && existing && !SYSTEM_CATEGORIES.has(existing)) {
-        if (valid.has(existing) || PRESERVE_CATEGORIES.has(existing)) {
-          desired = existing;
-          safeOverrides[stableKey] = existing;
-          overridesChanged = true;
-        }
+      // Preserve deliberate special/custom assignments that already existed before
+      // automatic sorting was introduced, and make them stable across new messages.
+      if (!desired && existing && !SYSTEM_CATEGORIES.has(existing) && valid.has(existing)) {
+        desired = existing;
+        safeOverrides[stableKey] = existing;
+        overridesChanged = true;
       }
 
       if (!desired) desired = inferCategory(row);
@@ -200,6 +200,9 @@
     requestAnimationFrame(applyAutoSort);
   }
 
+  // A selection made from a row's existing folder dropdown becomes a manual
+  // override. It is keyed to the actual conversation rather than the latest-message
+  // timestamp, so it survives when that conversation receives another message.
   document.addEventListener('click', event => {
     const option = event.target.closest('#qol-igm-menu .qol-igm-menu-option');
     if (!option) return;
