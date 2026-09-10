@@ -1,0 +1,104 @@
+/*
+ * APES Message Center - conversation-list tuning
+ * Keeps Travian's full-width conversation rows while making folder assignment
+ * a permanent control beneath the message preview.
+ */
+
+/* Keep + Tab at the very end even when custom tabs are rebuilt dynamically. */
+.qol-message-center-active #qol-message-center-tabs .qol-message-tab.create {
+  order: 999 !important;
+}
+
+/*
+ * Restore the stretched/native row treatment seen before APES card borders are
+ * applied. Rows stay edge-to-edge with only a faint horizontal separator.
+ */
+.qol-message-center-active .history li.igmConversationEntry.qol-igm-enhanced-row.qol-message-center-row {
+  box-sizing: border-box !important;
+  position: relative !important;
+  width: 100% !important;
+  min-height: 62px !important;
+  margin: 0 !important;
+  padding-right: 8px !important;
+  padding-bottom: 20px !important;
+  border: 0 !important;
+  border-bottom: 1px solid #ddd2c0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row:hover {
+  border: 0 !important;
+  border-bottom: 1px solid #cbb692 !important;
+  border-radius: 0 !important;
+  background: #fff8e9 !important;
+  box-shadow: none !important;
+}
+
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row.selected {
+  border: 0 !important;
+  border-bottom: 1px solid #c7aa73 !important;
+  border-radius: 0 !important;
+  background: #ead9b8 !important;
+  box-shadow: none !important;
+}
+
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row.new {
+  border: 0 !important;
+  border-bottom: 1px solid #dccb9f !important;
+  border-radius: 0 !important;
+  background: #fff0c8 !important;
+  box-shadow: none !important;
+}
+
+/* Keep the unread marker clear of the timestamp. */
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row.new::after {
+  top: 7px !important;
+  right: 6px !important;
+}
+
+/*
+ * Folder dropdown now sits beneath the preview instead of consuming the
+ * right-hand side of the preview line.
+ */
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row .qol-igm-row-folder {
+  position: absolute !important;
+  left: 50px !important;
+  right: auto !important;
+  top: auto !important;
+  bottom: 3px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  min-width: 52px !important;
+  max-width: 82px !important;
+  height: 17px !important;
+  margin: 0 !important;
+  padding: 1px 5px !important;
+  border: 1px solid #a8906c !important;
+  border-radius: 2px !important;
+  background: linear-gradient(to bottom, #fffdf8, #e8dfd1) !important;
+  color: #493720 !important;
+  font-size: 8px !important;
+  line-height: 13px !important;
+  z-index: 6 !important;
+  box-shadow: none !important;
+}
+
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row .qol-igm-row-folder:hover {
+  border-color: #725735 !important;
+  background: #fffaf0 !important;
+}
+
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row .qol-igm-row-folder.spam,
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row .qol-igm-row-folder.trash {
+  border-color: #a9625d !important;
+  background: linear-gradient(to bottom, #f8e1df, #e8c2bf) !important;
+  color: #7d2924 !important;
+}
+
+/* The preview can use the width previously reserved for the folder dropdown. */
+.qol-message-center-active .history li.igmConversationEntry.qol-message-center-row .linePreview {
+  padding-right: 4px !important;
+}
