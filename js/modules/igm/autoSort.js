@@ -4,9 +4,12 @@
   const FEATURE_KEY = 'igmEnhanced';
   const TAGS_KEY = 'qol_conversation_tags';
   const CUSTOM_FOLDERS_KEY = 'qol_custom_chat_tags';
-  const OVERRIDES_KEY = 'qol_conversation_tag_overrides_v1';
+  // v2 deliberately discards the short-lived v1 override map. v1 could have
+  // promoted stale Spam/Trash tags into permanent overrides during auto-sort.
+  const OVERRIDES_KEY = 'qol_conversation_tag_overrides_v2';
   const SECRET_SOCIETY = 'Secret Society';
   const SYSTEM_CATEGORIES = new Set(['Unsorted', 'Kingdom', SECRET_SOCIETY, 'Private']);
+  const MANUAL_ONLY_CATEGORIES = new Set(['Spam', 'Trash']);
 
   let observer = null;
   let queued = false;
@@ -42,9 +45,8 @@
   }
 
   function inferCategory(row) {
-    // Only inspect elements Angular actually rendered. The original template keeps
-    // inactive room-type expressions in HTML comments, so matching innerHTML would
-    // falsely classify every group conversation as both types.
+    // Automatic sorting is intentionally limited to these three destinations.
+    // Spam and Trash are NEVER inferred; only the user may place a chat there.
     if (
       row.querySelector('[class*="conversation_secretSociety_"]') ||
       row.querySelector('.igmInfos .name.roomType7')
@@ -161,9 +163,16 @@
       let desired = valid.has(safeOverrides[stableKey]) ? safeOverrides[stableKey] : null;
       const existing = safeTags[id];
 
-      // Preserve deliberate special/custom assignments that already existed before
-      // automatic sorting was introduced, and make them stable across new messages.
-      if (!desired && existing && !SYSTEM_CATEGORIES.has(existing) && valid.has(existing)) {
+      // Preserve old custom-folder assignments as deliberate user organization,
+      // but never adopt Spam/Trash from the raw tag store. Those two categories
+      // only survive when they exist in the explicit manual override map.
+      if (
+        !desired &&
+        existing &&
+        !SYSTEM_CATEGORIES.has(existing) &&
+        !MANUAL_ONLY_CATEGORIES.has(existing) &&
+        valid.has(existing)
+      ) {
         desired = existing;
         safeOverrides[stableKey] = existing;
         overridesChanged = true;
@@ -200,9 +209,8 @@
     requestAnimationFrame(applyAutoSort);
   }
 
-  // A selection made from a row's existing folder dropdown becomes a manual
-  // override. It is keyed to the actual conversation rather than the latest-message
-  // timestamp, so it survives when that conversation receives another message.
+  // A selection made from a row's existing folder dropdown becomes an explicit
+  // manual override. This is the ONLY path that can assign Spam or Trash.
   document.addEventListener('click', event => {
     const option = event.target.closest('#qol-igm-menu .qol-igm-menu-option');
     if (!option) return;
