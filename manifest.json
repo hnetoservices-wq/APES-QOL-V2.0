@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.115",
+  "version": "2.0.0.116",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -82,6 +82,7 @@
         "js/features/cpManager.js",
         "js/features/expansionReadinessPlanner.js",
         "js/features/tradeRouteOptimizer.js",
+        "js/features/tradeRouteTracker.js",
         "js/features/resourceCapacityTimer.js",
         "js/features/visualTribeSkins.js",
         "js/features/secretSocietyScanner.js",
