@@ -382,7 +382,9 @@
       button.setAttribute('tabindex', '0');
       button.title = 'Export or import APES QoL data';
       button.textContent = 'Backup & Restore';
-      footer.insertBefore(button, footer.querySelector('.qol-clear-cache-btn') || null);
+      const clearCacheButton = footer.querySelector('.qol-clear-cache-btn');
+      const referenceNode = clearCacheButton?.parentElement === footer ? clearCacheButton : null;
+      footer.insertBefore(button, referenceNode);
     }
     if (button.dataset.qolBackupBound !== 'true') {
       button.dataset.qolBackupBound = 'true';
