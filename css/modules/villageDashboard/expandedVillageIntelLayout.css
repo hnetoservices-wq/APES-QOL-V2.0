@@ -109,7 +109,7 @@
     padding-bottom: 2px !important;
 }
 
-/* Restored defensive power donut: lives in the free space below the troop table. */
+/* Role-aware power/composition donut in the free space below the troop table. */
 #apes-v2-village-overlay .apes-vd-defense-donut-card {
     margin-top: 10px !important;
     min-height: 230px !important;
@@ -143,8 +143,20 @@
     height: 156px !important;
     margin: 0 auto !important;
     border-radius: 50% !important;
-    background: conic-gradient(#5b9bd5 0 var(--apes-vd-defense-inf), #ed7d31 var(--apes-vd-defense-inf) 100%) !important;
     box-shadow: 0 4px 14px rgba(0,0,0,.24) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut.defense {
+    background: conic-gradient(#5b9bd5 0 var(--p1), #ed7d31 var(--p1) 100%) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut.composition {
+    background: conic-gradient(
+        #5b9bd5 0 var(--p1),
+        #ed7d31 var(--p1) var(--p2),
+        #a5a5a5 var(--p2) var(--p3),
+        #ffc000 var(--p3) 100%
+    ) !important;
 }
 
 #apes-v2-village-overlay .apes-vd-defense-donut::after {
@@ -159,7 +171,7 @@
 #apes-v2-village-overlay .apes-vd-defense-donut-legend {
     display: flex !important;
     flex-direction: column !important;
-    gap: 12px !important;
+    gap: 9px !important;
     min-width: 0 !important;
 }
 
@@ -178,13 +190,10 @@
     display: block !important;
 }
 
-#apes-v2-village-overlay .apes-vd-defense-donut-legend i.inf {
-    background: #5b9bd5 !important;
-}
-
-#apes-v2-village-overlay .apes-vd-defense-donut-legend i.cav {
-    background: #ed7d31 !important;
-}
+#apes-v2-village-overlay .apes-vd-defense-donut-legend i.inf { background: #5b9bd5 !important; }
+#apes-v2-village-overlay .apes-vd-defense-donut-legend i.cav { background: #ed7d31 !important; }
+#apes-v2-village-overlay .apes-vd-defense-donut-legend i.ram { background: #a5a5a5 !important; }
+#apes-v2-village-overlay .apes-vd-defense-donut-legend i.cat { background: #ffc000 !important; }
 
 #apes-v2-village-overlay .apes-vd-defense-donut-legend strong {
     color: #f3d786 !important;
