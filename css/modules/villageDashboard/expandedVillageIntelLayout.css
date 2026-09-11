@@ -1,5 +1,10 @@
 /* APES QoL v2 — Village Dashboard expanded intel layout refinements */
 
+/* The expand control now lives visually inside the Village column. */
+#apes-v2-village-overlay .apes-vd-row {
+    padding-right: 0 !important;
+}
+
 /* Keep the logic control alive for the existing module, but hide it visually. */
 #apes-v2-village-overlay .apes-vd-row > .apes-vd-expand-toggle {
     display: none !important;
