@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.125",
+  "version": "2.0.0.126",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -100,7 +100,6 @@
         "js/modules/villageDashboard/expandedVillageIntel.js",
         "js/modules/villageDashboard/expandedVillageIntelUiFix.js",
         "js/modules/villageDashboard/expandedVillageIntelLayout.js",
-        "js/modules/villageDashboard/expandedVillageSmithyLevels.js",
         "js/content.js"
       ],
       "css": [
@@ -113,6 +112,7 @@
         "css/modules/villageDashboard/expandedVillageIntel.css",
         "css/modules/villageDashboard/expandedVillageIntelPolish.css",
         "css/modules/villageDashboard/expandedVillageIntelLayout.css",
+        "css/modules/villageDashboard/armyDevelopment.css",
         "css/features/roadmaps.css",
         "css/modules/roadmaps/editor.css",
         "css/modules/roadmaps/buildingSteps.css",
