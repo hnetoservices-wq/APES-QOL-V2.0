@@ -12,8 +12,8 @@
   const ROUTE_SETTLE_MS = 180;
 
   let scanActive = false;
+  let scanResultState = 'idle';
   let scanProgress = { current: 0, total: 0, village: '' };
-  let patchTimer = null;
   let observer = null;
   let observedBody = null;
   const pendingResearch = new Map();
@@ -169,17 +169,20 @@
     const button = overlay.querySelector('[data-apes-vd-army-scan]');
     if (!button) return;
 
+    let nextText = null;
     if (scanActive) {
       button.classList.add('busy');
       button.setAttribute('aria-disabled', 'true');
-      const suffix = scanProgress.total
-        ? ` ${scanProgress.current}/${scanProgress.total}`
-        : '';
-      button.textContent = `Scanning Army${suffix}…`;
+      const suffix = scanProgress.total ? ` ${scanProgress.current}/${scanProgress.total}` : '';
+      nextText = `Scanning Army${suffix}…`;
     } else {
       button.classList.remove('busy');
       button.setAttribute('aria-disabled', 'false');
+      if (scanResultState === 'saved') nextText = 'Saved ✓';
+      if (scanResultState === 'error') nextText = 'Scan failed';
     }
+
+    if (nextText !== null && button.textContent !== nextText) button.textContent = nextText;
   }
 
   function formatScanTime(timestamp) {
@@ -210,22 +213,28 @@
     table.querySelectorAll('tbody > tr').forEach(row => {
       if (row.querySelector('.apes-vd-intel-empty')) {
         const empty = row.querySelector('.apes-vd-intel-empty');
-        if (empty) empty.colSpan = 3;
+        if (empty && empty.colSpan !== 3) empty.colSpan = 3;
         return;
       }
+
       let cell = row.querySelector(':scope > .apes-vd-smithy-level-cell');
       if (!cell) {
         cell = document.createElement('td');
         cell.className = 'apes-vd-smithy-level-cell';
         row.appendChild(cell);
       }
+
       const absoluteId = String(row.querySelector('[data-unit-id]')?.getAttribute('data-unit-id') || '');
       const rawLevel = absoluteId ? levels[absoluteId] : undefined;
       const level = Number(rawLevel);
-      if (rawLevel !== undefined && Number.isFinite(level) && level >= 0) {
-        cell.innerHTML = `<span class="apes-vd-smithy-level" title="Smithy level ${level}">Lv. ${level}</span>`;
-      } else {
-        cell.innerHTML = `<span class="apes-vd-smithy-level unknown" title="${saved?.scannedAt ? 'No Smithy level applies to this unit' : 'Run Scan Army to collect Smithy levels'}">—</span>`;
+      const known = rawLevel !== undefined && Number.isFinite(level) && level >= 0;
+      const stateKey = known ? `level:${level}` : (saved?.scannedAt ? 'na' : 'unscanned');
+
+      if (cell.dataset.apesSmithyState !== stateKey) {
+        cell.dataset.apesSmithyState = stateKey;
+        cell.innerHTML = known
+          ? `<span class="apes-vd-smithy-level" title="Smithy level ${level}">Lv. ${level}</span>`
+          : `<span class="apes-vd-smithy-level unknown" title="${saved?.scannedAt ? 'No Smithy level applies to this unit' : 'Run Scan Army to collect Smithy levels'}">—</span>`;
       }
     });
 
@@ -237,9 +246,10 @@
         status.className = 'apes-vd-smithy-source';
         source.appendChild(status);
       }
-      status.textContent = saved?.scannedAt
+      const nextText = saved?.scannedAt
         ? ` · Smithy: ${saved.loaded ? 'scanned' : 'not available'} · ${formatScanTime(saved.scannedAt)}`
         : ' · Smithy: not scanned';
+      if (status.textContent !== nextText) status.textContent = nextText;
     }
   }
 
@@ -267,13 +277,15 @@
     if (!ids.length) return;
 
     scanActive = true;
+    scanResultState = 'scanning';
     scanProgress = { current: 0, total: ids.length, village: '' };
     const originalHash = window.location.hash;
+    let failed = false;
     setButtonText();
 
     try {
-      // First refresh troop counts/history from Travian's Troop Overview.
-      await window.APES?.villageDashboardIntel?.refreshTroops?.();
+      const troopResult = await window.APES?.villageDashboardIntel?.refreshTroops?.();
+      if (troopResult === false) failed = true;
 
       for (let index = 0; index < villages.length; index += 1) {
         const village = villages[index];
@@ -290,12 +302,18 @@
         if (currentVillageId() !== villageId || /\/window:|\/location:/i.test(window.location.hash)) {
           window.location.hash = `#/page:village/villId:${villageId}`;
         }
-        await waitForVillage(villageId, 5000);
+        const arrived = await waitForVillage(villageId, 5000);
+        if (!arrived) {
+          failed = true;
+          continue;
+        }
         await sleep(VILLAGE_SETTLE_MS);
-        await loadVillageResearch(village);
+        const payload = await loadVillageResearch(village);
+        if (!payload?.loaded) failed = true;
         patchExpandedRows();
       }
     } catch (error) {
+      failed = true;
       console.warn('[APES Village Dashboard] Army + Smithy scan failed.', error);
     } finally {
       if (window.location.hash !== originalHash) {
@@ -303,6 +321,7 @@
         await sleep(250);
       }
       scanActive = false;
+      scanResultState = failed ? 'error' : 'saved';
       scanProgress = { current: 0, total: 0, village: '' };
       window.APES_VILLAGE_PALETTE?.refresh?.();
       window.dispatchEvent(new CustomEvent('apes_vd_smithy_levels_updated'));
@@ -320,9 +339,6 @@
     resolve(event.data?.payload || null);
   });
 
-  // Capture before expandedVillageIntel's document-level handler so Scan Army
-  // becomes the complete troop + Smithy account scan instead of only opening
-  // the Troop Overview.
   window.addEventListener('click', event => {
     const button = event.target?.closest?.('[data-apes-vd-army-scan]');
     if (!button) return;
@@ -345,7 +361,7 @@
     if (!scanActive) void fullArmyScan();
   }, true);
 
-  patchTimer = window.setInterval(() => {
+  window.setInterval(() => {
     installObserver();
     patchExpandedRows();
   }, 400);
