@@ -26,7 +26,9 @@
   });
 
   let snapshot = { generatedAt: 0, playerId: null, activeVillageId: '', villages: [] };
-  let tickTimer = null;
+  let wasOpen = false;
+  let ticks = 0;
+  let lastRenderSignature = '';
 
   function esc(value) {
     return String(value ?? '')
@@ -115,11 +117,6 @@
     }
   }
 
-  function scannedQueue(villageId) {
-    const queue = readScanStore()?.villages?.[String(villageId)]?.constructionQueue;
-    return Array.isArray(queue) ? queue : [];
-  }
-
   function buildingLookup(village) {
     const map = new Map();
     for (const building of village?.buildings || []) {
@@ -133,7 +130,7 @@
     return num(item?.locationId ?? item?.buildingLocationId ?? item?.location ?? item?.building?.locationId);
   }
 
-  function queueType(item, village, lookup) {
+  function queueType(item, lookup) {
     const direct = num(item?.buildingType ?? item?.buildingTypeId ?? item?.building?.buildingType);
     if (direct !== null) return direct;
     const locationId = queueLocation(item);
@@ -164,23 +161,24 @@
     return items;
   }
 
-  function constructionEvents(village) {
+  function constructionEvents(village, scanStore) {
     const now = Date.now();
     const lookup = buildingLookup(village);
-    const scanned = scannedQueue(village?.villageId);
+    const scanned = scanStore?.villages?.[String(village?.villageId)]?.constructionQueue;
+    const scannedQueue = Array.isArray(scanned) ? scanned : [];
     const occurrence = new Map();
     const events = [];
 
     constructionQueueItems(village).forEach((item, index) => {
       const locationId = queueLocation(item);
-      const type = queueType(item, village, lookup);
+      const type = queueType(item, lookup);
       const current = locationId === null ? null : num(lookup.get(String(locationId))?.lvl);
       const group = `${locationId ?? 'x'}:${type ?? 'x'}`;
       const ordinal = occurrence.get(group) || 0;
       occurrence.set(group, ordinal + 1);
       const explicit = num(item?.targetLevel ?? item?.targetLvl ?? item?.targetBuildingLevel ?? item?.levelTo ?? item?.toLevel);
       const level = explicit ?? (current !== null ? current + ordinal + 1 : null);
-      const at = findEndTime(item) || timestamp(scanned[index]?.finishAt);
+      const at = findEndTime(item) || timestamp(scannedQueue[index]?.finishAt);
       if (!at || at < now - 1000) return;
       const building = BUILDING_NAMES[type] || (type ? `Building ${type}` : 'Construction');
       events.push({
@@ -194,27 +192,15 @@
     return events;
   }
 
-  function trainingEvents(village) {
-    const times = futureTimes(village?.unitQueue);
+  function singleQueueEvent(village, source, label, kind) {
+    const times = futureTimes(source);
     if (!times.length) return [];
     return [{
       at: times[times.length - 1],
       villageId: String(village?.villageId || ''),
       villageName: String(village?.name || 'Village'),
-      label: 'Training queue finishes',
-      kind: 'training'
-    }];
-  }
-
-  function smithyEvents(village) {
-    const times = futureTimes(village?.smithyQueue);
-    if (!times.length) return [];
-    return [{
-      at: times[times.length - 1],
-      villageId: String(village?.villageId || ''),
-      villageName: String(village?.name || 'Village'),
-      label: 'Smithy upgrade finishes',
-      kind: 'smithy'
+      label,
+      kind
     }];
   }
 
@@ -222,12 +208,11 @@
     const at = timestamp(village?.celebrationEnd);
     if (!at || at < Date.now() - 1000) return [];
     const type = Number(village?.celebrationType);
-    const label = type === 2 ? 'Great celebration finishes' : type === 1 ? 'Small celebration finishes' : 'Celebration finishes';
     return [{
       at,
       villageId: String(village?.villageId || ''),
       villageName: String(village?.name || 'Village'),
-      label,
+      label: type === 2 ? 'Great celebration finishes' : type === 1 ? 'Small celebration finishes' : 'Celebration finishes',
       kind: 'celebration'
     }];
   }
@@ -251,7 +236,7 @@
       const levelText = String(alarm?.levelText || '').replace(/\s+/g, ' ').trim();
       const ready = alarmAt <= now;
       return {
-        at: ready ? now : alarmAt,
+        at: alarmAt,
         villageId: String(alarm?.villageId || ''),
         villageName: String(alarm?.villageName || 'Village'),
         label: ready ? `Free finish ready: ${name}${levelText ? ` ${levelText}` : ''}` : `Free finish: ${name}${levelText ? ` ${levelText}` : ''}`,
@@ -262,13 +247,18 @@
 
   function allEvents() {
     const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
-    const events = [
-      ...villages.flatMap(constructionEvents),
-      ...villages.flatMap(trainingEvents),
-      ...villages.flatMap(smithyEvents),
-      ...villages.flatMap(celebrationEvents),
-      ...alarmEvents()
-    ];
+    const scanStore = readScanStore();
+    const events = [];
+
+    for (const village of villages) {
+      events.push(
+        ...constructionEvents(village, scanStore),
+        ...singleQueueEvent(village, village?.unitQueue, 'Training queue finishes', 'training'),
+        ...singleQueueEvent(village, village?.smithyQueue, 'Smithy upgrade finishes', 'smithy'),
+        ...celebrationEvents(village)
+      );
+    }
+    events.push(...alarmEvents());
 
     const seen = new Set();
     return events
@@ -278,7 +268,11 @@
         seen.add(key);
         return true;
       })
-      .sort((left, right) => left.at - right.at)
+      .sort((left, right) => {
+        const leftReady = left.kind === 'alarm-ready' ? 0 : 1;
+        const rightReady = right.kind === 'alarm-ready' ? 0 : 1;
+        return leftReady - rightReady || left.at - right.at;
+      })
       .slice(0, MAX_EVENTS);
   }
 
@@ -331,33 +325,44 @@
     return panel;
   }
 
-  function render() {
-    const overlay = document.getElementById(OVERLAY_ID);
-    if (!overlay?.classList.contains('open')) return;
-    const panel = ensurePanel();
-    const list = panel?.querySelector('.apes-vd-next-events-list');
-    if (!list) return;
+  function render(force = false) {
+    try {
+      const overlay = document.getElementById(OVERLAY_ID);
+      if (!overlay?.classList.contains('open')) return;
+      const panel = ensurePanel();
+      const list = panel?.querySelector('.apes-vd-next-events-list');
+      if (!list) return;
 
-    const now = Date.now();
-    const events = allEvents();
-    list.innerHTML = events.length ? events.map(event => {
-      const ready = event.kind === 'alarm-ready';
-      const clock = ready || event.at <= now + 1000
-        ? 'NOW'
-        : new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-      return `
-        <div class="apes-vd-next-event ${esc(event.kind)}${ready ? ' ready' : ''}"
-             role="button" tabindex="0" data-next-event-village="${esc(event.villageId)}"
-             title="Open ${esc(event.villageName)}">
-          <span class="apes-vd-next-event-icon">${esc(iconFor(event.kind))}</span>
-          <span class="apes-vd-next-event-copy">
-            <strong>${esc(clock)} · ${esc(event.villageName)}</strong>
-            <small>${esc(event.label)}</small>
-          </span>
-          <span class="apes-vd-next-event-countdown" data-event-at="${event.at}">${esc(ready ? 'ready' : duration(event.at - now))}</span>
-        </div>
-      `;
-    }).join('') : '<span class="apes-vd-next-events-empty">No upcoming account events found.</span>';
+      const now = Date.now();
+      const events = allEvents();
+      const signature = JSON.stringify(events.map(event => [event.kind, event.villageId, event.at, event.label]));
+      if (!force && signature === lastRenderSignature) {
+        updateCountdowns();
+        return;
+      }
+      lastRenderSignature = signature;
+
+      list.innerHTML = events.length ? events.map(event => {
+        const ready = event.kind === 'alarm-ready';
+        const clock = ready || event.at <= now + 1000
+          ? 'NOW'
+          : new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+        return `
+          <div class="apes-vd-next-event ${esc(event.kind)}${ready ? ' ready' : ''}"
+               role="button" tabindex="0" data-next-event-village="${esc(event.villageId)}"
+               title="Open ${esc(event.villageName)}">
+            <span class="apes-vd-next-event-icon">${esc(iconFor(event.kind))}</span>
+            <span class="apes-vd-next-event-copy">
+              <strong>${esc(clock)} · ${esc(event.villageName)}</strong>
+              <small>${esc(event.label)}</small>
+            </span>
+            <span class="apes-vd-next-event-countdown" data-event-at="${event.at}">${esc(ready ? 'ready' : duration(event.at - now))}</span>
+          </div>
+        `;
+      }).join('') : '<span class="apes-vd-next-events-empty">No upcoming account events found.</span>';
+    } catch (error) {
+      console.warn('[APES Village Dashboard] Next Events render failed safely.', error);
+    }
   }
 
   function updateCountdowns() {
@@ -380,23 +385,36 @@
     if (event.data?.source !== BRIDGE_SOURCE || event.data?.type !== RESPONSE_TYPE) return;
     if (!event.data?.payload || typeof event.data.payload !== 'object') return;
     snapshot = event.data.payload;
-    render();
-  });
-
-  const observer = new MutationObserver(() => {
-    const overlay = document.getElementById(OVERLAY_ID);
-    if (!overlay) return;
-    ensurePanel();
-    if (overlay.classList.contains('open')) render();
-  });
-  observer.observe(document.documentElement, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-
-  tickTimer = window.setInterval(() => {
-    updateCountdowns();
     if (document.getElementById(OVERLAY_ID)?.classList.contains('open')) render();
-  }, 5000);
+  });
 
-  window.setInterval(updateCountdowns, 1000);
+  window.addEventListener('storage', event => {
+    if (event.key === ALARM_STORAGE_KEY && document.getElementById(OVERLAY_ID)?.classList.contains('open')) {
+      render(true);
+    }
+  });
+
+  // IMPORTANT: do not observe the dashboard subtree. Replacing the event list HTML
+  // would trigger that observer again and create an infinite render/mutation loop.
+  window.setInterval(() => {
+    const overlay = document.getElementById(OVERLAY_ID);
+    const open = !!overlay?.classList.contains('open');
+
+    if (open && !wasOpen) {
+      lastRenderSignature = '';
+      ensurePanel();
+      requestSnapshot();
+      render(true);
+    } else if (open) {
+      updateCountdowns();
+      ticks += 1;
+      if (ticks % 5 === 0) render();
+    }
+
+    if (!open) ticks = 0;
+    wasOpen = open;
+  }, 1000);
+
   ensurePanel();
   requestSnapshot();
 })();
