@@ -7,13 +7,16 @@
   const REQUEST_TYPE = 'REQUEST_SNAPSHOT';
   const RESPONSE_TYPE = 'VILLAGE_SNAPSHOT';
   const TROOP_CACHE_MS = 30000;
+  const HISTORY_PREFIX = 'apes_qol_village_army_history_v1';
+  const HISTORY_LIMIT = 365;
 
   const expanded = new Set();
-  const troopRowsByName = new Map();
+  const troopRows = new Map();
   let troopRowsUpdatedAt = 0;
   let troopScanPromise = null;
   let snapshot = { generatedAt: 0, activeVillageId: '', villages: [] };
   let wasOpen = false;
+  let scanState = 'idle';
 
   const UNIT_DATA = Object.freeze({
     1: [
@@ -23,7 +26,7 @@
     ],
     2: [
       ['Clubswinger',40,20,5,1], ['Spearman',10,35,60,1], ['Axeman',60,30,30,1],
-      ['Scout',0,10,5,1], ['Paladin',55,100,40,2], ['Teutonic Knight',150,50,75,3],
+      ['Scout',0,10,5,1], ['Paladin',55,105,40,2], ['Teutonic Knight',150,50,75,3],
       ['Ram',65,30,80,3], ['Catapult',50,60,10,6], ['Chief',40,60,40,4], ['Settler',10,80,80,1]
     ],
     3: [
@@ -33,8 +36,9 @@
     ]
   });
 
-  const BUILDINGS = Object.freeze([
-    [19, 'Barracks'], [20, 'Stables'], [46, 'Healing Tent'], [12, 'Smithy'], [22, 'Academy']
+  const UNIT_COLORS = Object.freeze([
+    '#5b9bd5', '#ed7d31', '#70ad47', '#ffc000', '#a5a5a5',
+    '#4472c4', '#c55a11', '#255e91', '#8064a2', '#00b0f0'
   ]);
 
   function esc(value) {
@@ -50,13 +54,16 @@
     return String(value ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
   }
 
-  function num(value) {
-    const number = Number(value);
-    return Number.isFinite(number) ? number : null;
-  }
-
   function formatInt(value) {
     return Math.round(Number(value) || 0).toLocaleString();
+  }
+
+  function formatCompact(value) {
+    const number = Math.round(Number(value) || 0);
+    const abs = Math.abs(number);
+    if (abs >= 1000000) return `${(number / 1000000).toFixed(abs >= 10000000 ? 0 : 1)}m`;
+    if (abs >= 1000) return `${(number / 1000).toFixed(abs >= 10000 ? 0 : 1)}k`;
+    return String(number);
   }
 
   function requestSnapshot() {
@@ -89,55 +96,38 @@
     return `#/page:village${villageId ? `/villId:${villageId}` : ''}/window:villagesOverview/tab:Troops`;
   }
 
+  function villageIdFromOverviewRow(row, link) {
+    const raw = [
+      row?.dataset?.villageId,
+      link?.getAttribute?.('href'),
+      link?.getAttribute?.('clickable'),
+      row?.getAttribute?.('clickable')
+    ].filter(Boolean).join(' ');
+    return raw.match(/(?:villId|villageId|setActiveVillage)[^\d]{0,24}(\d+)/i)?.[1] || '';
+  }
+
   function parseOwnTroopsTable(table) {
     const headerIds = Array.from(table.querySelectorAll('thead.troopsIconRow th i[unit-icon][data]'))
       .map(icon => String(icon.getAttribute('data') || '').trim());
-    const rows = Array.from(table.querySelectorAll('tbody tr'));
-    const parsed = new Map();
+    const parsed = [];
 
-    rows.forEach(row => {
+    Array.from(table.querySelectorAll('tbody tr')).forEach(row => {
       const cells = Array.from(row.querySelectorAll(':scope > td'));
-      const name = cells[0]?.querySelector('a')?.textContent?.replace(/\s+/g, ' ').trim();
+      const link = cells[0]?.querySelector('a');
+      const name = link?.textContent?.replace(/\s+/g, ' ').trim();
       if (!name || cells.length < 2) return;
       const units = {};
       for (let index = 1; index < cells.length; index += 1) {
         const key = headerIds[index - 1] || String(index);
         units[key] = Math.max(0, Number.parseInt(cells[index].textContent.replace(/[^\d-]/g, ''), 10) || 0);
       }
-      parsed.set(norm(name), { name, units });
+      parsed.push({
+        villageId: villageIdFromOverviewRow(row, link),
+        name,
+        units
+      });
     });
     return parsed;
-  }
-
-  async function refreshOverviewTroops(force = false) {
-    if (!force && troopRowsByName.size && Date.now() - troopRowsUpdatedAt < TROOP_CACHE_MS) return true;
-    if (troopScanPromise) return troopScanPromise;
-
-    troopScanPromise = (async () => {
-      const previousHash = location.hash;
-      try {
-        location.hash = overviewRoute();
-        const table = await waitFor('.tabTroops .tabContentOwnTroops .ownTroops table.villagesTable, .ownTroops table.villagesTable', 5500);
-        if (!table) return false;
-        const parsed = parseOwnTroopsTable(table);
-        if (!parsed.size) return false;
-        troopRowsByName.clear();
-        parsed.forEach((value, key) => troopRowsByName.set(key, value));
-        troopRowsUpdatedAt = Date.now();
-        return true;
-      } catch (error) {
-        console.warn('[APES Village Dashboard] Troop overview scan failed.', error);
-        return false;
-      } finally {
-        if (location.hash !== previousHash) location.hash = previousHash;
-        window.setTimeout(requestSnapshot, 120);
-        troopScanPromise = null;
-      }
-    })();
-
-    const result = await troopScanPromise;
-    renderExpandedRows();
-    return result;
   }
 
   function absoluteUnitId(tribeId, localIndex) {
@@ -146,8 +136,14 @@
     return localIndex;
   }
 
+  function troopOverviewForVillage(village) {
+    const byId = troopRows.get(`id:${String(village?.villageId || '')}`);
+    if (byId) return byId;
+    return troopRows.get(`name:${norm(village?.name)}`) || null;
+  }
+
   function troopCounts(village) {
-    const overview = troopRowsByName.get(norm(village?.name));
+    const overview = troopOverviewForVillage(village);
     if (overview) {
       const counts = [];
       for (let localIndex = 1; localIndex <= 10; localIndex += 1) {
@@ -179,32 +175,7 @@
     return { counts, source: 'Village cache' };
   }
 
-  function smithyLevels(village) {
-    const levels = Array(10).fill(null);
-    const seen = new WeakSet();
-    const walk = (value, depth = 0) => {
-      if (!value || depth > 7 || typeof value !== 'object' || seen.has(value)) return;
-      seen.add(value);
-      const unitRaw = num(value.unitId ?? value.troopId ?? value.unitType ?? value.unitTypeId);
-      const levelRaw = num(value.level ?? value.lvl ?? value.researchLevel ?? value.upgradeLevel ?? value.currentLevel);
-      if (unitRaw !== null && levelRaw !== null && levelRaw >= 0 && levelRaw <= 20) {
-        const tribe = Number(village?.tribeId);
-        let local = unitRaw;
-        if (tribe >= 1 && tribe <= 3 && unitRaw > (tribe - 1) * 10 && unitRaw <= tribe * 10) local = unitRaw - (tribe - 1) * 10;
-        if (local >= 1 && local <= 10) levels[local - 1] = Math.max(levels[local - 1] ?? 0, levelRaw);
-      }
-      (Array.isArray(value) ? value : Object.values(value)).forEach(child => walk(child, depth + 1));
-    };
-    walk(village?.smithyQueue);
-    return levels;
-  }
-
-  function improvedStat(base, upkeep, level) {
-    const lvl = Number.isFinite(Number(level)) ? Math.max(0, Math.min(20, Number(level))) : 0;
-    return base + (base + (300 * upkeep / 7)) * (Math.pow(1.007, lvl) - 1);
-  }
-
-  function powerSummary(village, counts, levels) {
+  function powerSummary(village, counts) {
     const data = UNIT_DATA[Number(village?.tribeId)] || [];
     let attack = 0;
     let defInf = 0;
@@ -212,96 +183,245 @@
     counts.forEach((count, index) => {
       const unit = data[index];
       if (!unit || !count) return;
-      const level = levels[index] ?? 0;
-      attack += count * improvedStat(unit[1], unit[4], level);
-      defInf += count * improvedStat(unit[2], unit[4], level);
-      defCav += count * improvedStat(unit[3], unit[4], level);
+      attack += count * unit[1];
+      defInf += count * unit[2];
+      defCav += count * unit[3];
     });
     const defenseAverage = (defInf + defCav) / 2;
-    const type = defenseAverage > attack * 1.1 ? 'Defense' : attack > defenseAverage * 1.1 ? 'Offense' : 'Mixed';
-    return { attack, defInf, defCav, type };
-  }
-
-  function buildingLevel(village, type) {
-    const matches = (village?.buildings || []).filter(building => Number(building?.buildingType) === Number(type));
-    if (!matches.length) return '—';
-    return Math.max(...matches.map(building => Number(building?.lvl) || 0));
-  }
-
-  function queueEntries(village) {
-    const found = [];
-    const seen = new WeakSet();
-    const walk = (value, depth = 0) => {
-      if (!value || depth > 7 || typeof value !== 'object' || seen.has(value)) return;
-      seen.add(value);
-      const unitId = num(value.unitId ?? value.troopId ?? value.unitType ?? value.unitTypeId);
-      const amount = num(value.amount ?? value.count ?? value.number ?? value.quantity ?? value.units);
-      const buildingType = num(value.buildingType ?? value.buildingTypeId);
-      if (unitId !== null && amount !== null && amount > 0) found.push({ unitId, amount, buildingType });
-      (Array.isArray(value) ? value : Object.values(value)).forEach(child => walk(child, depth + 1));
+    return {
+      attack,
+      defInf,
+      defCav,
+      type: attack > defenseAverage ? 'Offense' : 'Defense'
     };
-    walk(village?.unitQueue);
-    return found;
   }
 
-  function trainingForBuilding(village, buildingType) {
-    const tribe = Number(village?.tribeId);
-    const entries = queueEntries(village);
-    const matched = entries.filter(entry => {
-      if (entry.buildingType !== null) return Number(entry.buildingType) === Number(buildingType);
-      let local = Number(entry.unitId);
-      if (tribe >= 1 && tribe <= 3 && local > (tribe - 1) * 10 && local <= tribe * 10) local -= (tribe - 1) * 10;
-      if (buildingType === 19) return local >= 1 && local <= 3;
-      if (buildingType === 20) return local >= 4 && local <= 6;
+  function historyStorageKey() {
+    const playerId = String(snapshot?.playerId ?? 'unknown');
+    return `${HISTORY_PREFIX}:${location.host}:${playerId}`;
+  }
+
+  function readHistoryStore() {
+    try {
+      const parsed = JSON.parse(localStorage.getItem(historyStorageKey()) || '{}');
+      if (!parsed || typeof parsed !== 'object') return { villages: {} };
+      if (!parsed.villages || typeof parsed.villages !== 'object') parsed.villages = {};
+      return parsed;
+    } catch (_error) {
+      return { villages: {} };
+    }
+  }
+
+  function writeHistoryStore(store) {
+    try {
+      localStorage.setItem(historyStorageKey(), JSON.stringify(store));
+      return true;
+    } catch (error) {
+      console.warn('[APES Village Dashboard] Could not save army history.', error);
       return false;
-    });
-    if (!matched.length) return '—';
-    return matched.slice(0, 2).map(entry => {
-      let local = Number(entry.unitId);
-      if (tribe >= 1 && tribe <= 3 && local > (tribe - 1) * 10 && local <= tribe * 10) local -= (tribe - 1) * 10;
-      const name = UNIT_DATA[tribe]?.[local - 1]?.[0] || `Unit ${entry.unitId}`;
-      return `${formatInt(entry.amount)} ${name}`;
-    }).join(', ');
+    }
   }
 
-  function unitRowsHtml(village, counts, levels) {
+  function localDayKey(timestamp) {
+    const date = new Date(timestamp);
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function historyForVillage(villageId) {
+    const store = readHistoryStore();
+    const rows = store.villages?.[String(villageId)];
+    return Array.isArray(rows) ? rows.slice().sort((a, b) => Number(a.timestamp) - Number(b.timestamp)) : [];
+  }
+
+  function recordTroopHistory() {
+    const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
+    if (!villages.length) return 0;
+    const now = Date.now();
+    const day = localDayKey(now);
+    const store = readHistoryStore();
+    let saved = 0;
+
+    villages.forEach(village => {
+      const current = troopCounts(village);
+      if (current.source !== 'Troop Overview') return;
+      const villageId = String(village?.villageId || '');
+      if (!villageId) return;
+      const rows = Array.isArray(store.villages[villageId]) ? store.villages[villageId] : [];
+      const entry = {
+        timestamp: now,
+        day,
+        villageName: String(village?.name || ''),
+        tribeId: Number(village?.tribeId) || 0,
+        counts: current.counts.slice(0, 10).map(value => Math.max(0, Number(value) || 0))
+      };
+      const sameDay = rows.findIndex(item => item?.day === day);
+      if (sameDay >= 0) rows[sameDay] = entry;
+      else rows.push(entry);
+      rows.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
+      store.villages[villageId] = rows.slice(-HISTORY_LIMIT);
+      saved += 1;
+    });
+
+    if (saved) writeHistoryStore(store);
+    return saved;
+  }
+
+  async function refreshOverviewTroops(force = false) {
+    if (!force && troopRows.size && Date.now() - troopRowsUpdatedAt < TROOP_CACHE_MS) return true;
+    if (troopScanPromise) return troopScanPromise;
+
+    scanState = 'scanning';
+    renderExpandedRows();
+
+    troopScanPromise = (async () => {
+      const previousHash = location.hash;
+      try {
+        location.hash = overviewRoute();
+        const table = await waitFor('.tabTroops .tabContentOwnTroops .ownTroops table.villagesTable, .ownTroops table.villagesTable', 5500);
+        if (!table) throw new Error('Troop Overview table not found');
+        const parsed = parseOwnTroopsTable(table);
+        if (!parsed.length) throw new Error('No village troop rows found');
+
+        troopRows.clear();
+        parsed.forEach(row => {
+          if (row.villageId) troopRows.set(`id:${row.villageId}`, row);
+          troopRows.set(`name:${norm(row.name)}`, row);
+        });
+        troopRowsUpdatedAt = Date.now();
+        const saved = recordTroopHistory();
+        scanState = saved ? 'saved' : 'ready';
+        window.dispatchEvent(new CustomEvent('apes_vd_army_history_updated', { detail: { villages: saved } }));
+        return true;
+      } catch (error) {
+        console.warn('[APES Village Dashboard] Troop overview scan failed.', error);
+        scanState = 'error';
+        return false;
+      } finally {
+        if (location.hash !== previousHash) location.hash = previousHash;
+        window.setTimeout(requestSnapshot, 120);
+        troopScanPromise = null;
+      }
+    })();
+
+    const result = await troopScanPromise;
+    renderExpandedRows();
+    return result;
+  }
+
+  function unitRowsHtml(village, counts) {
     const data = UNIT_DATA[Number(village?.tribeId)] || [];
     const rows = counts.map((count, index) => {
       if (!count) return '';
-      const unit = data[index];
-      const name = unit?.[0] || `Unit ${index + 1}`;
-      const level = levels[index];
-      return `<tr><td>${esc(name)}</td><td>${esc(formatInt(count))}</td><td>${level === null ? '—' : esc(level)}</td></tr>`;
+      const name = data[index]?.[0] || `Unit ${index + 1}`;
+      return `<tr><td>${esc(name)}</td><td>${esc(formatInt(count))}</td></tr>`;
     }).filter(Boolean).join('');
-    return rows || '<tr><td colspan="3" class="apes-vd-intel-empty">No own troops found.</td></tr>';
+    return rows || '<tr><td colspan="2" class="apes-vd-intel-empty">No own troops found.</td></tr>';
   }
 
-  function donutHtml(power) {
-    const total = power.defInf + power.defCav;
-    const infPct = total > 0 ? Math.max(0, Math.min(100, power.defInf / total * 100)) : 50;
-    return `
-      <div class="apes-vd-intel-chart-title">Defensive Power by Type</div>
-      <div class="apes-vd-intel-chart-body">
-        <div class="apes-vd-intel-donut" style="--apes-vd-inf:${infPct.toFixed(2)}%"><span></span></div>
-        <div class="apes-vd-intel-legend">
-          <div><i class="inf"></i><span>Anti Infantry</span><strong>${esc(formatInt(power.defInf))}</strong></div>
-          <div><i class="cav"></i><span>Anti Cavalry</span><strong>${esc(formatInt(power.defCav))}</strong></div>
-        </div>
-      </div>`;
+  function niceMaximum(value) {
+    const raw = Math.max(1, Number(value) || 1);
+    const magnitude = Math.pow(10, Math.floor(Math.log10(raw)));
+    const normal = raw / magnitude;
+    const step = normal <= 1 ? 1 : normal <= 2 ? 2 : normal <= 5 ? 5 : 10;
+    return step * magnitude;
+  }
+
+  function chartDate(timestamp) {
+    const date = new Date(Number(timestamp));
+    return `${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}`;
+  }
+
+  function fullScanDate(timestamp) {
+    const date = new Date(Number(timestamp));
+    if (!Number.isFinite(date.getTime())) return '—';
+    return date.toLocaleString(undefined, { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
+  function lineChartSvg(scans, series) {
+    const width = 620;
+    const height = 224;
+    const left = 52;
+    const right = 16;
+    const top = 14;
+    const bottom = 34;
+    const plotWidth = width - left - right;
+    const plotHeight = height - top - bottom;
+    const rawMax = Math.max(1, ...series.flatMap(item => item.values.map(value => Number(value) || 0)));
+    const max = niceMaximum(rawMax);
+    const xAt = index => scans.length <= 1 ? left + plotWidth / 2 : left + (plotWidth * index / (scans.length - 1));
+    const yAt = value => top + plotHeight - (Math.max(0, Number(value) || 0) / max) * plotHeight;
+
+    const grid = [0, 0.25, 0.5, 0.75, 1].map(ratio => {
+      const y = top + plotHeight - ratio * plotHeight;
+      return `<line x1="${left}" y1="${y.toFixed(1)}" x2="${width - right}" y2="${y.toFixed(1)}" class="apes-vd-dev-gridline"/><text x="${left - 8}" y="${(y + 3).toFixed(1)}" class="apes-vd-dev-axis" text-anchor="end">${esc(formatCompact(max * ratio))}</text>`;
+    }).join('');
+
+    const paths = series.map(item => {
+      const points = item.values.map((value, index) => `${xAt(index).toFixed(1)},${yAt(value).toFixed(1)}`).join(' ');
+      const dots = item.values.map((value, index) => `<circle cx="${xAt(index).toFixed(1)}" cy="${yAt(value).toFixed(1)}" r="2.6" fill="${item.color}"><title>${esc(item.name)} · ${esc(formatInt(value))} · ${esc(fullScanDate(scans[index]?.timestamp))}</title></circle>`).join('');
+      return `<polyline points="${points}" fill="none" stroke="${item.color}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>${dots}`;
+    }).join('');
+
+    const labelIndexes = scans.length <= 1 ? [0] : scans.length === 2 ? [0, 1] : [0, Math.floor((scans.length - 1) / 2), scans.length - 1];
+    const labels = [...new Set(labelIndexes)].map(index => `<text x="${xAt(index).toFixed(1)}" y="${height - 10}" class="apes-vd-dev-axis" text-anchor="middle">${esc(chartDate(scans[index]?.timestamp))}</text>`).join('');
+
+    return `<svg class="apes-vd-dev-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Development chart">${grid}${paths}${labels}</svg>`;
+  }
+
+  function seriesLegend(series) {
+    return `<div class="apes-vd-dev-legend">${series.map(item => `<span><i style="background:${item.color}"></i><b>${esc(item.name)}</b><em>${esc(formatCompact(item.values[item.values.length - 1] || 0))}</em></span>`).join('')}</div>`;
+  }
+
+  function armySeries(village, scans) {
+    const data = UNIT_DATA[Number(village?.tribeId)] || [];
+    return Array.from({ length: 10 }, (_, index) => ({
+      name: data[index]?.[0] || `Unit ${index + 1}`,
+      color: UNIT_COLORS[index],
+      values: scans.map(scan => Math.max(0, Number(scan?.counts?.[index]) || 0))
+    })).filter(item => item.values.some(value => value > 0));
+  }
+
+  function powerSeries(village, scans, villageType) {
+    const powers = scans.map(scan => powerSummary(village, Array.isArray(scan?.counts) ? scan.counts : []));
+    if (villageType === 'Offense') {
+      return [{ name: 'Offensive Power', color: '#d65c3a', values: powers.map(power => power.attack) }];
+    }
+    return [
+      { name: 'Anti Infantry', color: '#5b9bd5', values: powers.map(power => power.defInf) },
+      { name: 'Anti Cavalry', color: '#ed7d31', values: powers.map(power => power.defCav) }
+    ];
+  }
+
+  function developmentCard(title, subtitle, scans, series) {
+    if (!scans.length) {
+      return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">No army history yet. Run a troop scan to create the first daily snapshot.</div></section>`;
+    }
+    if (!series.length) {
+      return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">No units to graph yet.</div></section>`;
+    }
+    return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div>${lineChartSvg(scans, series)}${seriesLegend(series)}</section>`;
+  }
+
+  function scanButtonText() {
+    if (scanState === 'scanning') return 'Scanning…';
+    if (scanState === 'saved') return 'Saved ✓';
+    if (scanState === 'error') return 'Scan failed';
+    return 'Scan Army';
   }
 
   function detailHtml(village) {
-    const { counts, source } = troopCounts(village);
-    const levels = smithyLevels(village);
-    const power = powerSummary(village, counts, levels);
+    const current = troopCounts(village);
+    const scans = historyForVillage(village?.villageId);
+    const latestCounts = scans.length ? scans[scans.length - 1].counts : current.counts;
+    const power = powerSummary(village, latestCounts || []);
     const coordinates = Number.isFinite(Number(village?.x)) && Number.isFinite(Number(village?.y)) ? `(${village.x}|${village.y})` : '';
     const badges = [village?.isMainVillage ? 'Capital' : '', village?.isTown ? 'City' : ''].filter(Boolean);
-    const knownLevels = levels.filter(level => level !== null).length;
-
-    const buildings = BUILDINGS.map(([type, label]) => {
-      const training = type === 19 || type === 20 ? trainingForBuilding(village, type) : type === 12 && village?.smithyQueue ? 'Upgrade active' : '—';
-      return `<tr><td>${esc(label)}</td><td>${esc(buildingLevel(village, type))}</td><td>${esc(training)}</td></tr>`;
-    }).join('');
+    const latest = scans[scans.length - 1];
+    const army = armySeries(village, scans);
+    const powerLines = powerSeries(village, scans, power.type);
 
     return `
       <div class="apes-vd-intel-head">
@@ -309,22 +429,24 @@
           <strong>${esc(village?.name || 'Village')}</strong>
           <span>${esc([coordinates, Number.isFinite(Number(village?.population)) ? `${formatInt(village.population)} pop` : ''].filter(Boolean).join(' · '))}</span>
         </div>
-        <div class="apes-vd-intel-badges">${badges.map(badge => `<span>${esc(badge)}</span>`).join('')}</div>
+        <div class="apes-vd-intel-actions">
+          <div class="apes-vd-intel-badges">${badges.map(badge => `<span>${esc(badge)}</span>`).join('')}</div>
+          <span class="apes-vd-army-scan ${scanState === 'scanning' ? 'busy' : ''}" role="button" tabindex="0" data-apes-vd-army-scan="1">${esc(scanButtonText())}</span>
+        </div>
       </div>
-      <div class="apes-vd-intel-grid">
+      <div class="apes-vd-intel-grid apes-vd-intel-grid-history">
         <section class="apes-vd-intel-left">
           <div class="apes-vd-intel-type"><span>Village Type</span><strong>${esc(power.type)}</strong></div>
           <table class="apes-vd-intel-table apes-vd-intel-units">
-            <thead><tr><th>Village Units</th><th>Count</th><th>Level</th></tr></thead>
-            <tbody>${unitRowsHtml(village, counts, levels)}</tbody>
+            <thead><tr><th>Unit</th><th>Count</th></tr></thead>
+            <tbody>${unitRowsHtml(village, current.counts)}</tbody>
           </table>
-          <table class="apes-vd-intel-table apes-vd-intel-buildings">
-            <thead><tr><th>Training</th><th>Level</th><th>Current Queue</th></tr></thead>
-            <tbody>${buildings}</tbody>
-          </table>
-          <div class="apes-vd-intel-source">Troops: ${esc(source)} · Smithy levels detected: ${knownLevels}/10</div>
+          <div class="apes-vd-intel-source">Troops: ${esc(current.source)} · History: ${scans.length} daily scan${scans.length === 1 ? '' : 's'}${latest ? ` · Last: ${esc(fullScanDate(latest.timestamp))}` : ''}</div>
         </section>
-        <section class="apes-vd-intel-chart">${donutHtml(power)}</section>
+        <section class="apes-vd-development">
+          ${developmentCard('Army Development', 'Each troop type keeps the same color across scans.', scans, army)}
+          ${developmentCard('Power Development', power.type === 'Offense' ? 'Offensive power' : 'Anti Infantry + Anti Cavalry defensive power', scans, powerLines)}
+        </section>
       </div>`;
   }
 
@@ -379,6 +501,16 @@
   }
 
   document.addEventListener('click', event => {
+    const scan = event.target.closest?.('[data-apes-vd-army-scan]');
+    if (scan) {
+      const overlay = document.getElementById(OVERLAY_ID);
+      if (!overlay?.contains(scan)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      if (scanState !== 'scanning') void refreshOverviewTroops(true);
+      return;
+    }
+
     const toggle = event.target.closest?.('.apes-vd-expand-toggle[data-apes-vd-expand]');
     if (!toggle) return;
     const overlay = document.getElementById(OVERLAY_ID);
@@ -390,6 +522,13 @@
     if (expanded.has(villageId)) expanded.delete(villageId); else expanded.add(villageId);
     renderExpandedRows();
     if (expanded.has(villageId)) void refreshOverviewTroops(false);
+  }, true);
+
+  document.addEventListener('keydown', event => {
+    const scan = event.target.closest?.('[data-apes-vd-army-scan]');
+    if (!scan || !['Enter', ' '].includes(event.key)) return;
+    event.preventDefault();
+    scan.click();
   }, true);
 
   window.addEventListener('message', event => {
@@ -414,6 +553,7 @@
   window.APES = window.APES || {};
   window.APES.villageDashboardIntel = Object.freeze({
     refreshTroops: () => refreshOverviewTroops(true),
+    historyForVillage: villageId => historyForVillage(villageId),
     collapseAll: () => { expanded.clear(); renderExpandedRows(); }
   });
 })();
