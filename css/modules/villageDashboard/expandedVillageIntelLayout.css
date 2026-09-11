@@ -80,18 +80,10 @@
     font-size: 0 !important;
 }
 
-/* Count gets the remaining room; level stays compact. */
+/* Count gets the remaining room. */
 #apes-v2-village-overlay .apes-vd-intel-units th:nth-child(2),
 #apes-v2-village-overlay .apes-vd-intel-units td:nth-child(2) {
     width: auto !important;
-    text-align: right !important;
-}
-
-#apes-v2-village-overlay .apes-vd-intel-units th:nth-child(3),
-#apes-v2-village-overlay .apes-vd-intel-units td:nth-child(3) {
-    width: 48px !important;
-    min-width: 48px !important;
-    max-width: 48px !important;
     text-align: right !important;
 }
 
@@ -115,4 +107,99 @@
 #apes-v2-village-overlay .apes-vd-intel-units tbody td:first-child {
     padding-top: 2px !important;
     padding-bottom: 2px !important;
+}
+
+/* Restored defensive power donut: lives in the free space below the troop table. */
+#apes-v2-village-overlay .apes-vd-defense-donut-card {
+    margin-top: 10px !important;
+    min-height: 230px !important;
+    padding: 12px 10px !important;
+    box-sizing: border-box !important;
+    border: 1px solid rgba(204,173,105,.28) !important;
+    border-radius: 5px !important;
+    background: #1d201e !important;
+    color: #eee7d8 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-title {
+    margin-bottom: 14px !important;
+    color: #e4dccd !important;
+    font-size: 12px !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-body {
+    display: grid !important;
+    grid-template-columns: 160px minmax(0,1fr) !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 14px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut {
+    position: relative !important;
+    width: 156px !important;
+    height: 156px !important;
+    margin: 0 auto !important;
+    border-radius: 50% !important;
+    background: conic-gradient(#5b9bd5 0 var(--apes-vd-defense-inf), #ed7d31 var(--apes-vd-defense-inf) 100%) !important;
+    box-shadow: 0 4px 14px rgba(0,0,0,.24) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut::after {
+    content: "" !important;
+    position: absolute !important;
+    inset: 24px !important;
+    border-radius: 50% !important;
+    background: #1f2220 !important;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.03) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-legend {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 12px !important;
+    min-width: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-legend > div {
+    display: grid !important;
+    grid-template-columns: 8px minmax(0,1fr) auto !important;
+    align-items: center !important;
+    gap: 6px !important;
+    color: #ddd5c6 !important;
+    font-size: 9px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-legend i {
+    width: 7px !important;
+    height: 7px !important;
+    display: block !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-legend i.inf {
+    background: #5b9bd5 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-legend i.cav {
+    background: #ed7d31 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-defense-donut-legend strong {
+    color: #f3d786 !important;
+    font-family: Consolas,monospace !important;
+    font-size: 9.5px !important;
+    white-space: nowrap !important;
+}
+
+@media (max-width: 1180px) {
+    #apes-v2-village-overlay .apes-vd-defense-donut-body {
+        grid-template-columns: 1fr !important;
+    }
+    #apes-v2-village-overlay .apes-vd-defense-donut-legend {
+        max-width: 210px !important;
+        margin: 0 auto !important;
+        width: 100% !important;
+    }
 }
