@@ -1,8 +1,9 @@
 /* APES QoL v2 — Village army development history */
 
 #apes-v2-village-overlay .apes-vd-intel-grid-history {
-    grid-template-columns: 330px minmax(640px, 1fr) !important;
+    grid-template-columns: 330px minmax(430px, 1fr) 285px !important;
     align-items: start !important;
+    gap: 12px !important;
 }
 
 #apes-v2-village-overlay .apes-vd-intel-actions {
@@ -46,6 +47,40 @@
 #apes-v2-village-overlay .apes-vd-army-scan.busy {
     opacity: .62 !important;
     cursor: progress !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-type {
+    grid-template-columns: 150px minmax(0,1fr) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-role-select {
+    all: unset !important;
+    display: block !important;
+    width: 100% !important;
+    height: 30px !important;
+    padding: 0 28px 0 9px !important;
+    box-sizing: border-box !important;
+    border-left: 1px solid rgba(199,166,97,.16) !important;
+    background:
+        linear-gradient(45deg, transparent 50%, #e6cb82 50%) calc(100% - 13px) 12px/5px 5px no-repeat,
+        linear-gradient(135deg, #e6cb82 50%, transparent 50%) calc(100% - 8px) 12px/5px 5px no-repeat,
+        rgba(177,135,52,.09) !important;
+    color: #f5d87e !important;
+    font-family: Arial,sans-serif !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    cursor: pointer !important;
+}
+
+#apes-v2-village-overlay .apes-vd-role-select:focus {
+    background-color: rgba(177,135,52,.16) !important;
+    outline: 1px solid rgba(226,193,116,.4) !important;
+    outline-offset: -1px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-role-select option {
+    background: #29251e !important;
+    color: #f1eadb !important;
 }
 
 #apes-v2-village-overlay .apes-vd-intel-units th:first-child,
@@ -108,7 +143,7 @@
 #apes-v2-village-overlay .apes-vd-dev-svg {
     display: block !important;
     width: 100% !important;
-    height: 184px !important;
+    height: 170px !important;
     overflow: visible !important;
 }
 
@@ -150,7 +185,7 @@
 }
 
 #apes-v2-village-overlay .apes-vd-dev-legend b {
-    max-width: 100px !important;
+    max-width: 92px !important;
     overflow: hidden !important;
     font-weight: 700 !important;
     text-overflow: ellipsis !important;
@@ -177,8 +212,109 @@
     text-align: center !important;
 }
 
-@media (max-width: 1050px) {
+#apes-v2-village-overlay .apes-vd-contribution {
+    min-width: 0 !important;
+    padding: 10px 11px 11px !important;
+    box-sizing: border-box !important;
+    border: 1px solid rgba(204,173,105,.28) !important;
+    border-radius: 5px !important;
+    background: #1d201e !important;
+    box-shadow: inset 0 1px 0 rgba(255,247,222,.025) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-title {
+    margin-bottom: 10px !important;
+    padding-bottom: 7px !important;
+    border-bottom: 1px solid rgba(227,212,177,.08) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-title strong,
+#apes-v2-village-overlay .apes-vd-contribution-title span {
+    display: block !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-title strong {
+    color: #eee5d2 !important;
+    font: 900 11px Arial,sans-serif !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-title span {
+    margin-top: 2px !important;
+    color: rgba(255,246,223,.42) !important;
+    font: 8px Arial,sans-serif !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-list {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 7px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-row {
+    display: grid !important;
+    grid-template-columns: 30px minmax(0,1fr) 38px !important;
+    align-items: center !important;
+    gap: 7px !important;
+    min-height: 27px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-icon,
+#apes-v2-village-overlay .apes-vd-contribution-icon .apes-vd-unit-icon-wrap {
+    width: 30px !important;
+    min-width: 30px !important;
+    height: 22px !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-bar {
+    position: relative !important;
+    display: block !important;
+    height: 11px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(204,173,105,.22) !important;
+    border-radius: 999px !important;
+    background: #34342f !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.32) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-bar i {
+    display: block !important;
+    height: 100% !important;
+    min-width: 1px !important;
+    border-radius: inherit !important;
+    background: #5b9bd5 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-row strong {
+    color: #f0d68a !important;
+    font: 700 9px Consolas,monospace !important;
+    text-align: right !important;
+}
+
+#apes-v2-village-overlay .apes-vd-contribution-empty {
+    padding: 20px 8px !important;
+    color: rgba(255,246,223,.46) !important;
+    font: italic 9px Arial,sans-serif !important;
+    text-align: center !important;
+}
+
+@media (max-width: 1180px) {
+    #apes-v2-village-overlay .apes-vd-intel-grid-history {
+        grid-template-columns: 320px minmax(430px,1fr) !important;
+    }
+    #apes-v2-village-overlay .apes-vd-contribution {
+        grid-column: 1 / -1 !important;
+    }
+}
+
+@media (max-width: 900px) {
     #apes-v2-village-overlay .apes-vd-intel-grid-history {
         grid-template-columns: 1fr !important;
+    }
+    #apes-v2-village-overlay .apes-vd-contribution {
+        grid-column: auto !important;
     }
 }
