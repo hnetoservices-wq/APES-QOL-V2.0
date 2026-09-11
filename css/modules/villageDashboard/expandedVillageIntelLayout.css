@@ -1,0 +1,95 @@
+/* APES QoL v2 — Village Dashboard expanded intel layout refinements */
+
+/* Keep the logic control alive for the existing module, but hide it visually. */
+#apes-v2-village-overlay .apes-vd-row > .apes-vd-expand-toggle {
+    display: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-village {
+    position: relative !important;
+    padding-right: 78px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-expand-toggle-proxy {
+    all: unset !important;
+    position: absolute !important;
+    right: 8px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 5px !important;
+    min-width: 58px !important;
+    height: 24px !important;
+    padding: 0 7px !important;
+    box-sizing: border-box !important;
+    border: 1px solid rgba(226,193,116,.48) !important;
+    border-radius: 4px !important;
+    background: linear-gradient(180deg, rgba(89,67,36,.96), rgba(58,47,31,.96)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,247,222,.08), 0 2px 5px rgba(0,0,0,.22) !important;
+    color: #f1d98e !important;
+    font-family: Arial,sans-serif !important;
+    font-size: 8.5px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    text-transform: uppercase !important;
+    letter-spacing: .2px !important;
+    cursor: pointer !important;
+    user-select: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-expand-toggle-proxy:hover,
+#apes-v2-village-overlay .apes-vd-expand-toggle-proxy:focus-visible,
+#apes-v2-village-overlay .apes-vd-expand-toggle-proxy.open {
+    border-color: rgba(244,216,135,.86) !important;
+    background: linear-gradient(180deg, rgba(124,92,37,.98), rgba(79,61,33,.98)) !important;
+    color: #fff1b7 !important;
+    outline: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-expand-toggle-proxy-arrow {
+    font-size: 13px !important;
+    line-height: 1 !important;
+    transform: translateY(-1px) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-units th:first-child,
+#apes-v2-village-overlay .apes-vd-intel-units td:first-child {
+    width: 22% !important;
+    text-align: center !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-units th:nth-child(2),
+#apes-v2-village-overlay .apes-vd-intel-units td:nth-child(2) {
+    width: 48% !important;
+    text-align: right !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-units th:nth-child(3),
+#apes-v2-village-overlay .apes-vd-intel-units td:nth-child(3) {
+    width: 30% !important;
+    text-align: right !important;
+}
+
+#apes-v2-village-overlay .apes-vd-unit-icon-wrap {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 30px !important;
+    height: 22px !important;
+    vertical-align: middle !important;
+}
+
+#apes-v2-village-overlay .apes-vd-unit-icon-wrap .unitSmall {
+    display: inline-block !important;
+    flex: 0 0 auto !important;
+    margin: 0 !important;
+    transform: scale(1.08) !important;
+    transform-origin: center !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-units tbody td:first-child {
+    padding-top: 2px !important;
+    padding-bottom: 2px !important;
+}
