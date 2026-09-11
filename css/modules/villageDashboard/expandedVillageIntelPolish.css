@@ -1,0 +1,195 @@
+/* APES QoL v2 — Village Dashboard expanded intel polish */
+
+/* Never allow Travian's native button skin to touch the expand control. */
+#apes-v2-village-overlay .apes-vd-expand-toggle {
+    all: unset !important;
+    position: absolute !important;
+    z-index: 7 !important;
+    right: 6px !important;
+    top: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 22px !important;
+    height: 30px !important;
+    box-sizing: border-box !important;
+    transform: translateY(-50%) !important;
+    border: 1px solid rgba(226,193,116,.52) !important;
+    border-radius: 4px !important;
+    background: linear-gradient(180deg, rgba(92,69,34,.96), rgba(60,48,30,.96)) !important;
+    box-shadow: inset 0 1px 0 rgba(255,247,222,.09), 0 2px 5px rgba(0,0,0,.28) !important;
+    color: #f4dc86 !important;
+    font-family: Arial,sans-serif !important;
+    font-size: 15px !important;
+    font-weight: 900 !important;
+    line-height: 1 !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    user-select: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-expand-toggle::before,
+#apes-v2-village-overlay .apes-vd-expand-toggle::after {
+    content: none !important;
+    display: none !important;
+    background: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-expand-toggle:hover,
+#apes-v2-village-overlay .apes-vd-expand-toggle:focus-visible,
+#apes-v2-village-overlay .apes-vd-expand-toggle.open {
+    border-color: rgba(244,216,135,.88) !important;
+    background: linear-gradient(180deg, rgba(126,93,35,.98), rgba(82,61,32,.98)) !important;
+    color: #fff2ba !important;
+    outline: none !important;
+}
+
+/* Remove the washed-out native table treatment entirely. */
+#apes-v2-village-overlay .apes-vd-intel-table,
+#apes-v2-village-overlay .apes-vd-intel-table thead,
+#apes-v2-village-overlay .apes-vd-intel-table tbody,
+#apes-v2-village-overlay .apes-vd-intel-table tr,
+#apes-v2-village-overlay .apes-vd-intel-table th,
+#apes-v2-village-overlay .apes-vd-intel-table td {
+    background-image: none !important;
+    text-shadow: none !important;
+    box-shadow: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table {
+    overflow: hidden !important;
+    border: 1px solid rgba(204,173,105,.34) !important;
+    border-radius: 5px !important;
+    border-collapse: separate !important;
+    border-spacing: 0 !important;
+    background: #1d201e !important;
+    color: #f3ecdc !important;
+    font-size: 10px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table thead,
+#apes-v2-village-overlay .apes-vd-intel-table thead tr,
+#apes-v2-village-overlay .apes-vd-intel-table th {
+    background: #3b3224 !important;
+    color: #f2dda8 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table th {
+    height: 29px !important;
+    padding: 6px 9px !important;
+    border: 0 !important;
+    border-right: 1px solid rgba(221,190,118,.16) !important;
+    border-bottom: 1px solid rgba(221,190,118,.24) !important;
+    font-size: 9px !important;
+    font-weight: 900 !important;
+    letter-spacing: .15px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table th:last-child {
+    border-right: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table tbody,
+#apes-v2-village-overlay .apes-vd-intel-table tbody tr,
+#apes-v2-village-overlay .apes-vd-intel-table tbody td {
+    color: #f0e9db !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table tbody tr {
+    background: #232724 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table tbody tr:nth-child(even) {
+    background: #292b27 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table tbody tr:hover {
+    background: #343126 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table tbody td {
+    height: 27px !important;
+    padding: 5px 9px !important;
+    border: 0 !important;
+    border-right: 1px solid rgba(221,190,118,.10) !important;
+    border-bottom: 1px solid rgba(221,190,118,.12) !important;
+    background: transparent !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table tbody tr:last-child td {
+    border-bottom: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-table tbody td:last-child {
+    border-right: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-units tbody td:first-child,
+#apes-v2-village-overlay .apes-vd-intel-buildings tbody td:first-child {
+    color: #fff7e7 !important;
+    font-weight: 700 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-units tbody td:nth-child(2),
+#apes-v2-village-overlay .apes-vd-intel-units tbody td:nth-child(3),
+#apes-v2-village-overlay .apes-vd-intel-buildings tbody td:nth-child(2) {
+    color: #efd58f !important;
+    font-family: Consolas,monospace !important;
+    font-weight: 700 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-buildings tbody td:nth-child(3) {
+    color: #d9d1c1 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-type {
+    border-color: rgba(204,173,105,.34) !important;
+    border-radius: 5px !important;
+    overflow: hidden !important;
+    background: #232724 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-type span {
+    color: #d9d1c1 !important;
+    font-weight: 700 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-type strong {
+    background: rgba(177,135,52,.09) !important;
+    color: #f5d87e !important;
+    font-weight: 900 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-source {
+    margin-top: 3px !important;
+    color: rgba(255,246,223,.52) !important;
+    font-size: 8.5px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-chart {
+    border-color: rgba(204,173,105,.28) !important;
+    border-radius: 5px !important;
+    background: #1d201e !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-chart-title {
+    color: #e4dccd !important;
+    font-size: 13px !important;
+    font-weight: 700 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-legend > div {
+    color: #ddd5c6 !important;
+    font-size: 9.5px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-legend strong {
+    color: #f3d786 !important;
+    font-size: 10px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-empty {
+    color: rgba(255,246,223,.55) !important;
+}
