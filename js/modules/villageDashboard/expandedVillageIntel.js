@@ -8,6 +8,7 @@
   const RESPONSE_TYPE = 'VILLAGE_SNAPSHOT';
   const TROOP_CACHE_MS = 30000;
   const HISTORY_PREFIX = 'apes_qol_village_army_history_v1';
+  const ROLE_PREFIX = 'apes_qol_village_role_v1';
   const HISTORY_LIMIT = 365;
 
   const expanded = new Set();
@@ -40,6 +41,16 @@
     '#5b9bd5', '#ed7d31', '#70ad47', '#ffc000', '#a5a5a5',
     '#4472c4', '#c55a11', '#255e91', '#8064a2', '#00b0f0'
   ]);
+
+  const TRIBE_CLASS = Object.freeze({ 1: 'roman', 2: 'teuton', 3: 'gaul' });
+  const SCOUT_INDEX = Object.freeze({ 1: 3, 2: 3, 3: 2 });
+  const COMBAT_INDEXES = Object.freeze({
+    1: [0,1,2,4,5],
+    2: [0,1,2,4,5],
+    3: [0,1,3,4,5]
+  });
+  const INFANTRY_INDEXES = Object.freeze({ 1: [0,1,2], 2: [0,1,2], 3: [0,1] });
+  const CAVALRY_INDEXES = Object.freeze({ 1: [4,5], 2: [4,5], 3: [3,4,5] });
 
   function esc(value) {
     return String(value ?? '')
@@ -121,11 +132,7 @@
         const key = headerIds[index - 1] || String(index);
         units[key] = Math.max(0, Number.parseInt(cells[index].textContent.replace(/[^\d-]/g, ''), 10) || 0);
       }
-      parsed.push({
-        villageId: villageIdFromOverviewRow(row, link),
-        name,
-        units
-      });
+      parsed.push({ villageId: villageIdFromOverviewRow(row, link), name, units });
     });
     return parsed;
   }
@@ -188,12 +195,37 @@
       defCav += count * unit[3];
     });
     const defenseAverage = (defInf + defCav) / 2;
-    return {
-      attack,
-      defInf,
-      defCav,
-      type: attack > defenseAverage ? 'Offense' : 'Defense'
-    };
+    return { attack, defInf, defCav, type: attack > defenseAverage ? 'Offense' : 'Defense' };
+  }
+
+  function autoVillageRole(village, counts) {
+    const tribe = Number(village?.tribeId);
+    const combatIndexes = COMBAT_INDEXES[tribe] || [];
+    const combatUnits = combatIndexes.reduce((total, index) => total + Math.max(0, Number(counts?.[index]) || 0), 0);
+    if (combatUnits < 250) return 'Support';
+    const power = powerSummary(village, counts || []);
+    const defenseAverage = (power.defInf + power.defCav) / 2;
+    return power.attack > defenseAverage * 1.05 ? 'Offense' : 'Defense';
+  }
+
+  function roleStorageKey(villageId) {
+    return `${ROLE_PREFIX}:${location.host}:${String(villageId || '')}`;
+  }
+
+  function roleOverride(villageId) {
+    try {
+      const value = localStorage.getItem(roleStorageKey(villageId));
+      return ['Defense', 'Offense', 'Support'].includes(value) ? value : '';
+    } catch (_error) {
+      return '';
+    }
+  }
+
+  function setRoleOverride(villageId, value) {
+    try {
+      if (value === 'auto') localStorage.removeItem(roleStorageKey(villageId));
+      else if (['Defense', 'Offense', 'Support'].includes(value)) localStorage.setItem(roleStorageKey(villageId), value);
+    } catch (_error) {}
   }
 
   function historyStorageKey() {
@@ -236,6 +268,18 @@
     return Array.isArray(rows) ? rows.slice().sort((a, b) => Number(a.timestamp) - Number(b.timestamp)) : [];
   }
 
+  function accountUnitTotals() {
+    const totals = Array(10).fill(0);
+    const store = readHistoryStore();
+    Object.values(store.villages || {}).forEach(rows => {
+      if (!Array.isArray(rows) || !rows.length) return;
+      const latest = rows.slice().sort((a, b) => Number(a.timestamp) - Number(b.timestamp))[rows.length - 1];
+      const counts = Array.isArray(latest?.counts) ? latest.counts : [];
+      for (let index = 0; index < 10; index += 1) totals[index] += Math.max(0, Number(counts[index]) || 0);
+    });
+    return totals;
+  }
+
   function recordTroopHistory() {
     const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
     if (!villages.length) return 0;
@@ -258,8 +302,7 @@
         counts: current.counts.slice(0, 10).map(value => Math.max(0, Number(value) || 0))
       };
       const sameDay = rows.findIndex(item => item?.day === day);
-      if (sameDay >= 0) rows[sameDay] = entry;
-      else rows.push(entry);
+      if (sameDay >= 0) rows[sameDay] = entry; else rows.push(entry);
       rows.sort((a, b) => Number(a.timestamp) - Number(b.timestamp));
       store.villages[villageId] = rows.slice(-HISTORY_LIMIT);
       saved += 1;
@@ -274,7 +317,7 @@
     if (troopScanPromise) return troopScanPromise;
 
     scanState = 'scanning';
-    renderExpandedRows();
+    renderExpandedRows(true);
 
     troopScanPromise = (async () => {
       const previousHash = location.hash;
@@ -307,17 +350,24 @@
     })();
 
     const result = await troopScanPromise;
-    renderExpandedRows();
+    renderExpandedRows(true);
     return result;
+  }
+
+  function unitIconHtml(village, index, name) {
+    const tribe = Number(village?.tribeId);
+    const tribeClass = TRIBE_CLASS[tribe] || '';
+    const absoluteId = absoluteUnitId(tribe, index + 1);
+    return `<span class="apes-vd-unit-icon-wrap" title="${esc(name)}" aria-label="${esc(name)}"><i class="unitSmall ${tribeClass} unitType${index + 1}" data-unit-id="${absoluteId}" aria-hidden="true"></i></span>`;
   }
 
   function unitRowsHtml(village, counts) {
     const data = UNIT_DATA[Number(village?.tribeId)] || [];
-    const rows = counts.map((count, index) => {
-      if (!count) return '';
-      const name = data[index]?.[0] || `Unit ${index + 1}`;
-      return `<tr><td>${esc(name)}</td><td>${esc(formatInt(count))}</td></tr>`;
-    }).filter(Boolean).join('');
+    const rows = counts.map((count, index) => ({ count: Number(count) || 0, index, name: data[index]?.[0] || `Unit ${index + 1}` }))
+      .filter(item => item.count > 0)
+      .sort((a, b) => b.count - a.count || a.index - b.index)
+      .map(item => `<tr data-apes-unit-name="${esc(item.name)}"><td>${unitIconHtml(village, item.index, item.name)}</td><td>${esc(formatInt(item.count))}</td></tr>`)
+      .join('');
     return rows || '<tr><td colspan="2" class="apes-vd-intel-empty">No own troops found.</td></tr>';
   }
 
@@ -341,12 +391,12 @@
   }
 
   function lineChartSvg(scans, series) {
-    const width = 620;
-    const height = 224;
-    const left = 52;
-    const right = 16;
+    const width = 520;
+    const height = 218;
+    const left = 50;
+    const right = 14;
     const top = 14;
-    const bottom = 34;
+    const bottom = 32;
     const plotWidth = width - left - right;
     const plotHeight = height - top - bottom;
     const rawMax = Math.max(1, ...series.flatMap(item => item.values.map(value => Number(value) || 0)));
@@ -366,8 +416,7 @@
     }).join('');
 
     const labelIndexes = scans.length <= 1 ? [0] : scans.length === 2 ? [0, 1] : [0, Math.floor((scans.length - 1) / 2), scans.length - 1];
-    const labels = [...new Set(labelIndexes)].map(index => `<text x="${xAt(index).toFixed(1)}" y="${height - 10}" class="apes-vd-dev-axis" text-anchor="middle">${esc(chartDate(scans[index]?.timestamp))}</text>`).join('');
-
+    const labels = [...new Set(labelIndexes)].map(index => `<text x="${xAt(index).toFixed(1)}" y="${height - 9}" class="apes-vd-dev-axis" text-anchor="middle">${esc(chartDate(scans[index]?.timestamp))}</text>`).join('');
     return `<svg class="apes-vd-dev-svg" viewBox="0 0 ${width} ${height}" role="img" aria-label="Development chart">${grid}${paths}${labels}</svg>`;
   }
 
@@ -389,20 +438,93 @@
     if (villageType === 'Offense') {
       return [{ name: 'Offensive Power', color: '#d65c3a', values: powers.map(power => power.attack) }];
     }
+    if (villageType === 'Support') return [];
     return [
       { name: 'Anti Infantry', color: '#5b9bd5', values: powers.map(power => power.defInf) },
       { name: 'Anti Cavalry', color: '#ed7d31', values: powers.map(power => power.defCav) }
     ];
   }
 
-  function developmentCard(title, subtitle, scans, series) {
+  function developmentCard(title, subtitle, scans, series, emptyText = '') {
     if (!scans.length) {
       return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">No army history yet. Run a troop scan to create the first daily snapshot.</div></section>`;
     }
     if (!series.length) {
-      return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">No units to graph yet.</div></section>`;
+      return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">${esc(emptyText || 'No units to graph yet.')}</div></section>`;
     }
     return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div>${lineChartSvg(scans, series)}${seriesLegend(series)}</section>`;
+  }
+
+  function categoryCount(counts, indexes) {
+    return (indexes || []).reduce((sum, index) => sum + Math.max(0, Number(counts?.[index]) || 0), 0);
+  }
+
+  function donutHtml(village, counts, role) {
+    const tribe = Number(village?.tribeId);
+    if (role === 'Defense') {
+      const power = powerSummary(village, counts || []);
+      const total = power.defInf + power.defCav;
+      const p1 = total > 0 ? power.defInf / total * 100 : 50;
+      return `
+        <section class="apes-vd-defense-donut-card">
+          <div class="apes-vd-defense-donut-title">Defensive Power by Type</div>
+          <div class="apes-vd-defense-donut-body">
+            <div class="apes-vd-defense-donut defense" style="--p1:${p1.toFixed(2)}%"></div>
+            <div class="apes-vd-defense-donut-legend">
+              <div><i class="inf"></i><span>Anti Infantry</span><strong>${esc(formatInt(power.defInf))}</strong></div>
+              <div><i class="cav"></i><span>Anti Cavalry</span><strong>${esc(formatInt(power.defCav))}</strong></div>
+            </div>
+          </div>
+        </section>`;
+    }
+
+    const infantry = categoryCount(counts, INFANTRY_INDEXES[tribe]);
+    const cavalry = categoryCount(counts, CAVALRY_INDEXES[tribe]);
+    const scouts = Math.max(0, Number(counts?.[SCOUT_INDEX[tribe]]) || 0);
+    const rams = Math.max(0, Number(counts?.[6]) || 0);
+    const cats = Math.max(0, Number(counts?.[7]) || 0);
+
+    const values = role === 'Offense'
+      ? [infantry, cavalry, rams, cats]
+      : [infantry, cavalry, scouts, rams + cats];
+    const labels = role === 'Offense'
+      ? ['Infantry', 'Cavalry', 'Rams', 'Catapults']
+      : ['Infantry', 'Cavalry', 'Scouts', 'Siege'];
+    const classes = ['inf', 'cav', 'ram', 'cat'];
+    const total = Math.max(1, values.reduce((sum, value) => sum + value, 0));
+    const c1 = values[0] / total * 100;
+    const c2 = c1 + values[1] / total * 100;
+    const c3 = c2 + values[2] / total * 100;
+
+    return `
+      <section class="apes-vd-defense-donut-card">
+        <div class="apes-vd-defense-donut-title">${role === 'Offense' ? 'Offensive Army Composition' : 'Support Army Composition'}</div>
+        <div class="apes-vd-defense-donut-body">
+          <div class="apes-vd-defense-donut composition" style="--p1:${c1.toFixed(2)}%;--p2:${c2.toFixed(2)}%;--p3:${c3.toFixed(2)}%"></div>
+          <div class="apes-vd-defense-donut-legend">
+            ${labels.map((label, index) => `<div><i class="${classes[index]}"></i><span>${esc(label)}</span><strong>${esc(formatInt(values[index]))}</strong></div>`).join('')}
+          </div>
+        </div>
+      </section>`;
+  }
+
+  function contributionHtml(village, counts) {
+    const totals = accountUnitTotals();
+    const data = UNIT_DATA[Number(village?.tribeId)] || [];
+    const items = counts.map((count, index) => {
+      const current = Math.max(0, Number(count) || 0);
+      const total = Math.max(current, Number(totals[index]) || 0);
+      const pct = total > 0 ? Math.max(0, Math.min(100, current / total * 100)) : 0;
+      return { index, current, total, pct, name: data[index]?.[0] || `Unit ${index + 1}` };
+    }).filter(item => item.current > 0).sort((a, b) => b.current - a.current || a.index - b.index);
+
+    if (!items.length) return '<div class="apes-vd-contribution-empty">No troops to compare.</div>';
+    return items.map(item => `
+      <div class="apes-vd-contribution-row" title="${esc(item.name)} · ${esc(formatInt(item.current))} of ${esc(formatInt(item.total))} account-wide">
+        <span class="apes-vd-contribution-icon">${unitIconHtml(village, item.index, item.name)}</span>
+        <span class="apes-vd-contribution-bar"><i style="width:${item.pct.toFixed(2)}%"></i></span>
+        <strong>${item.pct < 0.1 && item.pct > 0 ? '&lt;0.1%' : `${item.pct.toFixed(item.pct >= 10 ? 0 : 1)}%`}</strong>
+      </div>`).join('');
   }
 
   function scanButtonText() {
@@ -416,12 +538,21 @@
     const current = troopCounts(village);
     const scans = historyForVillage(village?.villageId);
     const latestCounts = scans.length ? scans[scans.length - 1].counts : current.counts;
-    const power = powerSummary(village, latestCounts || []);
+    const detectedRole = autoVillageRole(village, latestCounts || []);
+    const override = roleOverride(village?.villageId);
+    const role = override || detectedRole;
     const coordinates = Number.isFinite(Number(village?.x)) && Number.isFinite(Number(village?.y)) ? `(${village.x}|${village.y})` : '';
     const badges = [village?.isMainVillage ? 'Capital' : '', village?.isTown ? 'City' : ''].filter(Boolean);
     const latest = scans[scans.length - 1];
     const army = armySeries(village, scans);
-    const powerLines = powerSeries(village, scans, power.type);
+    const powerLines = powerSeries(village, scans, role);
+
+    const roleOptions = [
+      ['auto', `Auto · ${detectedRole}`],
+      ['Defense', 'Defense'],
+      ['Offense', 'Offense'],
+      ['Support', 'Support']
+    ].map(([value, label]) => `<option value="${value}" ${(override || 'auto') === value ? 'selected' : ''}>${esc(label)}</option>`).join('');
 
     return `
       <div class="apes-vd-intel-head">
@@ -436,21 +567,29 @@
       </div>
       <div class="apes-vd-intel-grid apes-vd-intel-grid-history">
         <section class="apes-vd-intel-left">
-          <div class="apes-vd-intel-type"><span>Village Type</span><strong>${esc(power.type)}</strong></div>
+          <div class="apes-vd-intel-type">
+            <span>Village Type</span>
+            <select class="apes-vd-role-select" data-apes-vd-role="${esc(village?.villageId)}" aria-label="Village type">${roleOptions}</select>
+          </div>
           <table class="apes-vd-intel-table apes-vd-intel-units">
             <thead><tr><th>Unit</th><th>Count</th></tr></thead>
             <tbody>${unitRowsHtml(village, current.counts)}</tbody>
           </table>
           <div class="apes-vd-intel-source">Troops: ${esc(current.source)} · History: ${scans.length} daily scan${scans.length === 1 ? '' : 's'}${latest ? ` · Last: ${esc(fullScanDate(latest.timestamp))}` : ''}</div>
+          ${donutHtml(village, current.counts, role)}
         </section>
         <section class="apes-vd-development">
           ${developmentCard('Army Development', 'Each troop type keeps the same color across scans.', scans, army)}
-          ${developmentCard('Power Development', power.type === 'Offense' ? 'Offensive power' : 'Anti Infantry + Anti Cavalry defensive power', scans, powerLines)}
+          ${developmentCard('Power Development', role === 'Offense' ? 'Offensive power' : role === 'Defense' ? 'Anti Infantry + Anti Cavalry defensive power' : 'Support villages track composition rather than combat power.', scans, powerLines, role === 'Support' ? 'Support villages do not use the combat-power graph.' : '')}
         </section>
+        <aside class="apes-vd-contribution">
+          <div class="apes-vd-contribution-title"><strong>Account Contribution</strong><span>This village's share of each troop type</span></div>
+          <div class="apes-vd-contribution-list">${contributionHtml(village, current.counts)}</div>
+        </aside>
       </div>`;
   }
 
-  function ensureRowControls() {
+  function ensureRowControls(force = false) {
     const overlay = document.getElementById(OVERLAY_ID);
     if (!overlay?.classList.contains('open')) return;
     const body = overlay.querySelector('.apes-vd-body');
@@ -485,20 +624,35 @@
           detail.dataset.villageId = villageId;
           row.insertAdjacentElement('afterend', detail);
         }
-        detail.innerHTML = village ? detailHtml(village) : '<div class="apes-vd-intel-loading">Loading village information…</div>';
+        const html = village ? detailHtml(village) : '<div class="apes-vd-intel-loading">Loading village information…</div>';
+        if (force || detail.__apesVdHtml !== html) {
+          detail.__apesVdHtml = html;
+          detail.innerHTML = html;
+        }
       } else if (next?.classList.contains('apes-vd-expanded-intel')) {
         next.remove();
       }
     });
   }
 
-  function renderExpandedRows() {
+  function renderExpandedRows(force = false) {
     try {
-      ensureRowControls();
+      ensureRowControls(force);
     } catch (error) {
       console.warn('[APES Village Dashboard] Expanded village intel render failed.', error);
     }
   }
+
+  document.addEventListener('change', event => {
+    const select = event.target.closest?.('.apes-vd-role-select[data-apes-vd-role]');
+    if (!select) return;
+    const overlay = document.getElementById(OVERLAY_ID);
+    if (!overlay?.contains(select)) return;
+    const villageId = String(select.dataset.apesVdRole || '');
+    if (!villageId) return;
+    setRoleOverride(villageId, select.value);
+    renderExpandedRows(true);
+  }, true);
 
   document.addEventListener('click', event => {
     const scan = event.target.closest?.('[data-apes-vd-army-scan]');
@@ -520,7 +674,7 @@
     const villageId = String(toggle.dataset.apesVdExpand || '');
     if (!villageId) return;
     if (expanded.has(villageId)) expanded.delete(villageId); else expanded.add(villageId);
-    renderExpandedRows();
+    renderExpandedRows(true);
     if (expanded.has(villageId)) void refreshOverviewTroops(false);
   }, true);
 
@@ -536,7 +690,7 @@
     if (event.data?.source !== BRIDGE_SOURCE || event.data?.type !== RESPONSE_TYPE) return;
     if (!event.data?.payload || typeof event.data.payload !== 'object') return;
     snapshot = event.data.payload;
-    renderExpandedRows();
+    renderExpandedRows(true);
   });
 
   window.setInterval(() => {
@@ -544,9 +698,9 @@
     const isOpen = Boolean(overlay?.classList.contains('open'));
     if (isOpen && !wasOpen) {
       requestSnapshot();
-      window.setTimeout(renderExpandedRows, 0);
+      window.setTimeout(() => renderExpandedRows(true), 0);
     }
-    if (isOpen) renderExpandedRows();
+    if (isOpen) renderExpandedRows(false);
     wasOpen = isOpen;
   }, 450);
 
@@ -554,6 +708,6 @@
   window.APES.villageDashboardIntel = Object.freeze({
     refreshTroops: () => refreshOverviewTroops(true),
     historyForVillage: villageId => historyForVillage(villageId),
-    collapseAll: () => { expanded.clear(); renderExpandedRows(); }
+    collapseAll: () => { expanded.clear(); renderExpandedRows(true); }
   });
 })();
