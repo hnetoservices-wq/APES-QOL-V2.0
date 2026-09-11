@@ -1,0 +1,105 @@
+/* APES QoL v2 — balanced expanded village military layout */
+
+/* All three columns share the same row height instead of stopping at their own content height. */
+#apes-v2-village-overlay .apes-vd-intel-grid-history {
+    align-items: stretch !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-intel-left,
+#apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-development,
+#apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-contribution {
+    min-height: 100% !important;
+    height: 100% !important;
+    box-sizing: border-box !important;
+}
+
+/* Left column: let the donut consume whatever height remains below the troop table. */
+#apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-intel-left {
+    display: flex !important;
+    flex-direction: column !important;
+    align-self: stretch !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-intel-type,
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-intel-units,
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-intel-source {
+    flex: 0 0 auto !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-defense-donut-card {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    margin-bottom: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-defense-donut-body {
+    flex: 0 0 auto !important;
+}
+
+/* Middle column: split the available height evenly between the two development cards. */
+#apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-development {
+    align-self: stretch !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-dev-card {
+    height: 100% !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    box-sizing: border-box !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-dev-svg {
+    flex: 1 1 auto !important;
+    min-height: 150px !important;
+    max-height: 190px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-dev-legend {
+    flex: 0 0 auto !important;
+}
+
+/* Right column: stretch the comparison card and distribute rows through its full height. */
+#apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-contribution {
+    align-self: stretch !important;
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-contribution-title {
+    flex: 0 0 auto !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-contribution-list {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+    justify-content: space-evenly !important;
+    gap: 4px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-contribution-row {
+    min-height: 30px !important;
+}
+
+/* Keep the balanced layout only while all three columns fit side by side. */
+@media (max-width: 1180px) {
+    #apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-intel-left,
+    #apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-development,
+    #apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-contribution {
+        height: auto !important;
+        min-height: 0 !important;
+    }
+
+    #apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-development {
+        grid-template-rows: none !important;
+    }
+
+    #apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-contribution-list {
+        justify-content: flex-start !important;
+        gap: 7px !important;
+    }
+}
