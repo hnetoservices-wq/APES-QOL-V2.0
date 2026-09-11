@@ -41,21 +41,8 @@
     ['settler|gaul', ['gaul', 10, 30]]
   ]);
 
-  const DEFENSE_STATS = Object.freeze({
-    1: [35, 50], 2: [65, 35], 3: [40, 25], 4: [20, 10], 5: [65, 50],
-    6: [80, 105], 7: [30, 75], 8: [60, 10], 9: [40, 30], 10: [80, 80],
-    11: [20, 5], 12: [35, 60], 13: [30, 30], 14: [10, 5], 15: [105, 40],
-    16: [50, 75], 17: [30, 80], 18: [60, 10], 19: [60, 40], 20: [80, 80],
-    21: [40, 50], 22: [35, 20], 23: [20, 10], 24: [25, 40], 25: [115, 55],
-    26: [60, 165], 27: [30, 105], 28: [45, 10], 29: [50, 50], 30: [80, 80]
-  });
-
   function normalise(value) {
     return String(value ?? '').replace(/\s+/g, ' ').trim().toLowerCase();
-  }
-
-  function formatInt(value) {
-    return Math.round(Number(value) || 0).toLocaleString();
   }
 
   function inferTribe(detail) {
@@ -115,56 +102,6 @@
     if (heading && heading.textContent !== 'Unit') heading.textContent = 'Unit';
   }
 
-  function defensePower(detail) {
-    const tribe = inferTribe(detail);
-    let defInf = 0;
-    let defCav = 0;
-
-    detail.querySelectorAll('.apes-vd-intel-units tbody tr').forEach(row => {
-      if (row.querySelector('.apes-vd-intel-empty')) return;
-      const name = String(row.dataset.apesUnitName || '').trim();
-      const meta = unitMeta(name, tribe);
-      if (!meta) return;
-      const stats = DEFENSE_STATS[meta[2]];
-      if (!stats) return;
-      const count = countFromRow(row);
-      defInf += count * stats[0];
-      defCav += count * stats[1];
-    });
-
-    return { defInf, defCav };
-  }
-
-  function ensureDefenseDonut(detail) {
-    const left = detail.querySelector('.apes-vd-intel-left');
-    const source = left?.querySelector('.apes-vd-intel-source');
-    if (!left || !source) return;
-
-    const power = defensePower(detail);
-    const total = power.defInf + power.defCav;
-    const infPct = total > 0 ? Math.max(0, Math.min(100, power.defInf / total * 100)) : 50;
-    const signature = `${Math.round(power.defInf)}:${Math.round(power.defCav)}`;
-
-    let card = left.querySelector(':scope > .apes-vd-defense-donut-card');
-    if (!card) {
-      card = document.createElement('section');
-      card.className = 'apes-vd-defense-donut-card';
-      source.insertAdjacentElement('afterend', card);
-    }
-
-    if (card.dataset.signature === signature) return;
-    card.dataset.signature = signature;
-    card.innerHTML = `
-      <div class="apes-vd-defense-donut-title">Defensive Power by Type</div>
-      <div class="apes-vd-defense-donut-body">
-        <div class="apes-vd-defense-donut" style="--apes-vd-defense-inf:${infPct.toFixed(2)}%" aria-label="Defensive power split between anti infantry and anti cavalry"></div>
-        <div class="apes-vd-defense-donut-legend">
-          <div><i class="inf"></i><span>Anti Infantry</span><strong>${formatInt(power.defInf)}</strong></div>
-          <div><i class="cav"></i><span>Anti Cavalry</span><strong>${formatInt(power.defCav)}</strong></div>
-        </div>
-      </div>`;
-  }
-
   function ensureVillageToggleProxy(row) {
     const villageCell = row.querySelector(':scope > .apes-vd-village');
     const source = row.querySelector(':scope > .apes-vd-expand-toggle');
@@ -201,10 +138,7 @@
     if (!body) return;
 
     body.querySelectorAll(':scope > .apes-vd-row').forEach(ensureVillageToggleProxy);
-    body.querySelectorAll(':scope > .apes-vd-expanded-intel').forEach(detail => {
-      patchUnitTable(detail);
-      ensureDefenseDonut(detail);
-    });
+    body.querySelectorAll(':scope > .apes-vd-expanded-intel').forEach(patchUnitTable);
   }
 
   function schedulePatch() {
