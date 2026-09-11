@@ -59,18 +59,28 @@
     transform: translateY(-1px) !important;
 }
 
-/* The Unit column is only wide enough for the sprite plus 2px breathing room. */
+#apes-v2-village-overlay .apes-vd-intel-units {
+    table-layout: fixed !important;
+}
+
+/* Native unit sprite is 30px wide: keep only 2px breathing room on either side. */
 #apes-v2-village-overlay .apes-vd-intel-units th:first-child,
 #apes-v2-village-overlay .apes-vd-intel-units td:first-child {
-    width: 38px !important;
-    min-width: 38px !important;
-    max-width: 38px !important;
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+    box-sizing: border-box !important;
     padding-left: 2px !important;
     padding-right: 2px !important;
     text-align: center !important;
 }
 
-/* Count gets all remaining width; Level stays compact. */
+/* Do not let the word "Unit" force the icon column wider. */
+#apes-v2-village-overlay .apes-vd-intel-units th:first-child {
+    font-size: 0 !important;
+}
+
+/* Count gets the remaining room; level stays compact. */
 #apes-v2-village-overlay .apes-vd-intel-units th:nth-child(2),
 #apes-v2-village-overlay .apes-vd-intel-units td:nth-child(2) {
     width: auto !important;
@@ -79,9 +89,9 @@
 
 #apes-v2-village-overlay .apes-vd-intel-units th:nth-child(3),
 #apes-v2-village-overlay .apes-vd-intel-units td:nth-child(3) {
-    width: 58px !important;
-    min-width: 58px !important;
-    max-width: 58px !important;
+    width: 48px !important;
+    min-width: 48px !important;
+    max-width: 48px !important;
     text-align: right !important;
 }
 
