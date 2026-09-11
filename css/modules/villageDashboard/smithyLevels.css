@@ -1,0 +1,41 @@
+/* APES QoL v2 — Village Dashboard Smithy levels */
+
+#apes-v2-village-overlay .apes-vd-intel-units th:nth-child(2),
+#apes-v2-village-overlay .apes-vd-intel-units td:nth-child(2) {
+    text-align: right !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-units .apes-vd-smithy-heading,
+#apes-v2-village-overlay .apes-vd-intel-units .apes-vd-smithy-level-cell {
+    width: 68px !important;
+    min-width: 68px !important;
+    max-width: 68px !important;
+    box-sizing: border-box !important;
+    text-align: center !important;
+}
+
+#apes-v2-village-overlay .apes-vd-smithy-level {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    min-width: 38px !important;
+    height: 18px !important;
+    padding: 0 6px !important;
+    box-sizing: border-box !important;
+    border: 1px solid rgba(207,174,94,.28) !important;
+    border-radius: 999px !important;
+    background: rgba(177,135,52,.11) !important;
+    color: #f0d68a !important;
+    font: 800 9px/1 Arial,sans-serif !important;
+    white-space: nowrap !important;
+}
+
+#apes-v2-village-overlay .apes-vd-smithy-level.unknown {
+    border-color: rgba(255,255,255,.08) !important;
+    background: rgba(255,255,255,.035) !important;
+    color: rgba(255,246,223,.35) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-smithy-source {
+    color: rgba(240,214,138,.72) !important;
+}
