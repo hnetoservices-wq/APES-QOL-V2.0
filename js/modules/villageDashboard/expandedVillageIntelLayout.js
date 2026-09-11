@@ -46,8 +46,8 @@
   }
 
   function inferTribe(detail) {
-    const names = Array.from(detail.querySelectorAll('.apes-vd-intel-units tbody td:first-child'))
-      .map(cell => normalise(cell.textContent));
+    const names = Array.from(detail.querySelectorAll('.apes-vd-intel-units tbody tr'))
+      .map(row => normalise(row.dataset.apesUnitName || row.querySelector('td:first-child')?.textContent));
     if (names.some(name => ['clubswinger', 'spearman', 'axeman', 'paladin', 'teutonic knight'].includes(name))) return 'teuton';
     if (names.some(name => ['phalanx', 'swordsman', 'pathfinder', 'druidrider', 'haeduan'].includes(name))) return 'gaul';
     if (names.some(name => ['legionnaire', 'praetorian', 'imperian', 'equites legati', 'equites caesaris'].includes(name))) return 'roman';
@@ -72,7 +72,6 @@
     const rows = Array.from(tbody.querySelectorAll(':scope > tr'));
     if (!rows.length || rows.some(row => row.querySelector('.apes-vd-intel-empty'))) return;
 
-    const tribe = inferTribe(detail);
     const decorated = rows.map((row, originalIndex) => {
       const firstCell = row.children?.[0];
       const storedName = row.dataset.apesUnitName || firstCell?.textContent || '';
@@ -80,21 +79,24 @@
       if (!row.dataset.apesUnitName) row.dataset.apesUnitName = name;
       return { row, name, count: countFromRow(row), originalIndex };
     });
+    const tribe = inferTribe(detail);
 
     decorated.sort((left, right) => right.count - left.count || left.originalIndex - right.originalIndex);
+
     decorated.forEach(({ row, name }) => {
       const meta = unitMeta(name, tribe);
       const cell = row.children?.[0];
-      if (!cell) return;
-      if (meta) {
-        const [tribeClass, localIndex, absoluteId] = meta;
-        if (cell.dataset.apesUnitIcon !== String(absoluteId)) {
-          cell.dataset.apesUnitIcon = String(absoluteId);
-          cell.innerHTML = `<span class="apes-vd-unit-icon-wrap" title="${name}" aria-label="${name}"><i class="unitSmall ${tribeClass} unitType${localIndex}" data-unit-id="${absoluteId}" aria-hidden="true"></i></span>`;
-        }
+      if (!cell || !meta) return;
+      const [tribeClass, localIndex, absoluteId] = meta;
+      if (cell.dataset.apesUnitIcon !== String(absoluteId)) {
+        cell.dataset.apesUnitIcon = String(absoluteId);
+        cell.innerHTML = `<span class="apes-vd-unit-icon-wrap" title="${name}" aria-label="${name}"><i class="unitSmall ${tribeClass} unitType${localIndex}" data-unit-id="${absoluteId}" aria-hidden="true"></i></span>`;
       }
-      tbody.appendChild(row);
     });
+
+    const sortedRows = decorated.map(item => item.row);
+    const needsReorder = rows.some((row, index) => row !== sortedRows[index]);
+    if (needsReorder) sortedRows.forEach(row => tbody.appendChild(row));
 
     const heading = detail.querySelector('.apes-vd-intel-units thead th:first-child');
     if (heading && heading.textContent !== 'Unit') heading.textContent = 'Unit';
@@ -113,14 +115,19 @@
       proxy.tabIndex = 0;
       proxy.title = 'Expand village information';
       proxy.setAttribute('aria-label', 'Expand village information');
+      proxy.innerHTML = '<span class="apes-vd-expand-toggle-proxy-label">Info</span><span class="apes-vd-expand-toggle-proxy-arrow">⌄</span>';
       villageCell.appendChild(proxy);
     }
 
     const isOpen = source.classList.contains('open') || source.getAttribute('aria-expanded') === 'true';
-    proxy.dataset.apesVdExpandProxy = source.dataset.apesVdExpand || '';
+    const villageId = source.dataset.apesVdExpand || '';
+    if (proxy.dataset.apesVdExpandProxy !== villageId) proxy.dataset.apesVdExpandProxy = villageId;
     proxy.classList.toggle('open', isOpen);
-    proxy.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-    proxy.innerHTML = `<span class="apes-vd-expand-toggle-proxy-label">Info</span><span class="apes-vd-expand-toggle-proxy-arrow">${isOpen ? '⌃' : '⌄'}</span>`;
+    const expandedValue = isOpen ? 'true' : 'false';
+    if (proxy.getAttribute('aria-expanded') !== expandedValue) proxy.setAttribute('aria-expanded', expandedValue);
+    const arrow = proxy.querySelector('.apes-vd-expand-toggle-proxy-arrow');
+    const nextArrow = isOpen ? '⌃' : '⌄';
+    if (arrow && arrow.textContent !== nextArrow) arrow.textContent = nextArrow;
   }
 
   function patch() {
