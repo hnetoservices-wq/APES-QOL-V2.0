@@ -1,0 +1,205 @@
+/* APES QoL v2 — expanded Village Dashboard refinements */
+
+/* Remove the dead space below development charts: let the SVG consume the card body. */
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-dev-card {
+    padding-bottom: 7px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-dev-svg {
+    flex: 1 1 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+#apes-v2-village-overlay .apes-vd-intel-grid-history .apes-vd-dev-legend {
+    margin-top: 2px !important;
+}
+
+/* Right side: two equal cards instead of one full-height Account Contribution card. */
+#apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-contribution.apes-vd-side-stack {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    grid-template-rows: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+}
+
+#apes-v2-village-overlay .apes-vd-side-card {
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+    padding: 10px 11px !important;
+    border: 1px solid rgba(204,173,105,.28) !important;
+    border-radius: 5px !important;
+    background: #1d201e !important;
+    box-shadow: inset 0 1px 0 rgba(255,247,222,.025) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-account-card,
+#apes-v2-village-overlay .apes-vd-resource-card {
+    display: flex !important;
+    flex-direction: column !important;
+}
+
+#apes-v2-village-overlay .apes-vd-account-card .apes-vd-contribution-title,
+#apes-v2-village-overlay .apes-vd-resource-title {
+    flex: 0 0 auto !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
+    border-bottom: 1px solid rgba(227,212,177,.08) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-title strong,
+#apes-v2-village-overlay .apes-vd-resource-title span {
+    display: block !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-title strong {
+    color: #eee5d2 !important;
+    font: 900 11px Arial,sans-serif !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-title span {
+    margin-top: 2px !important;
+    color: rgba(255,246,223,.42) !important;
+    font: 8px Arial,sans-serif !important;
+}
+
+#apes-v2-village-overlay .apes-vd-account-card .apes-vd-contribution-list,
+#apes-v2-village-overlay .apes-vd-resource-list {
+    flex: 1 1 auto !important;
+    min-height: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-account-card .apes-vd-contribution-list {
+    justify-content: space-evenly !important;
+    gap: 2px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-account-card .apes-vd-contribution-row {
+    min-height: 23px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-list {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-evenly !important;
+    gap: 4px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-row {
+    display: grid !important;
+    grid-template-columns: 30px minmax(0,1fr) 52px !important;
+    align-items: center !important;
+    gap: 7px !important;
+    min-height: 30px !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-icon {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 26px !important;
+    height: 22px !important;
+    border-radius: 5px !important;
+    border: 1px solid rgba(255,255,255,.08) !important;
+    background: rgba(255,255,255,.035) !important;
+    color: #ead8aa !important;
+    font: 900 8px/1 Arial,sans-serif !important;
+    box-sizing: border-box !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-icon.wood { color: #d8b07a !important; }
+#apes-v2-village-overlay .apes-vd-resource-icon.clay { color: #d68c67 !important; }
+#apes-v2-village-overlay .apes-vd-resource-icon.iron { color: #c4c8c9 !important; }
+#apes-v2-village-overlay .apes-vd-resource-icon.crop { color: #d7d77b !important; }
+
+#apes-v2-village-overlay .apes-vd-resource-bar {
+    position: relative !important;
+    display: block !important;
+    height: 10px !important;
+    overflow: hidden !important;
+    border: 1px solid rgba(204,173,105,.22) !important;
+    border-radius: 999px !important;
+    background: #34342f !important;
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.32) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-bar i {
+    display: block !important;
+    height: 100% !important;
+    min-width: 1px !important;
+    border-radius: inherit !important;
+    background: #5b9bd5 !important;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.12) !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-values {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-end !important;
+    justify-content: center !important;
+    min-width: 0 !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-values strong {
+    color: #f0d68a !important;
+    font: 700 8.5px/1 Consolas,monospace !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-values em {
+    margin-top: 2px !important;
+    color: rgba(255,246,223,.50) !important;
+    font: normal 7.5px/1 Consolas,monospace !important;
+    white-space: nowrap !important;
+}
+
+#apes-v2-village-overlay .apes-vd-resource-empty {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    flex: 1 1 auto !important;
+    padding: 10px !important;
+    color: rgba(255,246,223,.46) !important;
+    font: italic 9px Arial,sans-serif !important;
+    text-align: center !important;
+}
+
+/* Smithy column is part of the table layout, not an overlay. */
+#apes-v2-village-overlay .apes-vd-intel-units .apes-vd-smithy-heading,
+#apes-v2-village-overlay .apes-vd-intel-units .apes-vd-smithy-level-cell {
+    width: 58px !important;
+    min-width: 58px !important;
+    max-width: 58px !important;
+    padding-left: 3px !important;
+    padding-right: 3px !important;
+    text-align: center !important;
+}
+
+#apes-v2-village-overlay .apes-vd-smithy-level {
+    min-width: 34px !important;
+    height: 17px !important;
+    padding: 0 5px !important;
+    font-size: 8.5px !important;
+}
+
+@media (max-width: 1180px) {
+    #apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-contribution.apes-vd-side-stack {
+        grid-template-columns: repeat(2, minmax(0,1fr)) !important;
+        grid-template-rows: none !important;
+    }
+}
+
+@media (max-width: 900px) {
+    #apes-v2-village-overlay .apes-vd-intel-grid-history > .apes-vd-contribution.apes-vd-side-stack {
+        grid-template-columns: 1fr !important;
+        grid-template-rows: repeat(2, auto) !important;
+    }
+}
