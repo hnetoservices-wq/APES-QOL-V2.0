@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.132",
+  "version": "2.0.0.133",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -103,6 +103,7 @@
         "js/modules/villageDashboard/expandedVillageIntelLayout.js",
         "js/modules/villageDashboard/expandedVillageInteractionGuard.js",
         "js/modules/villageDashboard/armySmithyScanner.js",
+        "js/modules/villageDashboard/dashboardScanIntegration.js",
         "js/modules/villageDashboard/resourceProduction.js",
         "js/modules/villageDashboard/expandedVillageRefinements.js",
         "js/content.js"
