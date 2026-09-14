@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.138",
+  "version": "2.0.0.139",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -79,6 +79,7 @@
         "js/features/npcCalculator.js",
         "js/modules/resourceUpgradePlanner/preference.js",
         "js/features/resourceUpgradePlanner.js",
+        "js/modules/resourceUpgradePlanner/cityDetection.js",
         "js/modules/resourceUpgradePlanner/integration.js",
         "js/features/distanceCalculator.js",
         "js/features/auctionHouseScanner.js",
