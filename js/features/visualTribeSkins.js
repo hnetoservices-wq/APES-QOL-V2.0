@@ -5,6 +5,12 @@
   const TOOLBAR_BUTTON_ID = 'qol-tribe-skins-toggle-btn';
   const PANEL_ID = 'qol-tribe-skins-panel';
   const SELECTION_KEY = 'apes_visual_tribe_skin_selection_v1';
+  const ARTWORK_KEY = 'apes_visual_tribe_skin_artwork_v1';
+  const ARTWORK = Object.freeze({
+    server: { name: 'Server default', mark: '↺' },
+    standard: { name: 'Standard', mark: '☀' },
+    halloween: { name: 'Halloween', mark: '🎃' }
+  });
   const SKINS = Object.freeze({
     roman: {
       name: 'Roman',
@@ -25,6 +31,9 @@
   let observer = null;
   let scheduled = false;
   let sessionSelection = readSelection();
+  let sessionArtwork = readArtwork();
+  const artworkLoads = new Map();
+  const imageRequests = new WeakMap();
   function enabled() {
     return typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE_KEY);
   }
@@ -38,6 +47,23 @@
   }
   function getSelection() {
     return sessionSelection;
+  }
+  function readArtwork() {
+    try {
+      const saved = localStorage.getItem(ARTWORK_KEY);
+      return Object.hasOwn(ARTWORK, saved) ? saved : 'server';
+    } catch (_) {
+      return 'server';
+    }
+  }
+  function saveArtwork(choice) {
+    if (!Object.hasOwn(ARTWORK, choice)) return;
+    sessionArtwork = choice;
+    try {
+      localStorage.setItem(ARTWORK_KEY, choice);
+    } catch (_) {}
+    applySelectedSkin();
+    refreshUi();
   }
   function saveSelection(choice) {
     if (!Object.hasOwn(SKINS, choice)) return;
@@ -60,7 +86,7 @@
   }
   function buildingPath(value) {
     try {
-      return new URL(value, location.href).pathname.match(/\/g(\d+)_([a-z])(\d+)\.png$/i);
+      return new URL(value, location.href).pathname.match(/\/g(\d+)_([rgt])(\d+)\.png$/i);
     } catch (_) {
       return null;
     }
@@ -83,7 +109,7 @@
     return null;
   }
   function originalFor(image) {
-    const current = image.currentSrc || image.src;
+    const current = image.src || image.currentSrc;
     const original = image.dataset.qolTribeSkinOriginal || '';
     const applied = image.dataset.qolTribeSkinApplied || '';
     if (!original || cleanUrl(current) !== cleanUrl(original) && cleanUrl(current) !== cleanUrl(applied)) {
@@ -94,23 +120,53 @@
     }
     return original;
   }
-  function targetFor(image, choice) {
+  function targetsFor(image, choice) {
     const skin = SKINS[choice];
-    if (!skin) return '';
     const original = originalFor(image);
-    const match = buildingPath(original);
-    if (!match) return '';
-    const measuredLevel = findBuildingLevel(image);
-    const sourceTier = Number(match[3] || 0);
-    const level = Number.isInteger(measuredLevel) ? measuredLevel : sourceTier;
-    const tier = Math.max(0, Math.min(20, Math.floor(level / 10) * 10));
     const target = new URL(original, location.href);
-    target.pathname = target.pathname.replace(/_([a-z])\d+(\.png)$/i, '_' + skin.prefix + String(tier).padStart(2, '0') + '$2');
+    const path = target.pathname.match(/^(.*\/layout\/images\/)(halloween\/)?building\/thumb\/(g\d+[^/]*\.png)$/i);
+    if (!path) return [];
+    const match = buildingPath(original);
+    let filename = path[3];
+    if (match && skin) {
+      const measuredLevel = findBuildingLevel(image);
+      const sourceTier = Number(match[3] || 0);
+      const level = Number.isInteger(measuredLevel) ? measuredLevel : sourceTier;
+      const tier = Math.max(0, Math.min(20, Math.floor(level / 10) * 10));
+      filename = filename.replace(/_([rgt])\d+(\.png)$/i, '_' + skin.prefix + String(tier).padStart(2, '0') + '$2');
+    }
+    const halloween = sessionArtwork === 'halloween' || sessionArtwork === 'server' && Boolean(path[2]);
     target.search = '';
     target.hash = '';
-    return target.href;
+    target.pathname = path[1] + (halloween ? 'halloween/' : '') + 'building/thumb/' + filename;
+    const candidates = [target.href];
+    // Seasonal sets are partial: keep the requested tribe's regular artwork
+    // when that building has no Halloween variant, then retain the native image.
+    if (halloween) {
+      target.pathname = path[1] + 'building/thumb/' + filename;
+      candidates.push(target.href);
+    }
+    candidates.push(original);
+    return [...new Set(candidates)];
+  }
+  function artworkAvailable(url) {
+    if (!artworkLoads.has(url)) {
+      artworkLoads.set(url, new Promise(resolve => {
+        const probe = new Image();
+        const finish = success => {
+          probe.onload = null;
+          probe.onerror = null;
+          resolve(success);
+        };
+        probe.onload = () => finish(probe.naturalWidth > 0);
+        probe.onerror = () => finish(false);
+        probe.src = url;
+      }));
+    }
+    return artworkLoads.get(url);
   }
   function restoreImage(image) {
+    imageRequests.delete(image);
     const original = image.dataset.qolTribeSkinOriginal;
     if (!original) return;
     delete image.dataset.qolTribeSkinApplied;
@@ -121,25 +177,31 @@
     document.querySelectorAll('img[data-qol-tribe-skin-original]').forEach(restoreImage);
   }
   function applyToImage(image, choice) {
-    const target = targetFor(image, choice);
-    if (!target) return;
-    const failed = image.dataset.qolTribeSkinFailed;
-    if (failed && cleanUrl(failed) === cleanUrl(target)) return;
-    if (cleanUrl(image.src) === cleanUrl(target)) {
-      image.dataset.qolTribeSkinApplied = target;
-      return;
-    }
+    const candidates = targetsFor(image, choice);
+    if (!candidates.length) return;
     const original = image.dataset.qolTribeSkinOriginal;
-    const fallback = () => {
-      image.dataset.qolTribeSkinFailed = target;
-      delete image.dataset.qolTribeSkinApplied;
-      if (original && cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
+    const key = candidates.join('\n');
+    const previous = imageRequests.get(image);
+    if (previous?.key === key && previous.original === original &&
+        (!previous.target || cleanUrl(image.src) === cleanUrl(previous.target))) return;
+    const request = { key, original };
+    imageRequests.set(image, request);
+    const currentRequest = () => imageRequests.get(image) === request && enabled() && image.isConnected &&
+      (cleanUrl(image.src) === cleanUrl(original) || cleanUrl(image.src) === cleanUrl(image.dataset.qolTribeSkinApplied));
+    const apply = async () => {
+      for (const target of candidates) {
+        if (!currentRequest()) return;
+        // The native image is already known and is the final safe fallback.
+        if (cleanUrl(target) !== cleanUrl(original) && !await artworkAvailable(target)) continue;
+        if (!currentRequest()) return;
+        request.target = target;
+        image.dataset.qolTribeSkinApplied = target;
+        delete image.dataset.qolTribeSkinFailed;
+        if (cleanUrl(image.src) !== cleanUrl(target)) image.src = target;
+        return;
+      }
     };
-    image.addEventListener('error', fallback, {
-      once: true
-    });
-    image.dataset.qolTribeSkinApplied = target;
-    image.src = target;
+    void apply();
   }
   function applySelectedSkin() {
     if (!enabled()) {
@@ -147,11 +209,11 @@
       return;
     }
     const choice = getSelection();
-    if (!choice) {
+    if (!choice && sessionArtwork === 'server') {
       restoreOriginalSkins();
       return;
     }
-    document.querySelectorAll('img.location[src*="/layout/images/building/thumb/"]').forEach(image => {
+    document.querySelectorAll('img.location[src*="/building/thumb/"]').forEach(image => {
       applyToImage(image, choice);
     });
   }
@@ -164,9 +226,15 @@
       control.classList.toggle('qol-active', active);
       control.setAttribute('aria-pressed', String(active));
     });
+    panel.querySelectorAll('[data-artwork]').forEach(control => {
+      const active = control.dataset.artwork === sessionArtwork;
+      control.classList.toggle('qol-active', active);
+      control.setAttribute('aria-pressed', String(active));
+    });
     const current = panel.querySelector('.qol-tribe-skins-current');
     if (!current) return;
-    current.textContent = selected ? SKINS[selected].name + ' building skin is active.' : 'Choose a tribe to apply its building skin.';
+    const tribe = selected ? SKINS[selected].name : 'Your tribe';
+    current.textContent = tribe + ' · ' + ARTWORK[sessionArtwork].name + ' artwork. Buildings without a Halloween variant use regular artwork.';
   }
   function injectStyles() {
     if (document.getElementById('qol-tribe-skins-styles')) return;
@@ -235,13 +303,22 @@
                     <div class="qol-tribe-skins-close" data-close role="button" tabindex="0" aria-label="Close">×</div>
                 </div>
                 <div class="qol-tribe-skins-body">
-                    <p class="qol-tribe-skins-copy">Choose which tribe's building artwork you want to use in Village View.</p>
-                    <div class="qol-tribe-skins-choice-label">Building skin</div>
+                    <p class="qol-tribe-skins-copy">Choose your tribe and building artwork for Village View.</p>
+                    <div class="qol-tribe-skins-choice-label">Tribe</div>
                     <div class="qol-tribe-skins-choices">
                         ${Object.entries(SKINS).map(([key, skin]) => `
                             <div class="qol-tribe-skins-choice" data-skin="${key}" role="button" tabindex="0" aria-pressed="false">
                                 <span class="qol-tribe-skins-mark">${skin.mark}</span>
                                 <span>${skin.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="qol-tribe-skins-choice-label">Artwork</div>
+                    <div class="qol-tribe-skins-choices">
+                        ${Object.entries(ARTWORK).map(([key, artwork]) => `
+                            <div class="qol-tribe-skins-choice" data-artwork="${key}" role="button" tabindex="0" aria-pressed="false">
+                                <span class="qol-tribe-skins-mark">${artwork.mark}</span>
+                                <span>${artwork.name}</span>
                             </div>
                         `).join('')}
                     </div>
@@ -252,6 +329,9 @@
       activate(panel.querySelector('[data-close]'), () => panel.classList.remove('qol-tribe-skins-open'));
       panel.querySelectorAll('[data-skin]').forEach(control => {
         activate(control, () => saveSelection(control.dataset.skin));
+      });
+      panel.querySelectorAll('[data-artwork]').forEach(control => {
+        activate(control, () => saveArtwork(control.dataset.artwork));
       });
       document.body.appendChild(panel);
     }
@@ -302,6 +382,8 @@
   window.APES_TRIBE_SKINS = Object.freeze({
     get: getSelection,
     set: saveSelection,
+    getArtwork: () => sessionArtwork,
+    setArtwork: saveArtwork,
     apply: applySelectedSkin,
     restore: restoreOriginalSkins
   });
