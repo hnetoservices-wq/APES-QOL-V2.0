@@ -112,13 +112,25 @@
     const current = image.src || image.currentSrc;
     const original = image.dataset.qolTribeSkinOriginal || '';
     const applied = image.dataset.qolTribeSkinApplied || '';
-    if (!original || cleanUrl(current) !== cleanUrl(original) && cleanUrl(current) !== cleanUrl(applied)) {
-      image.dataset.qolTribeSkinOriginal = current;
+    const native = nativeSource(image);
+    if (native && cleanUrl(native) !== cleanUrl(original) || !original ||
+        !native && cleanUrl(current) !== cleanUrl(original) && cleanUrl(current) !== cleanUrl(applied)) {
+      image.dataset.qolTribeSkinOriginal = native || current;
       delete image.dataset.qolTribeSkinApplied;
       delete image.dataset.qolTribeSkinFailed;
-      return current;
+      return native || current;
     }
     return original;
+  }
+  function nativeSource(image) {
+    const value = image.getAttribute('ng-src') || image.getAttribute('data-ng-src');
+    if (!value || /[{}]/.test(value)) return '';
+    try {
+      const url = new URL(value, location.href);
+      return /\/layout\/images\/(?:halloween\/)?building\/thumb\/g\d+[\w.-]*\.png$/i.test(url.pathname) ? url.href : '';
+    } catch (_) {
+      return '';
+    }
   }
   function targetsFor(image, choice) {
     const skin = SKINS[choice];
@@ -167,8 +179,9 @@
   }
   function restoreImage(image) {
     imageRequests.delete(image);
-    const original = image.dataset.qolTribeSkinOriginal;
+    const original = nativeSource(image) || image.dataset.qolTribeSkinOriginal;
     if (!original) return;
+    image.dataset.qolTribeSkinOriginal = original;
     delete image.dataset.qolTribeSkinApplied;
     delete image.dataset.qolTribeSkinFailed;
     if (cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
@@ -184,12 +197,14 @@
     const previous = imageRequests.get(image);
     if (previous?.key === key && previous.original === original &&
         (!previous.target || cleanUrl(image.src) === cleanUrl(previous.target))) return;
-    const request = { key, original };
+    const request = { key, original, index: 0 };
     imageRequests.set(image, request);
     const currentRequest = () => imageRequests.get(image) === request && enabled() && image.isConnected &&
+      (!nativeSource(image) || cleanUrl(nativeSource(image)) === cleanUrl(original)) &&
       (cleanUrl(image.src) === cleanUrl(original) || cleanUrl(image.src) === cleanUrl(image.dataset.qolTribeSkinApplied));
     const apply = async () => {
-      for (const target of candidates) {
+      for (; request.index < candidates.length; request.index++) {
+        const target = candidates[request.index];
         if (!currentRequest()) return;
         // The native image is already known and is the final safe fallback.
         if (cleanUrl(target) !== cleanUrl(original) && !await artworkAvailable(target)) continue;
@@ -201,8 +216,32 @@
         return;
       }
     };
+    request.retry = apply;
     void apply();
   }
+  // Validate the image used by the game as well as the preload. A successful
+  // probe alone must never leave a broken building on screen.
+  document.addEventListener('error', event => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement)) return;
+    const request = imageRequests.get(image);
+    if (!request?.target || !enabled() || !image.isConnected ||
+        cleanUrl(image.src) !== cleanUrl(request.target) ||
+        cleanUrl(request.target) === cleanUrl(request.original)) return;
+    const native = nativeSource(image);
+    if (native && cleanUrl(native) !== cleanUrl(request.original)) {
+      imageRequests.delete(image);
+      applySelectedSkin();
+      return;
+    }
+    artworkLoads.set(request.target, Promise.resolve(false));
+    image.dataset.qolTribeSkinFailed = request.target;
+    request.index++;
+    request.target = '';
+    image.dataset.qolTribeSkinApplied = request.original;
+    image.src = request.original;
+    void request.retry();
+  }, true);
   function applySelectedSkin() {
     if (!enabled()) {
       restoreOriginalSkins();
@@ -362,7 +401,7 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['src']
+      attributeFilter: ['src', 'ng-src', 'data-ng-src']
     });
   }
   document.addEventListener('keydown', event => {
