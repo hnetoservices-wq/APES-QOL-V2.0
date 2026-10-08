@@ -311,6 +311,7 @@
     let plannerState;
     try {
       plan = planner.calculate();
+      planner.validatePlan(plan);
       plannerState = planner.getState();
     } catch (error) {
       showToast(error?.message || 'Could not calculate the current resource plan.', 'error');
