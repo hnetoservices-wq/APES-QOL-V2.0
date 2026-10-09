@@ -6,6 +6,21 @@
   const ALL_FOLDER_ID = '__all__';
   const DEFAULT_FOLDER_ID = '__unfiled__';
   const STYLE_ID = 'qol-report-archive-styles';
+  // Report sprites retain their type even after the game's tooltip is removed.
+  const REPORT_BUILDING_NAMES = Object.freeze({
+    1: 'Woodcutter', 2: 'Clay Pit', 3: 'Iron Mine', 4: 'Cropland',
+    5: 'Sawmill', 6: 'Brickyard', 7: 'Iron Foundry', 8: 'Grain Mill',
+    9: 'Bakery', 10: 'Warehouse', 11: 'Granary', 12: 'Smithy',
+    14: 'Tournament Square', 15: 'Main Building', 16: 'Rally Point',
+    17: 'Marketplace', 18: 'Embassy', 19: 'Barracks', 20: 'Stable',
+    21: 'Workshop', 22: 'Academy', 23: 'Cranny', 24: 'Town Hall',
+    25: 'Residence', 26: 'Palace', 27: 'Treasury', 28: 'Trade Office',
+    29: 'Great Barracks', 30: 'Great Stable', 31: 'City Wall',
+    32: 'Earth Wall', 33: 'Palisade', 34: 'Stonemason', 35: 'Brewery',
+    36: 'Trapper', 37: "Hero's Mansion", 38: 'Great Warehouse',
+    39: 'Great Granary', 40: 'Wonder of the World',
+    41: 'Horse Drinking Trough', 46: 'Healing Tent'
+  });
   let archive = createEmptyArchive();
   let toolbarButton = null;
   let archivePanel = null;
@@ -1240,6 +1255,38 @@
 
             .qol-ra-compact-body table {
                 max-width:100%!important;
+            }
+
+            .qol-ra-compact-body .buildingInfo {
+                display:flex!important;
+                align-items:center!important;
+                flex-wrap:wrap!important;
+                gap:8px!important;
+                width:auto!important;
+                height:auto!important;
+                float:none!important;
+                margin:6px 0!important;
+            }
+
+            .qol-ra-compact-body .qol-ra-building-name,
+            .qol-ra-compact-body .qol-ra-building-levels {
+                position:static!important;
+                float:none!important;
+                width:auto!important;
+                height:auto!important;
+                white-space:normal!important;
+            }
+
+            .qol-ra-compact-body .qol-ra-building-name {
+                font-weight:bold!important;
+            }
+
+            .qol-ra-compact-body .qol-ra-building-levels .finalLevel {
+                position:static!important;
+                float:none!important;
+                padding:0!important;
+                margin:0!important;
+                background:none!important;
             }
 
             .qol-ra-compact-body canvas,
@@ -2896,6 +2943,18 @@
   }
   function cloneReportWithCanvases(reportRoot) {
     const clone = reportRoot.cloneNode(true);
+    // Building icons are CSS sprites whose rules can depend on the live popup.
+    const originalBuildingIcons = [...reportRoot.querySelectorAll('.buildingInfo .buildingLarge')];
+    clone.querySelectorAll('.buildingInfo .buildingLarge').forEach((icon, index) => {
+      const originalIcon = originalBuildingIcons[index];
+      if (!originalIcon) return;
+      const style = window.getComputedStyle(originalIcon);
+      ['background-image', 'background-position', 'background-size',
+        'background-repeat', 'width', 'height', 'display'].forEach(property => {
+        const value = style.getPropertyValue(property);
+        if (value) icon.style.setProperty(property, value);
+      });
+    });
     const originalCanvases = [...reportRoot.querySelectorAll('canvas')];
     const clonedCanvases = [...clone.querySelectorAll('canvas')];
     clonedCanvases.forEach((clonedCanvas, index) => {
@@ -2919,10 +2978,45 @@
     });
     return clone;
   }
+  function preserveBuildingDetails(root) {
+    root.querySelectorAll('.buildingInfo').forEach(row => {
+      const icon = row.querySelector('.buildingLarge');
+      if (!icon) return;
+      const type = /(?:^|\s)buildingType(\d+)(?:\s|$)/.exec(icon.className)?.[1]
+        || /^Building_(\d+)$/.exec(icon.getAttribute('tooltip-translate') || '')?.[1];
+      if (!type) return;
+      let label = row.querySelector('.qol-ra-building-name');
+      if (!label) {
+        label = document.createElement('span');
+        label.className = 'qol-ra-building-name';
+        label.textContent = REPORT_BUILDING_NAMES[type] || `Building #${type}`;
+        icon.after(label);
+      }
+      icon.setAttribute('title', label.textContent);
+      const finalLevel = row.querySelector('.finalLevel');
+      const levels = finalLevel?.parentElement;
+      if (!levels || levels.classList.contains('qol-ra-building-levels')) return;
+      // Ignore directional marks used by the game when formatting numbers.
+      const cleanLevel = value => String(value || '').replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '').trim();
+      const beforeNode = levels.cloneNode(true);
+      beforeNode.querySelector('.finalLevel')?.remove();
+      const before = cleanLevel(beforeNode.textContent);
+      const after = cleanLevel(finalLevel.textContent);
+      if (!/^\d+$/.test(before) || !/^\d+$/.test(after)) return;
+      levels.classList.add('qol-ra-building-levels');
+      levels.textContent = `${before} → `;
+      levels.appendChild(finalLevel);
+      if (Number(before) > 0 && Number(after) === 0) {
+        levels.appendChild(document.createTextNode(' (destroyed)'));
+      }
+    });
+  }
   function sanitizeSnapshot(root) {
     if (!root?.querySelectorAll) {
       return;
     }
+    // Also reconstruct names when opening archives saved by older versions.
+    preserveBuildingDetails(root);
     root.querySelectorAll(`
             .inWindowPopupHeader,
             .controlPanel,
@@ -3082,3 +3176,4 @@
     close: closeArchivePanel
   });
 })();
+
