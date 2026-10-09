@@ -429,6 +429,7 @@
       let plannerState;
       try {
         plan = planner.calculate();
+        planner.validatePlan(plan);
         plannerState = planner.getState();
       } catch (error) {
         showImportToast(error?.message || 'Could not calculate the current resource plan.', 'error');
@@ -444,7 +445,7 @@
 
       const simulatedFields = {};
       for (const resource of Object.keys(RESOURCE_TYPES)) {
-        simulatedFields[resource] = Array.isArray(plannerState?.fields?.[resource]) ? plannerState.fields[resource].map(value => Math.max(0, Number(value) || 0)) : [];
+        simulatedFields[resource] = plan.startState.fields[resource].slice();
       }
 
       const imported = [];
