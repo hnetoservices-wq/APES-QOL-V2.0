@@ -78,7 +78,7 @@
     route.push(instruction('x3-card-games', 'If affordable, play card games for an extra adventure point and chests.'));
     route.push(checkpoint('x3-residence-five-reward', 'After Residence Level 5 finishes, collect its quest reward before continuing.'));
 
-    addBuildingThrough(route, 'x3-residence', 'Residence', 25, 6, 10);
+    route.push(instruction('x3-residence-ten-reward', 'Collect Level 10 Residence Quest Reward'));
     route.push(checkpoint('x3-settler-one', 'Queue the first Settler.'));
     route.push(checkpoint('x3-settler-two-hideouts', 'Queue the second Settler as soon as possible. Clear the first two hideouts, sell stolen goods and use the seventh hero adventure for more resources.'));
     route.push(checkpoint('x3-catch-animals', 'After the seventh adventure, catch animals in a nearby oasis for the quest reward.'));
