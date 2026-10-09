@@ -33,6 +33,7 @@
   let sessionSelection = readSelection();
   let sessionArtwork = readArtwork();
   const imageRequests = new WeakMap();
+  const imageCrossOrigins = new WeakMap();
   function enabled() {
     return typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE_KEY);
   }
@@ -141,14 +142,34 @@
     candidates.push(original);
     return [...new Set(candidates)];
   }
+  function prepareSkinImage(image) {
+    const value = image.getAttribute('crossorigin');
+    if (!imageCrossOrigins.has(image) || value !== null) imageCrossOrigins.set(image, value);
+    if (value === null) return false;
+    // An empty crossorigin attribute still requests CORS access. These CDN
+    // images need only be displayed, and may not send CORS permission headers.
+    image.removeAttribute('crossorigin');
+    return true;
+  }
+  function restoreCrossOrigin(image) {
+    if (!imageCrossOrigins.has(image)) return;
+    const value = imageCrossOrigins.get(image);
+    imageCrossOrigins.delete(image);
+    if (value === null) image.removeAttribute('crossorigin');
+    else image.setAttribute('crossorigin', value);
+  }
   function restoreImage(image) {
     imageRequests.delete(image);
     const original = nativeSource(image) || image.dataset.qolTribeSkinOriginal;
-    if (!original) return;
+    if (!original) {
+      restoreCrossOrigin(image);
+      return;
+    }
     image.dataset.qolTribeSkinOriginal = original;
     delete image.dataset.qolTribeSkinApplied;
     delete image.dataset.qolTribeSkinFailed;
     if (cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
+    restoreCrossOrigin(image);
   }
   function restoreOriginalSkins() {
     document.querySelectorAll('img[data-qol-tribe-skin-original]').forEach(restoreImage);
@@ -157,6 +178,10 @@
     const candidates = targetsFor(image, choice);
     if (!candidates.length) return;
     const original = image.dataset.qolTribeSkinOriginal;
+    if (imageCrossOrigins.has(image) || candidates.some(target => cleanUrl(target) !== cleanUrl(original))) {
+      // Reapply if the game reinstated crossorigin on a previously loaded skin.
+      if (prepareSkinImage(image)) force = true;
+    }
     const key = candidates.join('\n');
     const previous = imageRequests.get(image);
     if (!force && previous?.key === key && previous.original === original &&
@@ -192,6 +217,10 @@
     if (native && cleanUrl(native) !== cleanUrl(request.original)) {
       imageRequests.delete(image);
       applySelectedSkin();
+      return;
+    }
+    if (imageCrossOrigins.has(image) && image.getAttribute('crossorigin') !== null) {
+      applyToImage(image, getSelection(), true);
       return;
     }
     image.dataset.qolTribeSkinFailed = request.target;
@@ -357,7 +386,7 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['src', 'ng-src', 'data-ng-src']
+      attributeFilter: ['src', 'ng-src', 'data-ng-src', 'crossorigin']
     });
   }
   document.addEventListener('keydown', event => {

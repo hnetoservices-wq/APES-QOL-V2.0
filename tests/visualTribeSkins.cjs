@@ -31,12 +31,15 @@ function setup(paths = samples, options = {}) {
   class Element {
     constructor() {
       this.dataset = {}; this.events = {}; this.classes = new Set();
+      this.attributes = new Map();
       this.style = { removeProperty() {}, setProperty() {} };
       this.classList = { contains: name => this.classes.has(name),
         add: name => this.classes.add(name), remove: name => this.classes.delete(name),
         toggle: (name, force) => (force ?? !this.classes.has(name)) ? this.classes.add(name) : this.classes.delete(name) };
     }
-    setAttribute(key, value) { this[key] = value; }
+    setAttribute(key, value) { this.attributes.set(key, String(value)); }
+    getAttribute(key) { return this.attributes.get(key) ?? null; }
+    removeAttribute(key) { this.attributes.delete(key); }
     addEventListener(key, callback) { (this.events[key] ||= []).push(callback); }
     click() { (this.events.click || []).forEach(callback => callback({ preventDefault() {}, stopPropagation() {} })); }
     querySelector(selector) { return selector === '[data-close]' ? this.close : selector === '.qol-tribe-skins-current' ? this.current : null; }
@@ -54,15 +57,17 @@ function setup(paths = samples, options = {}) {
       this.id = `buildingImage${i + 20}`; this.isConnected = true;
       this.complete = true; this.naturalWidth = 100; this.revision = 0;
       this.gameSource = options.native === false ? '' : this._src;
+      if (options.crossorigin !== undefined) this.attributes.set('crossorigin', options.crossorigin);
     }
     get src() { return this._src; }
     set src(url) {
       this._src = url; this.complete = false;
       const revision = ++this.revision;
+      const corsAllowed = !this.attributes.has('crossorigin') || options.cors !== false;
       requests.push(url); changed(this);
       const finish = () => {
         if (this.revision !== revision) return;
-        const available = options.available ? options.available(url) : !/halloween\/building\/thumb\/g(?:16_|31_)/.test(url);
+        const available = corsAllowed && (options.available ? options.available(url) : !/halloween\/building\/thumb\/g(?:16_|31_)/.test(url));
         this.complete = true; this.naturalWidth = available ? 100 : 0; this.currentSrc = url;
         emit(available ? 'load' : 'error', this);
       };
@@ -71,12 +76,21 @@ function setup(paths = samples, options = {}) {
     getAttribute(key) {
       if (key === 'ng-src') return this.gameSource;
       if (key === 'data-level') return this.level || '';
-      return '';
+      return super.getAttribute(key);
+    }
+    setAttribute(key, value) {
+      const previous = this.getAttribute(key); super.setAttribute(key, value);
+      if (key === 'crossorigin' && previous !== String(value)) { this.src = this.src; changed(this, key); }
+    }
+    removeAttribute(key) {
+      const previous = this.getAttribute(key); super.removeAttribute(key);
+      if (key === 'crossorigin' && previous !== null) { this.src = this.src; changed(this, key); }
     }
     closest() { return null; }
     matches(selector) { return selector === 'img.location'; }
   }
   const images = paths.map((file, i) => new Building(file, i));
+  options.beforeStart?.(images);
   const document = {
     readyState: 'loading', documentElement: {},
     addEventListener(name, callback) { (documentEvents[name] ||= []).push(callback); },
@@ -182,6 +196,54 @@ async function main() {
   saved.tribe('gaul'); saved.artwork('halloween'); await saved.flush();
   equal(saved.storage.get('apes_visual_tribe_skin_selection_v1'), 'gaul');
   equal(saved.storage.get('apes_visual_tribe_skin_artwork_v1'), 'halloween');
+  // Match the user's normal-server version, Gaul native source and explicit
+  // empty crossorigin attribute. A cached non-CORS response can lack permission.
+  const cors = setup(['g15','g16','g19','g15','g16','g19'].map(building => `building/thumb/${building}_g00.png`), {
+    crossorigin: '', cors: false,
+    saved: { apes_visual_tribe_skin_selection_v1: 'teuton', apes_visual_tribe_skin_artwork_v1: 'standard' },
+    beforeStart(images) { images.forEach(image => {
+      image._src = image.gameSource = image.currentSrc = image.src.replace('0.121.4', '0.120.27');
+      image.dataset.qolTribeSkinOriginal = image.dataset.qolTribeSkinApplied = image.src;
+      image.dataset.qolTribeSkinFailed = image.src.replace('_g00.png', '_t00.png');
+    }); }
+  });
+  cors.tribe('teuton'); cors.artwork('standard'); await cors.flush();
+  for (const image of cors.images) {
+    equal(image.src, image.gameSource.replace('_g00.png', '_t00.png'));
+    equal(image.naturalWidth > 0, true);
+    equal(image.getAttribute('crossorigin'), null);
+  }
+  // Later Angular updates can reinstate an empty or anonymous attribute.
+  cors.images[0].setAttribute('crossorigin', ''); await cors.flush();
+  equal(cors.images[0].src, cors.images[0].gameSource.replace('_g00.png', '_t00.png'));
+  equal(cors.images[0].naturalWidth > 0, true);
+  equal(cors.images[0].getAttribute('crossorigin'), null);
+  cors.disable();
+  cors.images.forEach(image => { equal(image.src, image.gameSource); equal(image.getAttribute('crossorigin'), ''); });
+  for (const value of [undefined, 'anonymous', 'use-credentials']) {
+    const policy = setup(['building/thumb/g19_g00.png'], { crossorigin: value, cors: false });
+    policy.tribe('teuton'); await policy.flush();
+    equal(policy.images[0].src, base + 'building/thumb/g19_t00.png');
+    equal(policy.images[0].naturalWidth > 0, true);
+    policy.disable(); equal(policy.images[0].getAttribute('crossorigin'), value ?? null);
+  }
+  const nativeOnly = setup(['building/thumb/g19_g00.png'], { crossorigin: '', cors: false });
+  nativeOnly.tribe('gaul'); nativeOnly.artwork('standard'); await nativeOnly.flush();
+  equal(nativeOnly.images[0].getAttribute('crossorigin'), '');
+  equal(nativeOnly.images[0].naturalWidth > 0, true);
+  for (const seasonal of [false, true]) for (const [tribe, prefix] of [['roman','r'],['gaul','g'],['teuton','t']]) {
+    for (const artwork of ['server','standard','halloween']) {
+      const file = `${seasonal ? 'halloween/' : ''}building/thumb/g19_${seasonal ? 'r' : 'g'}00.png`;
+      const env = setup([file], { crossorigin: '', cors: false });
+      env.tribe(tribe); env.artwork(artwork); await env.flush();
+      const folder = artwork === 'halloween' || artwork === 'server' && seasonal ? 'halloween/' : '';
+      const expected = base + `${folder}building/thumb/g19_${prefix}00.png`;
+      equal(env.images[0].src, expected);
+      equal(env.images[0].naturalWidth > 0, true);
+      equal(env.images[0].getAttribute('crossorigin') === null || expected === base + file, true);
+      env.disable(); equal(env.images[0].getAttribute('crossorigin'), '');
+    }
+  }
   console.log(`Passed ${checks} tribe/artwork, UI selection, displayed-image fallback and redraw checks.`);
 }
 main().catch(error => { console.error(error); process.exitCode = 1; });
