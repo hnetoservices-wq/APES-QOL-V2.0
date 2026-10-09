@@ -1,0 +1,10 @@
+{
+  "name": "apes-qol-tests",
+  "private": true,
+  "scripts": {
+    "test": "node visualTribeSkins.cjs && node resourceUpgradePlanner.cjs && node reportArchive.cjs"
+  },
+  "devDependencies": {
+    "jsdom": "30.1.2"
+  }
+}
