@@ -32,7 +32,6 @@
   let scheduled = false;
   let sessionSelection = readSelection();
   let sessionArtwork = readArtwork();
-  const artworkLoads = new Map();
   const imageRequests = new WeakMap();
   function enabled() {
     return typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE_KEY);
@@ -62,7 +61,7 @@
     try {
       localStorage.setItem(ARTWORK_KEY, choice);
     } catch (_) {}
-    applySelectedSkin();
+    applySelectedSkin(true);
     refreshUi();
   }
   function saveSelection(choice) {
@@ -71,7 +70,7 @@
     try {
       localStorage.setItem(SELECTION_KEY, choice);
     } catch (_) {}
-    applySelectedSkin();
+    applySelectedSkin(true);
     refreshUi();
   }
   function cleanUrl(value) {
@@ -90,23 +89,6 @@
     } catch (_) {
       return null;
     }
-  }
-  function findBuildingLevel(image) {
-    const slotMatch = String(image.id || '').match(/buildingImage(\d+)/i);
-    const slotId = slotMatch?.[1];
-    const nearby = [image, image.parentElement, image.closest('[id*="location" i],[class*="location" i]'), slotId ? document.getElementById('buildingLevel' + slotId) : null, slotId ? document.getElementById('level' + slotId) : null].filter(Boolean);
-    const values = [];
-    nearby.forEach(element => {
-      values.push(element.getAttribute?.('data-level'), element.getAttribute?.('data-building-level'), element.getAttribute?.('aria-label'), element.getAttribute?.('title'));
-      element.querySelectorAll?.('[data-level],[data-building-level],[class*="level" i],[id*="level" i]').forEach(child => {
-        values.push(child.getAttribute('data-level'), child.getAttribute('data-building-level'), child.textContent);
-      });
-    });
-    for (const value of values) {
-      const match = String(value || '').match(/\b(?:level\s*)?([0-9]{1,2})\b/i);
-      if (match) return Number(match[1]);
-    }
-    return null;
   }
   function originalFor(image) {
     const current = image.src || image.currentSrc;
@@ -141,11 +123,9 @@
     const match = buildingPath(original);
     let filename = path[3];
     if (match && skin) {
-      const measuredLevel = findBuildingLevel(image);
-      const sourceTier = Number(match[3] || 0);
-      const level = Number.isInteger(measuredLevel) ? measuredLevel : sourceTier;
-      const tier = Math.max(0, Math.min(20, Math.floor(level / 10) * 10));
-      filename = filename.replace(/_([rgt])\d+(\.png)$/i, '_' + skin.prefix + String(tier).padStart(2, '0') + '$2');
+      // The game has already selected the building's artwork tier. Change
+      // only its tribe; nearby labels need not describe that image's tier.
+      filename = filename.replace(/_([rgt])(\d+\.png)$/i, '_' + skin.prefix + '$2');
     }
     const halloween = sessionArtwork === 'halloween' || sessionArtwork === 'server' && Boolean(path[2]);
     target.search = '';
@@ -161,22 +141,6 @@
     candidates.push(original);
     return [...new Set(candidates)];
   }
-  function artworkAvailable(url) {
-    if (!artworkLoads.has(url)) {
-      artworkLoads.set(url, new Promise(resolve => {
-        const probe = new Image();
-        const finish = success => {
-          probe.onload = null;
-          probe.onerror = null;
-          resolve(success);
-        };
-        probe.onload = () => finish(probe.naturalWidth > 0);
-        probe.onerror = () => finish(false);
-        probe.src = url;
-      }));
-    }
-    return artworkLoads.get(url);
-  }
   function restoreImage(image) {
     imageRequests.delete(image);
     const original = nativeSource(image) || image.dataset.qolTribeSkinOriginal;
@@ -189,43 +153,39 @@
   function restoreOriginalSkins() {
     document.querySelectorAll('img[data-qol-tribe-skin-original]').forEach(restoreImage);
   }
-  function applyToImage(image, choice) {
+  function applyToImage(image, choice, force) {
     const candidates = targetsFor(image, choice);
     if (!candidates.length) return;
     const original = image.dataset.qolTribeSkinOriginal;
     const key = candidates.join('\n');
     const previous = imageRequests.get(image);
-    if (previous?.key === key && previous.original === original &&
-        (!previous.target || cleanUrl(image.src) === cleanUrl(previous.target))) return;
+    if (!force && previous?.key === key && previous.original === original &&
+        cleanUrl(image.src) === cleanUrl(previous.target)) return;
     const request = { key, original, index: 0 };
     imageRequests.set(image, request);
     const currentRequest = () => imageRequests.get(image) === request && enabled() && image.isConnected &&
-      (!nativeSource(image) || cleanUrl(nativeSource(image)) === cleanUrl(original)) &&
-      (cleanUrl(image.src) === cleanUrl(original) || cleanUrl(image.src) === cleanUrl(image.dataset.qolTribeSkinApplied));
-    const apply = async () => {
-      for (; request.index < candidates.length; request.index++) {
-        const target = candidates[request.index];
-        if (!currentRequest()) return;
-        // The native image is already known and is the final safe fallback.
-        if (cleanUrl(target) !== cleanUrl(original) && !await artworkAvailable(target)) continue;
-        if (!currentRequest()) return;
-        request.target = target;
-        image.dataset.qolTribeSkinApplied = target;
-        delete image.dataset.qolTribeSkinFailed;
-        if (cleanUrl(image.src) !== cleanUrl(target)) image.src = target;
-        return;
-      }
+      (!nativeSource(image) || cleanUrl(nativeSource(image)) === cleanUrl(original));
+    const apply = () => {
+      if (!currentRequest()) return;
+      const target = candidates[request.index];
+      if (!target) return;
+      request.target = target;
+      image.dataset.qolTribeSkinApplied = target;
+      if (cleanUrl(image.src) !== cleanUrl(target)) image.src = target;
     };
     request.retry = apply;
-    void apply();
+    delete image.dataset.qolTribeSkinFailed;
+    // Load the actual village image immediately. A separate preload can hang
+    // or fail independently and must not block the user's selection.
+    apply();
   }
-  // Validate the image used by the game as well as the preload. A successful
-  // probe alone must never leave a broken building on screen.
+  // Missing seasonal artwork falls back to this tribe's standard image,
+  // then to the native image. Each candidate is attempted once per selection.
   document.addEventListener('error', event => {
     const image = event.target;
     if (!(image instanceof HTMLImageElement)) return;
     const request = imageRequests.get(image);
-    if (!request?.target || !enabled() || !image.isConnected ||
+    if (!request?.target || !enabled() || !image.isConnected || image.complete === false ||
         cleanUrl(image.src) !== cleanUrl(request.target) ||
         cleanUrl(request.target) === cleanUrl(request.original)) return;
     const native = nativeSource(image);
@@ -234,15 +194,11 @@
       applySelectedSkin();
       return;
     }
-    artworkLoads.set(request.target, Promise.resolve(false));
     image.dataset.qolTribeSkinFailed = request.target;
     request.index++;
-    request.target = '';
-    image.dataset.qolTribeSkinApplied = request.original;
-    image.src = request.original;
-    void request.retry();
+    request.retry();
   }, true);
-  function applySelectedSkin() {
+  function applySelectedSkin(force = false) {
     if (!enabled()) {
       restoreOriginalSkins();
       return;
@@ -253,7 +209,7 @@
       return;
     }
     document.querySelectorAll('img.location[src*="/building/thumb/"]').forEach(image => {
-      applyToImage(image, choice);
+      applyToImage(image, choice, force);
     });
   }
   function refreshUi() {
