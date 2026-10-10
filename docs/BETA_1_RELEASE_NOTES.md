@@ -26,7 +26,7 @@ APES QoL 2.0 is a broader rebuild of the extension rather than a simple continua
 - Building Alarm with Account Operations Center timeline integration.
 - Resource Upgrade Planner with persistent per-village roadmaps and live Pending / Queued / Complete tracking.
 - Resource Capacity Timer.
-- CP Manager, Trade Route Optimizer and Expansion Readiness tools.
+- CP Manager and Expansion Readiness tools.
 
 ### Kingdom and map tools
 
@@ -88,3 +88,4 @@ Avoid clearing APES storage before reporting a persistence problem unless the te
 ## Release policy
 
 Large new features are frozen during the public beta. Beta updates should primarily contain bug fixes, compatibility fixes, scanner/navigation hardening, storage corrections and UI fixes discovered by testers.
+
