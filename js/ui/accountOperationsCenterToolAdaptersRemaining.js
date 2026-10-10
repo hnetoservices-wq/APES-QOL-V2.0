@@ -151,7 +151,7 @@
   // scanner exactly the same navigation environment it has in standalone mode.
   workspace.register('cpManager', (() => {
     const MAIN_ID = 'qol-cp-manager-panel';
-    const SUB_IDS = ['qol-cp-planner-panel', 'qol-cp-trade-planner-panel'];
+    const SUB_IDS = ['qol-cp-planner-panel'];
     const SCAN_OVERLAY_ID = 'qol-cp-scan-overlay';
     let panel = null;
     let host = null;
@@ -254,7 +254,7 @@
           isolateForScan();
           return;
         }
-        if (!event.target.closest('.qol-cp-plan-btn,.qol-cp-trade-btn')) return;
+        if (!event.target.closest('.qol-cp-plan-btn')) return;
         setTimeout(adoptSubpanels, 0);
         setTimeout(adoptSubpanels, 60);
         setTimeout(adoptSubpanels, 180);
@@ -386,3 +386,4 @@
     openClass: 'qol-ss-open'
   }));
 })();
+
