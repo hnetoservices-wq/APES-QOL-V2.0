@@ -1,0 +1,90 @@
+#qol-kingdom-management-toggle-btn {
+  position: fixed; display: flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; padding: 0; margin: 0; border-radius: 50%;
+  border: 2px solid var(--qol-accent, #806239); background: var(--qol-accent-soft, #f4e9d1);
+  color: var(--qol-accent, #806239); cursor: pointer; z-index: 9999; box-sizing: border-box;
+}
+#qol-kingdom-management-toggle-btn svg, #qol-kingdom-management-panel svg {
+  width: 19px; height: 19px; fill: currentColor; stroke: currentColor; stroke-width: 1.4;
+}
+#qol-kingdom-management-panel {
+  display: none; position: fixed; inset: 7vh 3vw auto; width: 94vw; height: 86vh;
+  z-index: 100002; overflow: hidden; box-sizing: border-box; flex-direction: column;
+  border: 2px solid var(--qol-border, #806239); border-radius: 8px;
+  background: #f7f5f0; color: #332719; box-shadow: 0 18px 60px #0007;
+  font: 13px/1.45 Arial, Helvetica, sans-serif;
+}
+#qol-kingdom-management-panel.qol-km-open { display: flex; }
+#qol-kingdom-management-panel *, #qol-kingdom-management-scan-lock * { box-sizing: border-box; }
+#qol-kingdom-management-panel .qol-km-head {
+  display: flex; align-items: center; justify-content: space-between; flex: 0 0 auto;
+  padding: 12px 16px; background: var(--qol-accent-deep, #614c30); color: #fff8e7;
+}
+#qol-kingdom-management-panel .qol-km-head span { display: flex; align-items: center; gap: 9px; font-size: 17px; font-weight: bold; }
+#qol-kingdom-management-panel .qol-km-body {
+  display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; overflow: auto; gap: 12px; padding: 16px;
+}
+#qol-kingdom-management-panel.apes-aoc-embedded-tool { border: 0; box-shadow: none; border-radius: 0; }
+#qol-kingdom-management-panel.apes-aoc-embedded-tool .qol-km-head { display: none; }
+#qol-kingdom-management-panel button, #qol-kingdom-management-scan-lock button {
+  font: inherit; line-height: 1.4; cursor: pointer; padding: 7px 12px; min-height: 32px;
+  border: 1px solid var(--qol-accent-outline, #a99170); border-radius: 5px;
+  color: #332719; background: var(--qol-accent-soft, #ede3cf); white-space: nowrap;
+}
+#qol-kingdom-management-panel button:hover, #qol-kingdom-management-scan-lock button:hover { filter: brightness(.95); }
+#qol-kingdom-management-panel button:disabled { opacity: .55; cursor: wait; }
+#qol-kingdom-management-panel button:focus-visible, #qol-kingdom-management-panel input:focus-visible,
+#qol-kingdom-management-panel select:focus-visible, #qol-kingdom-management-scan-lock button:focus-visible {
+  outline: 2px solid var(--qol-accent, #806239); outline-offset: 2px;
+}
+#qol-kingdom-management-panel .qol-km-head button { background: transparent; color: inherit; border-color: #fff6; font-size: 19px; padding: 0 10px; }
+#qol-kingdom-management-panel .qol-km-first { margin: auto; text-align: center; }
+#qol-kingdom-management-panel .qol-km-first [data-km-scan] { font-size: 17px; padding: 12px 24px; }
+#qol-kingdom-management-panel .qol-km-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; flex: 0 0 auto; }
+#qol-kingdom-management-panel label { display: flex; gap: 8px; align-items: center; font-weight: bold; }
+#qol-kingdom-management-panel input, #qol-kingdom-management-panel select {
+  max-width: 100%; font: inherit; color: #332719; background: #fffdf8;
+  border: 1px solid #b7a68d; border-radius: 4px; min-height: 33px; padding: 5px 8px;
+}
+#qol-kingdom-management-panel input { width: 220px; }
+#qol-kingdom-management-panel select { min-width: 200px; }
+#qol-kingdom-management-panel .qol-km-tabs { display: flex; gap: 6px; border-bottom: 1px solid #cbbda7; padding-bottom: 8px; flex: 0 0 auto; }
+#qol-kingdom-management-panel .qol-km-tabs [aria-pressed="true"] { background: var(--qol-accent-deep, #614c30); color: #fff8e7; }
+#qol-kingdom-management-panel .qol-km-caption, #qol-kingdom-management-panel .qol-km-empty { margin: 0; color: #6b5943; }
+#qol-kingdom-management-panel [data-km-status]:empty { display: none; }
+#qol-kingdom-management-panel [data-tone="error"] { color: #a02f27; }
+#qol-kingdom-management-panel [data-tone="success"] { color: #2c683c; }
+#qol-kingdom-management-panel .qol-km-table-wrap { overflow: auto; flex: 1 1 auto; min-height: 160px; border: 1px solid #cbbda7; border-radius: 5px; }
+#qol-kingdom-management-panel table { border-collapse: separate; border-spacing: 0; width: 100%; min-width: 1300px; font: inherit; color: inherit; }
+#qol-kingdom-management-panel th, #qol-kingdom-management-panel td { padding: 9px 10px; text-align: right; border-bottom: 1px solid #e0d8ca; white-space: nowrap; }
+#qol-kingdom-management-panel th { position: sticky; top: 0; z-index: 2; background: #e8dfcf; color: #57412c; }
+#qol-kingdom-management-panel .qol-km-groups th { height: 30px; padding: 5px 10px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; background: #d8c9b0; }
+#qol-kingdom-management-panel thead tr:nth-child(2) th { top: 30px; }
+#qol-kingdom-management-panel th button { border: 0; background: transparent; padding: 0; min-height: 26px; }
+#qol-kingdom-management-panel tbody tr:nth-child(even) td { background: #f0ece3; }
+#qol-kingdom-management-panel tbody tr:nth-child(odd) td { background: #fffdf8; }
+#qol-kingdom-management-panel tbody tr:hover td { background: #eee2c9; }
+#qol-kingdom-management-panel td:nth-child(2), #qol-kingdom-management-panel td:nth-child(3),
+#qol-kingdom-management-panel thead tr:nth-child(2) th:nth-child(2), #qol-kingdom-management-panel thead tr:nth-child(2) th:nth-child(3) { text-align: left; }
+#qol-kingdom-management-panel tbody td:nth-child(2), #qol-kingdom-management-panel thead tr:nth-child(2) th:nth-child(2) { position: sticky; left: 0; z-index: 1; min-width: 135px; border-right: 1px solid #cbbda7; }
+#qol-kingdom-management-panel thead tr:nth-child(2) th:nth-child(2) { z-index: 3; }
+#qol-kingdom-management-panel .qol-km-name { color: var(--qol-accent-deep, #614c30); font-weight: bold; white-space: normal; text-align: left; }
+#qol-kingdom-management-panel .qol-km-delta { display: block; font-size: 11px; color: #786b58; }
+#qol-kingdom-management-panel .qol-km-delta.positive { color: #2c683c; }
+#qol-kingdom-management-panel .qol-km-delta.negative { color: #a02f27; }
+#qol-kingdom-management-panel .qol-km-notes { text-align: left; white-space: normal; min-width: 170px; max-width: 260px; font-size: 12px; }
+#qol-kingdom-management-scan-lock {
+  position: fixed; inset: 0; z-index: 2147483646; display: grid; place-items: center;
+  background: #1d170fbc; color: #332719; font: 14px/1.5 Arial, Helvetica, sans-serif; cursor: wait;
+}
+#qol-kingdom-management-scan-lock .qol-km-lock-card {
+  display: flex; flex-direction: column; gap: 16px; align-items: stretch; width: min(480px, 90vw);
+  padding: 28px; background: #f7f5f0; border: 2px solid var(--qol-border, #806239); border-radius: 8px; box-shadow: 0 20px 60px #0008;
+}
+#qol-kingdom-management-scan-lock strong { font-size: 20px; }
+#qol-kingdom-management-scan-lock progress { width: 100%; height: 10px; accent-color: var(--qol-accent, #806239); }
+@media (max-width: 650px) {
+  #qol-kingdom-management-panel { inset: 3vh 2vw auto; width: 96vw; height: 94vh; }
+  #qol-kingdom-management-panel .qol-km-body { padding: 10px; }
+  #qol-kingdom-management-panel .qol-km-controls label { flex-wrap: wrap; }
+}

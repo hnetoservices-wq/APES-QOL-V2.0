@@ -136,6 +136,12 @@ const ADVANCED_FEATURES = [{
   description: 'Saves and organizes players for quick access to profiles, hero data and tracking information.'
 }];
 const KINGDOM_MANAGEMENT_FEATURES = [{
+  id: 'qol-chk-kingdom-management',
+  key: 'kingdomManagement',
+  name: 'Kingdom Management',
+  icon: '♛',
+  description: 'Scans every kingdom ranking, saves statistics snapshots and compares kingdom development.'
+}, {
   id: 'qol-chk-oasis-scanner',
   key: 'oasisScanner',
   name: 'Oasis Scanner',
@@ -264,6 +270,10 @@ const TOOLBAR_ITEMS = [{
   label: 'Secret Society Scanner',
   key: 'secretSocietyScanner'
 }, {
+  id: 'qol-kingdom-management-toggle-btn',
+  label: 'Kingdom Management',
+  key: 'kingdomManagement'
+}, {
   id: 'qol-tribe-skins-toggle-btn',
   label: 'Visual Tribe Skin',
   key: 'visualTribeSkins'
@@ -364,6 +374,7 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-report-archive-toggle,
         body.qol-toolbar-collapsed #qol-cp-toggle-btn,
         body.qol-toolbar-collapsed #qol-ss-scanner-toggle-btn,
+        body.qol-toolbar-collapsed #qol-kingdom-management-toggle-btn,
         body.qol-toolbar-collapsed #qol-tribe-skins-toggle-btn{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
         #${QOL_TOOLBAR_DROPDOWN_ID}{position:fixed!important;display:none!important;flex-direction:column!important;min-width:220px!important;max-width:min(300px,88vw)!important;max-height:min(520px,80vh)!important;overflow-y:auto!important;padding:5px!important;border:2px solid var(--qol-border)!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 26px rgba(0,0,0,.38)!important;z-index:1000001!important;font-family:Arial,Helvetica,sans-serif!important;box-sizing:border-box!important}
@@ -1187,3 +1198,4 @@ if (document.readyState === 'loading') {
 } else {
   initQolUI();
 }
+
