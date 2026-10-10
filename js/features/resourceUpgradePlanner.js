@@ -183,6 +183,7 @@
   let resultMeta = null;
   let scanToken = 0;
   let isScanning = false;
+  let stateVillageId = '';
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
   }
@@ -424,8 +425,11 @@
       const status = wrapper.querySelector('.buildingStatusButton[class*="type_"]');
       const marker = status || wrapper.querySelector('[class*="buildingId"]');
       const buildingId = status ? elementClassNumber(status, /type_(\d+)/i) : elementClassNumber(marker, /buildingId(\d+)/i);
+      // Native empty plots have only `buildingLocation ... free`, with no
+      // status, image, or level. Angular has explicitly classified them empty.
+      if (!Number.isInteger(buildingId) && wrapper.classList?.contains('free')) continue;
       // A missing marker/level is an unfinished render, not a level-zero
-      // building. Empty slots have an explicit type/buildingId of zero.
+      // building. Other empty slots expose an explicit type/buildingId of zero.
       if (!Number.isInteger(buildingId)) return null;
       if (buildingId === 0) continue;
       const level = readCompletedBuildingLevel(wrapper);
@@ -547,13 +551,14 @@
     if (isScanning) return;
     const token = ++scanToken;
     const identity = currentVillageIdentity();
-    if (!identity.villageName) {
+    if (!identity.villageName || !identity.villageId) {
       showError('APES could not identify the active village. Close the village dropdown and try again.');
       return;
     }
     hideError();
     setScanBusy(true);
     showScanLock();
+    window.dispatchEvent(new CustomEvent('apes_resource_upgrade_scan_started', { detail: identity }));
     const warnings = [];
     const speedInfo = applyDetectedWorldSpeed();
     const scannedOases = Array.from({ length: 3 }, () => normalizeOasis(null));
@@ -590,22 +595,30 @@
       if (highestLevel > 12) state.maxLevel = 20;else if (highestLevel > 10 && state.maxLevel < 12) state.maxLevel = 12;
       state.layout = resourceResult.layout;
       state.fields = resourceResult.fields;
+      stateVillageId = identity.villageId;
       stateLoaded = true;
       resultMeta = null;
       await saveState();
       renderInputState();
-      runCalculation();
+      // The scan is complete, but keep the screen locked while saving and
+      // rendering. Only this completed snapshot may calculate during a scan.
+      calculateAndRender();
       setInputSectionsCollapsed(true);
       const annexed = state.oases.filter(oasis => oasis.state === 'annexed').length;
       const suffix = warnings.length ? ` (${warnings.join('; ')}.)` : '';
       const speedText = speedInfo.detected ? `x${state.speed} world detected from ${speedInfo.source}` : `x${state.speed} world`;
       setScanStatus(`Scanned ${identity.villageName}: ${state.layout}, 18 fields, ${annexed} assigned oasis${annexed === 1 ? '' : 'es'}, ${speedText}.${suffix}`, warnings.length ? 'warning' : 'success');
+      window.dispatchEvent(new CustomEvent('apes_resource_upgrade_scan_completed', {
+        detail: { ...identity, state: clone(state), scannedAt: Date.now() }
+      }));
+      return true;
     } catch (error) {
       if (scanIsCurrent(token)) {
         const message = error?.message || String(error);
         showError(message);
         setScanStatus(message, 'error');
       }
+      return false;
     } finally {
       if (token === scanToken) {
         setScanBusy(false);
@@ -1256,7 +1269,20 @@
     panel?.querySelectorAll('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
     panel?.querySelectorAll('[data-view]').forEach(view => view.classList.toggle('active', view.dataset.view === tab));
   }
-  function runCalculation() {
+  function hasVillageState() {
+    return Boolean(stateVillageId && stateVillageId === currentVillageIdentity().villageId);
+  }
+  function requireVillageState() {
+    if (isScanning) throw new Error('Wait for the village scan to finish.');
+    if (!hasVillageState()) throw new Error('Scan this village before calculating an upgrade order.');
+  }
+  async function prepareVillage() {
+    const prepare = window.APES_RESOURCE_UPGRADE_VILLAGE_STATES?.prepare;
+    if (prepare) return prepare({ retry: true });
+    if (!hasVillageState()) return scanCurrentVillage();
+    return true;
+  }
+  function calculateAndRender() {
     hideError();
     try {
       resultMeta = calculatePlan(state);
@@ -1266,10 +1292,21 @@
       showError(error?.message || String(error));
     }
   }
+  async function runCalculation() {
+    if (isScanning) return;
+    try {
+      await prepareVillage();
+      requireVillageState();
+      calculateAndRender();
+    } catch (error) {
+      showError(error?.message || String(error));
+    }
+  }
   function resetState() {
     state = normalizeState(null);
     stateLoaded = true;
     resultMeta = null;
+    stateVillageId = '';
     void saveState();
     renderInputState();
     setInputSectionsCollapsed(false);
@@ -1351,6 +1388,8 @@
     APES?.ui?.closeOtherTools?.(FEATURE_KEY);
     panel.classList.add('qol-open');
     panel.setAttribute('aria-hidden', 'false');
+    await prepareVillage();
+    if (hasVillageState() && !isScanning) calculateAndRender();
   }
   function closePanel() {
     const panel = document.getElementById(PANEL_ID);
@@ -1385,11 +1424,16 @@
     open: openPanel,
     close: closePanel,
     scan: scanCurrentVillage,
-    calculate: () => calculatePlan(state),
+    calculate: () => { requireVillageState(); return calculatePlan(state); },
+    hasVillageState,
+    isScanning: () => isScanning,
     validatePlan,
     getState: () => clone(state),
-    setState: async value => {
+    setState: async (value, options = {}) => {
+      await loadState();
       state = normalizeState(value);
+      stateVillageId = options.ready === false ? '' : String(options.villageId || currentVillageIdentity().villageId);
+      resultMeta = null;
       stateLoaded = true;
       await saveState();
       renderInputState();
