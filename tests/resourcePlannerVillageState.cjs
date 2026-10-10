@@ -53,6 +53,10 @@ function environment(saved = null, preference = true) {
       let slot = 1;
       game.innerHTML = `<div id="villageViewRes">${[[1,4], [2,4], [3,4], [4,6]].map(([type,count]) =>
         Array.from({ length: count }, () => locationHtml(type, village.level, slot++)).join('')).join('')}</div>`;
+    } else if (w.location.hash.includes('tab:Oases')) {
+      game.innerHTML = '<div class="contentBox oasisInRange"><table><tbody></tbody></table></div>';
+    } else if (village.markup) {
+      game.innerHTML = village.markup;
     } else {
       game.innerHTML = `<div ng-controller="villageViewCtrl" class="village viewBackground ${village.city ? 'village-water' : ''}"><div id="villageView">${locationHtml(8, village.mill, 20)}${locationHtml(15, 10, 27)}</div></div>`;
     }
@@ -153,7 +157,31 @@ async function cachedAndFallbackChecks(saved) {
     equal(standalone.api.calculate().startState.fields.wood, [7,7,7,7]);
   } finally { standalone.dom.window.close(); }
 }
+async function nativeVillageChecks() {
+  const e = environment();
+  try {
+    e.villages.set('123', { level: 9, markup: read('tests/fixtures/resource-planner-village.html') });
+    e.render();
+    await e.api.open();
+    equal(e.api.hasVillageState(), true);
+    equal(e.api.getState().buildings, { sawmill: 4, brickyard: 3, foundry: 4, mill: 3, bakery: 0, embassy: 1 });
+    equal(e.api.calculate().startState.fields.wood, [9,9,9,9]);
+    equal(e.panel().querySelector('[data-scan-status]').dataset.tone, 'success');
+    await until(() => e.storage.get('villageScanStates')?.villages['id:123']);
+    equal(e.storage.get('villageScanStates').villages['id:123'].state.buildings.mill, 3);
+    // Missing data on an occupied production building still represents an
+    // incomplete render; accepting free plots must not accept this case.
+    const markup = new e.w.DOMParser().parseFromString(e.villages.get('123').markup, 'text/html');
+    markup.querySelector('.buildingLocation37 .buildingLevel').remove();
+    e.villages.get('123').markup = markup.body.innerHTML;
+    const previous = plain(e.api.getState());
+    equal(await e.api.scan(), false);
+    equal(e.api.getState(), previous);
+    equal(e.panel().querySelector('[data-scan-status]').dataset.tone, 'error');
+  } finally { e.dom.window.close(); }
+}
 (async () => {
+  await nativeVillageChecks();
   const saved = await lifecycleChecks();
   await cachedAndFallbackChecks(saved);
   console.log(`Passed ${checks} planner village-scan, cache, failure and city-detection checks.`);

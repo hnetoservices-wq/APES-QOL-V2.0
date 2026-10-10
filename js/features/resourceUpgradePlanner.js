@@ -425,8 +425,11 @@
       const status = wrapper.querySelector('.buildingStatusButton[class*="type_"]');
       const marker = status || wrapper.querySelector('[class*="buildingId"]');
       const buildingId = status ? elementClassNumber(status, /type_(\d+)/i) : elementClassNumber(marker, /buildingId(\d+)/i);
+      // Native empty plots have only `buildingLocation ... free`, with no
+      // status, image, or level. Angular has explicitly classified them empty.
+      if (!Number.isInteger(buildingId) && wrapper.classList?.contains('free')) continue;
       // A missing marker/level is an unfinished render, not a level-zero
-      // building. Empty slots have an explicit type/buildingId of zero.
+      // building. Other empty slots expose an explicit type/buildingId of zero.
       if (!Number.isInteger(buildingId)) return null;
       if (buildingId === 0) continue;
       const level = readCompletedBuildingLevel(wrapper);
