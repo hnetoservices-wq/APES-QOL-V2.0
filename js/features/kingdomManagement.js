@@ -41,24 +41,49 @@
     if (progress) progress.textContent = message;
   }
   function route(base, tab, page) {
-    const parts = base.replace(/^#\/?/, '').split('/').filter(part => part && !/^(window|subtab|tab|statsPage|search|searchRank):/i.test(part));
+    const parts = base.replace(/^#\/?/, '').split('/').filter(part => part && !/^(window|subtab|tab|statsPage|search|searchRank|location|cp|kingdomId|playerId|reportId|societyId):/i.test(part));
     return `#/${[...parts, 'window:statistics', `subtab:${tab}`, 'tab:Kingdoms', `statsPage:${page}`].join('/')}`;
   }
-  function matchesRoute(tab, page) {
-    const parts = location.hash.split('/');
-    return ['window:statistics', `subtab:${tab}`, 'tab:Kingdoms', `statsPage:${page}`].every(part => parts.includes(part));
+  function routeState(hash = location.hash) {
+    return Object.fromEntries(hash.replace(/^#\/?/, '').split('/').filter(part => part.includes(':')).map(part => {
+      const split = part.indexOf(':'); return [part.slice(0, split).toLowerCase(), part.slice(split + 1)];
+    }));
+  }
+  function matchesRoute(tab) {
+    const state = routeState();
+    // The game can normalize default parameters or leave the URL unchanged
+    // when its native pager advances. The rendered pager confirms the page.
+    return state.window?.toLowerCase() === 'statistics' && (!state.tab || state.tab.toLowerCase() === 'kingdoms') &&
+      (!state.subtab || state.subtab.toLowerCase() === tab.toLowerCase());
+  }
+  function routeSummary() {
+    const state = routeState();
+    return `${state.window || 'no window'}/${state.tab || 'default tab'}/${state.subtab || 'default ranking'}, URL page ${state.statspage || state.cp || 'default'}`;
+  }
+  function ownsStatisticsRoute(originalHash) {
+    const state = routeState(), original = routeState(originalHash);
+    return state.window?.toLowerCase() === 'statistics' && (!state.tab || state.tab.toLowerCase() === 'kingdoms') &&
+      ['page', 'villid'].every(key => !original[key] || state[key] === original[key]);
   }
   function checkCancelled() {
     if (cancelled || !enabled()) throw new Error('Kingdom scan cancelled.');
   }
   async function waitForPage(stage, page, previous, seen) {
     const start = performance.now();
-    let signature = '', stable = 0;
+    let signature = '', stable = 0, foreignSince = null, foreignHash = '';
     while (performance.now() - start < 12000) {
       checkCancelled();
-      if (!matchesRoute(stage.tab, page)) throw new Error('The statistics page changed during the scan.');
+      const matchingRoute = matchesRoute(stage.tab);
+      // Ignore transient route rewrites. A persistent departure from the
+      // statistics window is an interruption, not permission to parse old DOM.
+      if (routeState().window?.toLowerCase() !== 'statistics') {
+        if (foreignHash !== location.hash) { foreignHash = location.hash; foreignSince = performance.now(); }
+        if (foreignSince !== null && performance.now() - foreignSince >= 2500) {
+          throw new Error(`${stage.label}, page ${page}: statistics navigation was interrupted (${routeSummary()}). No snapshot was saved.`);
+        }
+      } else { foreignSince = null; foreignHash = ''; }
       const result = S.readPage(stage);
-      const fresh = result && result.page === page && (page !== 1 || result.rows[0].ranking === 1) &&
+      const fresh = matchingRoute && result && result.page === page && (page !== 1 || result.rows[0].ranking === 1) &&
         (!previous || result.signature !== previous.signature && result.rows[0].ranking > previous.rows.at(-1).ranking) &&
         result.rows.every(row => !seen.has(row.id));
       if (fresh) {
@@ -69,7 +94,8 @@
       } else { signature = ''; stable = 0; }
       await delay(140);
     }
-    throw new Error(`${stage.label}, page ${page} did not finish loading. No snapshot was saved.`);
+    const rendered = S.readPage(stage);
+    throw new Error(`${stage.label}, page ${page} did not finish loading (${routeSummary()}; rendered page ${rendered?.page || 'unavailable'}). No snapshot was saved.`);
   }
   function lockScreen() {
     const lock = document.createElement('div');
@@ -79,6 +105,7 @@
     lock.querySelector('[data-km-cancel]').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); cancelScan(); });
     lock.addEventListener('keydown', activateOnKeyboard);
     document.body.appendChild(lock);
+    document.getElementById(PANEL_ID)?.classList.add('qol-km-scan-hidden');
     lock.querySelector('[data-km-cancel]').focus();
   }
   function cancelScan() { if (scanning) cancelled = true; }
@@ -102,7 +129,7 @@
     if (!enabled()) return false;
     scanning = true; cancelled = false;
     const originalHash = location.hash, startedAt = Date.now(), focused = document.activeElement;
-    let lastRoute = '';
+    let navigated = false;
     lockScreen(); render();
     const kingdoms = new Map(), pages = {}, missing = {}, coverage = {};
     try {
@@ -112,8 +139,16 @@
         let previous = null, finished = false, advertisedLast = 1;
         for (let page = 1; page <= 10000; page++) {
           checkCancelled();
-          lastRoute = route(originalHash, stage.tab, page);
-          location.hash = lastRoute;
+          if (page === 1) {
+            navigated = true;
+            location.hash = route(originalHash, stage.tab, 1);
+          } else {
+            const current = S.readPage(stage);
+            if (!current || current.page !== previous.page || current.signature !== previous.signature || !current.hasNext || !current.nextControl?.isConnected) {
+              throw new Error(`${stage.label}, page ${page}: the statistics pager changed before advancing. No snapshot was saved.`);
+            }
+            current.nextControl.click();
+          }
           setStatus(`Scanning ${stage.label} · page ${page}${advertisedLast > 1 ? ` of ${advertisedLast}` : ''} · ${seen.size} kingdoms read…`);
           const result = await waitForPage(stage, page, previous, seen);
           advertisedLast = Math.max(advertisedLast, result.lastPage);
@@ -150,7 +185,8 @@
     } finally {
       scanning = false;
       document.getElementById(LOCK_ID)?.remove();
-      if (lastRoute && location.hash === lastRoute) location.hash = originalHash;
+      document.getElementById(PANEL_ID)?.classList.remove('qol-km-scan-hidden');
+      if (navigated && ownsStatisticsRoute(originalHash)) location.hash = originalHash;
       render();
       if (focused?.isConnected) focused.focus?.();
     }
@@ -243,7 +279,34 @@
       render();
       const field = panel.querySelector('[data-km-search]'); field.focus(); field.setSelectionRange(start, start);
     });
-    document.body.appendChild(panel); render(); return panel;
+    document.body.appendChild(panel); makeDraggable(panel); render(); return panel;
+  }
+  function makeDraggable(panel) {
+    const head = panel.querySelector('.qol-km-head');
+    let drag = null;
+    function clampPosition() {
+      if (!panel.classList.contains('qol-km-open') || panel.classList.contains('apes-aoc-embedded-tool') || !panel.style.left) return;
+      const box = panel.getBoundingClientRect();
+      panel.style.left = `${Math.max(0, Math.min(box.left, window.innerWidth - box.width))}px`;
+      panel.style.top = `${Math.max(0, Math.min(box.top, window.innerHeight - box.height))}px`;
+    }
+    head.addEventListener('pointerdown', event => {
+      if (scanning || event.button !== 0 || event.target.closest('.qol-km-action') || panel.classList.contains('apes-aoc-embedded-tool')) return;
+      const box = panel.getBoundingClientRect();
+      drag = { id: event.pointerId, x: event.clientX, y: event.clientY, left: box.left, top: box.top };
+      head.setPointerCapture?.(event.pointerId); event.preventDefault(); event.stopPropagation();
+    });
+    head.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.id) return;
+      if (scanning || panel.classList.contains('apes-aoc-embedded-tool')) { drag = null; return; }
+      panel.style.right = 'auto'; panel.style.bottom = 'auto';
+      panel.style.left = `${drag.left + event.clientX - drag.x}px`;
+      panel.style.top = `${drag.top + event.clientY - drag.y}px`;
+      clampPosition(); event.preventDefault(); event.stopPropagation();
+    });
+    for (const type of ['pointerup', 'pointercancel', 'lostpointercapture']) head.addEventListener(type, () => { drag = null; });
+    window.addEventListener('resize', clampPosition);
+    if (typeof ResizeObserver === 'function') new ResizeObserver(clampPosition).observe(panel);
   }
   async function refresh() {
     try { snapshots = await H.load(); render(); } catch (error) { setStatus(`Saved snapshots could not be loaded: ${error.message}`, 'error'); }

@@ -44,7 +44,11 @@ for (let index = 0; index < tabs.length; index++) {
   const cached = w.document.querySelector('.loadedTab').cloneNode(true);
   cached.classList.add('hiddenTab'); cached.querySelector('[kingdomid]').setAttribute('kingdomid', '999999');
   w.document.body.prepend(cached); eq(w.APES_KINGDOM_STATISTICS.readPage(stage).rows[0].id, parsed.rows[0].id);
-  const table = w.document.querySelector('.loadedTab:not(.hiddenTab) table');
+  cached.classList.remove('hiddenTab');
+  const hiddenParent = w.document.createElement('div'); hiddenParent.className = 'hiddenTab';
+  cached.replaceWith(hiddenParent); hiddenParent.append(cached);
+  eq(w.APES_KINGDOM_STATISTICS.readPage(stage).rows[0].id, parsed.rows[0].id);
+  const table = [...w.document.querySelectorAll('.loadedTab table')].find(table => !table.closest('.hiddenTab'));
   const cell = table.querySelector('tbody tr').children[index === 0 ? 4 : index === 4 ? 2 : 4];
   cell.textContent = ''; eq(w.APES_KINGDOM_STATISTICS.readPage(stage), null);
   dom.window.close();
@@ -118,24 +122,51 @@ function setup(options = {}) {
     if (options.noPager) tabRoot.querySelector('.tg-pagination').remove();
     return tabRoot.outerHTML;
   }
-  w.addEventListener('hashchange', event => {
-    const hash = new URL(event.newURL).hash, tab = hash.match(/subtab:([^/]+)/)?.[1], page = Number(hash.match(/statsPage:(\d+)/)?.[1]);
-    if (!tabs.includes(tab)) return;
+  let gameTab = '', ignoredHash = '';
+  const transientTabs = new Set();
+  function navigate(tab, page) {
+    const hash = w.location.hash;
     log.push(`${tab}:${page}`);
     progress.push(doc.querySelector('[data-km-progress]')?.textContent);
     if (options.stall && tab === 'Population' && page === 2) return;
     const game = doc.querySelector('#game');
+    if (options.transientRoute && page === 1 && !transientTabs.has(tab)) {
+      transientTabs.add(tab); w.location.hash = '#/page:village/villId:123';
+      setTimeout(() => { w.location.hash = hash; }, 60); return;
+    }
+    function showRows() {
+      gameTab = tab;
+      game.innerHTML = pageHTML(tab, page);
+      const cached = game.querySelector('.loadedTab').cloneNode(true); cached.classList.add('hiddenTab');
+      cached.querySelector('[kingdomid]').setAttribute('kingdomid', '999999'); game.prepend(cached);
+      game.querySelector('.loadedTab:not(.hiddenTab) .nextPage')?.addEventListener('click', () => {
+        if (page >= pages[tab].length) return;
+        if (options.pagerKeepsHash) { navigate(tab, page + 1); return; }
+        let next = w.location.hash.replace(/\/(statsPage|cp):\d+/g, '');
+        w.location.hash = next + `/statsPage:${page + 1}`;
+      });
+      if (options.normalizedRoute) {
+        let normalized = w.location.hash.replace(/\/statsPage:\d+/g, '');
+        if (tab === 'Population') normalized = normalized.replace('/subtab:Population', '');
+        ignoredHash = normalized; w.location.hash = normalized;
+      }
+      if (options.navigateAway && tab === 'Attacker') w.location.hash = '#/page:map';
+      if (options.wrongStatisticsTab && tab === 'Attacker') w.location.hash = w.location.hash.replace('tab:Kingdoms', 'tab:Players');
+    }
     if (options.stalePager && tab === 'Population' && page === 2) {
       // The native page marker updates before data, a regression from earlier scanners.
       game.querySelectorAll('.number').forEach(node => node.classList.toggle('disabled', node.textContent === '2' || node.textContent === '...'));
       game.querySelector('.nextPage').classList.add('disabled');
-      setTimeout(() => { if (w.location.hash === hash) game.innerHTML = pageHTML(tab, page); }, 85);
+      setTimeout(() => { if (w.location.hash === hash) showRows(); }, 85);
       return;
     }
-    game.innerHTML = pageHTML(tab, page);
-    const cached = game.querySelector('.loadedTab').cloneNode(true); cached.classList.add('hiddenTab');
-    cached.querySelector('[kingdomid]').setAttribute('kingdomid', '999999'); game.prepend(cached);
-    if (options.navigateAway && tab === 'Attacker') w.location.hash = '#/page:map';
+    showRows();
+  }
+  w.addEventListener('hashchange', event => {
+    const hash = new URL(event.newURL).hash;
+    if (hash === ignoredHash || !hash.includes('window:statistics')) return;
+    const tab = hash.match(/subtab:([^/]+)/)?.[1] || gameTab, page = Number(hash.match(/(?:statsPage|cp):(\d+)/)?.[1] || 1);
+    if (tabs.includes(tab)) navigate(tab, page);
   });
   return { dom, w, doc, api, S, H, store, log, progress, originalHash, actions, pageHTML,
     get nativeCreations() { return nativeCreations; }, get bubbledActions() { return bubbledActions; },
@@ -157,6 +188,18 @@ function setup(options = {}) {
   eq(e.doc.querySelector('[data-km-scan]').textContent, 'Scan Kingdoms');
   eq(e.w.getComputedStyle(e.doc.querySelector('[data-km-scan]')).display, 'inline-flex');
   eq(e.w.getComputedStyle(e.doc.querySelector('[data-km-scan]')).color, 'rgb(255, 248, 233)');
+  const panel = e.doc.querySelector('#qol-kingdom-management-panel');
+  eq(e.w.getComputedStyle(panel).resize, 'both');
+  panel.getBoundingClientRect = () => panel.classList.contains('qol-km-open')
+    ? { left: parseFloat(panel.style.left || '100'), top: parseFloat(panel.style.top || '80'), width: 900, height: 600 }
+    : { left: 0, top: 0, width: 0, height: 0 };
+  const pointer = (type, x, y, target = panel.querySelector('.qol-km-head')) => {
+    const event = new e.w.MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX: x, clientY: y });
+    Object.defineProperty(event, 'pointerId', { value: 1 }); target.dispatchEvent(event);
+  };
+  pointer('pointerdown', 150, 100); pointer('pointermove', 900, 700);
+  eq(panel.style.left, '124px'); eq(panel.style.top, '168px');
+  pointer('pointerup', 900, 700); pointer('pointermove', 100, 100); eq(panel.style.left, '124px');
   ok(e.doc.querySelector('#qol-kingdom-management-toggle-btn svg')); ok(e.actions.has('kingdoms.open'));
   for (const [value, expected] of [['1,234', 1234], ['1.234', 1234], ['1\u00a0234', 1234], ['0', 0], ['', null], ['-', null], ['loading', null]]) eq(e.S.count(value), expected);
   keyboard(e, e.doc.querySelector('[data-km-scan]'), 'Enter');
@@ -166,8 +209,10 @@ function setup(options = {}) {
   keyboard(e, e.doc.querySelector('[data-km-scan]'), ' '); e.doc.querySelector('[data-km-scan]').click();
   ownedControls(e);
   ok(e.doc.querySelector('#qol-kingdom-management-scan-lock')); eq(e.api.isScanning(), true);
+  eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-scan-hidden'), true);
   eq(await pending, true); eq(e.writes, 1); eq(e.api.isScanning(), false);
   eq(e.doc.querySelector('#qol-kingdom-management-scan-lock'), null); eq(e.w.location.hash, e.originalHash);
+  eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-scan-hidden'), false);
   eq(e.log, ['Population:1', 'Population:2', 'Size:1', 'Size:2', 'Size:3', 'Attacker:1', 'Attacker:2', 'Defender:1', 'VictoryPoints:1', 'VictoryPoints:2']);
   ok(e.progress.some(text => text.includes('Total Kingdom Population')));
   const first = e.api.getSnapshots()[0]; eq(first.kingdoms.length, 4);
@@ -231,6 +276,7 @@ function setup(options = {}) {
   eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'), false);
   e.api.open(); keyboard(e, e.doc.querySelector('[data-km-close]'), ' ');
   eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'), false);
+  e.w.dispatchEvent(new e.w.Event('resize')); eq(panel.style.left, '124px'); eq(panel.style.top, '168px');
   eq(e.bubbledActions, 0); eq(e.nativeCreations, 0);
   e.dom.window.close();
 
@@ -238,9 +284,26 @@ function setup(options = {}) {
     const test = setup(options); test.api.open(); eq(await test.api.scan(), false);
     eq(test.writes, 0); eq((await test.H.load()).length, 0); eq(test.api.isScanning(), false);
     eq(test.doc.querySelector('#qol-kingdom-management-scan-lock'), null);
+    eq(test.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-scan-hidden'), false);
+    if (options.navigateAway) {
+      ok(test.doc.querySelector('[data-km-status]').textContent.includes('Kingdom Attacker Points, page 1'));
+      ok(test.doc.querySelector('[data-km-status]').textContent.includes('no window'));
+    }
     eq(test.w.location.hash, options.navigateAway ? '#/page:map' : test.originalHash);
     test.dom.window.close();
   }
+  for (const options of [{ normalizedRoute: true }, { pagerKeepsHash: true }, { normalizedRoute: true, pagerKeepsHash: true }, { transientRoute: true }]) {
+    const test = setup(options); test.api.open(); eq(await test.api.scan(), true);
+    eq(test.api.getSnapshots()[0].pages, { Population: 2, Size: 3, Attacker: 2, Defender: 1, VictoryPoints: 2 });
+    eq(test.api.getSnapshots()[0].kingdoms.length, 4); eq(test.w.location.hash, test.originalHash);
+    eq(test.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-scan-hidden'), false);
+    ok(test.log.every(entry => !entry.includes('NaN')));
+    test.dom.window.close();
+  }
+  const wrongTab = setup({ wrongStatisticsTab: true }); wrongTab.api.open(); eq(await wrongTab.api.scan(), false);
+  eq(wrongTab.writes, 0); ok(wrongTab.w.location.hash.includes('tab:Players'));
+  ok(wrongTab.doc.querySelector('[data-km-status]').textContent.includes('Players'));
+  wrongTab.dom.window.close();
   for (const method of ['button', 'keyboard', 'escape', 'disabled']) {
     const test = setup(); test.api.open(); const pending = test.api.scan();
     if (method === 'button') test.doc.querySelector('[data-km-cancel]').click();
