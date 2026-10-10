@@ -3,7 +3,9 @@
   width: 30px; height: 30px; padding: 0; margin: 0; border-radius: 50%;
   border: 2px solid var(--qol-accent, #806239); background: var(--qol-accent-soft, #f4e9d1);
   color: var(--qol-accent, #806239); cursor: pointer; z-index: 9999; box-sizing: border-box;
+  user-select: none; text-shadow: none;
 }
+#qol-kingdom-management-toggle-btn:focus-visible { outline: 2px solid var(--qol-accent, #806239); outline-offset: 2px; }
 #qol-kingdom-management-toggle-btn svg, #qol-kingdom-management-panel svg {
   width: 19px; height: 19px; fill: currentColor; stroke: currentColor; stroke-width: 1.4;
 }
@@ -26,20 +28,28 @@
 }
 #qol-kingdom-management-panel.apes-aoc-embedded-tool { border: 0; box-shadow: none; border-radius: 0; }
 #qol-kingdom-management-panel.apes-aoc-embedded-tool .qol-km-head { display: none; }
-#qol-kingdom-management-panel button, #qol-kingdom-management-scan-lock button {
-  font: inherit; line-height: 1.4; cursor: pointer; padding: 7px 12px; min-height: 32px;
-  border: 1px solid var(--qol-accent-outline, #a99170); border-radius: 5px;
-  color: #332719; background: var(--qol-accent-soft, #ede3cf); white-space: nowrap;
+#qol-kingdom-management-panel .qol-km-action, #qol-kingdom-management-scan-lock .qol-km-action {
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  font: 700 13px/1.4 Arial, Helvetica, sans-serif !important; cursor: pointer !important;
+  padding: 7px 12px !important; min-height: 32px !important; margin: 0 !important;
+  border: 1px solid var(--qol-accent-outline, #a99170) !important; border-radius: 5px !important;
+  color: #4d351d !important; background: linear-gradient(#fffaf0, #e8d6b6) !important;
+  white-space: nowrap !important; user-select: none !important; text-shadow: none !important;
 }
-#qol-kingdom-management-panel button:hover, #qol-kingdom-management-scan-lock button:hover { filter: brightness(.95); }
-#qol-kingdom-management-panel button:disabled { opacity: .55; cursor: wait; }
-#qol-kingdom-management-panel button:focus-visible, #qol-kingdom-management-panel input:focus-visible,
-#qol-kingdom-management-panel select:focus-visible, #qol-kingdom-management-scan-lock button:focus-visible {
+#qol-kingdom-management-panel [data-km-scan] {
+  border-color: var(--qol-action-border, #775731) !important;
+  background: linear-gradient(var(--qol-accent, #916f42), var(--qol-accent-gradient-end, #614c30)) !important;
+  color: #fff8e9 !important;
+}
+#qol-kingdom-management-panel .qol-km-action:hover, #qol-kingdom-management-scan-lock .qol-km-action:hover { filter: brightness(.95); }
+#qol-kingdom-management-panel .qol-km-action[aria-disabled="true"] { opacity: .55; cursor: wait !important; }
+#qol-kingdom-management-panel .qol-km-action:focus-visible, #qol-kingdom-management-panel input:focus-visible,
+#qol-kingdom-management-panel select:focus-visible, #qol-kingdom-management-scan-lock .qol-km-action:focus-visible {
   outline: 2px solid var(--qol-accent, #806239); outline-offset: 2px;
 }
-#qol-kingdom-management-panel .qol-km-head button { background: transparent; color: inherit; border-color: #fff6; font-size: 19px; padding: 0 10px; }
+#qol-kingdom-management-panel .qol-km-head .qol-km-action { background: transparent !important; color: inherit !important; border-color: #fff6 !important; font-size: 19px !important; padding: 0 10px !important; }
 #qol-kingdom-management-panel .qol-km-first { margin: auto; text-align: center; }
-#qol-kingdom-management-panel .qol-km-first [data-km-scan] { font-size: 17px; padding: 12px 24px; }
+#qol-kingdom-management-panel .qol-km-first [data-km-scan] { font-size: 17px !important; padding: 12px 24px !important; }
 #qol-kingdom-management-panel .qol-km-controls { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; flex: 0 0 auto; }
 #qol-kingdom-management-panel label { display: flex; gap: 8px; align-items: center; font-weight: bold; }
 #qol-kingdom-management-panel input, #qol-kingdom-management-panel select {
@@ -49,7 +59,7 @@
 #qol-kingdom-management-panel input { width: 220px; }
 #qol-kingdom-management-panel select { min-width: 200px; }
 #qol-kingdom-management-panel .qol-km-tabs { display: flex; gap: 6px; border-bottom: 1px solid #cbbda7; padding-bottom: 8px; flex: 0 0 auto; }
-#qol-kingdom-management-panel .qol-km-tabs [aria-pressed="true"] { background: var(--qol-accent-deep, #614c30); color: #fff8e7; }
+#qol-kingdom-management-panel .qol-km-tabs [aria-pressed="true"] { background: var(--qol-accent-deep, #614c30) !important; color: #fff8e7 !important; }
 #qol-kingdom-management-panel .qol-km-caption, #qol-kingdom-management-panel .qol-km-empty { margin: 0; color: #6b5943; }
 #qol-kingdom-management-panel [data-km-status]:empty { display: none; }
 #qol-kingdom-management-panel [data-tone="error"] { color: #a02f27; }
@@ -60,7 +70,7 @@
 #qol-kingdom-management-panel th { position: sticky; top: 0; z-index: 2; background: #e8dfcf; color: #57412c; }
 #qol-kingdom-management-panel .qol-km-groups th { height: 30px; padding: 5px 10px; text-align: center; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; background: #d8c9b0; }
 #qol-kingdom-management-panel thead tr:nth-child(2) th { top: 30px; }
-#qol-kingdom-management-panel th button { border: 0; background: transparent; padding: 0; min-height: 26px; }
+#qol-kingdom-management-panel th .qol-km-action { border: 0 !important; background: transparent !important; padding: 0 !important; min-height: 26px !important; }
 #qol-kingdom-management-panel tbody tr:nth-child(even) td { background: #f0ece3; }
 #qol-kingdom-management-panel tbody tr:nth-child(odd) td { background: #fffdf8; }
 #qol-kingdom-management-panel tbody tr:hover td { background: #eee2c9; }

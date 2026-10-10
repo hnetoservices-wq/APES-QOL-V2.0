@@ -4,6 +4,8 @@ Open the crown in the APES toolbar, or open Kingdom Management under Tools in th
 
 On first use, select **Scan Kingdoms**. APES locks game interaction and reports the ranking and page being scanned. **Cancel scan** or Escape stops the scan. On completion or cancellation, APES restores the original game route, unless another operation has already changed it.
 
+All action controls, including the crown launcher, use APES-styled `div` elements with `role="button"`, keyboard activation with Enter/Space, and explicit disabled states. Do not replace them with native `button` elements: the game decorates those elements and can interfere with the tool. The regression tests watch for native buttons even during temporary scan and render states.
+
 The scanner starts at page 1 of each Kingdoms statistics tab and follows all pages: Population, Size, Attacker, Defender and Victory Points. It waits for the active tab, current page, increasing ranks and stable rendered rows before proceeding. It joins records by kingdom ID rather than names or ranking positions. Repeated IDs, invalid cells, unfinished pages or incomplete pagination fail the scan instead of saving a partial result.
 
 The table contains population rank, kingdom, king, villages, population, area, player count, average and total attack points, average and total defense points, treasures and victory points. VP and treasure totals are read separately from weekly changes. Click column headings to sort, or search by kingdom or king. A dash means that a kingdom was not listed in that ranking; missing statistics are never converted to zero. The population ranking supplies the displayed rank and king.

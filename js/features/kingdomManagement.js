@@ -22,6 +22,17 @@
   const fmt = value => Number.isFinite(value) ? value.toLocaleString('en-US') : '—';
   const date = value => new Date(value).toLocaleString();
   const delay = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+  // Use APES-owned div controls: the game decorates native button elements.
+  function action(label, attributes = '', disabled = false) {
+    return `<div class="qol-km-action" role="button" tabindex="${disabled ? '-1' : '0'}" aria-disabled="${disabled}" ${attributes}>${label}</div>`;
+  }
+  function activateOnKeyboard(event) {
+    if (event.key !== 'Enter' && event.key !== ' ') return;
+    const control = event.target.closest?.('.qol-km-action');
+    if (!control) return;
+    event.preventDefault(); event.stopPropagation();
+    if (!event.repeat && control.getAttribute('aria-disabled') !== 'true') control.click();
+  }
   function setStatus(message, nextTone = 'neutral') {
     status = message; tone = nextTone;
     const node = document.querySelector(`#${PANEL_ID} [data-km-status]`);
@@ -64,17 +75,18 @@
     const lock = document.createElement('div');
     lock.id = LOCK_ID;
     lock.setAttribute('role', 'dialog'); lock.setAttribute('aria-modal', 'true'); lock.setAttribute('aria-labelledby', 'qol-km-scan-title');
-    lock.innerHTML = '<div class="qol-km-lock-card" role="status" aria-live="polite"><strong id="qol-km-scan-title">Scanning Kingdoms</strong><span data-km-progress>Preparing statistics…</span><progress data-km-bar max="5" value="0" aria-label="Completed statistics rankings"></progress><button type="button" data-km-cancel>Cancel scan</button></div>';
-    lock.querySelector('[data-km-cancel]').addEventListener('click', cancelScan);
+    lock.innerHTML = `<div class="qol-km-lock-card" role="status" aria-live="polite"><strong id="qol-km-scan-title">Scanning Kingdoms</strong><span data-km-progress>Preparing statistics…</span><progress data-km-bar max="5" value="0" aria-label="Completed statistics rankings"></progress>${action('Cancel scan', 'data-km-cancel')}</div>`;
+    lock.querySelector('[data-km-cancel]').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); cancelScan(); });
+    lock.addEventListener('keydown', activateOnKeyboard);
     document.body.appendChild(lock);
-    lock.querySelector('button').focus();
+    lock.querySelector('[data-km-cancel]').focus();
   }
   function cancelScan() { if (scanning) cancelled = true; }
   function guardInput(event) {
     if (!scanning || !event.isTrusted) return;
     if (event.type === 'wheel' || event.type === 'touchmove' || event.type === 'keydown' && event.key === 'Tab') {
       event.preventDefault(); event.stopImmediatePropagation();
-      if (event.key === 'Tab') document.querySelector(`#${LOCK_ID} button`)?.focus();
+      if (event.key === 'Tab') document.querySelector(`#${LOCK_ID} [data-km-cancel]`)?.focus();
       return;
     }
     if (event.target?.closest?.(`#${LOCK_ID}`)) return;
@@ -159,7 +171,7 @@
   }
   function table(rows, comparisons = null) {
     const compareMap = new Map((comparisons || []).map(row => [row.id, row]));
-    return `<div class="qol-km-table-wrap"><table><thead><tr class="qol-km-groups"><th colspan="3" scope="colgroup">Kingdom</th><th colspan="2" scope="colgroup">Population</th><th colspan="2" scope="colgroup">Territory & players</th><th colspan="2" scope="colgroup">Attack</th><th colspan="2" scope="colgroup">Defense</th><th colspan="2" scope="colgroup">Treasures & victory</th>${comparisons ? '<th scope="col">Development</th>' : ''}</tr><tr>${COLUMNS.map(([key, label]) => `<th scope="col" aria-sort="${key === sortKey ? ascending ? 'ascending' : 'descending' : 'none'}"><button data-km-sort="${key}">${esc(label)}${key === sortKey ? ascending ? ' ↑' : ' ↓' : ''}</button></th>`).join('')}${comparisons ? '<th scope="col">Changes</th>' : ''}</tr></thead><tbody>${sorted(rows).map(row => {
+    return `<div class="qol-km-table-wrap"><table><thead><tr class="qol-km-groups"><th colspan="3" scope="colgroup">Kingdom</th><th colspan="2" scope="colgroup">Population</th><th colspan="2" scope="colgroup">Territory & players</th><th colspan="2" scope="colgroup">Attack</th><th colspan="2" scope="colgroup">Defense</th><th colspan="2" scope="colgroup">Treasures & victory</th>${comparisons ? '<th scope="col">Development</th>' : ''}</tr><tr>${COLUMNS.map(([key, label]) => `<th scope="col" aria-sort="${key === sortKey ? ascending ? 'ascending' : 'descending' : 'none'}">${action(esc(label) + (key === sortKey ? ascending ? ' ↑' : ' ↓' : ''), `data-km-sort="${key}"`)}</th>`).join('')}${comparisons ? '<th scope="col">Changes</th>' : ''}</tr></thead><tbody>${sorted(rows).map(row => {
       const comparison = compareMap.get(row.id);
       return `<tr>${COLUMNS.map(([key]) => {
         const change = comparison?.changes[key];
@@ -177,7 +189,7 @@
     if (!panel) return;
     const body = panel.querySelector('[data-km-body]');
     if (!snapshots.length) {
-      body.innerHTML = `<div class="qol-km-first"><button data-km-scan${scanning ? ' disabled' : ''}>${scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms'}</button><p data-km-status data-tone="${tone}" role="status">${esc(status)}</p></div>`;
+      body.innerHTML = `<div class="qol-km-first">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<p data-km-status data-tone="${tone}" role="status">${esc(status)}</p></div>`;
       return;
     }
     const selected = snapshots.find(item => item.id === selectedId) || snapshots[0]; selectedId = selected.id;
@@ -186,7 +198,7 @@
     let content = '';
     if (activeTab === 'results') {
       const missingRankings = S.STAGES.filter(stage => selected.missing?.[stage.tab]).map(stage => `${stage.tab}: ${selected.missing[stage.tab]}`);
-      content = `<div class="qol-km-controls"><label>Snapshot <select data-km-snapshot>${choices(selected.id)}</select></label><button data-km-delete${scanning ? ' disabled' : ''}>Delete snapshot</button><span>${esc(date(selected.startedAt || selected.scannedAt))} → ${esc(date(selected.scannedAt))} · ${selected.kingdoms.length} kingdoms</span></div><p class="qol-km-caption">Rank follows the population ranking. — means the kingdom was not listed in that ranking.${missingRankings.length ? ` Missing entries by ranking: ${esc(missingRankings.join(' · '))}.` : ''}</p>${table(selected.kingdoms)}`;
+      content = `<div class="qol-km-controls"><label>Snapshot <select data-km-snapshot>${choices(selected.id)}</select></label>${action('Delete snapshot', 'data-km-delete', scanning)}<span>${esc(date(selected.startedAt || selected.scannedAt))} → ${esc(date(selected.scannedAt))} · ${selected.kingdoms.length} kingdoms</span></div><p class="qol-km-caption">Rank follows the population ranking. — means the kingdom was not listed in that ranking.${missingRankings.length ? ` Missing entries by ranking: ${esc(missingRankings.join(' · '))}.` : ''}</p>${table(selected.kingdoms)}`;
     } else if (snapshots.length < 2) {
       content = '<p class="qol-km-empty">Scan Kingdoms again to compare kingdom development between two snapshots.</p>';
     } else {
@@ -195,17 +207,19 @@
       const comparisons = valid ? H.compare(earlier, later) : [];
       content = `<div class="qol-km-controls"><label>Earlier <select data-km-earlier>${choices(earlierId)}</select></label><label>Later <select data-km-later>${choices(laterId)}</select></label></div>${valid ? `<p class="qol-km-caption">${comparisons.filter(row => row.status === 'New').length} new · ${comparisons.filter(row => row.status === 'Missing').length} missing · ${comparisons.filter(row => row.renamed).length} renamed · ${comparisons.filter(row => row.kingChanged).length} king changes. Cells show later values and changes from the earlier snapshot; missing kingdoms show their last known values. Negative rank changes mean an improved rank.</p>${table(comparisons.map(row => row.after || row.before), comparisons)}` : '<p class="qol-km-empty">Choose two different snapshots in chronological order.</p>'}`;
     }
-    body.innerHTML = `<div class="qol-km-controls"><button data-km-scan${scanning ? ' disabled' : ''}>${scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms'}</button><label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div><nav class="qol-km-tabs" aria-label="Kingdom views"><button data-km-tab="results" aria-pressed="${activeTab === 'results'}">Results & snapshots</button><button data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}">Comparison</button></nav>${content}`;
+    body.innerHTML = `<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div><nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
   }
   function mountPanel() {
     let panel = document.getElementById(PANEL_ID);
     if (panel) return panel;
     panel = document.createElement('section'); panel.id = PANEL_ID;
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Kingdom Management');
-    panel.innerHTML = `<header class="qol-km-head"><span>${CROWN} Kingdom Management</span><button data-km-close aria-label="Close Kingdom Management">×</button></header><div class="qol-km-body" data-km-body></div>`;
+    panel.innerHTML = `<header class="qol-km-head"><span>${CROWN} Kingdom Management</span>${action('×', 'data-km-close aria-label="Close Kingdom Management"')}</header><div class="qol-km-body" data-km-body></div>`;
     panel.addEventListener('click', async event => {
-      const control = event.target.closest('button');
+      const control = event.target.closest('.qol-km-action');
       if (!control) return;
+      event.preventDefault(); event.stopPropagation();
+      if (control.getAttribute('aria-disabled') === 'true' || scanning) return;
       if (control.hasAttribute('data-km-close')) close();
       if (control.hasAttribute('data-km-scan')) void scan();
       if (control.dataset.kmTab) { activeTab = control.dataset.kmTab; render(); }
@@ -214,6 +228,7 @@
         try { snapshots = await H.remove(selectedId); render(); } catch (error) { setStatus(`Snapshot could not be deleted: ${error.message}`, 'error'); }
       }
     });
+    panel.addEventListener('keydown', activateOnKeyboard);
     panel.addEventListener('change', event => {
       const target = event.target;
       if (target.hasAttribute('data-km-snapshot')) selectedId = target.value;
@@ -248,9 +263,15 @@
     const old = document.getElementById(BUTTON_ID);
     if (!enabled()) { cancelScan(); old?.remove(); close(); return; }
     if (old || !document.body) return;
-    const button = document.createElement('button'); button.id = BUTTON_ID; button.type = 'button';
+    const button = document.createElement('div'); button.id = BUTTON_ID; button.className = 'qol-km-action';
+    button.setAttribute('role', 'button'); button.setAttribute('tabindex', '0');
     button.title = 'Kingdom Management'; button.setAttribute('aria-label', 'Open Kingdom Management'); button.innerHTML = CROWN;
-    button.addEventListener('click', () => document.getElementById(PANEL_ID)?.classList.contains('qol-km-open') ? close() : open());
+    button.addEventListener('click', event => {
+      event.preventDefault(); event.stopPropagation();
+      if (!enabled() || scanning) return;
+      document.getElementById(PANEL_ID)?.classList.contains('qol-km-open') ? close() : open();
+    });
+    button.addEventListener('keydown', activateOnKeyboard);
     document.body.appendChild(button); window.qolRepositionAllButtons?.();
   }
   window.APES_KINGDOM_MANAGEMENT = Object.freeze({ open, close, scan, cancel: cancelScan, isScanning: () => scanning, getSnapshots: () => JSON.parse(JSON.stringify(snapshots)) });

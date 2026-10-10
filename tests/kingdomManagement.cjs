@@ -13,6 +13,21 @@ const plain = value => JSON.parse(JSON.stringify(value));
 const eq = (actual, expected) => { assert.deepEqual(plain(actual), expected); checks++; };
 const ok = value => { assert.ok(value); checks++; };
 const pause = ms => new Promise(resolve => setTimeout(resolve, ms));
+const keyboard = (environment, control, key) => {
+  const event = new environment.w.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true });
+  control.dispatchEvent(event); return event;
+};
+function ownedControls(environment) {
+  const selectors = '#qol-kingdom-management-panel, #qol-kingdom-management-scan-lock, #qol-kingdom-management-toggle-btn';
+  for (const container of environment.doc.querySelectorAll(selectors)) {
+    eq(container.querySelectorAll('button, .button, [clickable]').length, 0);
+    for (const control of container.querySelectorAll('[role="button"]')) {
+      eq(control.tagName, 'DIV'); ok(control.classList.contains('qol-km-action'));
+      eq(control.tabIndex, control.getAttribute('aria-disabled') === 'true' ? -1 : 0);
+    }
+  }
+  eq(environment.nativeCreations, 0);
+}
 
 // Check native headers, numeric formats, split VP columns and the supplied page 2.
 for (let index = 0; index < tabs.length; index++) {
@@ -47,6 +62,22 @@ function setup(options = {}) {
   });
   const w = dom.window, doc = w.document, store = options.store || new Map(), log = [], progress = [];
   let enabled = true, pages = defaultPages(), changes = {}, writes = 0, failWrite = false;
+  // Model the game's native-button decorator, including controls later removed by render().
+  let nativeCreations = 0, bubbledActions = 0;
+  const decorated = new WeakSet();
+  const observer = new w.MutationObserver(records => {
+    for (const record of records) for (const added of record.addedNodes) {
+      if (added.nodeType !== 1) continue;
+      for (const button of [...(added.matches('button') ? [added] : []), ...added.querySelectorAll('button')]) {
+        if (!decorated.has(button)) { decorated.add(button); nativeCreations++; button.classList.add('game-decorated'); }
+      }
+    }
+  });
+  observer.observe(doc.body, { childList: true, subtree: true });
+  doc.addEventListener('click', event => { if (event.target.closest?.('.qol-km-action')) bubbledActions++; });
+  const style = doc.createElement('style');
+  style.textContent = 'button { background: lime !important; color: transparent !important; }' + fs.readFileSync(path.join(root, 'css/features/kingdomManagement.css'), 'utf8');
+  doc.head.appendChild(style);
   const originalHash = w.location.hash;
   // Keep timeout and polling clocks consistent while making failure cases fast.
   const nativeTimer = w.setTimeout.bind(w), nativeNow = w.performance.now.bind(w.performance);
@@ -107,6 +138,7 @@ function setup(options = {}) {
     if (options.navigateAway && tab === 'Attacker') w.location.hash = '#/page:map';
   });
   return { dom, w, doc, api, S, H, store, log, progress, originalHash, actions, pageHTML,
+    get nativeCreations() { return nativeCreations; }, get bubbledActions() { return bubbledActions; },
     get writes() { return writes; }, setFailWrite: value => { failWrite = value; },
     setPages: value => { pages = value; }, setChanges: value => { changes = value; },
     disable() { enabled = false; w.dispatchEvent(new w.CustomEvent('qol_setting_changed', { detail: { key: 'kingdomManagement' } })); } };
@@ -114,12 +146,25 @@ function setup(options = {}) {
 
 (async () => {
   const e = setup({ stalePager: true });
-  await pause(5); e.api.open(); await pause(5);
-  eq(e.doc.querySelector('[data-km-body]').querySelectorAll('button').length, 1);
+  await pause(5);
+  const launcher = e.doc.querySelector('#qol-kingdom-management-toggle-btn'); eq(launcher.tagName, 'DIV');
+  eq(launcher.getAttribute('role'), 'button'); eq(launcher.tabIndex, 0);
+  eq(keyboard(e, launcher.querySelector('svg'), 'Enter').defaultPrevented, true); await pause(5);
+  ok(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'));
+  keyboard(e, launcher, ' '); eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'), false);
+  launcher.click(); await pause(5); ownedControls(e);
+  eq(e.doc.querySelector('[data-km-body]').querySelectorAll('.qol-km-action').length, 1);
   eq(e.doc.querySelector('[data-km-scan]').textContent, 'Scan Kingdoms');
+  eq(e.w.getComputedStyle(e.doc.querySelector('[data-km-scan]')).display, 'inline-flex');
+  eq(e.w.getComputedStyle(e.doc.querySelector('[data-km-scan]')).color, 'rgb(255, 248, 233)');
   ok(e.doc.querySelector('#qol-kingdom-management-toggle-btn svg')); ok(e.actions.has('kingdoms.open'));
   for (const [value, expected] of [['1,234', 1234], ['1.234', 1234], ['1\u00a0234', 1234], ['0', 0], ['', null], ['-', null], ['loading', null]]) eq(e.S.count(value), expected);
+  keyboard(e, e.doc.querySelector('[data-km-scan]'), 'Enter');
   const pending = e.api.scan(); eq(e.api.scan() === pending, true);
+  eq(e.doc.querySelector('[data-km-scan]').getAttribute('aria-disabled'), 'true');
+  eq(e.doc.querySelector('[data-km-scan]').tabIndex, -1);
+  keyboard(e, e.doc.querySelector('[data-km-scan]'), ' '); e.doc.querySelector('[data-km-scan]').click();
+  ownedControls(e);
   ok(e.doc.querySelector('#qol-kingdom-management-scan-lock')); eq(e.api.isScanning(), true);
   eq(await pending, true); eq(e.writes, 1); eq(e.api.isScanning(), false);
   eq(e.doc.querySelector('#qol-kingdom-management-scan-lock'), null); eq(e.w.location.hash, e.originalHash);
@@ -132,7 +177,12 @@ function setup(options = {}) {
   for (const key of e.H.METRICS) eq(one[key], key === 'rank' ? 1 : model(1)[key]);
   eq(first.kingdoms.find(row => row.id === '4').population, null); eq(first.kingdoms.find(row => row.id === '3').averageDefense, null);
   eq(e.doc.querySelectorAll('.qol-km-table-wrap tbody tr').length, 4);
-  e.doc.querySelector('[data-km-tab="comparison"]').click(); ok(e.doc.querySelector('.qol-km-empty').textContent.includes('again'));
+  ownedControls(e);
+  keyboard(e, e.doc.querySelector('[data-km-sort="population"]'), 'Enter');
+  eq(e.doc.querySelector('[data-km-sort="population"]').parentElement.getAttribute('aria-sort'), 'ascending');
+  keyboard(e, e.doc.querySelector('[data-km-sort="population"]'), ' ');
+  eq(e.doc.querySelector('[data-km-sort="population"]').parentElement.getAttribute('aria-sort'), 'descending');
+  keyboard(e, e.doc.querySelector('[data-km-tab="comparison"]'), ' '); ok(e.doc.querySelector('.qol-km-empty').textContent.includes('again'));
   // New snapshot: same IDs with changed ranks, names, kings and values; one enters/one leaves.
   e.setPages({ Population: [[2, 1], [5]], Size: [[5, 1, 2]], Attacker: [[2, 1, 5]], Defender: [[5, 1, 2]], VictoryPoints: [[5, 1, 2]] });
   e.setChanges({ 1: { name: '<img src=x onerror=alert(1)>', king: 'New King', kingId: '900', population: 1500, area: 30, players: 6, treasures: 120 } });
@@ -146,9 +196,11 @@ function setup(options = {}) {
   eq(comparison.find(row => row.id === '4').changes.population, null);
   e.doc.querySelector('[data-km-tab="comparison"]').click();
   eq(e.doc.querySelectorAll('.qol-km-table-wrap tbody tr').length, 5);
+  ownedControls(e);
   ok(e.doc.querySelector('.qol-km-caption').textContent.includes('1 king changes'));
   eq(e.doc.querySelectorAll('.qol-km-table-wrap img').length, 0);
   const search = e.doc.querySelector('[data-km-search]'); search.value = '<img'; search.dispatchEvent(new e.w.Event('input', { bubbles: true }));
+  eq(keyboard(e, e.doc.querySelector('[data-km-search]'), ' ').defaultPrevented, false);
   eq(e.doc.querySelectorAll('.qol-km-table-wrap tbody tr').length, 1);
   e.doc.querySelector('[data-km-earlier]').value = second.id; e.doc.querySelector('[data-km-earlier]').dispatchEvent(new e.w.Event('change', { bubbles: true }));
   ok(e.doc.querySelector('.qol-km-empty').textContent.includes('chronological'));
@@ -165,7 +217,7 @@ function setup(options = {}) {
   // Identical repeated scans are still distinct snapshots.
   eq(await e.api.scan(), true); eq(e.api.getSnapshots().length, 3);
   const beforeDelete = e.api.getSnapshots()[0].id;
-  e.doc.querySelector('[data-km-delete]').click(); await pause(10);
+  keyboard(e, e.doc.querySelector('[data-km-delete]'), 'Enter'); await pause(10);
   eq(e.api.getSnapshots().length, 2); eq(e.api.getSnapshots().some(row => row.id === beforeDelete), false);
   // AOC uses the same panel and cleans up its embedding without duplicate controls.
   const adapters = new Map(); e.w.APES_AOC_WORKSPACE = { register: (key, adapter) => adapters.set(key, adapter) };
@@ -177,6 +229,9 @@ function setup(options = {}) {
   ok(host.querySelector('.apes-aoc-embedded-tool')); cleanup();
   eq(e.doc.body.querySelectorAll('#qol-kingdom-management-panel').length, 1);
   eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'), false);
+  e.api.open(); keyboard(e, e.doc.querySelector('[data-km-close]'), ' ');
+  eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'), false);
+  eq(e.bubbledActions, 0); eq(e.nativeCreations, 0);
   e.dom.window.close();
 
   for (const options of [{ stall: true }, { noPager: true }, { prematureEnd: true }, { navigateAway: true }]) {
@@ -186,9 +241,10 @@ function setup(options = {}) {
     eq(test.w.location.hash, options.navigateAway ? '#/page:map' : test.originalHash);
     test.dom.window.close();
   }
-  for (const method of ['button', 'escape', 'disabled']) {
+  for (const method of ['button', 'keyboard', 'escape', 'disabled']) {
     const test = setup(); test.api.open(); const pending = test.api.scan();
     if (method === 'button') test.doc.querySelector('[data-km-cancel]').click();
+    if (method === 'keyboard') keyboard(test, test.doc.querySelector('[data-km-cancel]'), 'Enter');
     if (method === 'escape') test.doc.dispatchEvent(new test.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     if (method === 'disabled') test.disable();
     eq(await pending, false); eq(test.writes, 0); eq(test.api.isScanning(), false);
