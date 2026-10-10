@@ -2,7 +2,7 @@
   "name": "apes-qol-tests",
   "private": true,
   "scripts": {
-    "test": "node visualTribeSkins.cjs && node resourceUpgradePlanner.cjs && node reportArchive.cjs"
+    "test": "node visualTribeSkins.cjs && node resourceUpgradePlanner.cjs && node reportArchive.cjs && node npcCalculator.cjs"
   },
   "devDependencies": {
     "jsdom": "30.1.2"
