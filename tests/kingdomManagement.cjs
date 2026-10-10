@@ -54,6 +54,16 @@ for (let index = 0; index < tabs.length; index++) {
   dom.window.close();
 }
 
+// The new capture obtained by manually selecting Population must parse directly.
+{
+  const dom = new JSDOM(fs.readFileSync(path.join(__dirname, 'fixtures/kingdomManagement/ManualPopulation.html'), 'utf8'), { runScripts: 'outside-only' });
+  dom.window.eval(sources[0]);
+  const S = dom.window.APES_KINGDOM_STATISTICS, page = S.readPage(S.STAGES[0]);
+  eq(page.rows.length, 15); eq(page.page, 1); eq(page.lastPage, 8); eq(page.hasNext, true);
+  eq(page.rows[0].ranking, 1); ok(page.firstControl.classList.contains('disabled'));
+  dom.window.close();
+}
+
 const model = id => ({ id: String(id), name: `Kingdom ${id}`, king: `King ${id}`, kingId: String(100 + Number(id)),
   villages: 10 * id, population: 1000 * id, area: 20 * id, players: 5 * id,
   averageAttack: 7 * id, totalAttack: 35 * id, averageDefense: 9 * id, totalDefense: 45 * id,
@@ -62,9 +72,9 @@ const defaultPages = () => ({ Population: [[1, 2], [3]], Size: [[3], [1], [2]], 
 
 function setup(options = {}) {
   const dom = new JSDOM('<!doctype html><body><div id="game"></div></body>', {
-    url: `https://${options.server || 'trickandtreat.kingdoms.com'}/#/page:village/villId:123/window:building/location:22`, runScripts: 'outside-only'
+    url: `https://${options.server || 'trickandtreat.kingdoms.com'}/#/page:${options.basePage || 'resources'}/villId:123/window:building/location:22`, runScripts: 'outside-only'
   });
-  const w = dom.window, doc = w.document, store = options.store || new Map(), log = [], progress = [];
+  const w = dom.window, doc = w.document, store = options.store || new Map(), log = [], progress = [], nativeTabs = [];
   let enabled = true, pages = defaultPages(), changes = {}, writes = 0, failWrite = false;
   // Model the game's native-button decorator, including controls later removed by render().
   let nativeCreations = 0, bubbledActions = 0;
@@ -122,36 +132,58 @@ function setup(options = {}) {
     if (options.noPager) tabRoot.querySelector('.tg-pagination').remove();
     return tabRoot.outerHTML;
   }
-  let gameTab = '', ignoredHash = '';
+  let gameTab = '', gamePage = 1, ignoredHash = '';
   const transientTabs = new Set();
-  function navigate(tab, page) {
+  function navigate(tab, page, bootstrap = false) {
     const hash = w.location.hash;
-    log.push(`${tab}:${page}`);
+    if (!bootstrap) log.push(`${tab}:${page}`);
     progress.push(doc.querySelector('[data-km-progress]')?.textContent);
     if (options.stall && tab === 'Population' && page === 2) return;
     const game = doc.querySelector('#game');
-    if (options.transientRoute && page === 1 && !transientTabs.has(tab)) {
-      transientTabs.add(tab); w.location.hash = '#/page:village/villId:123';
-      setTimeout(() => { w.location.hash = hash; }, 60); return;
+    if (!bootstrap && options.transientRoute && page === 1 && !transientTabs.has(tab)) {
+      transientTabs.add(tab); w.location.hash = `#/page:${options.basePage || 'resources'}/villId:123`;
+      setTimeout(() => { ignoredHash = hash; w.location.hash = hash; navigate(tab, page); }, 60); return;
     }
     function showRows() {
-      gameTab = tab;
-      game.innerHTML = pageHTML(tab, page);
-      const cached = game.querySelector('.loadedTab').cloneNode(true); cached.classList.add('hiddenTab');
-      cached.querySelector('[kingdomid]').setAttribute('kingdomid', '999999'); game.prepend(cached);
-      game.querySelector('.loadedTab:not(.hiddenTab) .nextPage')?.addEventListener('click', () => {
-        if (page >= pages[tab].length) return;
-        if (options.pagerKeepsHash) { navigate(tab, page + 1); return; }
+      gameTab = tab; gamePage = page;
+      // Captured native navigation: the parent Kingdoms tab initializes first,
+      // then its child ranking is selected with selectTab(...). Opening a
+      // combined Population deep link initially renders VictoryPoints instead.
+      const parentIsPlayer = bootstrap && options.startOnPlayer;
+      game.innerHTML = `<div class="statistics"><nav class="maintab">${['Player', 'Kingdoms', 'World'].map(name => `<a class="tab naviTab${name} clickable ${name === (parentIsPlayer ? 'Player' : 'Kingdoms') ? 'active' : 'inactive'}" clickable="selectTab('${name}')">${name}</a>`).join('')}</nav><div class="loadedTab tabKingdoms currentTab activeTab${parentIsPlayer ? ' hiddenTab' : ''}"><nav class="subtab">${tabs.filter(name => name !== options.missingNativeTab).map(name => `<a class="tab naviTab${name} clickable ${name === tab ? 'active' : 'inactive'}" clickable="selectTab('${name}')">${name}</a>`).join('')}</nav>${pageHTML(tab, page)}</div></div>`;
+      const ranking = game.querySelector(`.loadedTab.tab${tab}.currentTab`);
+      if (bootstrap && options.delayNativeTabs) {
+        const childNav = game.querySelector('nav.subtab'); childNav.classList.add('ng-hide');
+        setTimeout(() => childNav.classList.remove('ng-hide'), 70);
+      }
+      const cached = ranking.cloneNode(true); cached.classList.add('hiddenTab');
+      cached.querySelector('[kingdomid]')?.setAttribute('kingdomid', '999999'); ranking.before(cached);
+      if (bootstrap && options.emptyInitialVictoryPoints) ranking.querySelector('tbody').replaceChildren();
+      game.querySelector('.maintab .naviTabKingdoms').addEventListener('click', event => {
+        event.preventDefault();
+        nativeTabs.push('Kingdoms'); selectRanking('VictoryPoints', 1);
+      });
+      for (const control of game.querySelectorAll('.subtab a')) control.addEventListener('click', event => {
+        event.preventDefault();
+        const name = tabs.find(name => control.classList.contains(`naviTab${name}`));
+        nativeTabs.push(name); selectRanking(name, name === gameTab ? gamePage : 1);
+      });
+      function advance(nextPage) {
+        if (options.pagerKeepsHash) { navigate(tab, nextPage); return; }
         let next = w.location.hash.replace(/\/(statsPage|cp):\d+/g, '');
-        w.location.hash = next + `/statsPage:${page + 1}`;
+        w.location.hash = next + `/statsPage:${nextPage}`;
+      }
+      ranking.querySelector('.firstPage')?.addEventListener('click', () => { if (page > 1) advance(1); });
+      ranking.querySelector('.nextPage')?.addEventListener('click', () => {
+        if (page < pages[tab].length) advance(page + 1);
       });
       if (options.normalizedRoute) {
         let normalized = w.location.hash.replace(/\/statsPage:\d+/g, '');
         if (tab === 'Population') normalized = normalized.replace('/subtab:Population', '');
         ignoredHash = normalized; w.location.hash = normalized;
       }
-      if (options.navigateAway && tab === 'Attacker') w.location.hash = '#/page:map';
-      if (options.wrongStatisticsTab && tab === 'Attacker') w.location.hash = w.location.hash.replace('tab:Kingdoms', 'tab:Players');
+      if (!bootstrap && options.navigateAway && tab === 'Attacker') w.location.hash = '#/page:map';
+      if (!bootstrap && options.wrongStatisticsTab && tab === 'Attacker') w.location.hash = w.location.hash.replace('tab:Kingdoms', 'tab:Players');
     }
     if (options.stalePager && tab === 'Population' && page === 2) {
       // The native page marker updates before data, a regression from earlier scanners.
@@ -162,13 +194,26 @@ function setup(options = {}) {
     }
     showRows();
   }
+  function selectRanking(tab, page) {
+    let hash = w.location.hash.replace(/\/(subtab|tab|statsPage|cp):[^/]+/g, '');
+    const nextHash = hash + `/tab:Kingdoms/subtab:${tab}/statsPage:${page}`;
+    if (nextHash !== w.location.hash) { ignoredHash = nextHash; w.location.hash = nextHash; }
+    navigate(tab, page);
+  }
   w.addEventListener('hashchange', event => {
     const hash = new URL(event.newURL).hash;
-    if (hash === ignoredHash || !hash.includes('window:statistics')) return;
+    if (hash === ignoredHash) { ignoredHash = ''; return; }
+    if (!hash.includes('window:statistics')) return;
+    if (!new URL(event.oldURL).hash.includes('window:statistics') && !transientTabs.has(gameTab)) {
+      const initialTab = options.startOnPopulationPage2 ? 'Population' : 'VictoryPoints';
+      ignoredHash = hash.replace(/\/(subtab|statsPage):[^/]+/g, '') + `/subtab:${initialTab}/statsPage:${options.startOnPopulationPage2 ? 2 : 1}`;
+      w.location.hash = ignoredHash;
+      navigate(initialTab, options.startOnPopulationPage2 ? 2 : 1, true); return;
+    }
     const tab = hash.match(/subtab:([^/]+)/)?.[1] || gameTab, page = Number(hash.match(/(?:statsPage|cp):(\d+)/)?.[1] || 1);
     if (tabs.includes(tab)) navigate(tab, page);
   });
-  return { dom, w, doc, api, S, H, store, log, progress, originalHash, actions, pageHTML,
+  return { dom, w, doc, api, S, H, store, log, progress, nativeTabs, originalHash, actions, pageHTML,
     get nativeCreations() { return nativeCreations; }, get bubbledActions() { return bubbledActions; },
     get writes() { return writes; }, setFailWrite: value => { failWrite = value; },
     setPages: value => { pages = value; }, setChanges: value => { changes = value; },
@@ -214,6 +259,7 @@ function setup(options = {}) {
   eq(e.doc.querySelector('#qol-kingdom-management-scan-lock'), null); eq(e.w.location.hash, e.originalHash);
   eq(e.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-scan-hidden'), false);
   eq(e.log, ['Population:1', 'Population:2', 'Size:1', 'Size:2', 'Size:3', 'Attacker:1', 'Attacker:2', 'Defender:1', 'VictoryPoints:1', 'VictoryPoints:2']);
+  eq(e.nativeTabs, tabs);
   ok(e.progress.some(text => text.includes('Total Kingdom Population')));
   const first = e.api.getSnapshots()[0]; eq(first.kingdoms.length, 4);
   eq(first.pages, { Population: 2, Size: 3, Attacker: 2, Defender: 1, VictoryPoints: 2 });
@@ -300,6 +346,23 @@ function setup(options = {}) {
     ok(test.log.every(entry => !entry.includes('NaN')));
     test.dom.window.close();
   }
+  // Reproduce the reported startup on VictoryPoints (including an empty table),
+  // delayed child controls, an inactive parent, and an already-selected page 2.
+  for (const options of [{ emptyInitialVictoryPoints: true }, { startOnPlayer: true },
+    { delayNativeTabs: true }, { startOnPopulationPage2: true }, { basePage: 'village' }]) {
+    const test = setup(options); test.api.open(); const result = await test.api.scan();
+    assert.ok(result, `${JSON.stringify(options)}: ${test.doc.querySelector('[data-km-status]').textContent}; ${test.log.join(',')}`); checks++;
+    eq(test.api.getSnapshots()[0].pages, { Population: 2, Size: 3, Attacker: 2, Defender: 1, VictoryPoints: 2 });
+    eq(test.api.getSnapshots()[0].kingdoms.length, 4); eq(test.w.location.hash, test.originalHash);
+    eq(test.nativeTabs.filter(tab => tab !== 'Kingdoms'), tabs);
+    if (options.startOnPlayer) eq(test.nativeTabs[0], 'Kingdoms');
+    if (options.startOnPopulationPage2) eq(test.log.slice(0, 3), ['Population:2', 'Population:1', 'Population:2']);
+    test.dom.window.close();
+  }
+  const missingTab = setup({ missingNativeTab: 'Population' }); missingTab.api.open();
+  eq(await missingTab.api.scan(), false); eq(missingTab.writes, 0);
+  ok(missingTab.doc.querySelector('[data-km-status]').textContent.includes('Population tab did not become available'));
+  eq(missingTab.w.location.hash, missingTab.originalHash); missingTab.dom.window.close();
   const wrongTab = setup({ wrongStatisticsTab: true }); wrongTab.api.open(); eq(await wrongTab.api.scan(), false);
   eq(wrongTab.writes, 0); ok(wrongTab.w.location.hash.includes('tab:Players'));
   ok(wrongTab.doc.querySelector('[data-km-status]').textContent.includes('Players'));

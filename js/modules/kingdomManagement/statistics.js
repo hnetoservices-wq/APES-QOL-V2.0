@@ -15,15 +15,17 @@
     const number = Number(text.replace(/[^\d]/g, ''));
     return Number.isSafeInteger(number) ? number : null;
   }
+  function isVisible(element) {
+    if (!element?.isConnected || element.closest('.hiddenTab, .ng-hide, [hidden], [aria-hidden="true"]')) return false;
+    for (let parent = element; parent; parent = parent.parentElement) {
+      if (parent.style.display === 'none' || parent.style.visibility === 'hidden') return false;
+    }
+    return true;
+  }
   function readPage(stage, doc = document) {
     const roots = [...doc.querySelectorAll(`.loadedTab.tab${stage.tab}.currentTab`)];
     for (const root of roots) {
-      if (root.closest('.hiddenTab, .ng-hide, [hidden], [aria-hidden="true"]')) continue;
-      let hidden = false;
-      for (let parent = root; parent; parent = parent.parentElement) {
-        if (parent.style.display === 'none' || parent.style.visibility === 'hidden') { hidden = true; break; }
-      }
-      if (hidden) continue;
+      if (!isVisible(root)) continue;
       const table = [...root.querySelectorAll('table')].find(element => element.querySelector(`th[tooltip-translate="${PREFIX}Kingdom"]`));
       if (!table) continue;
       const columns = {};
@@ -66,9 +68,9 @@
       if (!page || !next || !rows.length || rows.some((row, i) => i && row.ranking <= rows[i - 1].ranking)) return null;
       const lastPage = Math.max(page, ...pages.map(item => item.page || 0));
       const hasNext = !next.classList.contains('disabled') && !next.querySelector('.disabled');
-      return { rows, page, lastPage, hasNext, nextControl: next, signature: JSON.stringify(rows) };
+      return { rows, page, lastPage, hasNext, nextControl: next, firstControl: pager.querySelector('li.firstPage'), signature: JSON.stringify(rows) };
     }
     return null;
   }
-  window.APES_KINGDOM_STATISTICS = Object.freeze({ STAGES, readPage, clean, count });
+  window.APES_KINGDOM_STATISTICS = Object.freeze({ STAGES, readPage, clean, count, isVisible });
 })();

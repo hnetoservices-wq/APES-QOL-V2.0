@@ -40,9 +40,9 @@
     const progress = document.querySelector(`#${LOCK_ID} [data-km-progress]`);
     if (progress) progress.textContent = message;
   }
-  function route(base, tab, page) {
+  function statisticsRoute(base) {
     const parts = base.replace(/^#\/?/, '').split('/').filter(part => part && !/^(window|subtab|tab|statsPage|search|searchRank|location|cp|kingdomId|playerId|reportId|societyId):/i.test(part));
-    return `#/${[...parts, 'window:statistics', `subtab:${tab}`, 'tab:Kingdoms', `statsPage:${page}`].join('/')}`;
+    return `#/${[...parts, 'window:statistics', 'tab:Kingdoms'].join('/')}`;
   }
   function routeState(hash = location.hash) {
     return Object.fromEntries(hash.replace(/^#\/?/, '').split('/').filter(part => part.includes(':')).map(part => {
@@ -68,9 +68,33 @@
   function checkCancelled() {
     if (cancelled || !enabled()) throw new Error('Kingdom scan cancelled.');
   }
+  async function waitForNativeTab(selector, label) {
+    const started = performance.now();
+    let last = null;
+    while (performance.now() - started < 12000) {
+      checkCancelled();
+      const control = [...document.querySelectorAll(selector)].find(S.isVisible);
+      if (routeState().window?.toLowerCase() === 'statistics' && control) {
+        if (last === control) return control;
+        last = control;
+      } else last = null;
+      await delay(140);
+    }
+    throw new Error(`${label} tab did not become available (${routeSummary()}). No snapshot was saved.`);
+  }
+  async function openNativeRanking(stage, originalHash) {
+    setStatus(`Opening Kingdoms · ${stage.label}…`);
+    if (routeState().window?.toLowerCase() !== 'statistics') location.hash = statisticsRoute(originalHash);
+    const kingdomsTab = await waitForNativeTab('.statistics .naviTabKingdoms[clickable]', 'Kingdoms');
+    if (!kingdomsTab.classList.contains('active')) kingdomsTab.click();
+    const rankingTab = await waitForNativeTab(`.statistics .loadedTab.tabKingdoms.currentTab .naviTab${stage.tab}[clickable]`, stage.tab);
+    // Select the child tab after its Kingdoms controller exists. Opening both
+    // levels through one deep link can reset the child to VictoryPoints.
+    rankingTab.click();
+  }
   async function waitForPage(stage, page, previous, seen) {
     const start = performance.now();
-    let signature = '', stable = 0, foreignSince = null, foreignHash = '';
+    let signature = '', stable = 0, foreignSince = null, foreignHash = '', firstPageRequested = false;
     while (performance.now() - start < 12000) {
       checkCancelled();
       const matchingRoute = matchesRoute(stage.tab);
@@ -83,6 +107,11 @@
         }
       } else { foreignSince = null; foreignHash = ''; }
       const result = S.readPage(stage);
+      if (page === 1 && !previous && matchingRoute && result?.page > 1 && !firstPageRequested &&
+          result.firstControl?.isConnected && !result.firstControl.classList.contains('disabled')) {
+        firstPageRequested = true; result.firstControl.click();
+        signature = ''; stable = 0; await delay(140); continue;
+      }
       const fresh = matchingRoute && result && result.page === page && (page !== 1 || result.rows[0].ranking === 1) &&
         (!previous || result.signature !== previous.signature && result.rows[0].ranking > previous.rows.at(-1).ranking) &&
         result.rows.every(row => !seen.has(row.id));
@@ -141,7 +170,7 @@
           checkCancelled();
           if (page === 1) {
             navigated = true;
-            location.hash = route(originalHash, stage.tab, 1);
+            await openNativeRanking(stage, originalHash);
           } else {
             const current = S.readPage(stage);
             if (!current || current.page !== previous.page || current.signature !== previous.signature || !current.hasNext || !current.nextControl?.isConnected) {
