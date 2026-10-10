@@ -5,6 +5,7 @@
   const PANEL_ID = 'qol-calc-container';
   const TOGGLE_ID = 'qol-npc-calc-toggle-btn';
   const STYLE_ID = 'qol-npc-calculator-styles';
+  const FILL_LOCK_ID = 'qol-npc-fill-lock';
   const RESOURCE_KEYS = ['wood', 'clay', 'iron', 'crop'];
   const RESOURCE_META = {
     wood: {
@@ -288,6 +289,7 @@
   let selectedPassIndex = 0;
   let latestCalculation = null;
   let keepOpenDuringMarketFill = false;
+  let npcFillOperation = null;
   function isEnabled() {
     return typeof window.isQolEnabled === 'function' ? window.isQolEnabled(FEATURE_KEY) === true : true;
   }
@@ -859,7 +861,7 @@
       passNode.textContent = passes.length ? `Pass ${selectedPassIndex + 1}/${count}` : '1 pass';
       passNode.className = `qol-npc-pill ${count > 1 ? 'warn' : 'good'}`;
     }
-    if (action) action.classList.toggle('disabled', !pass);
+    if (action) action.classList.toggle('disabled', !pass || Boolean(npcFillOperation));
     RESOURCE_KEYS.forEach(key => {
       const card = panel?.querySelector(`.qol-npc-summary.npc [data-resource="${key}"]`);
       const valueNode = panel?.querySelector(`#qol-npc-dist-${key}`);
@@ -926,16 +928,80 @@
   function sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
+  function showNpcFillLock(operation) {
+    const previousFocus = document.activeElement;
+    const overlay = document.createElement('div');
+    overlay.id = FILL_LOCK_ID;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-label', 'Preparing NPC distribution');
+    overlay.setAttribute('aria-busy', 'true');
+    overlay.style.cssText = 'position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.76)!important;cursor:wait!important;pointer-events:auto!important;font-family:Arial,sans-serif!important';
+    overlay.innerHTML = `<div style="max-width:440px;padding:24px;border:1px solid #b99a50;border-radius:7px;background:#252c20;color:#f5e8bf;text-align:center">
+      <strong>Preparing NPC distribution</strong>
+      <p class="qol-npc-fill-progress" aria-live="polite">Opening Marketplace…</p>
+      <button type="button" class="qol-npc-fill-cancel">Cancel</button>
+    </div>`;
+    const cancel = overlay.querySelector('.qol-npc-fill-cancel');
+    cancel.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      operation.cancelled = true;
+    });
+    // Block player input, including shortcuts, while allowing our synthetic
+    // input and lock-button events to reach the game's handlers.
+    const guard = event => {
+      if (!event.isTrusted) return;
+      if (event.type === 'keydown' && event.key === 'Escape') operation.cancelled = true;
+      if (event.target === cancel && event.key !== 'Escape') return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+    };
+    const events = ['pointerdown', 'pointerup', 'mousedown', 'mouseup', 'click',
+      'dblclick', 'contextmenu', 'wheel', 'touchstart', 'touchmove', 'touchend', 'keydown', 'keyup'];
+    events.forEach(name => window.addEventListener(name, guard, { capture: true, passive: false }));
+    document.body.appendChild(overlay);
+    cancel.focus();
+    operation.progress = message => {
+      overlay.querySelector('.qol-npc-fill-progress').textContent = message;
+    };
+    let released = false;
+    operation.release = () => {
+      if (released) return;
+      released = true;
+      events.forEach(name => window.removeEventListener(name, guard, true));
+      overlay.remove();
+      if (previousFocus?.isConnected) previousFocus.focus();
+    };
+  }
+  function assertNpcFillActive(operation) {
+    if (operation.cancelled || !isEnabled()) throw new Error('NPC fill cancelled.');
+    if (operation.villageId && getCurrentVillageId() !== operation.villageId) {
+      throw new Error('The active village changed. Reopen the calculator before filling NPC.');
+    }
+    if (operation.root && findNpcTraderInputs()?.root !== operation.root) {
+      throw new Error('The NPC window changed during filling. Please try again.');
+    }
+  }
+  async function waitForNpcState(operation, condition, message, timeoutMs = 1800) {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      assertNpcFillActive(operation);
+      if (condition()) return;
+      await sleep(60);
+    }
+    throw new Error(message);
+  }
   function findNpcTraderInputs() {
     const root = document.querySelector('.loadedTab.tabNpcTrade.currentTab .marketContent.npcTrader') || document.querySelector('.loadedTab.tabNpcTrade.activeTab .marketContent.npcTrader') || document.querySelector('.marketContent.npcTrader');
-    if (!root) return null;
+    if (!root || root.closest('.ng-hide, [hidden]')) return null;
     const iconSelectors = {
       wood: '.unit_wood_medium_illu',
       clay: '.unit_clay_medium_illu',
       iron: '.unit_iron_medium_illu',
       crop: '.unit_crop_medium_illu'
     };
-    const result = {};
+    const result = { root };
     RESOURCE_KEYS.forEach(key => {
       const icon = root.querySelector(iconSelectors[key]);
       const row = icon?.closest('tr');
@@ -944,9 +1010,10 @@
     });
     return RESOURCE_KEYS.every(key => result[key]) ? result : null;
   }
-  async function waitForNpcTraderInputs(timeoutMs = 6000) {
+  async function waitForNpcTraderInputs(timeoutMs = 6000, operation) {
     const started = Date.now();
     while (Date.now() - started < timeoutMs) {
+      if (operation) assertNpcFillActive(operation);
       const inputs = findNpcTraderInputs();
       if (inputs) return inputs;
       await sleep(100);
@@ -955,44 +1022,117 @@
   }
   function setNpcInputValue(input, value) {
     const text = String(Math.max(0, Math.round(Number(value) || 0)));
+    input.focus();
     const descriptor = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value');
     if (descriptor?.set) descriptor.set.call(input, text);else input.value = text;
     input.dispatchEvent(new Event('input', {
       bubbles: true
     }));
+    input.dispatchEvent(new KeyboardEvent('keyup', {
+      key: text.slice(-1),
+      bubbles: true
+    }));
     input.dispatchEvent(new Event('change', {
       bubbles: true
     }));
+    input.blur();
   }
-  async function fillNpcTrader(pass) {
-    let inputs = await waitForNpcTraderInputs();
-    if (!inputs) return false;
+  function npcResourceState(key) {
+    const inputs = findNpcTraderInputs();
+    const input = inputs?.[key];
+    const row = input?.closest('tr');
+    if (!row) return null;
+    const difference = String(row.querySelector('.diffCol')?.textContent || '')
+      .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069\s.,]/g, '').replace(/\u2212/g, '-');
+    return {
+      input,
+      lock: row.querySelector('.lockButtonContainer'),
+      stock: parseInteger(row.querySelector('.resourceAmount')?.textContent),
+      difference: /^[+-]?\d+$/.test(difference) ? Number(difference) : null
+    };
+  }
+  function npcResourceMatches(key, target) {
+    const state = npcResourceState(key);
+    return state && parseInteger(state.input.value) === target
+      && state.stock !== null && state.difference === target - state.stock;
+  }
+  function npcTargetForCurrentStock(pass, resources) {
+    const target = Object.fromEntries(RESOURCE_KEYS.map(key => [key, Number(pass.target[key])]));
+    if (RESOURCE_KEYS.some(key => !Number.isSafeInteger(target[key]) || target[key] < 0)) {
+      throw new Error('The selected NPC pass has invalid amounts. Recalculate the plan.');
+    }
+    const stocks = RESOURCE_KEYS.map(key => npcResourceState(key)?.stock);
+    if (stocks.some(value => value == null)) throw new Error('Could not read the NPC resource balance.');
+    const adjustment = stocks.reduce((sum, value) => sum + value, 0) - totalOfResources(target);
+    if (adjustment) {
+      // Production can advance between planning and opening the merchant.
+      // Keep the first three amounts and place the balance in Crop, provided
+      // the training requirements and the Granary limit are still satisfied.
+      const crop = target.crop + adjustment;
+      const cropCap = resources?.crop?.capacity;
+      if (!Number.isFinite(cropCap) || cropCap <= 0 || crop > cropCap
+        || crop < Number(pass.required?.crop || 0)) {
+        throw new Error('The resource balance changed beyond this pass’s limits. Recalculate the plan.');
+      }
+      target.crop = crop;
+    }
+    return { target, adjustment };
+  }
+  async function fillNpcTrader(pass, operation) {
+    const inputs = await waitForNpcTraderInputs(6000, operation);
+    if (!inputs) throw new Error('The NPC merchant did not open in time.');
+    operation.root = inputs.root;
+    const { target, adjustment } = npcTargetForCurrentStock(pass, operation.resources);
+    if (RESOURCE_KEYS.every(key => npcResourceMatches(key, target[key])
+      && npcResourceState(key).difference === 0)) {
+      return { target, adjustment, noConversionNeeded: true };
+    }
+    // Reset any locks left by a previous fill, using the game's controls.
     for (const key of RESOURCE_KEYS) {
-      inputs = findNpcTraderInputs() || inputs;
-      const input = inputs[key];
-      if (!input) return false;
-      setNpcInputValue(input, pass.target[key]);
-      await sleep(45);
+      assertNpcFillActive(operation);
+      const lock = npcResourceState(key)?.lock;
+      if (!lock) throw new Error(`Could not find the ${RESOURCE_META[key].label} lock.`);
+      if (!lock.classList.contains('open')) {
+        lock.click();
+        await waitForNpcState(operation, () => npcResourceState(key)?.lock?.classList.contains('open'),
+          `The game did not unlock ${RESOURCE_META[key].label}.`);
+      }
     }
-    await sleep(120);
-    const verified = findNpcTraderInputs();
-    if (!verified) return false;
-    let matches = true;
-    RESOURCE_KEYS.forEach(key => {
-      const expected = Math.max(0, Math.round(Number(pass.target[key]) || 0));
-      const actual = parseInteger(verified[key]?.value);
-      if (actual !== expected) matches = false;
-    });
-    if (!matches) {
-      RESOURCE_KEYS.forEach(key => {
-        const input = verified[key];
-        if (input) setNpcInputValue(input, pass.target[key]);
-      });
-      await sleep(100);
+    for (const key of RESOURCE_KEYS) {
+      assertNpcFillActive(operation);
+      operation.progress?.(`Filling ${RESOURCE_META[key].label}: ${formatNumber(target[key])}…`);
+      const state = npcResourceState(key);
+      if (!state || state.input.disabled) throw new Error(`The ${RESOURCE_META[key].label} field is unavailable.`);
+      setNpcInputValue(state.input, target[key]);
+      await waitForNpcState(operation, () => npcResourceMatches(key, target[key]),
+        `The game did not register the ${RESOURCE_META[key].label} amount. Review the NPC values.`);
+      const lock = npcResourceState(key)?.lock;
+      if (!lock) throw new Error('The NPC resource locks changed. Please try again.');
+      // With four resources, the game's UI permits only two locked values.
+      if (lock.classList.contains('open') && !lock.classList.contains('disabled')) {
+        lock.click();
+        await waitForNpcState(operation, () => !npcResourceState(key)?.lock?.classList.contains('open'),
+          `The game did not lock ${RESOURCE_META[key].label}.`);
+      }
     }
-    return true;
+    operation.progress?.('Checking the NPC distribution…');
+    let settled = 0;
+    await waitForNpcState(operation, () => {
+      if (!RESOURCE_KEYS.every(key => npcResourceMatches(key, target[key]))) {
+        settled = 0;
+        return false;
+      }
+      const convert = operation.root.querySelector('button[premium-feature="NPCTrader"]');
+      const holder = convert?.closest('.merchantBtn');
+      const ready = convert && !convert.disabled && !convert.classList.contains('disabled')
+        && !holder?.classList.contains('ng-hide') && !holder?.hidden;
+      settled = ready ? settled + 1 : 0;
+      return settled >= 3;
+    }, 'The NPC distribution is not ready to convert. Review the values and the game’s message.');
+    return { target, adjustment };
   }
   async function openNpcMarketAndFill() {
+    if (npcFillOperation) return;
     const pass = latestCalculation?.execution?.passes?.[selectedPassIndex];
     if (!pass) {
       setStatus('No NPC pass selected.', 'warning', 'Enter troop counts first.');
@@ -1008,21 +1148,31 @@
       setStatus('Marketplace location unknown.', 'warning', 'Run Account Operations Center Scan Now once.');
       return;
     }
-    keepOpenDuringMarketFill = true;
-    panel?.classList.add('qol-open');
-    setStatus(`Opening Marketplace for Pass ${selectedPassIndex + 1}…`, 'neutral', 'APES will fill the four NPC values automatically.');
-    location.hash = `#/page:village/villId:${villageId}/location:${marketLocation}/window:building/tab:NpcTrade`;
+    const passNumber = selectedPassIndex + 1;
+    const operation = { villageId, resources: latestCalculation.resources, cancelled: false };
+    npcFillOperation = operation;
     try {
-      const filled = await fillNpcTrader(pass);
+      showNpcFillLock(operation);
+      keepOpenDuringMarketFill = true;
+      renderSelectedPass();
       panel?.classList.add('qol-open');
-      if (filled) {
-        setStatus(`Pass ${selectedPassIndex + 1} filled in NPC merchant.`, 'success', 'Review the four values, then Convert when ready.');
+      setStatus(`Opening Marketplace for Pass ${passNumber}…`, 'neutral', 'Filling and locking the NPC amounts in order.');
+      location.hash = `#/page:village/villId:${villageId}/location:${marketLocation}/window:building/tab:NpcTrade`;
+      const filled = await fillNpcTrader(pass, operation);
+      const adjustmentNote = filled.adjustment ? ` Crop adjusted by ${filled.adjustment > 0 ? '+' : ''}${formatNumber(Math.abs(filled.adjustment))} to match the NPC balance.` : '';
+      if (filled.noConversionNeeded) {
+        setStatus(`Pass ${passNumber} already matches the NPC balance.`, 'success', 'No conversion is needed.');
       } else {
-        setStatus('NPC merchant opened, but APES could not fill the inputs.', 'warning', 'The Marketplace rendered differently than expected.');
+        setStatus(`Pass ${passNumber} filled in NPC merchant.`, 'success', `Review the four values, then Convert when ready.${adjustmentNote}`);
       }
+    } catch (error) {
+      setStatus(operation.cancelled ? 'NPC fill cancelled.' : 'NPC fill could not finish.', 'warning', error.message);
     } finally {
-      panel?.classList.add('qol-open');
+      operation.release?.();
+      npcFillOperation = null;
       keepOpenDuringMarketFill = false;
+      renderSelectedPass();
+      if (isEnabled()) panel?.classList.add('qol-open');
     }
   }
   function updateCalculations() {
@@ -1227,6 +1377,10 @@
     window.qolRepositionAllButtons?.();
   }
   function destroyUI() {
+    if (npcFillOperation) {
+      npcFillOperation.cancelled = true;
+      npcFillOperation.release?.();
+    }
     panel?.remove();
     toggleButton?.remove();
     panel = null;
@@ -1263,3 +1417,4 @@
     once: true
   });else start();
 })();
+
