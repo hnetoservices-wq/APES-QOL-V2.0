@@ -74,6 +74,12 @@ const BASIC_FEATURES = [{
   icon: '◷',
   description: 'Sounds a ding when a construction enters the free five-minute instant-finish window.'
 }, {
+  id: 'qol-chk-chat-links',
+  key: 'chatLinks',
+  name: 'Clickable Chat Links',
+  icon: '↗',
+  description: 'Makes web addresses in in-game conversations clickable and opens them in a new tab.'
+}, {
   id: 'qol-chk-chat-silencer',
   key: 'chatSilencer',
   name: 'Chat Silencer',
