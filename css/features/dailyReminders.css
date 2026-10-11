@@ -54,3 +54,16 @@
 
 #qol-daily-reminders-panel .qol-rem-countdown { color: #5b472f !important; font-weight: bold !important; font-variant-numeric: tabular-nums; }
 #qol-daily-reminders-panel .qol-rem-resize { position: absolute !important; right: 0 !important; bottom: 0 !important; display: block !important; width: 20px !important; height: 20px !important; cursor: nwse-resize !important; touch-action: none; z-index: 1; background: repeating-linear-gradient(135deg, transparent 0 3px, #806239 3px 5px, transparent 5px 7px); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+
+/* Saved reminders use a compact summary row, with the countdown directly below. */
+#qol-daily-reminders-panel .qol-rem-saved { gap: 5px !important; }
+#qol-daily-reminders-panel .qol-rem-saved-row { gap: 3px !important; padding: 6px 8px !important; flex: 0 0 auto; }
+#qol-daily-reminders-panel .qol-rem-row-head { display: flex !important; align-items: center !important; gap: 8px !important; min-width: 0 !important; }
+#qol-daily-reminders-panel .qol-rem-row-summary { flex: 1 1 auto !important; min-width: 0 !important; overflow: hidden !important; white-space: nowrap !important; text-overflow: ellipsis !important; font-size: 10px !important; line-height: 1.5 !important; }
+#qol-daily-reminders-panel .qol-rem-row-summary strong { display: inline !important; font-size: 10px !important; }
+#qol-daily-reminders-panel .qol-rem-row-schedule { color: #78674f !important; font-size: 10px !important; }
+#qol-daily-reminders-panel .qol-rem-row-actions { display: flex !important; flex: 0 0 auto !important; align-items: center !important; gap: 4px !important; }
+#qol-daily-reminders-panel .qol-rem-action[data-rem-icon] { width: 23px !important; height: 23px !important; min-height: 23px !important; padding: 3px !important; }
+#qol-daily-reminders-panel .qol-rem-action[data-rem-icon] svg { width: 14px !important; height: 14px !important; flex: 0 0 14px !important; pointer-events: none !important; }
+#qol-daily-reminders-panel .qol-rem-separator { color: #b7a68d !important; font-size: 10px !important; }
+#qol-daily-reminders-panel .qol-rem-delete-question { color: #a02f27 !important; font-size: 10px !important; white-space: nowrap !important; }

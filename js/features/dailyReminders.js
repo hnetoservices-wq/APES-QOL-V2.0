@@ -9,6 +9,13 @@
   const enabled = () => typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE);
   const action = (label, attrs = '', disabled = false) => `<div class="qol-rem-action" role="button" tabindex="${disabled ? -1 : 0}" aria-disabled="${disabled}" ${attrs}>${label}</div>`;
   const BELL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0112 0c0 7 3 7 3 8H3c0-1 3-1 3-8M9 21h6"></path></svg>';
+  const ICONS = {
+    pause: '<path d="M8 5v14M16 5v14"/>', play: '<path d="m8 5 10 7-10 7z"/>',
+    edit: '<path d="m16 3 5 5-13 13-5 1 1-5zM14 5l5 5"/>',
+    trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7"/>',
+    check: '<path d="m5 12 4 4L19 6"/>', cancel: '<path d="m6 6 12 12M6 18 18 6"/>'
+  };
+  const iconAction = (icon, label, attrs) => action(`<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]}</svg>`, `data-rem-icon title="${esc(label)}" aria-label="${esc(label)}" ${attrs}`, busy);
   let items = [], loaded = false, loading = null, queue = Promise.resolve(), busy = false;
   let editor = null, deleting = '', message = '', activeKeys = new Set(), signature = '', audio = null;
   const lastDings = new Map(), DING_INTERVAL = 120000;
@@ -45,9 +52,9 @@
     queue = pending.then(() => undefined, () => undefined);
     return pending;
   }
-  function describe(item) {
+  function describe(item, compact = false) {
     const repeat = item.repeat === 'once' ? 'Once' : item.repeat === 'daily' ? 'Every day' : item.repeat === 'interval' ? `Every ${item.interval} days` : item.days.map(day => DAYS[day]).join(', ');
-    return `${repeat} at ${item.time} · ${item.startDate}${item.endDate ? ` → ${item.endDate}` : ''} · local time`;
+    return compact ? `${repeat} at ${item.time} – Local time` : `${repeat} at ${item.time} · ${item.startDate}${item.endDate ? ` → ${item.endDate}` : ''} · local time`;
   }
   function dueItems(now = Date.now()) {
     return loaded ? items.flatMap(item => { const occurrence = S.due(item, now); return occurrence ? [{ item, ...occurrence }] : []; }).sort((a, b) => a.at - b.at) : [];
@@ -179,8 +186,12 @@
   function renderPanel() {
     const panel = document.getElementById(PANEL); if (!panel) return;
     const body = panel.querySelector('.qol-rem-panel-body'), scrollTop = body.scrollTop;
-    body.innerHTML = `<p class="qol-rem-intro">Times use this device’s local time. Reminders ding every two minutes until Done; Snooze pauses the sound. The latest missed occurrence appears when you return to the game.</p><p data-rem-message role="status">${esc(message)}</p>${!loaded ? action('Retry loading', 'data-rem-retry') : `${action('New reminder', 'data-rem-new')}${editorHTML()}<div class="qol-rem-saved">${items.map(item => `<section class="qol-rem-saved-row" data-rem-id="${esc(item.id)}"><strong>${esc(item.text)}</strong><small>${esc(describe(item))}</small><small class="qol-rem-countdown" data-rem-countdown></small><div class="qol-rem-actions">${action(item.enabled ? 'Pause' : 'Resume', 'data-rem-toggle')}${action('Edit', 'data-rem-edit')}${action(deleting === item.id ? 'Confirm delete' : 'Delete', 'data-rem-delete')}${deleting === item.id ? action('Cancel', 'data-rem-delete-cancel') : ''}</div></section>`).join('') || '<p class="qol-rem-empty">No reminders yet.</p>'}</div>`}`;
+    body.innerHTML = `<p class="qol-rem-intro">Times use this device’s local time. Reminders ding every two minutes until Done; Snooze pauses the sound. The latest missed occurrence appears when you return to the game.</p><p data-rem-message role="status">${esc(message)}</p>${!loaded ? action('Retry loading', 'data-rem-retry') : `${action('New reminder', 'data-rem-new')}${editorHTML()}<div class="qol-rem-saved">${items.map(savedRowHTML).join('') || '<p class="qol-rem-empty">No reminders yet.</p>'}</div>`}`;
     body.scrollTop = scrollTop; syncDisabled(); updateCountdowns();
+  }
+  function savedRowHTML(item) {
+    const confirming = deleting === item.id, separator = '<span class="qol-rem-separator" aria-hidden="true">|</span>';
+    return `<section class="qol-rem-saved-row" data-rem-id="${esc(item.id)}"><div class="qol-rem-row-head"><div class="qol-rem-row-summary" title="${esc(`${item.text} – ${describe(item)}`)}"><strong>"${esc(item.text)}"</strong><span class="qol-rem-row-schedule"> – ${esc(describe(item, true))}</span></div><div class="qol-rem-row-actions">${iconAction(item.enabled ? 'pause' : 'play', item.enabled ? 'Pause reminder' : 'Resume reminder', 'data-rem-toggle')}${separator}${iconAction('edit', 'Edit reminder', 'data-rem-edit')}${separator}${confirming ? '<span class="qol-rem-delete-question">Delete?</span>' : ''}${iconAction(confirming ? 'check' : 'trash', confirming ? 'Confirm delete reminder' : 'Delete reminder', 'data-rem-delete')}${confirming ? iconAction('cancel', 'Cancel deletion', 'data-rem-delete-cancel') : ''}</div></div><small class="qol-rem-countdown" data-rem-countdown></small></section>`;
   }
   function captureEditor() {
     if (!editor) return;
