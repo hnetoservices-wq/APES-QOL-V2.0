@@ -161,12 +161,6 @@ const KINGDOM_MANAGEMENT_FEATURES = [{
   description: 'Scans Secret Society member pages, tracks Off, Def and OP roles, and sends targeted individual messages.'
 }];
 const COSMETIC_FEATURES = [{
-  id: 'qol-chk-chat-window-style',
-  key: 'chatWindowStyle',
-  name: 'APES Chat Window',
-  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4h16v12H9l-5 4zM8 8h8M8 12h5"/></svg>',
-  description: 'An APES styled Messages window with conversation search, a clear reading pane, dragging and resizing.'
-}, {
   id: 'qol-chk-visual-tribe-skins',
   key: 'visualTribeSkins',
   name: 'Visual Tribe Skin',
