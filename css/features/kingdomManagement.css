@@ -112,7 +112,7 @@
 #qol-kingdom-management-panel thead .qol-km-name-column { z-index: 3; }
 #qol-kingdom-management-panel [data-km-row-filter] { min-width: 0 !important; width: 118px !important; min-height: 24px !important; height: 24px !important; font-size: 9px !important; padding: 2px 20px 2px 4px !important; }
 #qol-kingdom-management-panel .qol-km-name { color: var(--qol-accent-deep, #614c30); font-weight: bold; white-space: normal; text-align: left; }
-#qol-kingdom-management-panel .qol-km-delta { display: block; font-size: 8px !important; color: #786b58; }
+#qol-kingdom-management-panel .qol-km-delta { display: block; font-size: 10px !important; font-weight: 600; color: #786b58; }
 #qol-kingdom-management-panel .qol-km-delta.positive { color: #2c683c; }
 #qol-kingdom-management-panel .qol-km-delta.negative { color: #a02f27; }
 #qol-kingdom-management-panel .qol-km-notes { text-align: left; white-space: normal; min-width: 120px; max-width: 200px; font-size: 9px !important; }
