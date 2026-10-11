@@ -1,12 +1,14 @@
-/* Feature symbols retain a readable size in toolbar proxies and radial menus. */
-.qol-feature-glyph {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+/* Monochrome feature symbols follow the surrounding APES theme color. */
+svg.qol-feature-symbol {
+  width: 18px !important;
+  height: 18px !important;
   flex: 0 0 auto !important;
-  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif !important;
-  font-size: 18px !important;
-  font-weight: normal !important;
-  line-height: 1 !important;
+  display: inline-block !important;
+  vertical-align: middle !important;
+  fill: none !important;
+  stroke: currentColor !important;
+  stroke-width: 1.8 !important;
+  stroke-linecap: round !important;
+  stroke-linejoin: round !important;
   pointer-events: none !important;
 }

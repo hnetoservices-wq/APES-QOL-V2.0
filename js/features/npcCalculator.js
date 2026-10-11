@@ -1359,7 +1359,7 @@
     toggleButton = document.createElement('div');
     toggleButton.id = TOGGLE_ID;
     toggleButton.title = 'NPC Calculator';
-    toggleButton.innerHTML = '<span class="qol-feature-glyph" aria-hidden="true">🖩</span>';
+    toggleButton.innerHTML = '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>';
     toggleButton.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();

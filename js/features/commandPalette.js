@@ -37,17 +37,17 @@
                 <path d="M8 9h8M8 12h6"/>
             </svg>
         `,
-    rally: '<span class="qol-feature-glyph" aria-hidden="true">🔭</span>',
-    calculator: '<span class="qol-feature-glyph" aria-hidden="true">🖩</span>',
-    cp: '<span class="qol-feature-glyph" aria-hidden="true">📈</span>',
+    rally: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 13-6 3 6-13 6zM4 10l-2 1 2 4 3-1M17 4l2-1 3 6-2 1M11 14v4M11 18l-4 4M11 18l4 4"/></svg>',
+    calculator: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
+    cp: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7M15 6h3v3"/></svg>',
     oasis: `
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="12" r="8"/>
                 <path d="M12 2v4M12 18v4M2 12h4M18 12h4M8 16c2-5 5-7 8-8-1 4-3 7-8 8z"/>
             </svg>
         `,
-    archive: '<span class="qol-feature-glyph" aria-hidden="true">📁</span>',
-    watchlist: '<span class="qol-feature-glyph" aria-hidden="true">🔎</span>',
+    archive: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7h18"/></svg>',
+    watchlist: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>',
     secretSociety: `
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="8" cy="8" r="3"/>

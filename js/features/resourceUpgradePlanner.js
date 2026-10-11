@@ -956,7 +956,7 @@
     document.head.appendChild(style);
   }
   function iconSvg() {
-    return '<span class="qol-feature-glyph" aria-hidden="true">🌾</span>';
+    return '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V9M12 2c-3 3-3 5 0 7 3-2 3-4 0-7zM12 13c-5 0-7-3-7-6 4 0 7 2 7 6zM12 13c5 0 7-3 7-6-4 0-7 2-7 6zM12 19c-5 0-7-3-7-6 4 0 7 2 7 6zM12 19c5 0 7-3 7-6-4 0-7 2-7 6z"/></svg>';
   }
   function renderFields() {
     const panel = document.getElementById(PANEL_ID);

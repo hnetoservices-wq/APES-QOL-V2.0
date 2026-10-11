@@ -1201,7 +1201,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     button.title = 'CP Manager';
     button.setAttribute('role', 'button');
     button.setAttribute('tabindex', '0');
-    button.innerHTML = '<span class="qol-feature-glyph" aria-hidden="true">📈</span>';
+    button.innerHTML = '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7M15 6h3v3"/></svg>';
     button.addEventListener('click', event => {
       event.preventDefault();
       event.stopPropagation();

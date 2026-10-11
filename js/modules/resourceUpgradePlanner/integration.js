@@ -81,7 +81,7 @@
       card.className = 'qol-feature-card';
       card.dataset.featureKey = FEATURE_KEY;
       card.innerHTML = `
-        <span class="qol-feature-icon" aria-hidden="true">🌾</span>
+        <span class="qol-feature-icon" aria-hidden="true"><svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V9M12 2c-3 3-3 5 0 7 3-2 3-4 0-7zM12 13c-5 0-7-3-7-6 4 0 7 2 7 6zM12 13c5 0 7-3 7-6-4 0-7 2-7 6zM12 19c-5 0-7-3-7-6 4 0 7 2 7 6zM12 19c5 0 7-3 7-6-4 0-7 2-7 6z"/></svg></span>
         <div class="qol-feature-copy">
           <h3 class="qol-feature-name">Resource Upgrade Planner</h3>
           <p class="qol-feature-desc">Calculates efficient resource upgrades and can import the selected plan directly into APES Roadmaps.</p>
@@ -171,7 +171,7 @@
   }
 
   function radialIcon() {
-    return '<span class="qol-feature-glyph" aria-hidden="true">🌾</span>';
+    return '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V9M12 2c-3 3-3 5 0 7 3-2 3-4 0-7zM12 13c-5 0-7-3-7-6 4 0 7 2 7 6zM12 13c5 0 7-3 7-6-4 0-7 2-7 6zM12 19c-5 0-7-3-7-6 4 0 7 2 7 6zM12 19c5 0 7-3 7-6-4 0-7 2-7 6z"/></svg>';
   }
 
   function getRingRadius(itemCount, ringIndex) {

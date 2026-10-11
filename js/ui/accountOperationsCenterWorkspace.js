@@ -22,35 +22,35 @@
       key: 'roadmaps',
       featureKey: 'roadmaps',
       label: 'Roadmaps',
-      icon: '🧭',
+      icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/></svg>',
       description: 'Guided village and account development plans with step-by-step progress tracking.'
     },
     {
       key: 'rallyPoint',
       featureKey: 'rallyPointParser',
       label: 'Rally Point Scanner',
-      icon: '🔭',
+      icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 13-6 3 6-13 6zM4 10l-2 1 2 4 3-1M17 4l2-1 3 6-2 1M11 14v4M11 18l-4 4M11 18l4 4"/></svg>',
       description: 'Scan incoming and outgoing movements, attacks, reinforcements and incoming resources.'
     },
     {
       key: 'cpManager',
       featureKey: 'cpManager',
       label: 'CP Manager',
-      icon: '📈',
+      icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7M15 6h3v3"/></svg>',
       description: 'Plan Culture Points, celebrations, expansion timing and settlement readiness.'
     },
     {
       key: 'reportArchive',
       featureKey: 'reportArchive',
       label: 'Report Archive',
-      icon: '📁',
+      icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7h18"/></svg>',
       description: 'Store, organize, search and reopen important reports after the originals disappear.'
     },
     {
       key: 'watchlists',
       featureKey: 'watchlist',
       label: 'Watchlists',
-      icon: '🔎',
+      icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>',
       description: 'Track players, villages, notes and changes across organized watchlist tabs.'
     },
     {
@@ -240,7 +240,7 @@
       const stateClass = !available ? ' disabled' : embedded ? ' ready' : ' pending';
       const status = !available ? 'Disabled in APES settings' : embedded ? 'Open in workspace' : 'Embedding next';
       return `<div class="apes-aoc-tool-card${stateClass}" data-aoc-tool-key="${D.esc(tool.key)}" role="button" tabindex="${available ? '0' : '-1'}" aria-disabled="${available ? 'false' : 'true'}">
-        <span class="apes-aoc-tool-icon">${D.esc(tool.icon)}</span>
+        <span class="apes-aoc-tool-icon">${String(tool.icon).startsWith('<svg class="qol-feature-symbol"') ? tool.icon : D.esc(tool.icon)}</span>
         <div class="apes-aoc-tool-copy"><strong>${D.esc(tool.label)}</strong><p>${D.esc(tool.description)}</p><small>${D.esc(status)}</small></div>
         <b class="apes-aoc-tool-arrow">›</b>
       </div>`;
@@ -264,7 +264,7 @@
   }
 
   function renderUnavailable(host, tool, message) {
-    host.innerHTML = `<div class="apes-aoc-tool-unavailable"><span>${D.esc(tool.icon)}</span><strong>${D.esc(tool.label)}</strong><p>${D.esc(message)}</p></div>`;
+    host.innerHTML = `<div class="apes-aoc-tool-unavailable"><span>${String(tool.icon).startsWith('<svg class="qol-feature-symbol"') ? tool.icon : D.esc(tool.icon)}</span><strong>${D.esc(tool.label)}</strong><p>${D.esc(message)}</p></div>`;
   }
 
   function renderToolsPane(overlay = document.getElementById(D.OVERLAY_ID)) {
