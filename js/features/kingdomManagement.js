@@ -282,9 +282,36 @@
     if (!tagEditor) return '';
     return `<section class="qol-km-tag-editor" role="group" aria-label="Create a Filter"><strong>Create a Filter${tagEditor.kingdomId ? ` · ${esc(tagEditor.name)}` : ''}</strong><div class="qol-km-controls"><label>Tag <input data-km-tag-name type="text" maxlength="60" value="${esc(tagEditor.value)}" placeholder="Unreal" aria-describedby="qol-km-tag-error"></label>${action(tagEditor.kingdomId ? 'Create & assign' : 'Create filter', 'data-km-tag-save', scanning)}${action('Cancel', 'data-km-tag-cancel', scanning)}</div><span id="qol-km-tag-error" data-tone="error" role="status">${esc(tagEditor.error)}</span></section>`;
   }
+  function totals(rows) {
+    const sums = {};
+    for (const key of ['villages', 'population', 'area', 'players', 'totalAttack', 'totalDefense', 'treasures', 'victoryPoints']) {
+      const known = rows.filter(row => Number.isFinite(row[key]));
+      sums[key] = { value: known.reduce((sum, row) => sum + row[key], 0), known: known.length, missing: rows.length - known.length };
+    }
+    const cells = COLUMNS.slice(3).map(([key, label]) => {
+      let value, title;
+      if (key === 'averageAttack' || key === 'averageDefense') {
+        const points = sums[key === 'averageAttack' ? 'totalAttack' : 'totalDefense'];
+        const players = sums.players;
+        value = !points.missing && !players.missing && players.value > 0
+          ? (points.value / players.value).toLocaleString('en-US', { maximumFractionDigits: 2 }) : '—';
+        title = `${label}: total points divided by total players. Requires complete points and player counts, and at least one player.`;
+      } else {
+        const sum = sums[key];
+        value = sum.missing && !sum.known ? '—' : fmt(sum.value) + (sum.missing ? '*' : '');
+        title = sum.missing ? `${label}: subtotal for ${sum.known} of ${rows.length} shown kingdoms; ${sum.missing} unavailable.` : `${label}: total for all ${rows.length} shown kingdoms.`;
+      }
+      return `<td class="qol-km-${key}-column" data-km-total="${key}" title="${esc(title)}">${value}</td>`;
+    }).join('');
+    return {
+      footer: `<tfoot><tr class="qol-km-totals"><th scope="row" colspan="4">Total · ${rows.length} kingdoms</th>${cells}</tr></tfoot>`,
+      partial: Object.values(sums).some(sum => sum.missing)
+    };
+  }
   function table(rows, comparisons = null) {
     const compareMap = new Map((comparisons || []).map(row => [row.id, row]));
     const visible = sorted(rows);
+    const summary = comparisons ? null : totals(visible);
     return `<div class="qol-km-table-wrap"><table><thead><tr class="qol-km-groups"><th scope="colgroup">Filter</th><th colspan="3" scope="colgroup">Kingdom</th><th colspan="2" scope="colgroup">Population</th><th colspan="2" scope="colgroup">Territory & players</th><th colspan="2" scope="colgroup">Attack</th><th colspan="2" scope="colgroup">Defense</th><th colspan="2" scope="colgroup">Treasures & victory</th>${comparisons ? '<th scope="col">Development</th>' : ''}</tr><tr><th scope="col" class="qol-km-filter-column">Filter</th>${COLUMNS.map(([key, label]) => `<th scope="col" aria-sort="${key === sortKey ? ascending ? 'ascending' : 'descending' : 'none'}" class="qol-km-${key}-column">${action(esc(label) + (key === sortKey ? ascending ? ' ↑' : ' ↓' : ''), `data-km-sort="${key}"`)}</th>`).join('')}${comparisons ? '<th scope="col">Changes</th>' : ''}</tr></thead><tbody>${visible.map(row => {
       const comparison = compareMap.get(row.id);
       return `<tr><td class="qol-km-filter-column"><select data-km-row-filter="${esc(row.id)}" aria-label="Filter for ${esc(row.name)}">${filterChoices(filters.kingdomTags[row.id], true)}</select></td>${COLUMNS.map(([key]) => {
@@ -293,7 +320,7 @@
         const delta = Number.isFinite(change) ? `<small class="qol-km-delta ${change ? improved ? 'positive' : 'negative' : ''}" title="Change from earlier snapshot">${change > 0 ? '+' : ''}${fmt(change)}</small>` : '';
         return `<td class="qol-km-${key}-column"${row[key] === null ? ' title="Not listed in this ranking"' : ''}>${cell(row, key)}${delta}</td>`;
       }).join('')}${comparison ? `<td class="qol-km-notes">${esc([comparison.status !== 'Present' ? comparison.status : '', comparison.renamed ? `Renamed from ${comparison.before.name}` : '', comparison.kingChanged ? `King changed from ${comparison.before.king || '—'}` : ''].filter(Boolean).join(' · ') || '—')}</td>` : ''}</tr>`;
-    }).join('') || `<tr><td colspan="${COLUMNS.length + 1 + (comparisons ? 1 : 0)}">No kingdoms match your filter or search.</td></tr>`}</tbody></table></div><span class="qol-km-caption">${visible.length} of ${rows.length} kingdoms shown</span>`;
+    }).join('') || `<tr><td colspan="${COLUMNS.length + 1 + (comparisons ? 1 : 0)}">No kingdoms match your filter or search.</td></tr>`}</tbody>${summary?.footer || ''}</table></div><span class="qol-km-caption">${visible.length} of ${rows.length} kingdoms shown${summary ? ' · Totals follow the filter and search. Averages = total points ÷ total players.' : ''}${summary?.partial ? ' * Incomplete subtotals; unavailable values are excluded. — means no known value.' : ''}</span>`;
   }
   function choices(selected) {
     return snapshots.map(snapshot => `<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('');

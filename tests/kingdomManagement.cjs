@@ -386,6 +386,12 @@ function setup(options = {}) {
     const control = tagged.doc.querySelector('[data-km-search]'); control.value = value;
     control.dispatchEvent(new tagged.w.Event('input', { bubbles: true }));
   };
+  const shownTotals = environment => Object.fromEntries([...environment.doc.querySelectorAll('[data-km-total]')].map(cell => [cell.dataset.kmTotal, cell.textContent]));
+  eq(shownTotals(tagged), { villages: '60*', population: '6,000*', area: '120*', players: '30*', averageAttack: '—', totalAttack: '210*', averageDefense: '—', totalDefense: '135*', treasures: '1,000', victoryPoints: '30,000' });
+  eq(tagged.doc.querySelector('tfoot th').colSpan, 4);
+  eq(tagged.doc.querySelector('tfoot th').textContent, 'Total · 4 kingdoms');
+  eq(tagged.w.getComputedStyle(tagged.doc.querySelector('[data-km-total="population"]')).position, 'sticky');
+  eq(tagged.w.getComputedStyle(tagged.doc.querySelector('[data-km-total="population"]')).bottom, '0px');
   const tagMenu = tagged.doc.querySelector('[data-km-row-filter="1"]');
   visibleDropdowns(tagged);
   eq(tagMenu.selectedOptions[0].textContent, 'Create a Filter');
@@ -405,17 +411,30 @@ function setup(options = {}) {
   eq((await tagged.H.loadFilters()).tags, ['Unreal']);
   eq((await tagged.H.loadFilters()).kingdomTags, { 1: 'Unreal', 2: 'Unreal', 3: 'Unreal' });
   await choose('[data-km-filter]', 'tag:Unreal'); eq(rowIds(), ['1', '2', '3']);
-  searchTagged('Kingdom 2'); eq(rowIds(), ['2']); searchTagged('');
+  const unrealTotals = { villages: '60', population: '6,000', area: '120', players: '30', averageAttack: '7', totalAttack: '210', averageDefense: '—', totalDefense: '135*', treasures: '600', victoryPoints: '18,000' };
+  eq(shownTotals(tagged), unrealTotals);
+  ok(tagged.doc.querySelector('[data-km-total="totalDefense"]').title.includes('2 of 3'));
+  ok(tagged.doc.querySelector('.qol-km-table-wrap + .qol-km-caption').textContent.includes('Incomplete subtotals'));
+  searchTagged('Kingdom 2'); eq(rowIds(), ['2']);
+  eq(shownTotals(tagged), { villages: '20', population: '2,000', area: '40', players: '10', averageAttack: '7', totalAttack: '70', averageDefense: '9', totalDefense: '90', treasures: '200', victoryPoints: '6,000' });
+  searchTagged('no matching kingdom'); eq(rowIds(), []);
+  eq(shownTotals(tagged), { villages: '0', population: '0', area: '0', players: '0', averageAttack: '—', totalAttack: '0', averageDefense: '—', totalDefense: '0', treasures: '0', victoryPoints: '0' });
+  eq(tagged.doc.querySelector('tfoot th').textContent, 'Total · 0 kingdoms');
+  searchTagged(''); eq(shownTotals(tagged), unrealTotals);
   keyboard(tagged, tagged.doc.querySelector('[data-km-sort="population"]'), 'Enter'); eq(rowIds(), ['1', '2', '3']);
+  eq(shownTotals(tagged), unrealTotals);
   await choose('[data-km-row-filter="2"]', ''); eq(rowIds(), ['1', '3']);
+  eq(shownTotals(tagged).population, '4,000'); eq(shownTotals(tagged).totalDefense, '45*');
   tagged.api.close(); tagged.api.open(); await pause(10); eq(rowIds(), ['1', '3']);
   // New/renamed kingdoms and missing kingdoms in Comparison use the same tags.
   await tagged.H.append(second); tagged.api.open(); await pause(10);
   await choose('[data-km-snapshot]', second.id); eq(rowIds(), ['1']);
+  eq(shownTotals(tagged), { villages: '10', population: '1,500', area: '30', players: '6', averageAttack: '5.83', totalAttack: '35', averageDefense: '7.5', totalDefense: '45', treasures: '120', victoryPoints: '3,000' });
   ok(tagged.doc.querySelector('.qol-km-name').textContent.includes('<img'));
   tagged.doc.querySelector('[data-km-tab="comparison"]').click();
   await choose('[data-km-earlier]', first.id); await choose('[data-km-later]', second.id);
   tagged.doc.querySelector('[data-km-compare]').click(); eq(rowIds(), ['1', '3']);
+  eq(tagged.doc.querySelector('tfoot'), null);
   eq(tagged.doc.querySelectorAll('.qol-km-table-wrap img').length, 0);
   // Creating at the top keeps kingdoms visible for assigning the new tag.
   await createTag('[data-km-filter]', 'Friends');
@@ -460,6 +479,34 @@ function setup(options = {}) {
   await tagged.H.remove(first.id); await tagged.H.remove(second.id);
   eq((await tagged.H.load()).length, 0); eq((await tagged.H.loadFilters()).kingdomTags[1], markupTag);
   tagReopened.dom.window.close(); tagged.dom.window.close();
+
+  // Unequal player counts use aggregate points, never summed/averaged rounded
+  // kingdom averages. Real zero values stay distinct from unavailable metrics.
+  const totalsSnapshot = { ...plain(first), id: 'totals-scan', kingdoms: [
+    { ...model(1), rank: 1, players: 1, averageAttack: 10, totalAttack: 10, averageDefense: 0, totalDefense: 0 },
+    { ...model(2), rank: 2, players: 3, averageAttack: 20, totalAttack: 60, averageDefense: 0, totalDefense: 0 },
+    { ...model(3), rank: 3, players: 0, averageAttack: 0, totalAttack: 0, averageDefense: 0, totalDefense: 0 }
+  ] };
+  const totalsStore = new Map([['trickandtreat.kingdoms.com', { version: 1, snapshots: [totalsSnapshot] }]]);
+  const totalsEnv = setup({ store: totalsStore }); totalsEnv.api.open(); await pause(10);
+  eq(shownTotals(totalsEnv).players, '4'); eq(shownTotals(totalsEnv).totalAttack, '70');
+  eq(shownTotals(totalsEnv).averageAttack, '17.5'); eq(shownTotals(totalsEnv).totalDefense, '0');
+  eq(shownTotals(totalsEnv).averageDefense, '0');
+  const searchTotals = value => {
+    const input = totalsEnv.doc.querySelector('[data-km-search]'); input.value = value;
+    input.dispatchEvent(new totalsEnv.w.Event('input', { bubbles: true }));
+  };
+  searchTotals('Kingdom 3'); eq(shownTotals(totalsEnv).players, '0');
+  eq(shownTotals(totalsEnv).averageAttack, '—'); eq(shownTotals(totalsEnv).totalAttack, '0');
+  eq(totalsStore.get('trickandtreat.kingdoms.com').snapshots[0], totalsSnapshot);
+  eq(totalsEnv.writes, 0); totalsEnv.dom.window.close();
+  const unknownEnv = setup({ store: new Map([['trickandtreat.kingdoms.com', { version: 1, snapshots: [plain(first)] }]]) });
+  unknownEnv.api.open(); await pause(10);
+  const unknownSearch = unknownEnv.doc.querySelector('[data-km-search]'); unknownSearch.value = 'Kingdom 4';
+  unknownSearch.dispatchEvent(new unknownEnv.w.Event('input', { bubbles: true }));
+  eq(shownTotals(unknownEnv), { villages: '—', population: '—', area: '—', players: '—', averageAttack: '—', totalAttack: '—', averageDefense: '—', totalDefense: '—', treasures: '400', victoryPoints: '12,000' });
+  ok(unknownEnv.doc.querySelector('[data-km-total="villages"]').title.includes('0 of 1'));
+  unknownEnv.dom.window.close();
 
   // Serialize preferences and snapshot writes so simultaneous saves cannot
   // discard tags or scans, and retain the same data in the storage fallback.

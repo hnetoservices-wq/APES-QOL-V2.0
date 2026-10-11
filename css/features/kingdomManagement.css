@@ -105,6 +105,8 @@
 #qol-kingdom-management-panel tbody tr:nth-child(even) td { background: #f0ece3; }
 #qol-kingdom-management-panel tbody tr:nth-child(odd) td { background: #fffdf8; }
 #qol-kingdom-management-panel tbody tr:hover td { background: #eee2c9; }
+#qol-kingdom-management-panel tfoot th, #qol-kingdom-management-panel tfoot td { position: sticky; top: auto; bottom: 0; z-index: 2; background: #e5d4b8; color: #57412c; border-top: 2px solid #b7a68d; font-weight: bold; }
+#qol-kingdom-management-panel tfoot th { text-align: left; }
 #qol-kingdom-management-panel .qol-km-filter-column, #qol-kingdom-management-panel .qol-km-name-column, #qol-kingdom-management-panel .qol-km-king-column { text-align: left; }
 #qol-kingdom-management-panel .qol-km-name-column { position: sticky; left: 0; z-index: 1; min-width: 100px; border-right: 1px solid #cbbda7; }
 #qol-kingdom-management-panel thead .qol-km-name-column { z-index: 3; }
