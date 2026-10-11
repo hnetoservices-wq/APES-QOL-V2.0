@@ -136,19 +136,17 @@
       box.classList.add('qol-rem-open'); main.setAttribute('aria-expanded', 'true');
       primeAudio();
     }
-    // Snoozing suppresses sound temporarily, but an unfinished alarm still wiggles.
-    const outstanding = loaded && items.some(item => { const row = S.latest(item); return row && (!item.handledKey || item.handledKey < row.key); });
-    main.classList.toggle('qol-rem-wiggle', outstanding);
+    main.classList.toggle('qol-rem-wiggle', due.length > 0);
     activeKeys = keys; box.classList.toggle('qol-rem-due', due.length > 0);
-    const soon = !due.length && loaded && items.some(item => {
+    const soonCount = loaded ? items.filter(item => {
       if (!item.enabled) return false;
       let at = S.next(item, now)?.at ?? Infinity;
       const latest = S.latest(item, now);
       if (latest && (!item.handledKey || item.handledKey < latest.key) && item.snooze?.key === latest.key && item.snooze.until > now) at = Math.min(at, item.snooze.until);
       return at > now && at - now <= 3600000;
-    });
-    box.classList.toggle('qol-rem-soon', soon);
-    const label = !loaded ? 'Reminders · click to set up' : due.length === 1 ? due[0].item.text : due.length ? `${due.length} reminders due!` : items.length ? 'No reminders due' : 'Add a reminder';
+    }).length : 0;
+    box.classList.toggle('qol-rem-soon', !due.length && soonCount > 0);
+    const label = !loaded ? 'Reminders · click to set up' : due.length === 1 ? due[0].item.text : due.length ? `${due.length} reminders due!` : soonCount ? `${soonCount} reminder${soonCount === 1 ? '' : 's'} soon` : items.length ? 'No reminders due' : 'Add a reminder';
     const nextSignature = JSON.stringify([label, due.map(row => [row.item.id, row.key, row.item.text]), message, busy]);
     if (signature !== nextSignature) {
       box.querySelector('.qol-rem-label').textContent = label; main.title = label;
