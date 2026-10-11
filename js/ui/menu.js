@@ -117,6 +117,12 @@ const BASIC_FEATURES = [{
   description: 'Keeps Continue, Back and Send fixed at the top while preparing multiple troop movements.'
 }];
 const ADVANCED_FEATURES = [{
+  id: 'qol-chk-daily-reminders',
+  key: 'dailyReminders',
+  name: 'Daily Reminders',
+  icon: '🔔',
+  description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
+}, {
   id: 'qol-chk-distance-calculator',
   key: 'distanceCalculator',
   name: 'Distance & Arrival Calculator',

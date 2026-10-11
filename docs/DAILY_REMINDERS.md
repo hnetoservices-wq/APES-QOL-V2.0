@@ -1,0 +1,17 @@
+# Daily Reminders
+
+An **Expert Feature**, enabled by default. Its 176 × 28px status box uses the Free Instant Finish box's parchment/brown styling and sits eight pixels to its left. If Building Alarms is disabled, it occupies that available position beside Hero Quick Info. On narrow screens the reminder box moves below the Free Instant Finish box instead of overlapping it. Resize and periodic layout checks follow changes in the game header.
+
+Click **Add a reminder**, or use **Daily Reminders** in the Command Palette, to open the compact, resizable setup window. Existing reminders are available through the box's **Manage** action. All actions are APES-owned div controls with keyboard activation; there are no native game-style buttons. Dropdowns include explicit protection against game styles that hide native selects.
+
+Reminders include text (up to 160 characters), a time, a start date, an optional end date and one of these schedules: once, every day, selected weekdays, or every 1–365 days counted from the start date. This first version uses **the device's local time**, shown in the setup screen and each reminder. Edit, pause/resume and delete are available; deletion uses an inline second confirmation. Editing a schedule resets its completion and snooze state.
+
+For example, save **Scan Kingdoms!**, **22:00**, **Every day**. At 22:00 the box shows the reminder and briefly wiggles, then remains visible. A due popover opens with the full text and actions. **Done** acknowledges the displayed occurrence; recurring reminders become due again at their next scheduled time. **Snooze** hides that occurrence for 15 minutes, 30 minutes or one hour, then alerts again. Several due tasks share the same box. Users who prefer reduced motion get a static alert. An optional short sound can be enabled per reminder; browsers may require an earlier user interaction to allow audio.
+
+The game page must be open for the reminder to display. The scheduler checks once per second and again when the tab becomes visible or focused. Browser suspension may delay an alert until the page resumes. Returning after an absence shows only the latest missed occurrence of each enabled reminder, rather than stacking every missed day. Ended schedules can still show their final missed occurrence until acknowledged. A start date/time in the past can therefore become due immediately.
+
+Calendar dates, rather than fixed 24-hour timers, control repetition. Local daylight-saving changes retain the scheduled wall-clock time. A nonexistent spring-forward time shifts to the browser's next valid local time; a repeated fall-back time is handled as one dated occurrence. Completion keys prevent the same occurrence returning after refresh or a backward clock adjustment. A snooze spans midnight; a newer scheduled occurrence takes precedence over an older snooze.
+
+Data uses APES player-scoped storage: each player on each server has their own schedules, acknowledgments and snoozes. Existing backup/restore includes those keys; Storage Manager has a Daily Reminders category. Writes are serialized within the page, read fresh data before updating and only update the UI as saved after storage succeeds. Open tabs reload changes through extension-storage events. There is no new permission, background service, tracking or message sending.
+
+Run `node tests/dailyReminders.cjs` for scheduling and UI tests. Live-game smoke checks should cover actual header positioning, the 22:00 daily example, tab suspension/resume, sound and small viewports.
