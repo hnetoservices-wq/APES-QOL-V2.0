@@ -62,6 +62,10 @@
     label: 'Secret Society Scanner',
     key: 'secretSocietyScanner'
   }, {
+    id: 'qol-kingdom-management-toggle-btn',
+    label: 'Kingdom Management',
+    key: 'kingdomManagement'
+  }, {
     id: 'qol-tribe-skins-toggle-btn',
     label: 'Visual Tribe Skin',
     key: 'visualTribeSkins'
@@ -605,3 +609,4 @@
     init();
   }
 })();
+

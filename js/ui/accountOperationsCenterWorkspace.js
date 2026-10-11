@@ -12,6 +12,13 @@
 
   const TOOLS = Object.freeze([
     {
+      key: 'kingdomManagement',
+      featureKey: 'kingdomManagement',
+      label: 'Kingdom Management',
+      icon: '♛',
+      description: 'Scan all kingdom statistics and compare population, territory, combat, treasures and victory points over time.'
+    },
+    {
       key: 'roadmaps',
       featureKey: 'roadmaps',
       label: 'Roadmaps',
@@ -372,3 +379,4 @@
 
   ensureStructure(document.getElementById(D.OVERLAY_ID));
 })();
+
