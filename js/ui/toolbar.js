@@ -42,10 +42,6 @@
     label: 'Resource Upgrade Planner',
     key: 'resourceUpgradePlanner'
   }, {
-    id: 'qol-distance-calc-toggle-btn',
-    label: 'Distance & Arrival Calculator',
-    key: 'distanceCalculator'
-  }, {
     id: 'qol-oasis-toggle-btn',
     label: 'Oasis Scanner',
     key: 'oasisScanner'

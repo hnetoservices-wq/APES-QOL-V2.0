@@ -248,39 +248,8 @@
 #apes-v2-village-overlay .apes-aoc-tool-unavailable>strong{color:#f2e2b3!important;font-size:13px!important}
 #apes-v2-village-overlay .apes-aoc-tool-unavailable>p{max-width:520px!important;margin:0!important;font-size:9.5px!important;line-height:1.45!important}
 
-/* First embedded adapter: Distance & Arrival Calculator. */
-#qol-distance-calc-panel.apes-aoc-embedded-tool{
-  position:relative!important;
-  inset:auto!important;
-  right:auto!important;
-  top:auto!important;
-  display:flex!important;
-  flex:1 1 auto!important;
-  width:100%!important;
-  min-width:0!important;
-  max-width:none!important;
-  height:100%!important;
-  min-height:0!important;
-  max-height:none!important;
-  margin:0!important;
-  border:0!important;
-  border-radius:0!important;
-  background:transparent!important;
-  box-shadow:none!important;
-  overflow:hidden!important;
-  resize:none!important;
-  z-index:auto!important;
-}
-#qol-distance-calc-panel.apes-aoc-embedded-tool>.qol-distance-header{display:none!important}
-#qol-distance-calc-panel.apes-aoc-embedded-tool>.qol-distance-body{
-  flex:1 1 auto!important;
-  min-height:0!important;
-  padding:12px!important;
-  background:#f7f5f0!important;
-  overflow:auto!important;
-}
-
 @media(max-width:900px){
   #apes-v2-village-overlay .apes-aoc-tool-grid{grid-template-columns:1fr!important;grid-template-rows:none!important}
   #apes-v2-village-overlay .apes-aoc-workspace-tab{min-width:120px!important}
 }
+

@@ -33,13 +33,6 @@
       description: 'Scan incoming and outgoing movements, attacks, reinforcements and incoming resources.'
     },
     {
-      key: 'distance',
-      featureKey: 'distanceCalculator',
-      label: 'Distance & Arrival Calculator',
-      icon: '↗',
-      description: 'Calculate distance, travel duration, send times and exact server-time landings.'
-    },
-    {
       key: 'cpManager',
       featureKey: 'cpManager',
       label: 'CP Manager',

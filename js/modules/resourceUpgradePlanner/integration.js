@@ -137,7 +137,7 @@
   function visibleToolbarControls() {
     const selectors = [
       '#qol-help-toggle-btn', '#qol-rally-point-toggle-btn', '#qol-watchlist-toggle', '#qol-checklist-toggle-btn',
-      '#qol-npc-calc-toggle-btn', '#qol-distance-calc-toggle-btn', '#qol-oasis-toggle-btn', '#qol-report-archive-toggle',
+      '#qol-npc-calc-toggle-btn', '#qol-oasis-toggle-btn', '#qol-report-archive-toggle',
       '#qol-cp-toggle-btn', '#qol-ss-scanner-toggle-btn', '#qol-tribe-skins-toggle-btn'
     ].join(',');
     return [...document.querySelectorAll(selectors)]

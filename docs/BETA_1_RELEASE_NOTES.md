@@ -33,7 +33,6 @@ APES QoL 2.0 is a broader rebuild of the extension rather than a simple continua
 - Oasis & Cropper Scanner with persistent scan data, cropper/oasis analysis, map visual aids and Tag Team sections.
 - Secret Society Scanner with multiple societies, history comparison, notes and Player Dossier access.
 - Watchlists with player tracking and change history.
-- Distance & Arrival Calculator.
 
 ### Rally Point and reports
 
