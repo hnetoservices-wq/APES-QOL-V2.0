@@ -19,10 +19,10 @@
 #qol-daily-reminders-status select, #qol-daily-reminders-panel select { display: block !important; position: static !important; visibility: visible !important; opacity: 1 !important; pointer-events: auto !important; width: 100% !important; min-width: 0 !important; height: 28px !important; min-height: 28px !important; margin: 0 !important; padding: 3px 20px 3px 6px !important; border: 1px solid #b7a68d !important; border-radius: 4px !important; background: #fffdf8 !important; color: #332719 !important; appearance: auto !important; -webkit-appearance: menulist !important; transform: none !important; clip: auto !important; clip-path: none !important; font-size: 10px !important; }
 #qol-daily-reminders-status select option, #qol-daily-reminders-panel select option { display: block !important; visibility: visible !important; color: #332719 !important; background: #fffdf8 !important; }
 #qol-daily-reminders-status select { width: 108px !important; }
-#qol-daily-reminders-panel { display: flex !important; flex-direction: column !important; position: fixed !important; top: 84px; right: 24px; z-index: 100003 !important; width: min(480px, calc(100vw - 24px)); height: min(530px, calc(100vh - 110px)); min-width: min(320px, calc(100vw - 24px)); min-height: 240px; max-width: calc(100vw - 24px); max-height: calc(100vh - 100px); resize: both; overflow: hidden !important; border: 2px solid var(--qol-border, #6b5334) !important; border-radius: 6px !important; background: #f7f5f0 !important; box-shadow: 0 18px 52px #0008 !important; color: #3e3021 !important; font-size: 11px !important; }
-#qol-daily-reminders-panel .qol-rem-panel-head { flex: 0 0 auto !important; }
+#qol-daily-reminders-panel { display: flex !important; flex-direction: column !important; position: fixed !important; top: 84px; right: 24px; z-index: 100003 !important; width: min(480px, calc(100vw - 24px)); height: min(530px, calc(100vh - 110px)); min-width: min(320px, calc(100vw - 24px)); min-height: min(240px, calc(100vh - 16px)); max-width: calc(100vw - 16px); max-height: calc(100vh - 16px); resize: none !important; overflow: hidden !important; border: 2px solid var(--qol-border, #6b5334) !important; border-radius: 6px !important; background: #f7f5f0 !important; box-shadow: 0 18px 52px #0008 !important; color: #3e3021 !important; font-size: 11px !important; }
+#qol-daily-reminders-panel .qol-rem-panel-head { flex: 0 0 auto !important; cursor: move !important; touch-action: none; user-select: none; }
 #qol-daily-reminders-panel .qol-rem-panel-head strong { display: flex !important; align-items: center !important; gap: 7px !important; font-size: 13px !important; }
-#qol-daily-reminders-panel .qol-rem-panel-body { overflow: auto !important; padding: 12px !important; display: flex !important; flex-direction: column !important; flex: 1 1 auto; min-height: 0; gap: 10px !important; scrollbar-width: thin; }
+#qol-daily-reminders-panel .qol-rem-panel-body { overflow: auto !important; padding: 12px 12px 20px !important; display: flex !important; flex-direction: column !important; flex: 1 1 auto; min-height: 0; gap: 10px !important; scrollbar-width: thin; }
 #qol-daily-reminders-panel .qol-rem-intro { font-size: 10px !important; line-height: 1.5 !important; margin: 0 !important; color: #78674f !important; }
 #qol-daily-reminders-panel [data-rem-message] { font-size: 10px !important; line-height: 1.4 !important; margin: 0 !important; color: #a02f27 !important; }
 #qol-daily-reminders-panel [data-rem-message]:empty { display: none !important; }
@@ -38,6 +38,17 @@
 #qol-daily-reminders-panel [data-rem-interval] input { width: 60px !important; }
 #qol-daily-reminders-panel [hidden], #qol-daily-reminders-panel[hidden] { display: none !important; }
 #qol-daily-reminders-status [role="button"]:focus-visible, #qol-daily-reminders-panel [role="button"]:focus-visible { outline: 2px solid #cda74c !important; outline-offset: 2px; }
-@keyframes qol-reminder-wiggle { 0%, 100% { transform: translateX(0) rotate(0); } 25% { transform: translateX(-2px) rotate(-1deg); } 75% { transform: translateX(2px) rotate(1deg); } }
-#qol-daily-reminders-status .qol-rem-wiggle { animation: qol-reminder-wiggle .45s ease-in-out 3; }
+/* Same rotational burst and rest as Send Button Enhancer's fastWiggle. */
+@keyframes qol-reminder-wiggle {
+  0%, 100% { transform: rotate(0deg); }
+  3% { transform: rotate(-4deg); }
+  6% { transform: rotate(4deg); }
+  9% { transform: rotate(-4deg); }
+  12% { transform: rotate(4deg); }
+  15% { transform: rotate(0deg); }
+}
+#qol-daily-reminders-status .qol-rem-wiggle { animation: qol-reminder-wiggle 2.5s infinite !important; }
 @media (prefers-reduced-motion: reduce) { #qol-daily-reminders-status .qol-rem-wiggle { animation: none !important; } }
+
+#qol-daily-reminders-panel .qol-rem-countdown { color: #5b472f !important; font-weight: bold !important; font-variant-numeric: tabular-nums; }
+#qol-daily-reminders-panel .qol-rem-resize { position: absolute !important; right: 0 !important; bottom: 0 !important; display: block !important; width: 20px !important; height: 20px !important; cursor: nwse-resize !important; touch-action: none; z-index: 1; background: repeating-linear-gradient(135deg, transparent 0 3px, #806239 3px 5px, transparent 5px 7px); clip-path: polygon(100% 0, 100% 100%, 0 100%); }

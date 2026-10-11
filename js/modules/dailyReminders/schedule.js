@@ -26,7 +26,7 @@
     return {
       text: String(value.text).trim(), time: value.time, startDate: value.startDate, endDate: value.endDate || '',
       repeat: value.repeat, days: [...new Set(value.days || [])].filter(day => Number.isInteger(day) && day >= 0 && day <= 6),
-      interval: value.repeat === 'interval' ? Number(value.interval) : 1, enabled: value.enabled !== false, sound: value.sound === true
+      interval: value.repeat === 'interval' ? Number(value.interval) : 1, enabled: value.enabled !== false, sound: true
     };
   }
   function normalize(value) {
@@ -63,5 +63,25 @@
     if (reminder.snooze?.key === occurrence.key && reminder.snooze.until > now) return null;
     return occurrence;
   }
-  window.APES_REMINDER_SCHEDULE = Object.freeze({ dateKey, validate, normalize, latest, due });
+  function next(reminder, now = Date.now()) {
+    if (!reminder.enabled || !Number.isFinite(now)) return null;
+    const start = ordinal(reminder.startDate);
+    let day = Math.max(start, ordinal(dateKey(new Date(now))));
+    if (reminder.handledKey) day = Math.max(day, ordinal(reminder.handledKey) + 1);
+    if (reminder.repeat === 'once') {
+      if (day > start || atTime(start, reminder.time) <= now) return null;
+      day = start;
+    } else {
+      if (atTime(day, reminder.time) <= now) day++;
+      if (reminder.repeat === 'interval') day += (reminder.interval - (day - start) % reminder.interval) % reminder.interval;
+      else if (reminder.repeat === 'weekdays') {
+        for (let ahead = 0; ahead < 7; ahead++, day++) {
+          if (reminder.days.includes(new Date(day * DAY).getUTCDay())) break;
+        }
+      }
+    }
+    if (day > ordinal('9999-12-31') || reminder.endDate && day > ordinal(reminder.endDate)) return null;
+    return { key: ordinalKey(day), at: atTime(day, reminder.time) };
+  }
+  window.APES_REMINDER_SCHEDULE = Object.freeze({ dateKey, validate, normalize, latest, due, next });
 })();
