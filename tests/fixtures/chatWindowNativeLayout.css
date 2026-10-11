@@ -1,0 +1,27 @@
+/* Reproduces the game's IGM positioning conflicts, including expanded/closed states.
+   Kept small and offline; no game assets or private messages are required. */
+.igmSystem .firstHalf { position: absolute; width: 256px; top: 55px; bottom: 15px; border: 1px solid #aaa; }
+.igmSystem .threadView { position: absolute; top: 55px; bottom: 15px; left: 40%; right: 20px; border: 1px solid #aaa; }
+.igmSystem .firstHalf .history { position: absolute; left: 0; right: 0; top: 39px; bottom: 0; }
+.igmSystem .firstHalf .history ul li .igmInfos { position: absolute; left: 50px; right: 6px; top: 0; bottom: 0; }
+.igmSystem .firstHalf .history ul li .igmAvatar { position: absolute; left: 2px; top: 3px; }
+.igmSystem .firstHalf .history ul li .igmAvatar .heroImage { position: relative; top: -7px; left: -9px; }
+.igmSystem .threadView .conversationHeader { position: absolute; top: 0; height: 38px; }
+.igmSystem .threadView .conversationHeader .conversationHeaderInner { display: flex; flex-flow: row wrap; }
+.igmSystem .threadView .conversationHeader .conversationHeaderInner .title { width: 351px; height: 38px; padding: 0 10px; }
+.igmSystem .threadView.closed .conversationHeader .title { height: 64px; }
+.igmSystem .threadView .chatRoomBody .chatBody { position: absolute; top: 39px; bottom: 42px; left: 0; right: 0; }
+.igmSystem .threadView .chatRoomBody.smaller .chatBody { bottom: 200px; }
+.igmSystem .threadView.closed .chatRoomBody .chatBody { top: 68px; }
+.igmSystem .threadView .chatRoomBody .chatInput { display: none; }
+.igmSystem .openWrite, .igmSystem .buttonWrapper { position: absolute; bottom: 0; right: 1px; left: 0; }
+.igmSystem .writeArea { position: absolute; bottom: 0; width: 100%; }
+.igmSystem .writeArea .inputTextAreaWrapper { margin-left: 35px; margin-right: 16px; margin-bottom: 40px; }
+.igmSystem .writeArea .inputTextAreaWrapper textarea { display: block; min-height: 110px; }
+.igmSystem .writeArea button { float: right; right: 15px; }
+.igmSystem .threadView .chatRoomBody ul .line.samePlayerAndTime .lineHead { display: none; }
+.igmSystem .threadView .chatRoomBody ul .line .lineBody { white-space: pre-wrap; }
+.clickableContainer { box-shadow: inset 0 0 0 5px #aaa; }
+.igmSystem .firstHalf .newThreadContainer .clickableContainer { margin: 2px; }
+.igmSystem .firstHalf .newThreadContainer .clickableContainer .plusSign { position: absolute; width: 26px; height: 26px; background: linear-gradient(45deg, green, transparent); }
+.scrollContentOuterWrapper, .scrollContent { height: 100%; }

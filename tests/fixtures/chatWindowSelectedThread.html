@@ -1,0 +1,22 @@
+<!-- Native selected-thread hierarchy from supplied HTML; all content is fabricated. -->
+<div class="conversationHeader selected" ng-class="{selected: selectedConversation != null}">
+  <div class="arrow"></div><div class="conversationHeaderInner" ng-if="selectedConversation != null &amp;&amp; !selectedConversation.data.closed">
+    <div class="title truncated"><span>Example kingdom conversation</span></div>
+    <div class="menu"><div class="options"><a class="iconButton clickable" clickable="openMoreDropdown()"><i></i></a></div></div>
+  </div>
+</div>
+<div class="chatRoomBody" ng-include="" ng-if="selectedConversation != null" ng-class="{smaller: chatInputState&gt;0}">
+  <div class="chatBody scrollable" ng-click="setChatInputState(0)">
+    <div class="scrollContentOuterWrapper active" style="width:570px"><div class="scrollContent" style="width:580px;overflow-y:auto"><div class="scrollContentInnerWrapper" style="width:570px" ng-transclude=""><ul>
+      <li class="divider loadOlder" style="display:none" ng-if="chatLines.length &gt; 0 &amp;&amp; !haveFirst">Older messages</li>
+      <li class="line otherPlayer"><div class="lineHead"><span class="name truncated">Example player</span><div class="options"><a class="iconButton clickable" clickable="openMoreDropdown()">Options</a></div><span class="date">12:30</span></div><div class="lineBody"><span>Example message with a <a class="qol-chat-link" target="_blank" rel="noopener noreferrer" href="https://example.com/">link</a>.</span></div><div class="readNotification"></div></li>
+      <li class="line otherPlayer samePlayerAndTime"><div class="lineHead"><span class="name">Example player</span></div><div class="lineBody">Second line</div></li>
+      <li class="line currentPlayer"><div class="lineHead"><span class="name">Current player</span><span class="date">12:31</span></div><div class="lineBody">Example reply</div></li>
+    </ul></div></div></div>
+    <div class="scrollTrack"><div class="scrollHandle"></div></div>
+  </div>
+  <textarea class="chatInput" chat-input="" send-function="send" room-id="" auto-expand="true" min-height="16" max-height="150" ng-if="!isBannedFromMessaging &amp;&amp; isActivated"></textarea>
+</div>
+<div class="openWrite" ng-if="selectedConversation != null &amp;&amp; !selectedConversation.data.closed">
+  <div class="clickable" clickable="setChatInputState(1)"><i class="writeMessage"></i><div class="inputWrapper"><input ng-model="input.textToSend" value="Collapsed draft"></div></div>
+</div>

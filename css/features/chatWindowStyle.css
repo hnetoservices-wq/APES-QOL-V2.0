@@ -36,7 +36,7 @@
 .qol-chat-window .closeWindow > * { display: none !important; }
 .qol-chat-window .closeWindow::after { content: '×'; color: #fffaf0 !important; font: 20px/1 Arial, sans-serif !important; }
 .qol-chat-window .closeWindow:hover { background: #ffffff25 !important; }
-.qol-chat-window .qol-chat-shell-slot { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; position: relative !important; min-height: 0 !important; min-width: 0 !important; width: 100% !important; max-width: none !important; max-height: none !important; height: 100% !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; background: none !important; }
+.qol-chat-window .qol-chat-shell-slot { display: flex !important; flex-direction: column !important; flex: 1 1 0 !important; position: relative !important; min-height: 0 !important; min-width: 0 !important; width: 100% !important; max-width: none !important; max-height: none !important; height: auto !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; background: none !important; }
 .qol-chat-window .igmSystem { display: flex !important; flex: 1 1 auto !important; position: relative !important; width: 100% !important; height: 100% !important; min-height: 0 !important; min-width: 0 !important; overflow: hidden !important; background: #f7f5f0 !important; }
 .qol-chat-window .igmSystem > .firstHalf { display: flex !important; flex-direction: column !important; position: relative !important; flex: 0 0 292px !important; width: 292px !important; height: 100% !important; min-height: 0 !important; float: none !important; border-right: 1px solid #d8cbb9 !important; background: #eee7db !important; }
 .qol-chat-window .newThreadContainer { flex: 0 0 auto !important; position: relative !important; width: auto !important; height: auto !important; padding: 10px 10px 0 !important; margin: 0 !important; }
@@ -90,6 +90,77 @@
 .qol-chat-window .qol-chat-empty p { max-width: 280px !important; margin: 0 !important; font: 11px/1.5 Arial, sans-serif !important; }
 .qol-chat-window .qol-chat-resize { display: block !important; position: absolute !important; right: 1px !important; bottom: 1px !important; width: 19px !important; height: 19px !important; cursor: nwse-resize !important; z-index: 5 !important; touch-action: none; background: repeating-linear-gradient(135deg, transparent 0 3px, #806239 3px 5px, transparent 5px 7px); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
 .qol-chat-window .qol-chat-resize:focus-visible { outline: 2px solid var(--qol-accent, #806239) !important; }
+/* Native IGM uses top:55px, history top:39px and thread left:40%.
+   Relative positioning alone retains those offsets and clips the reader. */
+.qol-chat-window > .modal.igm,
+.qol-chat-window .modalContent,
+.qol-chat-window .contentHeader,
+.qol-chat-window .qol-chat-shell-slot,
+.qol-chat-window .igmSystem,
+.qol-chat-window .igmSystem > .firstHalf,
+.qol-chat-window .igmSystem > .threadView,
+.qol-chat-window .firstHalf > .history,
+.qol-chat-window .newThreadContainer,
+.qol-chat-window .igmConversationEntry .igmAvatar,
+.qol-chat-window .igmConversationEntry .igmInfos,
+.qol-chat-window .igmAvatar .heroImage,
+.qol-chat-window .conversationHeader,
+.qol-chat-window .conversationHeaderInner {
+  top: auto !important; right: auto !important; bottom: auto !important; left: auto !important;
+}
+.qol-chat-window .modalContent { border: 0 !important; }
+.qol-chat-window .igmSystem { margin: 0 !important; padding: 0 !important; gap: 0 !important; align-items: stretch !important; }
+.qol-chat-window .igmSystem > .firstHalf { height: auto !important; margin: 0 !important; padding: 0 !important; border: 0 !important; border-right: 1px solid #d8cbb9 !important; }
+.qol-chat-window .igmSystem > .threadView { height: auto !important; border: 0 !important; }
+.qol-chat-window .igmAvatar .heroImage { position: static !important; }
+.qol-chat-window .newThreadContainer { border: 0 !important; }
+.qol-chat-window .newThreadContainer .clickableContainer { margin: 0 !important; box-shadow: none !important; }
+.qol-chat-window .newThreadContainer .plusSign { width: auto !important; height: auto !important; background: none !important; }
+.qol-chat-window .newThreadContainer .plusSign i { position: static !important; }
+.qol-chat-window .conversationHeaderInner { display: flex !important; flex-wrap: nowrap !important; align-items: center !important; gap: 8px !important; min-width: 0 !important; }
+.qol-chat-window .conversationHeader .title { flex: 1 1 0 !important; width: auto !important; height: auto !important; min-width: 0 !important; padding: 0 !important; text-align: left !important; }
+.qol-chat-window .conversationHeader .menu { flex: 0 0 auto !important; width: auto !important; height: auto !important; margin: 0 !important; padding-left: 8px !important; }
+.qol-chat-window .conversationHeader .menu .iconButton { margin: 0 !important; }
+/* The real selected thread has a chatRoomBody/chatBody, followed by a
+   collapsed openWrite or expanded writeArea. Keep those Angular nodes intact. */
+.qol-chat-window .threadView .chatRoomBody {
+  display: flex !important; flex-direction: column !important; flex: 1 1 0 !important;
+  position: relative !important; width: 100% !important; height: auto !important;
+  min-height: 0 !important; min-width: 0 !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important;
+}
+.qol-chat-window .threadView .chatRoomBody .chatBody {
+  position: relative !important; flex: 1 1 0 !important; width: 100% !important; height: auto !important;
+  min-width: 0 !important; min-height: 0 !important; top: auto !important; right: auto !important; bottom: auto !important; left: auto !important;
+  margin: 0 !important; padding: 0 !important; overflow: hidden !important;
+}
+.qol-chat-window .chatBody > .scrollContentOuterWrapper,
+.qol-chat-window .chatBody > .scrollContentOuterWrapper > .scrollContent {
+  height: 100% !important; min-height: 0 !important; max-height: none !important;
+}
+.qol-chat-window .chatBody .scrollContentInnerWrapper { height: auto !important; min-height: 0 !important; padding: 0 !important; margin: 0 !important; }
+.qol-chat-window .chatBody > .scrollTrack { display: none !important; }
+.qol-chat-window .threadView .openWrite,
+.qol-chat-window .threadView .writeArea,
+.qol-chat-window .threadView .buttonWrapper {
+  position: relative !important; flex: 0 0 auto !important; width: 100% !important; height: auto !important;
+  top: auto !important; right: auto !important; bottom: auto !important; left: auto !important;
+  margin: 0 !important; padding: 8px 12px !important; background: #eee7db !important; border-top: 1px solid #d8cbb9 !important;
+}
+.qol-chat-window .threadView .openWrite input { padding: 5px 8px !important; border: 1px solid #c6b59c !important; border-radius: 4px !important; background: #fffdf8 !important; color: #3e3021 !important; font: 11px/1.4 Arial, sans-serif !important; }
+.qol-chat-window .writeArea .inputTextAreaWrapper { margin: 0 28px 8px 0 !important; background: none !important; }
+.qol-chat-window .writeArea .inputTextAreaWrapper textarea { width: 100% !important; min-height: 70px !important; max-height: 150px !important; }
+.qol-chat-window .writeArea .buttonWrapper { padding: 0 !important; border: 0 !important; }
+.qol-chat-window .writeArea button { float: none !important; right: auto !important; }
+.qol-chat-window .writeArea::after { content: ''; display: block; clear: both; }
+.qol-chat-window .chatBody ul { padding: 5px 0 !important; margin: 0 !important; list-style: none !important; }
+.qol-chat-window .chatBody li.line { margin: 7px 12px !important; padding: 8px 10px !important; border: 1px solid #e2d7c7 !important; border-radius: 5px !important; background: #fffdf8 !important; font: 12px/1.5 Arial, sans-serif !important; }
+.qol-chat-window .chatBody li.line.currentPlayer { background: var(--qol-accent-soft, #ebdcb9) !important; }
+.qol-chat-window .chatBody li.line.otherPlayer.new { background: #fff9e9 !important; }
+.qol-chat-window .chatBody li.line::before, .qol-chat-window .chatBody li.line::after { display: none !important; }
+.qol-chat-window .chatBody .lineHead { position: relative !important; width: 100% !important; height: auto !important; min-height: 16px !important; padding: 0 100px 0 0 !important; }
+.qol-chat-window .chatBody .lineHead .name { position: static !important; display: block !important; width: auto !important; font: bold 10px/1.5 Arial, sans-serif !important; }
+.qol-chat-window .chatBody .lineHead .date { font: 9px/1.5 Arial, sans-serif !important; color: #89775f !important; }
+.qol-chat-window .chatBody .lineBody { padding: 4px 0 !important; overflow-wrap: anywhere !important; }
 /* Search intersects the existing folder filters; native hidden controls stay hidden. */
 .qol-chat-window .history li.igmConversationEntry[style*="display: none"],
 .qol-chat-window .history li.igmConversationEntry[style*="display:none"],
@@ -103,7 +174,7 @@
 }
 @media (max-width: 560px) {
   .qol-chat-window .igmSystem > .firstHalf { width: 42% !important; flex-basis: 42% !important; }
-  .qol-chat-window .igmAvatar { display: none !important; }
+  .qol-chat-window .igmConversationEntry .igmAvatar { display: none !important; }
   .qol-chat-window .conversationHeader { padding: 10px !important; }
   .qol-chat-window .history li.igmConversationEntry { margin: 3px !important; padding: 7px !important; }
 }

@@ -5,6 +5,8 @@ const source = fs.readFileSync(path.join(root, 'js/features/chatWindowStyle.js')
 const css = fs.readFileSync(path.join(root, 'css/features/chatWindowStyle.css'), 'utf8');
 const tabsCSS = fs.readFileSync(path.join(root, 'css/modules/igm/messageCenter.css'), 'utf8');
 const fixture = fs.readFileSync(path.join(__dirname, 'fixtures/chatWindowStyle.html'), 'utf8');
+const nativeCSS = fs.readFileSync(path.join(__dirname, 'fixtures/chatWindowNativeLayout.css'), 'utf8');
+const selectedThread = fs.readFileSync(path.join(__dirname, 'fixtures/chatWindowSelectedThread.html'), 'utf8');
 const pause = () => new Promise(resolve => setTimeout(resolve, 25));
 let checks = 0;
 const eq = (actual, expected) => { assert.deepEqual(actual, expected); checks++; };
@@ -13,7 +15,7 @@ function setup(html = fixture, initialEnabled = true) {
   const dom = new JSDOM(html, { url: 'https://trickandtreat.kingdoms.com/', runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window, doc = w.document;
   let enabled = initialEnabled, frames = 0, nativeButtons = 0;
-  const style = doc.createElement('style'); style.textContent = '.ng-hide{display:none!important} input[type=search]{width:0;height:0}' + tabsCSS + css; doc.head.append(style);
+  const style = doc.createElement('style'); style.textContent = nativeCSS + '.ng-hide{display:none!important} input[type=search]{width:0;height:0}' + tabsCSS + css; doc.head.append(style);
   const create = doc.createElement.bind(doc); doc.createElement = (...args) => { if (args[0] === 'button') nativeButtons++; return create(...args); };
   w.isQolEnabled = () => enabled;
   const frame = w.requestAnimationFrame.bind(w); w.requestAnimationFrame = callback => { frames++; return frame(callback); };
@@ -94,6 +96,51 @@ function pointer(e, node, type, x, y, id = 1, button = 0) {
   e.dom.window.close();
   const disabled = setup(fixture, false); eq(disabled.doc.querySelector('.qol-chat-window'), null); disabled.toggle(true); ok(disabled.doc.querySelector('.qol-chat-window')); disabled.dom.window.close();
   const late = setup('<body></body>'); late.doc.body.innerHTML = new JSDOM(fixture).window.document.body.innerHTML; await pause(); ok(late.doc.querySelector('.qol-chat-window')); late.dom.window.close();
+  // Real selected-room hierarchy, with native offsets loaded after the extension.
+  const real = setup(fixture, false), rd = real.doc, rw = real.w;
+  const rt = rd.querySelector('.threadView'); rt.classList.add('filled'); rt.innerHTML = selectedThread;
+  const trailingNative = rd.createElement('style'); trailingNative.textContent = nativeCSS; rd.head.append(trailingNative);
+  const computed = selector => rw.getComputedStyle(rd.querySelector(selector));
+  eq(computed('.threadView').left, '40%'); eq(computed('.firstHalf').top, '55px'); eq(computed('.history').top, '39px');
+  const body = rt.querySelector('.chatBody'), readerScroll = body.querySelector('.scrollContent'); readerScroll.scrollTop = 120;
+  const originalRoom = rt.querySelector('.chatRoomBody'), originalReply = rt.querySelector('.openWrite input'), nativeTextarea = rt.querySelector('.chatInput');
+  real.toggle(true);
+  for (const selector of ['.firstHalf', '.threadView', '.history', '.igmInfos', '.igmAvatar', '.heroImage', '.conversationHeader', '.chatBody', '.openWrite']) {
+    for (const side of ['top', 'right', 'bottom', 'left']) eq(computed(selector)[side], 'auto');
+  }
+  eq(computed('.threadView').position, 'relative'); eq(computed('.history').position, 'relative');
+  eq(computed('.chatRoomBody').display, 'flex'); eq(parseFloat(computed('.chatRoomBody').minHeight), 0);
+  eq(computed('.chatBody').position, 'relative'); eq(parseFloat(computed('.chatBody').minHeight), 0);
+  eq(computed('.chatBody .scrollContent').height, '100%'); eq(computed('.chatBody .scrollContent').width, '100%');
+  eq(computed('.conversationHeader .title').width, 'auto'); eq(computed('.conversationHeader .title').height, 'auto');
+  eq(computed('.conversationHeaderInner').flexWrap, 'nowrap'); eq(computed('.openWrite').position, 'relative');
+  eq(computed('.plusSign').backgroundImage, 'none'); eq(computed('.newThreadContainer .clickableContainer').boxShadow, 'none');
+  eq(computed('.chatInput').display, 'none'); eq(computed('.loadOlder').display, 'none');
+  eq(computed('.samePlayerAndTime .lineHead').display, 'none'); eq(computed('.lineBody').whiteSpace, 'pre-wrap');
+  eq(readerScroll.scrollTop, 120); eq(rt.querySelector('.chatRoomBody'), originalRoom); eq(rt.querySelector('.openWrite input'), originalReply);
+  eq(rt.querySelector('.chatInput'), nativeTextarea); eq(originalReply.value, 'Collapsed draft');
+  eq(rt.querySelector('a.qol-chat-link').getAttribute('target'), '_blank');
+  let expandClicks = 0; rt.querySelector('.openWrite .clickable').addEventListener('click', () => expandClicks++);
+  rt.querySelector('.openWrite .clickable').click(); eq(expandClicks, 1);
+  // Angular swaps the collapsed prompt for its existing expanded write controls.
+  const prompt = rt.querySelector('.openWrite'); prompt.remove(); originalRoom.classList.add('smaller');
+  const expanded = rd.createElement('div'); expanded.className = 'writeArea';
+  expanded.innerHTML = '<div class="menu"><i class="close"></i></div><div class="inputTextAreaWrapper"><textarea>Expanded unsent draft</textarea></div><div class="buttonWrapper"><button disabled>Send</button></div>';
+  rt.append(expanded); const expandedEditor = expanded.querySelector('textarea'), nativeSend = expanded.querySelector('button');
+  expandedEditor.focus(); expandedEditor.setSelectionRange(3, 8); let sendCalls = 0; nativeSend.addEventListener('click', () => sendCalls++);
+  await pause(); eq(computed('.chatBody').bottom, 'auto'); eq(computed('.writeArea').position, 'relative');
+  eq(computed('.writeArea').bottom, 'auto'); eq(computed('.buttonWrapper').position, 'relative');
+  eq(computed('.inputTextAreaWrapper').marginBottom, '8px'); eq(computed('.writeArea textarea').maxHeight, '150px');
+  eq(computed('.writeArea button').float, 'none'); eq(nativeSend.disabled, true); nativeSend.click(); eq(sendCalls, 0);
+  nativeSend.disabled = false; nativeSend.click(); eq(sendCalls, 1);
+  eq(expandedEditor.value, 'Expanded unsent draft'); eq(expandedEditor.selectionStart, 3); eq(expandedEditor.selectionEnd, 8); eq(rd.activeElement, expandedEditor);
+  const resize = rd.querySelector('.qol-chat-resize'); resize.dispatchEvent(new rw.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+  eq(rt.querySelector('.writeArea textarea'), expandedEditor); eq(readerScroll.scrollTop, 120);
+  originalRoom.classList.remove('smaller'); expanded.remove(); rt.classList.add('closed');
+  eq(computed('.chatBody').top, 'auto'); eq(computed('.conversationHeader .title').height, 'auto');
+  real.toggle(false); eq(computed('.threadView').left, '40%'); eq(computed('.chatBody').top, '68px');
+  eq(rt.querySelector('.chatRoomBody'), originalRoom); eq(readerScroll.scrollTop, 120);
+  real.dom.window.close();
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'))), scripts = manifest.content_scripts.flatMap(x => x.js || []), styles = manifest.content_scripts.flatMap(x => x.css || []);
   ok(scripts.includes('js/features/chatWindowStyle.js')); ok(styles.includes('css/features/chatWindowStyle.css')); eq(manifest.permissions, ['storage', 'unlimitedStorage']);
   const menu = fs.readFileSync(path.join(root, 'js/ui/menu.js'), 'utf8'); ok(menu.slice(menu.indexOf('const COSMETIC_FEATURES'), menu.indexOf('const KEYBINDS')).includes("key: 'chatWindowStyle'"));
