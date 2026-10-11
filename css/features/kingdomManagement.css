@@ -64,8 +64,23 @@
   appearance: auto !important; -webkit-appearance: auto !important;
 }
 #qol-kingdom-management-panel input { width: 160px; }
-#qol-kingdom-management-panel select { min-width: 160px; }
-#qol-kingdom-management-panel [data-km-filter] { min-width: 130px; max-width: 180px; }
+#qol-kingdom-management-panel select {
+  display: block !important; position: static !important; visibility: visible !important;
+  opacity: 1 !important; pointer-events: auto !important;
+  width: 200px !important; min-width: 160px !important; max-width: 100% !important;
+  height: 27px !important; min-height: 27px !important; margin: 0 !important;
+  padding: 3px 24px 3px 6px !important; border: 1px solid #b7a68d !important;
+  border-radius: 4px !important; background: #fffdf8 !important; color: #332719 !important;
+  appearance: auto !important; -webkit-appearance: menulist !important;
+  box-shadow: none !important; transform: none !important; clip: auto !important; clip-path: none !important;
+}
+#qol-kingdom-management-panel select option {
+  visibility: visible !important; opacity: 1 !important; background: #fffdf8 !important;
+  color: #332719 !important; font: 10px Arial, Helvetica, sans-serif !important;
+}
+#qol-kingdom-management-panel select option:not([hidden]) { display: block !important; }
+#qol-kingdom-management-panel select option[hidden] { display: none !important; }
+#qol-kingdom-management-panel [data-km-filter] { width: 150px !important; min-width: 130px !important; max-width: 180px !important; }
 #qol-kingdom-management-panel .qol-km-tabs { display: flex; gap: 5px; border-bottom: 1px solid #cbbda7; padding-bottom: 3px; flex: 0 0 auto; }
 #qol-kingdom-management-panel .qol-km-tabs [aria-pressed="true"] { background: var(--qol-accent-deep, #614c30) !important; color: #fff8e7 !important; }
 #qol-kingdom-management-panel .qol-km-tag-editor { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; padding: 8px; border: 1px solid #cdbb9d; border-radius: 4px; background: #fffaf0; }
@@ -74,7 +89,7 @@
 #qol-kingdom-management-panel .qol-km-compare-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; flex: 0 0 auto; padding: 8px; border: 1px solid #cdbb9d; border-radius: 4px; background: #f1e9dc; }
 #qol-kingdom-management-panel .qol-km-compare-controls label { flex: 1 1 200px; min-width: 0; flex-direction: column; align-items: stretch; gap: 4px; }
 #qol-kingdom-management-panel .qol-km-compare-controls label span { font-size: 8px; text-transform: uppercase; color: #735a3b; }
-#qol-kingdom-management-panel .qol-km-compare-controls select { width: 100%; min-width: 0; }
+#qol-kingdom-management-panel .qol-km-compare-controls select { width: 100% !important; min-width: 0 !important; }
 #qol-kingdom-management-panel .qol-km-compare-arrow { align-self: flex-end; padding: 4px 0; font-size: 14px; color: #735a3b; }
 #qol-kingdom-management-panel .qol-km-caption, #qol-kingdom-management-panel .qol-km-empty { margin: 0; color: #6b5943; font-size: 9px !important; }
 #qol-kingdom-management-panel [data-km-status]:empty { display: none; }
@@ -93,7 +108,7 @@
 #qol-kingdom-management-panel .qol-km-filter-column, #qol-kingdom-management-panel .qol-km-name-column, #qol-kingdom-management-panel .qol-km-king-column { text-align: left; }
 #qol-kingdom-management-panel .qol-km-name-column { position: sticky; left: 0; z-index: 1; min-width: 100px; border-right: 1px solid #cbbda7; }
 #qol-kingdom-management-panel thead .qol-km-name-column { z-index: 3; }
-#qol-kingdom-management-panel [data-km-row-filter] { min-width: 0; width: 118px; min-height: 24px; height: 24px; font-size: 9px !important; padding: 2px 4px; }
+#qol-kingdom-management-panel [data-km-row-filter] { min-width: 0 !important; width: 118px !important; min-height: 24px !important; height: 24px !important; font-size: 9px !important; padding: 2px 20px 2px 4px !important; }
 #qol-kingdom-management-panel .qol-km-name { color: var(--qol-accent-deep, #614c30); font-weight: bold; white-space: normal; text-align: left; }
 #qol-kingdom-management-panel .qol-km-delta { display: block; font-size: 8px !important; color: #786b58; }
 #qol-kingdom-management-panel .qol-km-delta.positive { color: #2c683c; }

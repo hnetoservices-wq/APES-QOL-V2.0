@@ -28,6 +28,24 @@ function ownedControls(environment) {
   }
   eq(environment.nativeCreations, 0);
 }
+function visibleDropdowns(environment) {
+  const controls = [...environment.doc.querySelectorAll('#qol-kingdom-management-panel select')];
+  ok(controls.length > 0);
+  for (const control of controls) {
+    const style = environment.w.getComputedStyle(control);
+    eq(style.display, 'block'); eq(style.position, 'static'); eq(style.visibility, 'visible');
+    eq(style.opacity, '1'); eq(style.pointerEvents, 'auto');
+    ok(!['0px', '0'].includes(style.width));
+    eq(style.height, control.hasAttribute('data-km-row-filter') ? '24px' : '27px');
+    eq(style.transform, 'none'); eq(style.clip, 'auto'); eq(style.clipPath, 'none');
+    eq(style.color, 'rgb(51, 39, 25)');
+    for (const option of control.options) {
+      const optionStyle = environment.w.getComputedStyle(option);
+      eq(optionStyle.display, option.hidden ? 'none' : 'block');
+      eq(optionStyle.color, 'rgb(51, 39, 25)');
+    }
+  }
+}
 
 // Check native headers, numeric formats, split VP columns and the supplied page 2.
 for (let index = 0; index < tabs.length; index++) {
@@ -90,7 +108,13 @@ function setup(options = {}) {
   observer.observe(doc.body, { childList: true, subtree: true });
   doc.addEventListener('click', event => { if (event.target.closest?.('.qol-km-action')) bubbledActions++; });
   const style = doc.createElement('style');
-  style.textContent = 'button { background: lime !important; color: transparent !important; }' + fs.readFileSync(path.join(root, 'css/features/kingdomManagement.css'), 'utf8');
+  style.textContent = `button { background: lime !important; color: transparent !important; }
+    select { display: none !important; position: absolute !important; visibility: hidden !important;
+      opacity: 0 !important; pointer-events: none !important; width: 0 !important; height: 0 !important;
+      min-height: 0 !important; color: transparent !important; background: transparent !important;
+      transform: scale(0) !important; clip: rect(0px, 0px, 0px, 0px) !important; clip-path: inset(100%) !important; }
+    select option { display: none !important; color: transparent !important; }
+    ` + fs.readFileSync(path.join(root, 'css/features/kingdomManagement.css'), 'utf8');
   doc.head.appendChild(style);
   const originalHash = w.location.hash;
   // Keep timeout and polling clocks consistent while making failure cases fast.
@@ -286,6 +310,7 @@ function setup(options = {}) {
   eq(comparison.filter(row => row.status === 'New').length, 1); eq(comparison.filter(row => row.status === 'Missing').length, 2);
   eq(comparison.find(row => row.id === '4').changes.population, null);
   e.doc.querySelector('[data-km-tab="comparison"]').click();
+  visibleDropdowns(e);
   eq(e.doc.querySelector('[data-km-earlier]').value, ''); eq(e.doc.querySelector('[data-km-later]').value, '');
   eq(e.doc.querySelector('[data-km-later]').disabled, true);
   eq(e.doc.querySelector('[data-km-compare]').getAttribute('aria-disabled'), 'true');
@@ -362,6 +387,7 @@ function setup(options = {}) {
     control.dispatchEvent(new tagged.w.Event('input', { bubbles: true }));
   };
   const tagMenu = tagged.doc.querySelector('[data-km-row-filter="1"]');
+  visibleDropdowns(tagged);
   eq(tagMenu.selectedOptions[0].textContent, 'Create a Filter');
   eq([...tagMenu.options].filter(option => !option.hidden).map(option => option.textContent), ['Create a Filter']);
   const headings = tagged.doc.querySelector('thead tr:nth-child(2)').children;
