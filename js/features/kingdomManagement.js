@@ -15,6 +15,7 @@
   const CROWN = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6l4 5 5-7 5 7 4-5-2 13H5z"></path><path d="M5 16h14"></path></svg>';
   let snapshots = [], selectedId = '', earlierId = '', laterId = '', activeTab = 'results';
   let search = '', sortKey = 'rank', ascending = true;
+  let filters = { tags: [], kingdomTags: {} }, selectedFilter = '', filterSaving = false;
   let scanning = false, cancelled = false, scanPromise = null;
   let status = '', tone = 'neutral';
   const enabled = () => typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE) === true;
@@ -24,6 +25,7 @@
   const delay = ms => new Promise(resolve => window.setTimeout(resolve, ms));
   // Use APES-owned div controls: the game decorates native button elements.
   function action(label, attributes = '', disabled = false) {
+    disabled = disabled || filterSaving;
     return `<div class="qol-km-action" role="button" tabindex="${disabled ? '-1' : '0'}" aria-disabled="${disabled}" ${attributes}>${label}</div>`;
   }
   function activateOnKeyboard(event) {
@@ -150,6 +152,7 @@
     event.preventDefault(); event.stopImmediatePropagation();
   }
   function scan() {
+    if (filterSaving) return Promise.resolve(false);
     if (scanPromise) return scanPromise;
     scanPromise = performScan().finally(() => { scanPromise = null; });
     return scanPromise;
@@ -163,6 +166,7 @@
     const kingdoms = new Map(), pages = {}, missing = {}, coverage = {};
     try {
       await H.load();
+      filters = await H.loadFilters();
       for (let stageIndex = 0; stageIndex < S.STAGES.length; stageIndex++) {
         const stage = S.STAGES[stageIndex], seen = new Set();
         let previous = null, finished = false, advertisedLast = 1;
@@ -221,7 +225,7 @@
     }
   }
   function sorted(rows) {
-    return rows.filter(row => `${row.name} ${row.king} ${row.id}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())).sort((a, b) => {
+    return rows.filter(row => (!selectedFilter || filters.kingdomTags[row.id] === selectedFilter) && `${row.name} ${row.king} ${row.id}`.toLocaleLowerCase().includes(search.toLocaleLowerCase())).sort((a, b) => {
       const av = a[sortKey], bv = b[sortKey];
       if (av === null || av === undefined) return bv === null || bv === undefined ? 0 : 1;
       if (bv === null || bv === undefined) return -1;
@@ -234,17 +238,43 @@
     if (key === 'king') return esc(row.king || '—');
     return fmt(row[key]);
   }
+  function filterChoices(selected, row = false) {
+    const empty = row ? filters.tags.length ? 'No filter' : 'Create a Filter' : 'All kingdoms';
+    return `<option value=""${selected ? '' : ' selected'}${row && !filters.tags.length ? ' hidden' : ''}>${empty}</option>${filters.tags.map(tag => `<option value="tag:${esc(tag)}"${tag === selected ? ' selected' : ''}>${esc(tag)}</option>`).join('')}<option value="create">Create a Filter</option>`;
+  }
+  async function changeFilter(target) {
+    if (scanning || filterSaving) { render(); return; }
+    const kingdomId = target.hasAttribute('data-km-row-filter') ? target.dataset.kmRowFilter : null;
+    if (target.value !== 'create' && kingdomId === null) {
+      selectedFilter = target.value.startsWith('tag:') ? target.value.slice(4) : ''; render(); return;
+    }
+    let tag = target.value.startsWith('tag:') ? target.value.slice(4) : '';
+    if (target.value === 'create') {
+      const input = window.prompt('Enter a tag for this filter (for example, Unreal):');
+      if (input === null) { render(); return; }
+      tag = input.replace(/\s+/g, ' ').trim();
+      if (!tag || tag.length > 60) { render(); setStatus('Enter a tag between 1 and 60 characters.', 'error'); return; }
+    }
+    filterSaving = true; render();
+    try {
+      filters = await H.setFilter(tag, kingdomId);
+      if (kingdomId === null) selectedFilter = filters.tags.find(item => item.toLocaleLowerCase() === tag.toLocaleLowerCase()) || '';
+      setStatus(tag ? `Filter saved: ${tag}.` : 'Kingdom filter removed.', 'success');
+    } catch (error) { setStatus(`Filter could not be saved: ${error.message}`, 'error'); }
+    finally { filterSaving = false; render(); }
+  }
   function table(rows, comparisons = null) {
     const compareMap = new Map((comparisons || []).map(row => [row.id, row]));
-    return `<div class="qol-km-table-wrap"><table><thead><tr class="qol-km-groups"><th colspan="3" scope="colgroup">Kingdom</th><th colspan="2" scope="colgroup">Population</th><th colspan="2" scope="colgroup">Territory & players</th><th colspan="2" scope="colgroup">Attack</th><th colspan="2" scope="colgroup">Defense</th><th colspan="2" scope="colgroup">Treasures & victory</th>${comparisons ? '<th scope="col">Development</th>' : ''}</tr><tr>${COLUMNS.map(([key, label]) => `<th scope="col" aria-sort="${key === sortKey ? ascending ? 'ascending' : 'descending' : 'none'}">${action(esc(label) + (key === sortKey ? ascending ? ' ↑' : ' ↓' : ''), `data-km-sort="${key}"`)}</th>`).join('')}${comparisons ? '<th scope="col">Changes</th>' : ''}</tr></thead><tbody>${sorted(rows).map(row => {
+    const visible = sorted(rows);
+    return `<div class="qol-km-table-wrap"><table><thead><tr class="qol-km-groups"><th scope="colgroup">Filter</th><th colspan="3" scope="colgroup">Kingdom</th><th colspan="2" scope="colgroup">Population</th><th colspan="2" scope="colgroup">Territory & players</th><th colspan="2" scope="colgroup">Attack</th><th colspan="2" scope="colgroup">Defense</th><th colspan="2" scope="colgroup">Treasures & victory</th>${comparisons ? '<th scope="col">Development</th>' : ''}</tr><tr><th scope="col" class="qol-km-filter-column">Filter</th>${COLUMNS.map(([key, label]) => `<th scope="col" aria-sort="${key === sortKey ? ascending ? 'ascending' : 'descending' : 'none'}" class="qol-km-${key}-column">${action(esc(label) + (key === sortKey ? ascending ? ' ↑' : ' ↓' : ''), `data-km-sort="${key}"`)}</th>`).join('')}${comparisons ? '<th scope="col">Changes</th>' : ''}</tr></thead><tbody>${visible.map(row => {
       const comparison = compareMap.get(row.id);
-      return `<tr>${COLUMNS.map(([key]) => {
+      return `<tr><td class="qol-km-filter-column"><select data-km-row-filter="${esc(row.id)}" aria-label="Filter for ${esc(row.name)}">${filterChoices(filters.kingdomTags[row.id], true)}</select></td>${COLUMNS.map(([key]) => {
         const change = comparison?.changes[key];
         const improved = key === 'rank' ? change < 0 : change > 0;
         const delta = Number.isFinite(change) ? `<small class="qol-km-delta ${change ? improved ? 'positive' : 'negative' : ''}" title="Change from earlier snapshot">${change > 0 ? '+' : ''}${fmt(change)}</small>` : '';
-        return `<td${row[key] === null ? ' title="Not listed in this ranking"' : ''}>${cell(row, key)}${delta}</td>`;
+        return `<td class="qol-km-${key}-column"${row[key] === null ? ' title="Not listed in this ranking"' : ''}>${cell(row, key)}${delta}</td>`;
       }).join('')}${comparison ? `<td class="qol-km-notes">${esc([comparison.status !== 'Present' ? comparison.status : '', comparison.renamed ? `Renamed from ${comparison.before.name}` : '', comparison.kingChanged ? `King changed from ${comparison.before.king || '—'}` : ''].filter(Boolean).join(' · ') || '—')}</td>` : ''}</tr>`;
-    }).join('') || `<tr><td colspan="${COLUMNS.length + (comparisons ? 1 : 0)}">No kingdoms match your search.</td></tr>`}</tbody></table></div>`;
+    }).join('') || `<tr><td colspan="${COLUMNS.length + 1 + (comparisons ? 1 : 0)}">No kingdoms match your filter or search.</td></tr>`}</tbody></table></div><span class="qol-km-caption">${visible.length} of ${rows.length} kingdoms shown</span>`;
   }
   function choices(selected) {
     return snapshots.map(snapshot => `<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('');
@@ -272,7 +302,8 @@
       const comparisons = valid ? H.compare(earlier, later) : [];
       content = `<div class="qol-km-controls"><label>Earlier <select data-km-earlier>${choices(earlierId)}</select></label><label>Later <select data-km-later>${choices(laterId)}</select></label></div>${valid ? `<p class="qol-km-caption">${comparisons.filter(row => row.status === 'New').length} new · ${comparisons.filter(row => row.status === 'Missing').length} missing · ${comparisons.filter(row => row.renamed).length} renamed · ${comparisons.filter(row => row.kingChanged).length} king changes. Cells show later values and changes from the earlier snapshot; missing kingdoms show their last known values. Negative rank changes mean an improved rank.</p>${table(comparisons.map(row => row.after || row.before), comparisons)}` : '<p class="qol-km-empty">Choose two different snapshots in chronological order.</p>'}`;
     }
-    body.innerHTML = `<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div><nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
+    body.innerHTML = `<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label>Filter <select data-km-filter>${filterChoices(selectedFilter)}</select></label><label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div><nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
+    for (const control of body.querySelectorAll('select, input')) control.disabled = scanning || filterSaving;
   }
   function mountPanel() {
     let panel = document.getElementById(PANEL_ID);
@@ -281,6 +312,7 @@
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Kingdom Management');
     panel.innerHTML = `<header class="qol-km-head"><span>${CROWN} Kingdom Management</span>${action('×', 'data-km-close aria-label="Close Kingdom Management"')}</header><div class="qol-km-body" data-km-body></div>`;
     panel.addEventListener('click', async event => {
+      if (event.target.closest('select, input')) event.stopPropagation();
       const control = event.target.closest('.qol-km-action');
       if (!control) return;
       event.preventDefault(); event.stopPropagation();
@@ -295,7 +327,10 @@
     });
     panel.addEventListener('keydown', activateOnKeyboard);
     panel.addEventListener('change', event => {
+      event.stopPropagation();
       const target = event.target;
+      if (target.hasAttribute('data-km-row-filter') || target.hasAttribute('data-km-filter')) { void changeFilter(target); return; }
+      if (scanning || filterSaving) return;
       if (target.hasAttribute('data-km-snapshot')) selectedId = target.value;
       if (target.hasAttribute('data-km-earlier')) earlierId = target.value;
       if (target.hasAttribute('data-km-later')) laterId = target.value;
@@ -338,7 +373,7 @@
     if (typeof ResizeObserver === 'function') new ResizeObserver(clampPosition).observe(panel);
   }
   async function refresh() {
-    try { snapshots = await H.load(); render(); } catch (error) { setStatus(`Saved snapshots could not be loaded: ${error.message}`, 'error'); }
+    try { snapshots = await H.load(); filters = await H.loadFilters(); render(); } catch (error) { setStatus(`Saved kingdom data could not be loaded: ${error.message}`, 'error'); }
   }
   function open() {
     if (!enabled()) return null;

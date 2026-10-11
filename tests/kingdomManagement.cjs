@@ -326,6 +326,93 @@ function setup(options = {}) {
   eq(e.bubbledActions, 0); eq(e.nativeCreations, 0);
   e.dom.window.close();
 
+  // Tags are server preferences keyed by kingdom ID, not edits to snapshots.
+  const taggedStore = new Map([['trickandtreat.kingdoms.com', { version: 1, snapshots: [plain(first)] }]]);
+  const tagged = setup({ store: taggedStore }); tagged.api.open(); await pause(10);
+  const rowIds = () => [...tagged.doc.querySelectorAll('[data-km-row-filter]')].map(control => control.dataset.kmRowFilter).sort();
+  const choose = async (selector, value) => {
+    const control = tagged.doc.querySelector(selector); ok(control); control.value = value;
+    control.dispatchEvent(new tagged.w.Event('change', { bubbles: true })); await pause(10);
+  };
+  const searchTagged = value => {
+    const control = tagged.doc.querySelector('[data-km-search]'); control.value = value;
+    control.dispatchEvent(new tagged.w.Event('input', { bubbles: true }));
+  };
+  const tagMenu = tagged.doc.querySelector('[data-km-row-filter="1"]');
+  eq(tagMenu.selectedOptions[0].textContent, 'Create a Filter');
+  eq([...tagMenu.options].filter(option => !option.hidden).map(option => option.textContent), ['Create a Filter']);
+  const headings = tagged.doc.querySelector('thead tr:nth-child(2)').children;
+  eq(headings[0].textContent, 'Filter'); ok(headings[1].textContent.startsWith('Rank'));
+  eq(tagged.w.getComputedStyle(tagged.doc.querySelector('.qol-km-head span')).fontSize, '13px');
+  eq(tagged.w.getComputedStyle(tagged.doc.querySelector('table')).fontSize, '9px');
+  eq(tagged.w.getComputedStyle(tagMenu).fontSize, '9px');
+  tagged.w.prompt = () => '  Unreal  ';
+  await choose('[data-km-row-filter="1"]', 'create');
+  eq(await tagged.H.loadFilters(), { tags: ['Unreal'], kingdomTags: { 1: 'Unreal' } });
+  eq(tagged.api.getSnapshots()[0], plain(first));
+  for (const control of tagged.doc.querySelectorAll('[data-km-row-filter]')) ok([...control.options].some(option => option.value === 'tag:Unreal'));
+  await choose('[data-km-row-filter="2"]', 'tag:Unreal');
+  tagged.w.prompt = () => 'unreal'; await choose('[data-km-row-filter="3"]', 'create');
+  eq((await tagged.H.loadFilters()).tags, ['Unreal']);
+  eq((await tagged.H.loadFilters()).kingdomTags, { 1: 'Unreal', 2: 'Unreal', 3: 'Unreal' });
+  await choose('[data-km-filter]', 'tag:Unreal'); eq(rowIds(), ['1', '2', '3']);
+  searchTagged('Kingdom 2'); eq(rowIds(), ['2']); searchTagged('');
+  keyboard(tagged, tagged.doc.querySelector('[data-km-sort="population"]'), 'Enter'); eq(rowIds(), ['1', '2', '3']);
+  await choose('[data-km-row-filter="2"]', ''); eq(rowIds(), ['1', '3']);
+  tagged.api.close(); tagged.api.open(); await pause(10); eq(rowIds(), ['1', '3']);
+  // New/renamed kingdoms and missing kingdoms in Comparison use the same tags.
+  await tagged.H.append(second); tagged.api.open(); await pause(10);
+  await choose('[data-km-snapshot]', second.id); eq(rowIds(), ['1']);
+  ok(tagged.doc.querySelector('.qol-km-name').textContent.includes('<img'));
+  tagged.doc.querySelector('[data-km-tab="comparison"]').click();
+  await choose('[data-km-later]', second.id); eq(rowIds(), ['1', '3']);
+  eq(tagged.doc.querySelectorAll('.qol-km-table-wrap img').length, 0);
+  // Creating at the top adds a reusable tag and selects it as the view filter.
+  tagged.w.prompt = () => 'Friends'; await choose('[data-km-filter]', 'create');
+  eq(tagged.doc.querySelector('[data-km-filter]').value, 'tag:Friends'); eq(rowIds(), []);
+  eq(tagged.doc.querySelector('tbody td').colSpan, 15);
+  await choose('[data-km-filter]', ''); eq(rowIds(), ['1', '2', '3', '4', '5']);
+  const beforeCancel = plain(await tagged.H.loadFilters()), writesBeforeCancel = tagged.writes;
+  tagged.w.prompt = () => null; await choose('[data-km-row-filter="1"]', 'create');
+  eq(await tagged.H.loadFilters(), beforeCancel); eq(tagged.writes, writesBeforeCancel);
+  for (const input of ['   ', 'x'.repeat(61)]) {
+    tagged.w.prompt = () => input; await choose('[data-km-row-filter="1"]', 'create');
+    eq(await tagged.H.loadFilters(), beforeCancel); eq(tagged.writes, writesBeforeCancel);
+    ok(tagged.doc.querySelector('[data-km-status]').textContent.includes('1 and 60'));
+  }
+  tagged.setFailWrite(true); await choose('[data-km-row-filter="1"]', 'tag:Friends');
+  eq(await tagged.H.loadFilters(), beforeCancel);
+  eq(tagged.doc.querySelector('[data-km-row-filter="1"]').value, 'tag:Unreal');
+  ok(tagged.doc.querySelector('[data-km-status]').textContent.includes('quota'));
+  tagged.setFailWrite(false);
+  const markupTag = '<img src=x onerror=alert(1)>'; tagged.w.prompt = () => markupTag;
+  await choose('[data-km-row-filter="1"]', 'create');
+  eq(tagged.doc.querySelector('[data-km-row-filter="1"]').selectedOptions[0].textContent, markupTag);
+  eq(tagged.doc.querySelectorAll('.qol-km-table-wrap img').length, 0); ownedControls(tagged);
+  const tagReopened = setup({ store: taggedStore }); tagReopened.api.open(); await pause(10);
+  eq(await tagReopened.H.loadFilters(), plain(await tagged.H.loadFilters()));
+  eq(tagReopened.doc.querySelector('[data-km-row-filter="1"]').value, `tag:${markupTag}`);
+  const tagOtherServer = setup({ store: taggedStore, server: 'com1.kingdoms.com' });
+  eq(await tagOtherServer.H.loadFilters(), { tags: [], kingdomTags: {} }); tagOtherServer.dom.window.close();
+  await tagged.H.remove(first.id); await tagged.H.remove(second.id);
+  eq((await tagged.H.load()).length, 0); eq((await tagged.H.loadFilters()).kingdomTags[1], markupTag);
+  tagReopened.dom.window.close(); tagged.dom.window.close();
+
+  // Serialize preferences and snapshot writes so simultaneous saves cannot
+  // discard tags or scans, and retain the same data in the storage fallback.
+  const queued = setup({ store: new Map([['trickandtreat.kingdoms.com', { version: 1, snapshots: [plain(first)] }]]) });
+  await Promise.all([queued.H.setFilter('Group A', '1'), queued.H.append(second), queued.H.setFilter('Group B', '2'), queued.H.remove(first.id)]);
+  eq((await queued.H.load()).map(snapshot => snapshot.id), [second.id]);
+  eq(await queued.H.loadFilters(), { tags: ['Group A', 'Group B'], kingdomTags: { 1: 'Group A', 2: 'Group B' } });
+  eq(queued.store.get('trickandtreat.kingdoms.com').filters, plain(await queued.H.loadFilters()));
+  queued.dom.window.close();
+  const fallback = setup(); delete fallback.w.APES.storage; fallback.w.eval(sources[1]);
+  await fallback.w.APES_KINGDOM_HISTORY.append(first);
+  await fallback.w.APES_KINGDOM_HISTORY.setFilter('Unreal', '1'); fallback.w.eval(sources[1]);
+  eq((await fallback.w.APES_KINGDOM_HISTORY.load()).length, 1);
+  eq(await fallback.w.APES_KINGDOM_HISTORY.loadFilters(), { tags: ['Unreal'], kingdomTags: { 1: 'Unreal' } });
+  fallback.dom.window.close();
+
   for (const options of [{ stall: true }, { noPager: true }, { prematureEnd: true }, { navigateAway: true }]) {
     const test = setup(options); test.api.open(); eq(await test.api.scan(), false);
     eq(test.writes, 0); eq((await test.H.load()).length, 0); eq(test.api.isScanning(), false);
