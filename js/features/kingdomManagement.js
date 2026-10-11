@@ -16,6 +16,7 @@
   let snapshots = [], selectedId = '', earlierId = '', laterId = '', activeTab = 'results';
   let search = '', sortKey = 'rank', ascending = true;
   let filters = { tags: [], kingdomTags: {} }, selectedFilter = '', filterSaving = false;
+  let tagEditor = null, comparisonReady = false;
   let scanning = false, cancelled = false, scanPromise = null;
   let status = '', tone = 'neutral';
   const enabled = () => typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE) === true;
@@ -209,7 +210,7 @@
       const snapshot = { id: `${startedAt}-${Math.random().toString(36).slice(2, 9)}`, server: location.hostname, startedAt, scannedAt: Date.now(), complete: true, pages, missing, kingdoms: rows };
       setStatus(`Saving snapshot · ${rows.length} kingdoms…`);
       snapshots = await H.append(snapshot);
-      selectedId = laterId = snapshot.id; earlierId = snapshots[1]?.id || ''; activeTab = 'results';
+      selectedId = snapshot.id; earlierId = laterId = ''; comparisonReady = false; tagEditor = null; activeTab = 'results';
       setStatus(`Snapshot saved · ${rows.length} kingdoms · ${Object.values(pages).reduce((sum, value) => sum + value, 0)} statistics pages.`, 'success');
       return true;
     } catch (error) {
@@ -248,20 +249,38 @@
     if (target.value !== 'create' && kingdomId === null) {
       selectedFilter = target.value.startsWith('tag:') ? target.value.slice(4) : ''; render(); return;
     }
-    let tag = target.value.startsWith('tag:') ? target.value.slice(4) : '';
     if (target.value === 'create') {
-      const input = window.prompt('Enter a tag for this filter (for example, Unreal):');
-      if (input === null) { render(); return; }
-      tag = input.replace(/\s+/g, ' ').trim();
-      if (!tag || tag.length > 60) { render(); setStatus('Enter a tag between 1 and 60 characters.', 'error'); return; }
+      tagEditor = { kingdomId, name: target.closest('tr')?.querySelector('.qol-km-name')?.textContent || '', value: '', error: '' };
+      render(); document.querySelector(`#${PANEL_ID} [data-km-tag-name]`)?.focus(); return;
     }
+    tagEditor = null;
+    await saveFilter(target.value.startsWith('tag:') ? target.value.slice(4) : '', kingdomId);
+  }
+  async function saveFilter(tag, kingdomId, fromEditor = false) {
     filterSaving = true; render();
     try {
       filters = await H.setFilter(tag, kingdomId);
-      if (kingdomId === null) selectedFilter = filters.tags.find(item => item.toLocaleLowerCase() === tag.toLocaleLowerCase()) || '';
+      if (kingdomId === null) selectedFilter = '';
+      if (fromEditor) tagEditor = null;
       setStatus(tag ? `Filter saved: ${tag}.` : 'Kingdom filter removed.', 'success');
-    } catch (error) { setStatus(`Filter could not be saved: ${error.message}`, 'error'); }
+    } catch (error) {
+      if (fromEditor && tagEditor) tagEditor.error = `Filter could not be saved: ${error.message}`;
+      setStatus(`Filter could not be saved: ${error.message}`, 'error');
+    }
     finally { filterSaving = false; render(); }
+  }
+  function saveTagEditor() {
+    if (!tagEditor || scanning || filterSaving) return;
+    const tag = tagEditor.value.replace(/\s+/g, ' ').trim();
+    if (!tag || tag.length > 60) {
+      tagEditor.error = 'Enter a tag between 1 and 60 characters.';
+      render(); document.querySelector(`#${PANEL_ID} [data-km-tag-name]`)?.focus(); return;
+    }
+    void saveFilter(tag, tagEditor.kingdomId, true);
+  }
+  function editorHTML() {
+    if (!tagEditor) return '';
+    return `<section class="qol-km-tag-editor" role="group" aria-label="Create a Filter"><strong>Create a Filter${tagEditor.kingdomId ? ` · ${esc(tagEditor.name)}` : ''}</strong><div class="qol-km-controls"><label>Tag <input data-km-tag-name type="text" maxlength="60" value="${esc(tagEditor.value)}" placeholder="Unreal" aria-describedby="qol-km-tag-error"></label>${action(tagEditor.kingdomId ? 'Create & assign' : 'Create filter', 'data-km-tag-save', scanning)}${action('Cancel', 'data-km-tag-cancel', scanning)}</div><span id="qol-km-tag-error" data-tone="error" role="status">${esc(tagEditor.error)}</span></section>`;
   }
   function table(rows, comparisons = null) {
     const compareMap = new Map((comparisons || []).map(row => [row.id, row]));
@@ -279,6 +298,16 @@
   function choices(selected) {
     return snapshots.map(snapshot => `<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('');
   }
+  function comparisonPair() {
+    const earlier = snapshots.find(item => item.id === earlierId), later = snapshots.find(item => item.id === laterId);
+    return { earlier, later, valid: Boolean(earlier && later && earlier.id !== later.id && earlier.scannedAt < later.scannedAt) };
+  }
+  function comparisonChoices(selected, side) {
+    const ordered = snapshots.slice().sort((a, b) => a.scannedAt - b.scannedAt);
+    const earlier = snapshots.find(item => item.id === earlierId);
+    const eligible = ordered.filter(snapshot => side === 'A' ? ordered.some(other => other.scannedAt > snapshot.scannedAt) : earlier && snapshot.scannedAt > earlier.scannedAt);
+    return `<option value=""${selected ? '' : ' selected'}>Select Scan ${side}…</option>${eligible.map(snapshot => `<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>Scan ${ordered.indexOf(snapshot) + 1} · ${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('')}`;
+  }
   function render() {
     const panel = document.getElementById(PANEL_ID);
     if (!panel) return;
@@ -288,22 +317,19 @@
       return;
     }
     const selected = snapshots.find(item => item.id === selectedId) || snapshots[0]; selectedId = selected.id;
-    if (!snapshots.some(item => item.id === laterId)) laterId = selected.id;
-    if (!snapshots.some(item => item.id === earlierId)) earlierId = snapshots[1]?.id || '';
+    if (earlierId && !snapshots.some(item => item.id === earlierId)) { earlierId = laterId = ''; comparisonReady = false; }
+    if (laterId && !snapshots.some(item => item.id === laterId)) { laterId = ''; comparisonReady = false; }
     let content = '';
     if (activeTab === 'results') {
       const missingRankings = S.STAGES.filter(stage => selected.missing?.[stage.tab]).map(stage => `${stage.tab}: ${selected.missing[stage.tab]}`);
       content = `<div class="qol-km-controls"><label>Snapshot <select data-km-snapshot>${choices(selected.id)}</select></label>${action('Delete snapshot', 'data-km-delete', scanning)}<span>${esc(date(selected.startedAt || selected.scannedAt))} → ${esc(date(selected.scannedAt))} · ${selected.kingdoms.length} kingdoms</span></div><p class="qol-km-caption">Rank follows the population ranking. — means the kingdom was not listed in that ranking.${missingRankings.length ? ` Missing entries by ranking: ${esc(missingRankings.join(' · '))}.` : ''}</p>${table(selected.kingdoms)}`;
-    } else if (snapshots.length < 2) {
-      content = '<p class="qol-km-empty">Scan Kingdoms again to compare kingdom development between two snapshots.</p>';
     } else {
-      const earlier = snapshots.find(item => item.id === earlierId), later = snapshots.find(item => item.id === laterId);
-      const valid = earlier && later && earlier.scannedAt < later.scannedAt;
-      const comparisons = valid ? H.compare(earlier, later) : [];
-      content = `<div class="qol-km-controls"><label>Earlier <select data-km-earlier>${choices(earlierId)}</select></label><label>Later <select data-km-later>${choices(laterId)}</select></label></div>${valid ? `<p class="qol-km-caption">${comparisons.filter(row => row.status === 'New').length} new · ${comparisons.filter(row => row.status === 'Missing').length} missing · ${comparisons.filter(row => row.renamed).length} renamed · ${comparisons.filter(row => row.kingChanged).length} king changes. Cells show later values and changes from the earlier snapshot; missing kingdoms show their last known values. Negative rank changes mean an improved rank.</p>${table(comparisons.map(row => row.after || row.before), comparisons)}` : '<p class="qol-km-empty">Choose two different snapshots in chronological order.</p>'}`;
+      const { earlier, later, valid } = comparisonPair();
+      const comparisons = valid && comparisonReady ? H.compare(earlier, later) : [];
+      content = `<div class="qol-km-compare-controls"><label><span>Scan A · Earlier</span><select data-km-earlier>${comparisonChoices(earlierId, 'A')}</select></label><span class="qol-km-compare-arrow" aria-hidden="true">→</span><label><span>Scan B · Later</span><select data-km-later>${comparisonChoices(laterId, 'B')}</select></label>${action('Compare', 'data-km-compare', !valid || scanning)}</div>${valid && comparisonReady ? `<p class="qol-km-caption">${comparisons.filter(row => row.status === 'New').length} new · ${comparisons.filter(row => row.status === 'Missing').length} missing · ${comparisons.filter(row => row.renamed).length} renamed · ${comparisons.filter(row => row.kingChanged).length} king changes. Cells show later values and changes from the earlier snapshot; missing kingdoms show their last known values. Negative rank changes mean an improved rank.</p>${table(comparisons.map(row => row.after || row.before), comparisons)}` : `<p class="qol-km-empty">${snapshots.length < 2 ? 'Scan Kingdoms again to compare kingdom development between two snapshots.' : 'Choose two dated scans in chronological order, then select Compare.'}</p>`}`;
     }
-    body.innerHTML = `<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label>Filter <select data-km-filter>${filterChoices(selectedFilter)}</select></label><label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div><nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
-    for (const control of body.querySelectorAll('select, input')) control.disabled = scanning || filterSaving;
+    body.innerHTML = `<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label>Filter <select data-km-filter>${filterChoices(selectedFilter)}</select></label><label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div>${editorHTML()}<nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
+    for (const control of body.querySelectorAll('select, input')) control.disabled = scanning || filterSaving || control.hasAttribute('data-km-later') && !earlierId;
   }
   function mountPanel() {
     let panel = document.getElementById(PANEL_ID);
@@ -319,24 +345,32 @@
       if (control.getAttribute('aria-disabled') === 'true' || scanning) return;
       if (control.hasAttribute('data-km-close')) close();
       if (control.hasAttribute('data-km-scan')) void scan();
+      if (control.hasAttribute('data-km-tag-save')) saveTagEditor();
+      if (control.hasAttribute('data-km-tag-cancel')) { tagEditor = null; render(); }
+      if (control.hasAttribute('data-km-compare') && comparisonPair().valid) { comparisonReady = true; render(); }
       if (control.dataset.kmTab) { activeTab = control.dataset.kmTab; render(); }
       if (control.dataset.kmSort) { ascending = sortKey === control.dataset.kmSort ? !ascending : true; sortKey = control.dataset.kmSort; render(); }
       if (control.hasAttribute('data-km-delete') && !scanning && window.confirm('Delete this saved kingdom snapshot?')) {
         try { snapshots = await H.remove(selectedId); render(); } catch (error) { setStatus(`Snapshot could not be deleted: ${error.message}`, 'error'); }
       }
     });
-    panel.addEventListener('keydown', activateOnKeyboard);
+    panel.addEventListener('keydown', event => {
+      if (event.target.hasAttribute('data-km-tag-name') && event.key === 'Enter') { event.preventDefault(); event.stopPropagation(); if (!event.repeat) saveTagEditor(); return; }
+      activateOnKeyboard(event);
+    });
     panel.addEventListener('change', event => {
       event.stopPropagation();
       const target = event.target;
       if (target.hasAttribute('data-km-row-filter') || target.hasAttribute('data-km-filter')) { void changeFilter(target); return; }
+      if (!target.matches('[data-km-snapshot], [data-km-earlier], [data-km-later]')) return;
       if (scanning || filterSaving) return;
       if (target.hasAttribute('data-km-snapshot')) selectedId = target.value;
-      if (target.hasAttribute('data-km-earlier')) earlierId = target.value;
-      if (target.hasAttribute('data-km-later')) laterId = target.value;
+      if (target.hasAttribute('data-km-earlier')) { earlierId = target.value; laterId = ''; comparisonReady = false; }
+      if (target.hasAttribute('data-km-later')) { laterId = target.value; comparisonReady = false; }
       render();
     });
     panel.addEventListener('input', event => {
+      if (event.target.hasAttribute('data-km-tag-name')) { event.stopPropagation(); if (tagEditor && !filterSaving) tagEditor.value = event.target.value; return; }
       if (!event.target.hasAttribute('data-km-search')) return;
       search = event.target.value;
       const start = event.target.selectionStart;
@@ -409,6 +443,9 @@
   document.addEventListener('keydown', event => {
     if (event.key !== 'Escape') return;
     if (scanning) { cancelScan(); event.preventDefault(); return; }
+    if (tagEditor && document.getElementById(PANEL_ID)?.classList.contains('qol-km-open')) {
+      event.preventDefault(); event.stopPropagation(); if (!filterSaving) { tagEditor = null; render(); } return;
+    }
     if (document.getElementById(PANEL_ID)?.classList.contains('qol-km-open')) { close(); event.preventDefault(); }
   }, true);
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ensureLauncher, { once: true }); else ensureLauncher();

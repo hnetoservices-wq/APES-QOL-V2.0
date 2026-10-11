@@ -68,6 +68,14 @@
 #qol-kingdom-management-panel [data-km-filter] { min-width: 130px; max-width: 180px; }
 #qol-kingdom-management-panel .qol-km-tabs { display: flex; gap: 5px; border-bottom: 1px solid #cbbda7; padding-bottom: 3px; flex: 0 0 auto; }
 #qol-kingdom-management-panel .qol-km-tabs [aria-pressed="true"] { background: var(--qol-accent-deep, #614c30) !important; color: #fff8e7 !important; }
+#qol-kingdom-management-panel .qol-km-tag-editor { display: flex; flex-direction: column; gap: 6px; flex: 0 0 auto; padding: 8px; border: 1px solid #cdbb9d; border-radius: 4px; background: #fffaf0; }
+#qol-kingdom-management-panel .qol-km-tag-editor strong { font-size: 10px; color: #533b22; }
+#qol-kingdom-management-panel #qol-km-tag-error:empty { display: none; }
+#qol-kingdom-management-panel .qol-km-compare-controls { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 8px; flex: 0 0 auto; padding: 8px; border: 1px solid #cdbb9d; border-radius: 4px; background: #f1e9dc; }
+#qol-kingdom-management-panel .qol-km-compare-controls label { flex: 1 1 200px; min-width: 0; flex-direction: column; align-items: stretch; gap: 4px; }
+#qol-kingdom-management-panel .qol-km-compare-controls label span { font-size: 8px; text-transform: uppercase; color: #735a3b; }
+#qol-kingdom-management-panel .qol-km-compare-controls select { width: 100%; min-width: 0; }
+#qol-kingdom-management-panel .qol-km-compare-arrow { align-self: flex-end; padding: 4px 0; font-size: 14px; color: #735a3b; }
 #qol-kingdom-management-panel .qol-km-caption, #qol-kingdom-management-panel .qol-km-empty { margin: 0; color: #6b5943; font-size: 9px !important; }
 #qol-kingdom-management-panel [data-km-status]:empty { display: none; }
 #qol-kingdom-management-panel [data-tone="error"] { color: #a02f27; }

@@ -286,6 +286,18 @@ function setup(options = {}) {
   eq(comparison.filter(row => row.status === 'New').length, 1); eq(comparison.filter(row => row.status === 'Missing').length, 2);
   eq(comparison.find(row => row.id === '4').changes.population, null);
   e.doc.querySelector('[data-km-tab="comparison"]').click();
+  eq(e.doc.querySelector('[data-km-earlier]').value, ''); eq(e.doc.querySelector('[data-km-later]').value, '');
+  eq(e.doc.querySelector('[data-km-later]').disabled, true);
+  eq(e.doc.querySelector('[data-km-compare]').getAttribute('aria-disabled'), 'true');
+  e.doc.querySelector('[data-km-compare]').click(); eq(e.doc.querySelector('.qol-km-table-wrap'), null);
+  e.doc.querySelector('[data-km-earlier]').value = first.id;
+  e.doc.querySelector('[data-km-earlier]').dispatchEvent(new e.w.Event('change', { bubbles: true }));
+  eq([...e.doc.querySelector('[data-km-later]').options].map(option => option.value), ['', second.id]);
+  e.doc.querySelector('[data-km-later]').value = second.id;
+  e.doc.querySelector('[data-km-later]').dispatchEvent(new e.w.Event('change', { bubbles: true }));
+  eq(e.doc.querySelector('.qol-km-table-wrap'), null);
+  eq(e.doc.querySelector('[data-km-compare]').getAttribute('aria-disabled'), 'false');
+  keyboard(e, e.doc.querySelector('[data-km-compare]'), 'Enter');
   eq(e.doc.querySelectorAll('.qol-km-table-wrap tbody tr').length, 5);
   ownedControls(e);
   ok(e.doc.querySelector('.qol-km-caption').textContent.includes('1 king changes'));
@@ -334,6 +346,17 @@ function setup(options = {}) {
     const control = tagged.doc.querySelector(selector); ok(control); control.value = value;
     control.dispatchEvent(new tagged.w.Event('change', { bubbles: true })); await pause(10);
   };
+  const createTag = async (selector, value, enter = false) => {
+    await choose(selector, 'create');
+    const input = tagged.doc.querySelector('[data-km-tag-name]'); ok(input);
+    ok(tagged.doc.activeElement === input);
+    input.value = value; input.dispatchEvent(new tagged.w.Event('input', { bubbles: true }));
+    const save = tagged.doc.querySelector('[data-km-tag-save]');
+    input.dispatchEvent(new tagged.w.Event('change', { bubbles: true }));
+    ok(save.isConnected); ok(input.isConnected);
+    if (enter) keyboard(tagged, input, 'Enter'); else tagged.doc.querySelector('[data-km-tag-save]').click();
+    await pause(10);
+  };
   const searchTagged = value => {
     const control = tagged.doc.querySelector('[data-km-search]'); control.value = value;
     control.dispatchEvent(new tagged.w.Event('input', { bubbles: true }));
@@ -346,13 +369,13 @@ function setup(options = {}) {
   eq(tagged.w.getComputedStyle(tagged.doc.querySelector('.qol-km-head span')).fontSize, '13px');
   eq(tagged.w.getComputedStyle(tagged.doc.querySelector('table')).fontSize, '9px');
   eq(tagged.w.getComputedStyle(tagMenu).fontSize, '9px');
-  tagged.w.prompt = () => '  Unreal  ';
-  await choose('[data-km-row-filter="1"]', 'create');
+  tagged.w.prompt = () => { throw new Error('Browser prompts must not be used for filters.'); };
+  await createTag('[data-km-row-filter="1"]', '  Unreal  ');
   eq(await tagged.H.loadFilters(), { tags: ['Unreal'], kingdomTags: { 1: 'Unreal' } });
   eq(tagged.api.getSnapshots()[0], plain(first));
   for (const control of tagged.doc.querySelectorAll('[data-km-row-filter]')) ok([...control.options].some(option => option.value === 'tag:Unreal'));
   await choose('[data-km-row-filter="2"]', 'tag:Unreal');
-  tagged.w.prompt = () => 'unreal'; await choose('[data-km-row-filter="3"]', 'create');
+  await createTag('[data-km-row-filter="3"]', 'unreal');
   eq((await tagged.H.loadFilters()).tags, ['Unreal']);
   eq((await tagged.H.loadFilters()).kingdomTags, { 1: 'Unreal', 2: 'Unreal', 3: 'Unreal' });
   await choose('[data-km-filter]', 'tag:Unreal'); eq(rowIds(), ['1', '2', '3']);
@@ -365,28 +388,42 @@ function setup(options = {}) {
   await choose('[data-km-snapshot]', second.id); eq(rowIds(), ['1']);
   ok(tagged.doc.querySelector('.qol-km-name').textContent.includes('<img'));
   tagged.doc.querySelector('[data-km-tab="comparison"]').click();
-  await choose('[data-km-later]', second.id); eq(rowIds(), ['1', '3']);
+  await choose('[data-km-earlier]', first.id); await choose('[data-km-later]', second.id);
+  tagged.doc.querySelector('[data-km-compare]').click(); eq(rowIds(), ['1', '3']);
   eq(tagged.doc.querySelectorAll('.qol-km-table-wrap img').length, 0);
-  // Creating at the top adds a reusable tag and selects it as the view filter.
-  tagged.w.prompt = () => 'Friends'; await choose('[data-km-filter]', 'create');
-  eq(tagged.doc.querySelector('[data-km-filter]').value, 'tag:Friends'); eq(rowIds(), []);
+  // Creating at the top keeps kingdoms visible for assigning the new tag.
+  await createTag('[data-km-filter]', 'Friends');
+  eq(tagged.doc.querySelector('[data-km-filter]').value, ''); eq(rowIds(), ['1', '2', '3', '4', '5']);
+  await choose('[data-km-filter]', 'tag:Friends'); eq(rowIds(), []);
   eq(tagged.doc.querySelector('tbody td').colSpan, 15);
   await choose('[data-km-filter]', ''); eq(rowIds(), ['1', '2', '3', '4', '5']);
   const beforeCancel = plain(await tagged.H.loadFilters()), writesBeforeCancel = tagged.writes;
-  tagged.w.prompt = () => null; await choose('[data-km-row-filter="1"]', 'create');
+  await choose('[data-km-row-filter="1"]', 'create');
+  tagged.doc.querySelector('[data-km-tag-cancel]').click(); await pause(10);
   eq(await tagged.H.loadFilters(), beforeCancel); eq(tagged.writes, writesBeforeCancel);
   for (const input of ['   ', 'x'.repeat(61)]) {
-    tagged.w.prompt = () => input; await choose('[data-km-row-filter="1"]', 'create');
+    await createTag('[data-km-row-filter="1"]', input);
     eq(await tagged.H.loadFilters(), beforeCancel); eq(tagged.writes, writesBeforeCancel);
-    ok(tagged.doc.querySelector('[data-km-status]').textContent.includes('1 and 60'));
+    ok(tagged.doc.querySelector('#qol-km-tag-error').textContent.includes('1 and 60'));
   }
+  tagged.doc.dispatchEvent(new tagged.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  eq(tagged.doc.querySelector('[data-km-tag-name]'), null);
+  ok(tagged.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'));
   tagged.setFailWrite(true); await choose('[data-km-row-filter="1"]', 'tag:Friends');
   eq(await tagged.H.loadFilters(), beforeCancel);
   eq(tagged.doc.querySelector('[data-km-row-filter="1"]').value, 'tag:Unreal');
   ok(tagged.doc.querySelector('[data-km-status]').textContent.includes('quota'));
   tagged.setFailWrite(false);
-  const markupTag = '<img src=x onerror=alert(1)>'; tagged.w.prompt = () => markupTag;
-  await choose('[data-km-row-filter="1"]', 'create');
+  // Failed creation keeps the in-tool form and entered tag available to retry.
+  tagged.setFailWrite(true); await createTag('[data-km-row-filter="1"]', 'Retry tag');
+  eq(tagged.doc.querySelector('[data-km-tag-name]').value, 'Retry tag');
+  ok(tagged.doc.querySelector('#qol-km-tag-error').textContent.includes('quota'));
+  eq(await tagged.H.loadFilters(), beforeCancel);
+  tagged.setFailWrite(false); keyboard(tagged, tagged.doc.querySelector('[data-km-tag-save]'), ' '); await pause(10);
+  eq(tagged.doc.querySelector('[data-km-tag-name]'), null);
+  eq((await tagged.H.loadFilters()).kingdomTags[1], 'Retry tag');
+  const markupTag = '<img src=x onerror=alert(1)>';
+  await createTag('[data-km-row-filter="1"]', markupTag, true);
   eq(tagged.doc.querySelector('[data-km-row-filter="1"]').selectedOptions[0].textContent, markupTag);
   eq(tagged.doc.querySelectorAll('.qol-km-table-wrap img').length, 0); ownedControls(tagged);
   const tagReopened = setup({ store: taggedStore }); tagReopened.api.open(); await pause(10);
@@ -412,6 +449,31 @@ function setup(options = {}) {
   eq((await fallback.w.APES_KINGDOM_HISTORY.load()).length, 1);
   eq(await fallback.w.APES_KINGDOM_HISTORY.loadFilters(), { tags: ['Unreal'], kingdomTags: { 1: 'Unreal' } });
   fallback.dom.window.close();
+
+  // Pick any chronological pair from three dated scans and explicitly compare.
+  const third = { ...plain(second), id: 'third-scan', scannedAt: second.scannedAt + 1000, kingdoms: plain(second.kingdoms) };
+  third.kingdoms.find(row => row.id === '1').population = 9000;
+  const comparisonEnv = setup({ store: new Map([['trickandtreat.kingdoms.com', { version: 1, snapshots: [third, plain(second), plain(first)] }]]) });
+  comparisonEnv.api.open(); await pause(10); comparisonEnv.doc.querySelector('[data-km-tab="comparison"]').click();
+  const pickScan = (selector, value) => {
+    const control = comparisonEnv.doc.querySelector(selector); control.value = value;
+    control.dispatchEvent(new comparisonEnv.w.Event('change', { bubbles: true }));
+  };
+  eq([...comparisonEnv.doc.querySelector('[data-km-earlier]').options].map(option => option.value), ['', first.id, second.id]);
+  pickScan('[data-km-earlier]', first.id);
+  eq([...comparisonEnv.doc.querySelector('[data-km-later]').options].map(option => option.value), ['', second.id, third.id]);
+  pickScan('[data-km-later]', second.id); keyboard(comparisonEnv, comparisonEnv.doc.querySelector('[data-km-compare]'), ' ');
+  const populationCell = () => comparisonEnv.doc.querySelector('[data-km-row-filter="1"]').closest('tr').querySelector('.qol-km-population-column');
+  eq(populationCell().textContent, '1,500+500');
+  pickScan('[data-km-earlier]', second.id);
+  eq(comparisonEnv.doc.querySelector('.qol-km-table-wrap'), null); eq(comparisonEnv.doc.querySelector('[data-km-later]').value, '');
+  eq(comparisonEnv.doc.querySelector('[data-km-compare]').getAttribute('aria-disabled'), 'true');
+  eq([...comparisonEnv.doc.querySelector('[data-km-later]').options].map(option => option.value), ['', third.id]);
+  pickScan('[data-km-later]', third.id); comparisonEnv.doc.querySelector('[data-km-compare]').click();
+  eq(populationCell().textContent, '9,000+7,500');
+  pickScan('[data-km-earlier]', first.id); pickScan('[data-km-later]', third.id);
+  comparisonEnv.doc.querySelector('[data-km-compare]').click(); eq(populationCell().textContent, '9,000+8,000');
+  ownedControls(comparisonEnv); comparisonEnv.dom.window.close();
 
   for (const options of [{ stall: true }, { noPager: true }, { prematureEnd: true }, { navigateAway: true }]) {
     const test = setup(options); test.api.open(); eq(await test.api.scan(), false);
