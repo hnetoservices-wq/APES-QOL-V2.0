@@ -1,0 +1,109 @@
+/* Scoped to the native IGM window. Angular controls and message nodes stay intact. */
+.qol-chat-window, .qol-chat-window * { box-sizing: border-box !important; }
+.qol-chat-window {
+  position: fixed !important; left: 0 !important; top: 0 !important;
+  width: var(--qol-chat-width, 880px) !important; height: var(--qol-chat-height, 600px) !important;
+  min-width: 0 !important; max-width: calc(100vw - 24px) !important; max-height: calc(100vh - 24px) !important;
+  transform: translate3d(var(--qol-chat-x, 12px), var(--qol-chat-y, 40px), 0) !important;
+  padding: 0 !important; margin: 0 !important; color: #3e3021 !important;
+  font-family: Arial, sans-serif !important; font-size: 11px !important;
+}
+.qol-chat-window > .modal.igm {
+  display: flex !important; flex-direction: column !important; position: relative !important;
+  width: 100% !important; height: 100% !important; min-width: 0 !important; min-height: 0 !important;
+  margin: 0 !important; padding: 0 !important; border: 2px solid var(--qol-border, #6b5334) !important;
+  border-radius: 8px !important; background: #f7f5f0 !important; box-shadow: 0 18px 54px #0008 !important; overflow: hidden !important;
+}
+.qol-chat-window .modalContent {
+  display: flex !important; flex-direction: column !important; flex: 1 1 auto !important;
+  position: relative !important; width: 100% !important; height: 100% !important; min-height: 0 !important;
+  margin: 0 !important; padding: 0 !important; background: none !important;
+}
+.qol-chat-window .modalDecoration, .qol-chat-window .qol-chat-outer-track,
+.qol-chat-window .igmSystem > .firstHalf > .background, .qol-chat-window .igmSystem > .threadView > .background,
+.qol-chat-window .conversationHeader > .arrow, .qol-chat-window .igmConversationEntry > .verticalLine { display: none !important; }
+.qol-chat-window .contentHeader {
+  display: flex !important; align-items: center !important; gap: 9px !important; flex: 0 0 44px !important;
+  position: relative !important; width: 100% !important; height: 44px !important; min-height: 44px !important;
+  margin: 0 !important; padding: 0 46px 0 14px !important; cursor: move !important; touch-action: none;
+  background: linear-gradient(var(--qol-accent-mid, #705839), var(--qol-accent-dark, #4c3926)) !important;
+  border-bottom: 1px solid var(--qol-border, #6b5334) !important; color: #fffaf0 !important; user-select: none;
+}
+.qol-chat-window .contentHeader h2 { margin: 0 !important; padding: 0 !important; height: auto !important; color: #fffaf0 !important; font: bold 14px/1.3 Arial, sans-serif !important; background: none !important; }
+.qol-chat-window .qol-chat-brand { display: inline-flex !important; padding: 3px 5px !important; border: 1px solid #ffffff45 !important; border-radius: 3px !important; color: #fffaf0 !important; font: bold 8px/1 Arial, sans-serif !important; letter-spacing: 1px; }
+.qol-chat-window .functionPanel { position: absolute !important; top: 10px !important; right: 11px !important; z-index: 2 !important; margin: 0 !important; padding: 0 !important; width: auto !important; height: auto !important; }
+.qol-chat-window .closeWindow { position: relative !important; display: flex !important; align-items: center !important; justify-content: center !important; width: 24px !important; height: 24px !important; border: 1px solid #ffffff40 !important; border-radius: 4px !important; background: #0002 !important; color: #fffaf0 !important; cursor: pointer !important; }
+.qol-chat-window .closeWindow > * { display: none !important; }
+.qol-chat-window .closeWindow::after { content: '×'; color: #fffaf0 !important; font: 20px/1 Arial, sans-serif !important; }
+.qol-chat-window .closeWindow:hover { background: #ffffff25 !important; }
+.qol-chat-window .qol-chat-shell-slot { display: flex !important; flex-direction: column !important; flex: 1 1 auto !important; position: relative !important; min-height: 0 !important; min-width: 0 !important; width: 100% !important; max-width: none !important; max-height: none !important; height: 100% !important; padding: 0 !important; margin: 0 !important; overflow: hidden !important; background: none !important; }
+.qol-chat-window .igmSystem { display: flex !important; flex: 1 1 auto !important; position: relative !important; width: 100% !important; height: 100% !important; min-height: 0 !important; min-width: 0 !important; overflow: hidden !important; background: #f7f5f0 !important; }
+.qol-chat-window .igmSystem > .firstHalf { display: flex !important; flex-direction: column !important; position: relative !important; flex: 0 0 292px !important; width: 292px !important; height: 100% !important; min-height: 0 !important; float: none !important; border-right: 1px solid #d8cbb9 !important; background: #eee7db !important; }
+.qol-chat-window .newThreadContainer { flex: 0 0 auto !important; position: relative !important; width: auto !important; height: auto !important; padding: 10px 10px 0 !important; margin: 0 !important; }
+.qol-chat-window .newThreadContainer .clickableContainer { display: flex !important; align-items: center !important; justify-content: space-between !important; position: relative !important; width: 100% !important; min-height: 30px !important; padding: 7px 10px !important; border: 1px solid var(--qol-accent-dark, #4c3926) !important; border-radius: 4px !important; background: linear-gradient(var(--qol-accent, #806239), var(--qol-accent-dark, #4c3926)) !important; color: #fffaf0 !important; font: bold 10px/1.4 Arial, sans-serif !important; cursor: pointer !important; }
+.qol-chat-window .newThreadContainer .plusSign { position: static !important; flex: 0 0 auto !important; }
+.qol-chat-window .qol-chat-search { flex: 0 0 auto !important; padding: 10px !important; }
+.qol-chat-window .qol-chat-search label { display: flex !important; flex-direction: column !important; gap: 5px !important; }
+.qol-chat-window .qol-chat-search-label { color: #78674f !important; font: bold 9px/1.3 Arial, sans-serif !important; text-transform: uppercase; letter-spacing: .6px; }
+.qol-chat-window .qol-chat-search input { display: block !important; width: 100% !important; height: 30px !important; min-height: 30px !important; padding: 5px 8px !important; border: 1px solid #c6b59c !important; border-radius: 4px !important; background: #fffdf8 !important; color: #3e3021 !important; font: 11px/1.4 Arial, sans-serif !important; }
+.qol-chat-window .qol-chat-search input:focus { outline: 2px solid var(--qol-accent, #806239) !important; outline-offset: 1px; }
+.qol-chat-window .qol-chat-results { display: block !important; min-height: 13px !important; margin-top: 5px !important; color: #89775f !important; font: 9px/1.4 Arial, sans-serif !important; }
+.qol-chat-window .firstHalf > .history { display: block !important; position: relative !important; flex: 1 1 auto !important; width: 100% !important; min-height: 0 !important; height: auto !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; }
+.qol-chat-window .firstHalf > .history > .scrollContentOuterWrapper,
+.qol-chat-window .firstHalf > .history > .scrollContentOuterWrapper > .scrollContent { display: block !important; width: 100% !important; height: 100% !important; max-height: none !important; min-height: 0 !important; }
+.qol-chat-window .firstHalf > .history > .scrollContentOuterWrapper > .scrollContent { overflow-x: hidden !important; overflow-y: auto !important; scrollbar-width: thin; scrollbar-color: #b6a184 transparent; }
+.qol-chat-window .history .scrollContentInnerWrapper { width: 100% !important; max-width: 100% !important; height: auto !important; padding: 0 !important; margin: 0 !important; }
+.qol-chat-window .history > .scrollTrack { display: none !important; }
+.qol-chat-window .history ul { display: block !important; margin: 0 !important; padding: 0 0 8px !important; list-style: none !important; }
+.qol-chat-window .history .divider { margin: 0 !important; padding: 8px 12px 4px !important; height: auto !important; color: #88775f !important; background: none !important; font: bold 9px/1.4 Arial, sans-serif !important; text-transform: uppercase; letter-spacing: .5px; }
+.qol-chat-window .history li.igmConversationEntry { display: flex !important; align-items: center !important; gap: 9px !important; position: relative !important; width: auto !important; min-height: 76px !important; height: auto !important; margin: 4px 7px !important; padding: 9px 10px !important; border: 1px solid #ded2bf !important; border-left: 3px solid transparent !important; border-radius: 5px !important; background: #fffdf8 !important; color: #3e3021 !important; cursor: pointer !important; }
+.qol-chat-window .history li.igmConversationEntry:hover { border-color: #bfa782 !important; background: #fff9ee !important; }
+.qol-chat-window .history li.igmConversationEntry.new { border-left-color: var(--qol-accent, #806239) !important; background: #fff9e9 !important; }
+.qol-chat-window .history li.igmConversationEntry.selected { border-color: var(--qol-accent, #806239) !important; background: var(--qol-accent-soft, #ebdcb9) !important; box-shadow: inset 0 0 0 1px var(--qol-accent, #806239) !important; }
+.qol-chat-window .igmConversationEntry .igmAvatar { display: flex !important; align-items: center !important; justify-content: center !important; position: relative !important; flex: 0 0 34px !important; width: 34px !important; height: 34px !important; margin: 0 !important; overflow: hidden !important; border-radius: 7px !important; background: #eee5d5 !important; }
+.qol-chat-window .igmAvatar .heroImage, .qol-chat-window .igmAvatar canvas { width: 34px !important; height: 34px !important; }
+.qol-chat-window .igmConversationEntry .igmInfos { display: flex !important; flex-direction: column !important; gap: 3px !important; position: relative !important; flex: 1 1 auto !important; min-width: 0 !important; width: auto !important; height: auto !important; padding: 0 !important; margin: 0 !important; }
+.qol-chat-window .igmInfos .name, .qol-chat-window .igmInfos .linePreview, .qol-chat-window .igmInfos .date { display: block !important; position: static !important; width: auto !important; max-width: 100% !important; height: auto !important; margin: 0 !important; padding: 0 !important; float: none !important; background: none !important; }
+.qol-chat-window .igmInfos .name { color: #4c3926 !important; font: bold 11px/1.4 Arial, sans-serif !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.qol-chat-window .igmInfos .linePreview { color: #78674f !important; font: 10px/1.4 Arial, sans-serif !important; overflow: hidden !important; text-overflow: ellipsis !important; white-space: nowrap !important; }
+.qol-chat-window .igmInfos .date { color: #97856e !important; font: 9px/1.4 Arial, sans-serif !important; padding-right: 75px !important; white-space: nowrap !important; }
+.qol-chat-window .qol-igm-row-folder { bottom: 8px !important; right: 10px !important; max-width: 67px !important; height: 17px !important; font-size: 8px !important; }
+.qol-chat-window .igmInfos .readNotification { position: absolute !important; bottom: 0 !important; right: 75px !important; }
+.qol-chat-window #qol-message-center-tabs { width: 100% !important; padding: 6px 7px !important; gap: 4px !important; background: #eee7db !important; border-bottom: 1px solid #d8cbb9 !important; box-shadow: none !important; }
+.qol-chat-window #qol-message-center-tabs .qol-message-tab { font-size: 9px !important; padding: 0 7px !important; border-radius: 4px !important; }
+.qol-chat-window #qol-message-center-tabs .qol-message-tab.active { background: #fffdf8 !important; border-color: var(--qol-accent, #806239) !important; }
+.qol-chat-window .igmSystem > .threadView { display: flex !important; flex-direction: column !important; position: relative !important; flex: 1 1 auto !important; width: auto !important; height: 100% !important; min-width: 0 !important; min-height: 0 !important; float: none !important; margin: 0 !important; padding: 0 !important; overflow: hidden !important; background: #f7f5f0 !important; }
+.qol-chat-window .conversationHeader { flex: 0 0 auto !important; position: relative !important; width: 100% !important; min-height: 48px !important; height: auto !important; padding: 13px 16px !important; margin: 0 !important; background: #fffdf8 !important; border-bottom: 1px solid #ded2bf !important; }
+.qol-chat-window .conversationHeaderInner { position: relative !important; width: 100% !important; padding: 0 !important; margin: 0 !important; background: none !important; }
+.qol-chat-window .conversationHeader .title { color: #4c3926 !important; font: bold 12px/1.5 Arial, sans-serif !important; }
+.qol-chat-window .threadView .scrollContentOuterWrapper, .qol-chat-window .threadView .scrollContent, .qol-chat-window .threadView .scrollContentInnerWrapper { width: 100% !important; max-width: 100% !important; min-width: 0 !important; }
+.qol-chat-window .threadView .scrollContent { overflow-x: hidden !important; overflow-y: auto !important; scrollbar-width: thin; scrollbar-color: #b6a184 transparent; }
+.qol-chat-window .threadView textarea, .qol-chat-window .threadView [contenteditable="true"] { border: 1px solid #c6b59c !important; border-radius: 5px !important; background: #fffdf8 !important; color: #3e3021 !important; font: 12px/1.5 Arial, sans-serif !important; padding: 9px !important; }
+.qol-chat-window .threadView .conversationLine, .qol-chat-window .threadView .messageText { font-family: Arial, sans-serif !important; font-size: 12px !important; line-height: 1.5 !important; }
+.qol-chat-window .threadView .conversationLine { margin: 8px 12px !important; padding: 9px 11px !important; border: 1px solid #e2d7c7 !important; border-radius: 6px !important; background: #fffdf8 !important; }
+.qol-chat-window .threadView button { min-height: 26px !important; padding: 4px 9px !important; border: 1px solid #ad9471 !important; border-radius: 4px !important; background: linear-gradient(#fffdf8, #e6dac8) !important; color: #5b472f !important; font: bold 10px/1.4 Arial, sans-serif !important; }
+.qol-chat-window .threadView button .innerButton, .qol-chat-window .threadView button .innerText { background: none !important; color: inherit !important; font: inherit !important; }
+.qol-chat-window .threadView button:disabled { opacity: .5 !important; }
+.qol-chat-window .qol-chat-empty { display: flex !important; flex: 1 1 auto !important; flex-direction: column !important; align-items: center !important; justify-content: center !important; gap: 10px !important; padding: 35px !important; color: #89775f !important; text-align: center !important; }
+.qol-chat-window .qol-chat-empty svg { width: 48px !important; height: 48px !important; fill: none !important; stroke: #b29a77 !important; stroke-width: 1.2 !important; }
+.qol-chat-window .qol-chat-empty strong { color: #6b5334 !important; font: bold 14px/1.4 Arial, sans-serif !important; }
+.qol-chat-window .qol-chat-empty p { max-width: 280px !important; margin: 0 !important; font: 11px/1.5 Arial, sans-serif !important; }
+.qol-chat-window .qol-chat-resize { display: block !important; position: absolute !important; right: 1px !important; bottom: 1px !important; width: 19px !important; height: 19px !important; cursor: nwse-resize !important; z-index: 5 !important; touch-action: none; background: repeating-linear-gradient(135deg, transparent 0 3px, #806239 3px 5px, transparent 5px 7px); clip-path: polygon(100% 0, 100% 100%, 0 100%); }
+.qol-chat-window .qol-chat-resize:focus-visible { outline: 2px solid var(--qol-accent, #806239) !important; }
+/* Search intersects the existing folder filters; native hidden controls stay hidden. */
+.qol-chat-window .history li.igmConversationEntry[style*="display: none"],
+.qol-chat-window .history li.igmConversationEntry[style*="display:none"],
+.qol-chat-window .history li.qol-chat-filtered,
+.qol-chat-window .history li.qol-chat-native-hidden,
+.qol-chat-window .qol-chat-filtered-divider,
+.qol-chat-window .ng-hide.ng-hide.ng-hide, .qol-chat-window [hidden][hidden][hidden], .qol-chat-window.ng-hide, .qol-chat-window[hidden] { display: none !important; }
+@media (max-width: 760px) {
+  .qol-chat-window .igmSystem > .firstHalf { width: 230px !important; flex-basis: 230px !important; }
+  .qol-chat-window .qol-chat-empty { padding: 18px !important; }
+}
+@media (max-width: 560px) {
+  .qol-chat-window .igmSystem > .firstHalf { width: 42% !important; flex-basis: 42% !important; }
+  .qol-chat-window .igmAvatar { display: none !important; }
+  .qol-chat-window .conversationHeader { padding: 10px !important; }
+  .qol-chat-window .history li.igmConversationEntry { margin: 3px !important; padding: 7px !important; }
+}

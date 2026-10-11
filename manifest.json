@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.158",
+  "version": "2.0.0.159",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -45,6 +45,7 @@
         "js/features/igmEnhancer.js",
         "js/modules/igm/autoSort.js",
         "js/modules/igm/messageCenter.js",
+        "js/features/chatWindowStyle.js",
         "js/features/sendButtonsEnhancer.js",
         "js/features/chatSilencer.js",
         "js/features/chatLinks.js",
@@ -116,6 +117,7 @@
         "css/features/oasisScanner.css",
         "css/features/kingdomManagement.css",
         "css/features/chatLinks.css",
+        "css/features/chatWindowStyle.css",
         "css/features/dailyReminders.css",
         "css/v2.css",
         "css/modules/igm/messageCenter.css",

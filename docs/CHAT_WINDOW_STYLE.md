@@ -1,0 +1,15 @@
+# APES Chat Window
+
+An enabled-by-default **Cosmetic Feature**, independent of IGM Enhancer and Clickable Chat Links. It styles the native Messages/IGM conversation window supplied in the user's HTML. The separate public-chat footer retains its original layout.
+
+The window uses APES parchment backgrounds, a theme-colored header, a compact conversation sidebar and a larger reading area. Native new-conversation, close, conversation selection, folder controls, message content, links and editor/send controls remain the same DOM nodes and retain their Angular bindings. Existing avatars, unread/selected states, timestamps and folder badges are restyled. No replacement chat client, network calls or automatic sending are introduced.
+
+Search matches conversation names and preview text already rendered in the current game list, ignoring case and accents. It intersects existing IGM folder filters instead of changing them. The displayed count reflects currently available matches. Clearing search restores the original list visibility; rows hidden by the game or a folder remain hidden. The existing folder tabs expand to fit the sidebar. When IGM Enhancer is disabled, native conversations and the visual search remain available.
+
+Drag the header to move the window. Drag the bottom-right grip to resize it; a focused grip also supports arrow keys, with Shift for larger adjustments. Initial dimensions are up to 880 × 600 pixels, clamped to the viewport. Position and size survive close/reopen within the page. Viewport resizing keeps the window on screen, and narrower layouts shrink the sidebar. Geometry uses APES-only CSS variables; the game's original inline transform and dimensions are preserved.
+
+The native message editor is not rebuilt when search, filtering, layout or incoming conversation data changes. Draft text, focus, selection, native close/new/send listeners, message formatting and existing links remain intact. New/replaced Angular windows and conversation nodes are observed. Updates are batched per animation frame and the observer is disconnected during its own DOM decoration, avoiding a recurring redraw loop. Removed windows release pointer handlers through an AbortController.
+
+Disable **APES Chat Window** under Cosmetic Features to remove only APES-owned classes, search/branding/empty-state/grip elements and layout variables. Original native nodes, inline styles, controller attributes, drafts and existing IGM tabs remain. No new permissions or stored message data are required.
+
+`node tests/chatWindowStyle.cjs` covers the shell structure provided in the HTML, computed-style conflicts, hidden native/folder rows, accent-insensitive search, counts, identity/listener preservation, late selected-thread insertion, draft/focus retention, dragging/resizing, viewport bounds, native hidden windows, disable/enable restoration, removal/reopening and observer quiescence. The committed fixture contains fabricated conversation data. Live-game verification should include selecting and replying to a real conversation, loading older messages and reopening the window.

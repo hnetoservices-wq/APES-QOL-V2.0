@@ -1,0 +1,28 @@
+<!doctype html><html><head></head><body>
+<div id="other-window" class="modalWrapper statistics"><div class="modal"><div class="modalContent"><h2>Statistics</h2></div></div></div>
+<window class="modalWrapper igm" style="z-index:1070;transform:translate3d(591px,125px,0px);opacity:1">
+  <div class="modal igmSystemWindow igm"><div class="modalContent" style="height:706px">
+    <div class="modalDecoration"></div><div class="functionPanel unselectable"><a class="closeWindow clickable" clickable="closeWindow('igm')"><div class="decoration"><i class="action_cancel_tiny_flat_black"></i></div></a></div>
+    <div class="contentHeader unselectable"><h2 draggable="true"><span>Messages</span></h2></div>
+    <div class="heightTransitionContent"><div class="contentTabulation"><div class="tabulationContent scrollable tabContent">
+      <div class="scrollContentOuterWrapper" style="width:700px"><div class="scrollContent" style="width:700px;overflow-y:hidden;max-height:686px"><div class="scrollContentInnerWrapper" style="width:auto"><div>
+        <div class="igmSystem" ng-controller="igmSystemCtrl"><div class="firstHalf">
+          <div class="background"></div><div class="newThreadContainer"><div class="clickableContainer clickable" clickable="newThread()"><span>Start conversation</span><div class="plusSign"><i class="symbol_plus_tiny_flat_white"></i></div></div></div>
+          <div class="history scrollable" ng-click="setChatInputState(0)"><div class="scrollContentOuterWrapper" style="width:256px"><div class="scrollContent" style="width:276px;overflow-y:auto">
+            <div id="qol-message-center-tabs" role="tablist"><div class="qol-message-tab active" role="tab" data-qol-message-filter="All">All</div><div class="qol-message-tab" role="tab" data-qol-message-filter="Kingdom">Kingdom</div><div class="qol-message-tab" role="tab" data-qol-message-filter="Private">Private</div></div>
+            <div id="qol-igm-toolbar" style="display:none!important"></div><div class="scrollContentInnerWrapper" style="width:256px"><ul>
+              <li class="divider">Kingdom conversations</li>
+              <li id="kingdom-row" class="igmConversationEntry clickable new qol-igm-enhanced-row" clickable="openConversation(inboxEntry)"><div class="igmAvatar"><i class="conversation_kingdom_medium_flat_black"></i></div><div class="verticalLine"></div><div class="igmInfos"><div class="name">APES Kingdom</div><div class="linePreview">Kingdom plans for today</div><div class="date">18:25</div><div class="readNotification"><i class="action_check_tiny_flat_black"></i></div></div><div class="qol-igm-row-folder" role="button" tabindex="0">Kingdom</div></li>
+              <li class="divider">Private conversations</li>
+              <li id="private-row" class="igmConversationEntry clickable qol-igm-enhanced-row" clickable="openConversation(inboxEntry)"><div class="igmAvatar"><avatar-image><div class="heroImage profile"><canvas width="62" height="62"></canvas></div></avatar-image></div><div class="igmInfos"><div class="name">André Example</div><div class="linePreview">Resource deliveries</div><div class="date">18:20</div></div><div class="qol-igm-row-folder" role="button" tabindex="0">Private</div></li>
+              <li id="folder-hidden-row" class="igmConversationEntry clickable" style="display:none" clickable="openConversation(inboxEntry)"><div class="igmInfos"><div class="name">Hidden Example</div><div class="linePreview">Kingdom plans</div></div></li>
+              <li id="angular-hidden-row" class="igmConversationEntry clickable ng-hide"><div class="igmInfos"><div class="name">Angular Hidden</div></div></li>
+            </ul></div>
+          </div></div><div class="scrollTrack"><div class="scrollHandle"></div></div></div>
+        </div><div class="threadView"><div class="background"></div><div class="conversationHeader"><div class="arrow"></div><div class="conversationHeaderInner selectConversation"><div class="title truncated">Select a conversation</div></div></div></div></div>
+      </div></div></div></div><div class="scrollTrack"></div>
+    </div></div></div><window-overlay></window-overlay>
+  </div></div>
+</window>
+<div id="chatFooterBar"><div class="ng-hide"><div class="chatMenu">Native public chat</div></div></div>
+</body></html>
