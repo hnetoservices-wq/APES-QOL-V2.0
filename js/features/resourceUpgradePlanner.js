@@ -956,7 +956,7 @@
     document.head.appendChild(style);
   }
   function iconSvg() {
-    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16v-5M10 16V7M14 16v-3M18 16V4"></path><path d="m5 8 4-4 4 3 6-5"></path></svg>';
+    return '<span class="qol-feature-glyph" aria-hidden="true">🌾</span>';
   }
   function renderFields() {
     const panel = document.getElementById(PANEL_ID);

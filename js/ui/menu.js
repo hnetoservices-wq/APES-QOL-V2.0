@@ -101,13 +101,13 @@ const BASIC_FEATURES = [{
   id: 'qol-chk-rally-parser',
   key: 'rallyPointParser',
   name: 'Rally Point Scanner',
-  icon: '⚔',
+  icon: '🔭',
   description: 'Scans attacks, sieges, raids, reinforcements and incoming resources from one tabbed window.'
 }, {
   id: 'qol-chk-npc-calc',
   key: 'npcCalculator',
   name: 'NPC Calculator',
-  icon: '◇',
+  icon: '🖩',
   description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
 }, {
   id: 'qol-chk-send-troops',
@@ -126,19 +126,19 @@ const ADVANCED_FEATURES = [{
   id: 'qol-chk-cp-manager',
   key: 'cpManager',
   name: 'CP Manager',
-  icon: 'CP',
+  icon: '📈',
   description: 'Scans and plans Culture Points, expansion slots, Town Halls, celebrations and Artworks.'
 }, {
   id: 'qol-chk-report-archive',
   key: 'reportArchive',
   name: 'Report Archive',
-  icon: '▰',
+  icon: '📁',
   description: 'Preserves important reports in custom folders after the original game reports disappear.'
 }, {
   id: 'qol-chk-watchlist',
   key: 'watchlist',
   name: 'Watchlists',
-  icon: '◎',
+  icon: '🔎',
   description: 'Saves and organizes players for quick access to profiles, hero data and tracking information.'
 }];
 const KINGDOM_MANAGEMENT_FEATURES = [{

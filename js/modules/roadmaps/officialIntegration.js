@@ -6,7 +6,7 @@
     id: 'qol-chk-roadmaps',
     key: FEATURE_KEY,
     name: 'Roadmaps',
-    icon: '↪',
+    icon: '🧭',
     description: 'Create, share and follow step-by-step village development guides with manual or automatic progress tracking.'
   });
 
@@ -112,7 +112,7 @@
     source.setAttribute('role', 'button');
     source.setAttribute('tabindex', '0');
     source.setAttribute('aria-label', 'Open Roadmaps');
-    source.innerHTML = '<span aria-hidden="true">↪</span>';
+    source.innerHTML = '<span class="qol-feature-glyph" aria-hidden="true">🧭</span>';
 
     source.addEventListener('click', activateRoadmaps);
     source.addEventListener('keydown', event => {
@@ -185,7 +185,7 @@
       const label = item.querySelector('.apes-v2-radial-label');
       if (label && label.textContent !== 'Roadmaps') label.textContent = 'Roadmaps';
       const icon = item.querySelector('.apes-v2-radial-icon');
-      const roadmapIcon = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 5h11a3 3 0 0 1 3 3v11H8a3 3 0 0 1-3-3z"/><path d="M8 8h7M8 12h7M8 16h4"/><path d="M5 5v11a3 3 0 0 0 3 3"/></svg>';
+      const roadmapIcon = '<span class="qol-feature-glyph" aria-hidden="true">🧭</span>';
       if (icon && icon.innerHTML !== roadmapIcon) icon.innerHTML = roadmapIcon;
     });
   }
@@ -260,3 +260,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+

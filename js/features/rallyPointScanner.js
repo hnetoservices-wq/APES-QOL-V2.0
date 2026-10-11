@@ -1306,15 +1306,7 @@ function initUnifiedRallyPointScanner() {
     button.setAttribute('title', 'Rally Point Scanner');
     button.setAttribute('role', 'button');
     button.setAttribute('tabindex', '0');
-    button.innerHTML = `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 4l7 7"></path>
-                <path d="M13 13l7 7"></path>
-                <path d="M14 4h6v6"></path>
-                <path d="M20 4l-8 8"></path>
-                <path d="M4 20l5-5"></path>
-            </svg>
-        `;
+    button.innerHTML = '<span class="qol-feature-glyph" aria-hidden="true">🔭</span>';
     const togglePanel = event => {
       event?.preventDefault();
       event?.stopPropagation();
@@ -1404,3 +1396,4 @@ function initUnifiedRallyPointScanner() {
   window.setInterval(ensureUI, 1200);
 }
 initUnifiedRallyPointScanner();
+

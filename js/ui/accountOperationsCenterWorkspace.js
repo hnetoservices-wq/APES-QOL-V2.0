@@ -22,35 +22,35 @@
       key: 'roadmaps',
       featureKey: 'roadmaps',
       label: 'Roadmaps',
-      icon: '▤',
+      icon: '🧭',
       description: 'Guided village and account development plans with step-by-step progress tracking.'
     },
     {
       key: 'rallyPoint',
       featureKey: 'rallyPointParser',
       label: 'Rally Point Scanner',
-      icon: '⚔',
+      icon: '🔭',
       description: 'Scan incoming and outgoing movements, attacks, reinforcements and incoming resources.'
     },
     {
       key: 'cpManager',
       featureKey: 'cpManager',
       label: 'CP Manager',
-      icon: 'CP',
+      icon: '📈',
       description: 'Plan Culture Points, celebrations, expansion timing and settlement readiness.'
     },
     {
       key: 'reportArchive',
       featureKey: 'reportArchive',
       label: 'Report Archive',
-      icon: '▰',
+      icon: '📁',
       description: 'Store, organize, search and reopen important reports after the originals disappear.'
     },
     {
       key: 'watchlists',
       featureKey: 'watchlist',
       label: 'Watchlists',
-      icon: '◎',
+      icon: '🔎',
       description: 'Track players, villages, notes and changes across organized watchlist tabs.'
     },
     {

@@ -38,7 +38,7 @@
     card.dataset.featureKey = FEATURE_KEY;
     card.dataset.qolRoadmapsExpertCard = '1';
     card.innerHTML = `
-      <span class="qol-feature-icon" aria-hidden="true">↪</span>
+      <span class="qol-feature-icon" aria-hidden="true">🧭</span>
       <div class="qol-feature-copy">
         <h3 class="qol-feature-name">Roadmaps</h3>
         <p class="qol-feature-desc">Build, import and run step-by-step village development plans with manual or automatic progress tracking.</p>
@@ -148,3 +148,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+

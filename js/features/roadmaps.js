@@ -470,7 +470,7 @@
     panel.id = PANEL_ID;
     panel.innerHTML = `
       <div class="qol-rm-header">
-        <div class="qol-rm-header-copy"><span class="qol-rm-header-icon">↪</span><div><strong>Roadmaps</strong><small>Guide profiles and build routes</small></div></div>
+        <div class="qol-rm-header-copy"><span class="qol-rm-header-icon">🧭</span><div><strong>Roadmaps</strong><small>Guide profiles and build routes</small></div></div>
         <div class="qol-rm-close" role="button" tabindex="0" aria-label="Close Roadmaps">×</div>
       </div>
       <div class="qol-rm-workspace">
@@ -568,7 +568,7 @@
     launcher.setAttribute('tabindex', '0');
     launcher.setAttribute('aria-label', 'Open Roadmaps');
     launcher.title = 'Roadmaps';
-    launcher.innerHTML = '<span aria-hidden="true">↪</span>';
+    launcher.innerHTML = '<span class="qol-feature-glyph" aria-hidden="true">🧭</span>';
     launcher.addEventListener('click', toggle);
     launcher.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') toggle(event);
@@ -610,3 +610,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+

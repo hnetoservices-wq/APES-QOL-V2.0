@@ -37,40 +37,17 @@
                 <path d="M8 9h8M8 12h6"/>
             </svg>
         `,
-    rally: `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 4l7 7M13 13l7 7M14 4h6v6M20 4l-8 8M4 20l5-5"/>
-            </svg>
-        `,
-    calculator: `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <rect x="5" y="2" width="14" height="20" rx="2"/>
-                <path d="M8 6h8M8 11h2M14 11h2M8 15h2M14 15h2M8 19h2M14 19h2"/>
-            </svg>
-        `,
-    cp: `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 18V8l8-5 8 5v10"/>
-                <path d="M2 18h20M8 18v-6h8v6"/>
-                <text x="12" y="10" text-anchor="middle">CP</text>
-            </svg>
-        `,
+    rally: '<span class="qol-feature-glyph" aria-hidden="true">🔭</span>',
+    calculator: '<span class="qol-feature-glyph" aria-hidden="true">🖩</span>',
+    cp: '<span class="qol-feature-glyph" aria-hidden="true">📈</span>',
     oasis: `
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="12" cy="12" r="8"/>
                 <path d="M12 2v4M12 18v4M2 12h4M18 12h4M8 16c2-5 5-7 8-8-1 4-3 7-8 8z"/>
             </svg>
         `,
-    archive: `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 7h16v14H4zM3 3h18v4H3zM9 11h6"/>
-            </svg>
-        `,
-    watchlist: `
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-                <path d="M4 6h16v15H4zM8 3h8v5H8zM8 12h8M8 16h6"/>
-            </svg>
-        `,
+    archive: '<span class="qol-feature-glyph" aria-hidden="true">📁</span>',
+    watchlist: '<span class="qol-feature-glyph" aria-hidden="true">🔎</span>',
     secretSociety: `
             <svg viewBox="0 0 24 24" aria-hidden="true">
                 <circle cx="8" cy="8" r="3"/>

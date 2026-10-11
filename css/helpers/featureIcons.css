@@ -1,0 +1,12 @@
+/* Feature symbols retain a readable size in toolbar proxies and radial menus. */
+.qol-feature-glyph {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 auto !important;
+  font-family: "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", sans-serif !important;
+  font-size: 18px !important;
+  font-weight: normal !important;
+  line-height: 1 !important;
+  pointer-events: none !important;
+}

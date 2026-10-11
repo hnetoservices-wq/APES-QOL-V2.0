@@ -81,7 +81,7 @@
       card.className = 'qol-feature-card';
       card.dataset.featureKey = FEATURE_KEY;
       card.innerHTML = `
-        <span class="qol-feature-icon" aria-hidden="true">↥</span>
+        <span class="qol-feature-icon" aria-hidden="true">🌾</span>
         <div class="qol-feature-copy">
           <h3 class="qol-feature-name">Resource Upgrade Planner</h3>
           <p class="qol-feature-desc">Calculates efficient resource upgrades and can import the selected plan directly into APES Roadmaps.</p>
@@ -171,7 +171,7 @@
   }
 
   function radialIcon() {
-    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16v-5M10 16V7M14 16v-3M18 16V4"/><path d="m5 8 4-4 4 3 6-5"/></svg>';
+    return '<span class="qol-feature-glyph" aria-hidden="true">🌾</span>';
   }
 
   function getRingRadius(itemCount, ringIndex) {

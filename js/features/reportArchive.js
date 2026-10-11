@@ -255,28 +255,7 @@
     return (hash >>> 0).toString(36);
   }
   function toolbarIcon() {
-    return `
-            <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-            >
-                <path
-                    d="M3.5 7.5h6l2-2h9v14h-17z"
-                ></path>
-
-                <path
-                    d="M3.5 9.5h17"
-                ></path>
-
-                <path
-                    d="M12 12v4"
-                ></path>
-
-                <path
-                    d="M10.3 14.3 12 16l1.7-1.7"
-                ></path>
-            </svg>
-        `;
+    return '<span class="qol-feature-glyph" aria-hidden="true">📁</span>';
   }
   function reportSaveIcon(isArchived) {
     return isArchived ? `
