@@ -244,20 +244,20 @@
     return `<option value=""${selected ? '' : ' selected'}${row && !filters.tags.length ? ' hidden' : ''}>${empty}</option>${filters.tags.map(tag => `<option value="tag:${esc(tag)}"${tag === selected ? ' selected' : ''}>${esc(tag)}</option>`).join('')}<option value="create">Create a Filter</option>`;
   }
   async function changeFilter(target) {
-    if (scanning || filterSaving) { render(); return; }
+    if (scanning || filterSaving) { render({ preserveTableScroll: true }); return; }
     const kingdomId = target.hasAttribute('data-km-row-filter') ? target.dataset.kmRowFilter : null;
     if (target.value !== 'create' && kingdomId === null) {
       selectedFilter = target.value.startsWith('tag:') ? target.value.slice(4) : ''; render(); return;
     }
     if (target.value === 'create') {
       tagEditor = { kingdomId, name: target.closest('tr')?.querySelector('.qol-km-name')?.textContent || '', value: '', error: '' };
-      render(); document.querySelector(`#${PANEL_ID} [data-km-tag-name]`)?.focus(); return;
+      render({ preserveTableScroll: true }); document.querySelector(`#${PANEL_ID} [data-km-tag-name]`)?.focus({ preventScroll: true }); return;
     }
     tagEditor = null;
     await saveFilter(target.value.startsWith('tag:') ? target.value.slice(4) : '', kingdomId);
   }
   async function saveFilter(tag, kingdomId, fromEditor = false) {
-    filterSaving = true; render();
+    filterSaving = true; render({ preserveTableScroll: true });
     try {
       filters = await H.setFilter(tag, kingdomId);
       if (kingdomId === null) selectedFilter = '';
@@ -267,14 +267,14 @@
       if (fromEditor && tagEditor) tagEditor.error = `Filter could not be saved: ${error.message}`;
       setStatus(`Filter could not be saved: ${error.message}`, 'error');
     }
-    finally { filterSaving = false; render(); }
+    finally { filterSaving = false; render({ preserveTableScroll: true }); }
   }
   function saveTagEditor() {
     if (!tagEditor || scanning || filterSaving) return;
     const tag = tagEditor.value.replace(/\s+/g, ' ').trim();
     if (!tag || tag.length > 60) {
       tagEditor.error = 'Enter a tag between 1 and 60 characters.';
-      render(); document.querySelector(`#${PANEL_ID} [data-km-tag-name]`)?.focus(); return;
+      render({ preserveTableScroll: true }); document.querySelector(`#${PANEL_ID} [data-km-tag-name]`)?.focus({ preventScroll: true }); return;
     }
     void saveFilter(tag, tagEditor.kingdomId, true);
   }
@@ -335,10 +335,14 @@
     const eligible = ordered.filter(snapshot => side === 'A' ? ordered.some(other => other.scannedAt > snapshot.scannedAt) : earlier && snapshot.scannedAt > earlier.scannedAt);
     return `<option value=""${selected ? '' : ' selected'}>Select Scan ${side}…</option>${eligible.map(snapshot => `<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>Scan ${ordered.indexOf(snapshot) + 1} · ${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('')}`;
   }
-  function render() {
+  function render({ preserveTableScroll = false } = {}) {
     const panel = document.getElementById(PANEL_ID);
     if (!panel) return;
     const body = panel.querySelector('[data-km-body]');
+    // Tagging replaces the table twice (pending write and saved/error state).
+    // Capture each current viewport so even scrolling during a save is retained.
+    const previousTable = preserveTableScroll && body.querySelector('.qol-km-table-wrap');
+    const scroll = preserveTableScroll ? { top: previousTable?.scrollTop || 0, left: previousTable?.scrollLeft || 0, bodyTop: body.scrollTop, bodyLeft: body.scrollLeft } : null;
     if (!snapshots.length) {
       body.innerHTML = `<div class="qol-km-first">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<p data-km-status data-tone="${tone}" role="status">${esc(status)}</p></div>`;
       return;
@@ -357,6 +361,9 @@
     }
     body.innerHTML = `<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label>Filter <select data-km-filter>${filterChoices(selectedFilter)}</select></label><label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div>${editorHTML()}<nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
     for (const control of body.querySelectorAll('select, input')) control.disabled = scanning || filterSaving || control.hasAttribute('data-km-later') && !earlierId;
+    const nextTable = scroll && body.querySelector('.qol-km-table-wrap');
+    if (scroll) { body.scrollTop = scroll.bodyTop; body.scrollLeft = scroll.bodyLeft; }
+    if (nextTable) { nextTable.scrollTop = scroll.top; nextTable.scrollLeft = scroll.left; }
   }
   function mountPanel() {
     let panel = document.getElementById(PANEL_ID);
@@ -373,7 +380,7 @@
       if (control.hasAttribute('data-km-close')) close();
       if (control.hasAttribute('data-km-scan')) void scan();
       if (control.hasAttribute('data-km-tag-save')) saveTagEditor();
-      if (control.hasAttribute('data-km-tag-cancel')) { tagEditor = null; render(); }
+      if (control.hasAttribute('data-km-tag-cancel')) { tagEditor = null; render({ preserveTableScroll: true }); }
       if (control.hasAttribute('data-km-compare') && comparisonPair().valid) { comparisonReady = true; render(); }
       if (control.dataset.kmTab) { activeTab = control.dataset.kmTab; render(); }
       if (control.dataset.kmSort) { ascending = sortKey === control.dataset.kmSort ? !ascending : true; sortKey = control.dataset.kmSort; render(); }
@@ -471,7 +478,7 @@
     if (event.key !== 'Escape') return;
     if (scanning) { cancelScan(); event.preventDefault(); return; }
     if (tagEditor && document.getElementById(PANEL_ID)?.classList.contains('qol-km-open')) {
-      event.preventDefault(); event.stopPropagation(); if (!filterSaving) { tagEditor = null; render(); } return;
+      event.preventDefault(); event.stopPropagation(); if (!filterSaving) { tagEditor = null; render({ preserveTableScroll: true }); } return;
     }
     if (document.getElementById(PANEL_ID)?.classList.contains('qol-km-open')) { close(); event.preventDefault(); }
   }, true);

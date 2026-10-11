@@ -1,5 +1,7 @@
 # Kingdom Management
 
+Creating, assigning or clearing a kingdom tag preserves the list's vertical and horizontal scroll position in Results and Comparison. Opening, validating, cancelling or retrying the tag form also keeps the current position. Scrolling while a tag is being saved is retained when the save finishes. Changing the top filter, search, sorting or selected scan starts the new view at the top.
+
 Open the crown in the APES toolbar, or open Kingdom Management under Tools in the Account Operations Center. The feature toggle is in the Kingdom Management section of settings; the Command Palette also includes the tool.
 
 On first use, select **Scan Kingdoms**. APES locks game interaction and reports the ranking and page being scanned. **Cancel scan** or Escape stops the scan. On completion or cancellation, APES restores the original game route, unless another operation has already changed it.

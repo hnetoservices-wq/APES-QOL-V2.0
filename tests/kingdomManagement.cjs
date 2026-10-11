@@ -367,12 +367,22 @@ function setup(options = {}) {
   const taggedStore = new Map([['trickandtreat.kingdoms.com', { version: 1, snapshots: [plain(first)] }]]);
   const tagged = setup({ store: taggedStore }); tagged.api.open(); await pause(10);
   const rowIds = () => [...tagged.doc.querySelectorAll('[data-km-row-filter]')].map(control => control.dataset.kmRowFilter).sort();
+  const setTagScroll = (top = 640, left = 280) => {
+    const table = tagged.doc.querySelector('.qol-km-table-wrap'); table.scrollTop = top; table.scrollLeft = left;
+    tagged.doc.querySelector('[data-km-body]').scrollTop = 25;
+  };
+  const checkTagScroll = (top = 640, left = 280) => {
+    const table = tagged.doc.querySelector('.qol-km-table-wrap');
+    eq([table.scrollTop, table.scrollLeft, tagged.doc.querySelector('[data-km-body]').scrollTop], [top, left, 25]);
+  };
   const choose = async (selector, value) => {
     const control = tagged.doc.querySelector(selector); ok(control); control.value = value;
     control.dispatchEvent(new tagged.w.Event('change', { bubbles: true })); await pause(10);
   };
   const createTag = async (selector, value, enter = false) => {
+    setTagScroll();
     await choose(selector, 'create');
+    checkTagScroll();
     const input = tagged.doc.querySelector('[data-km-tag-name]'); ok(input);
     ok(tagged.doc.activeElement === input);
     input.value = value; input.dispatchEvent(new tagged.w.Event('input', { bubbles: true }));
@@ -381,6 +391,7 @@ function setup(options = {}) {
     ok(save.isConnected); ok(input.isConnected);
     if (enter) keyboard(tagged, input, 'Enter'); else tagged.doc.querySelector('[data-km-tag-save]').click();
     await pause(10);
+    checkTagScroll();
   };
   const searchTagged = value => {
     const control = tagged.doc.querySelector('[data-km-search]'); control.value = value;
@@ -406,7 +417,17 @@ function setup(options = {}) {
   eq(await tagged.H.loadFilters(), { tags: ['Unreal'], kingdomTags: { 1: 'Unreal' } });
   eq(tagged.api.getSnapshots()[0], plain(first));
   for (const control of tagged.doc.querySelectorAll('[data-km-row-filter]')) ok([...control.options].some(option => option.value === 'tag:Unreal'));
-  await choose('[data-km-row-filter="2"]', 'tag:Unreal');
+  // Preserve both axes during the pending write and after it completes. A user
+  // can continue scrolling while storage is busy; completion keeps that position.
+  const originalTagWrite = tagged.w.APES.storage.set;
+  let releaseTagWrite;
+  const tagWriteGate = new Promise(resolve => { releaseTagWrite = resolve; });
+  tagged.w.APES.storage.set = async (...args) => { await tagWriteGate; return originalTagWrite(...args); };
+  setTagScroll(); await choose('[data-km-row-filter="2"]', 'tag:Unreal'); checkTagScroll();
+  eq(tagged.doc.querySelector('[data-km-row-filter="2"]').disabled, true);
+  setTagScroll(710, 310); releaseTagWrite(); await pause(10); checkTagScroll(710, 310);
+  eq(tagged.doc.querySelector('[data-km-row-filter="2"]').value, 'tag:Unreal');
+  tagged.w.APES.storage.set = originalTagWrite;
   await createTag('[data-km-row-filter="3"]', 'unreal');
   eq((await tagged.H.loadFilters()).tags, ['Unreal']);
   eq((await tagged.H.loadFilters()).kingdomTags, { 1: 'Unreal', 2: 'Unreal', 3: 'Unreal' });
@@ -421,14 +442,18 @@ function setup(options = {}) {
   eq(shownTotals(tagged), { villages: '0', population: '0', area: '0', players: '0', averageAttack: '—', totalAttack: '0', averageDefense: '—', totalDefense: '0', treasures: '0', victoryPoints: '0' });
   eq(tagged.doc.querySelector('tfoot th').textContent, 'Total · 0 kingdoms');
   searchTagged(''); eq(shownTotals(tagged), unrealTotals);
+  setTagScroll();
   keyboard(tagged, tagged.doc.querySelector('[data-km-sort="population"]'), 'Enter'); eq(rowIds(), ['1', '2', '3']);
+  eq(tagged.doc.querySelector('.qol-km-table-wrap').scrollTop, 0);
   eq(shownTotals(tagged), unrealTotals);
-  await choose('[data-km-row-filter="2"]', ''); eq(rowIds(), ['1', '3']);
+  setTagScroll(); await choose('[data-km-row-filter="2"]', ''); eq(rowIds(), ['1', '3']); checkTagScroll();
   eq(shownTotals(tagged).population, '4,000'); eq(shownTotals(tagged).totalDefense, '45*');
   tagged.api.close(); tagged.api.open(); await pause(10); eq(rowIds(), ['1', '3']);
   // New/renamed kingdoms and missing kingdoms in Comparison use the same tags.
   await tagged.H.append(second); tagged.api.open(); await pause(10);
+  setTagScroll();
   await choose('[data-km-snapshot]', second.id); eq(rowIds(), ['1']);
+  eq(tagged.doc.querySelector('.qol-km-table-wrap').scrollTop, 0);
   eq(shownTotals(tagged), { villages: '10', population: '1,500', area: '30', players: '6', averageAttack: '5.83', totalAttack: '35', averageDefense: '7.5', totalDefense: '45', treasures: '120', victoryPoints: '3,000' });
   ok(tagged.doc.querySelector('.qol-km-name').textContent.includes('<img'));
   tagged.doc.querySelector('[data-km-tab="comparison"]').click();
@@ -444,7 +469,9 @@ function setup(options = {}) {
   await choose('[data-km-filter]', ''); eq(rowIds(), ['1', '2', '3', '4', '5']);
   const beforeCancel = plain(await tagged.H.loadFilters()), writesBeforeCancel = tagged.writes;
   await choose('[data-km-row-filter="1"]', 'create');
+  setTagScroll();
   tagged.doc.querySelector('[data-km-tag-cancel]').click(); await pause(10);
+  checkTagScroll();
   eq(await tagged.H.loadFilters(), beforeCancel); eq(tagged.writes, writesBeforeCancel);
   for (const input of ['   ', 'x'.repeat(61)]) {
     await createTag('[data-km-row-filter="1"]', input);
@@ -452,9 +479,10 @@ function setup(options = {}) {
     ok(tagged.doc.querySelector('#qol-km-tag-error').textContent.includes('1 and 60'));
   }
   tagged.doc.dispatchEvent(new tagged.w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  checkTagScroll();
   eq(tagged.doc.querySelector('[data-km-tag-name]'), null);
   ok(tagged.doc.querySelector('#qol-kingdom-management-panel').classList.contains('qol-km-open'));
-  tagged.setFailWrite(true); await choose('[data-km-row-filter="1"]', 'tag:Friends');
+  tagged.setFailWrite(true); setTagScroll(); await choose('[data-km-row-filter="1"]', 'tag:Friends'); checkTagScroll();
   eq(await tagged.H.loadFilters(), beforeCancel);
   eq(tagged.doc.querySelector('[data-km-row-filter="1"]').value, 'tag:Unreal');
   ok(tagged.doc.querySelector('[data-km-status]').textContent.includes('quota'));
@@ -465,6 +493,7 @@ function setup(options = {}) {
   ok(tagged.doc.querySelector('#qol-km-tag-error').textContent.includes('quota'));
   eq(await tagged.H.loadFilters(), beforeCancel);
   tagged.setFailWrite(false); keyboard(tagged, tagged.doc.querySelector('[data-km-tag-save]'), ' '); await pause(10);
+  checkTagScroll();
   eq(tagged.doc.querySelector('[data-km-tag-name]'), null);
   eq((await tagged.H.loadFilters()).kingdomTags[1], 'Retry tag');
   const markupTag = '<img src=x onerror=alert(1)>';
