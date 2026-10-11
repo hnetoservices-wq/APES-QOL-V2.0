@@ -129,7 +129,7 @@
   function refresh() {
     if (!document.body) return;
     if (!enabled()) { document.getElementById(BOX)?.remove(); close(); activeKeys.clear(); lastDings.clear(); signature = ''; return; }
-    const box = mountBox(), main = box.querySelector('.qol-rem-main'), due = dueItems();
+    const now = Date.now(), box = mountBox(), main = box.querySelector('.qol-rem-main'), due = dueItems(now);
     const keys = new Set(due.map(row => `${row.item.id}:${row.key}`));
     const arrived = due.filter(row => !activeKeys.has(`${row.item.id}:${row.key}`));
     if (arrived.length) {
@@ -140,6 +140,14 @@
     const outstanding = loaded && items.some(item => { const row = S.latest(item); return row && (!item.handledKey || item.handledKey < row.key); });
     main.classList.toggle('qol-rem-wiggle', outstanding);
     activeKeys = keys; box.classList.toggle('qol-rem-due', due.length > 0);
+    const soon = !due.length && loaded && items.some(item => {
+      if (!item.enabled) return false;
+      let at = S.next(item, now)?.at ?? Infinity;
+      const latest = S.latest(item, now);
+      if (latest && (!item.handledKey || item.handledKey < latest.key) && item.snooze?.key === latest.key && item.snooze.until > now) at = Math.min(at, item.snooze.until);
+      return at > now && at - now <= 3600000;
+    });
+    box.classList.toggle('qol-rem-soon', soon);
     const label = !loaded ? 'Reminders · click to set up' : due.length === 1 ? due[0].item.text : due.length ? `${due.length} reminders due!` : items.length ? 'No reminders due' : 'Add a reminder';
     const nextSignature = JSON.stringify([label, due.map(row => [row.item.id, row.key, row.item.text]), message, busy]);
     if (signature !== nextSignature) {

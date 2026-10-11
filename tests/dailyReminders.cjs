@@ -278,6 +278,27 @@ function setup({ store = new Map(), server = 'trickandtreat.kingdoms.com', playe
   m.w.innerWidth = 300; m.w.innerHeight = 220; m.w.dispatchEvent(new m.w.Event('resize'));
   eq(manager.style.width, '284px'); eq(manager.style.height, '204px'); eq(manager.style.left, '8px'); eq(manager.style.top, '8px');
   eq(m.nativeButtons, 0); eq(m.doc.querySelector('[data-rem-field="sound"]'), null); m.dom.window.close();
+  // Green active alarms override yellow upcoming alarms, including the exact one-hour boundary.
+  const colors = setup({ time: stamp('2026-10-11', '21:00') - 1000, initial: { version: 1, items: [base, { ...base, id: 'later', time: '22:30', repeat: 'once' }, { ...base, id: 'paused', time: '21:10', enabled: false }] } }); await pause();
+  const colorBox = () => colors.doc.querySelector('#qol-daily-reminders-status');
+  const colorState = () => [colorBox().classList.contains('qol-rem-due'), colorBox().classList.contains('qol-rem-soon')];
+  const mainColor = () => colors.w.getComputedStyle(colorBox().querySelector('.qol-rem-main'));
+  eq(colorState(), [false, false]);
+  eq(colors.w.getComputedStyle(colorBox().querySelector('.qol-rem-label')).textAlign, 'center');
+  eq(colors.w.getComputedStyle(colorBox().querySelector('.qol-rem-label')).paddingLeft, '18px');
+  eq(colors.w.getComputedStyle(colorBox().querySelector('.qol-rem-label')).paddingRight, '18px');
+  eq(colors.w.getComputedStyle(colorBox().querySelector('.qol-rem-main > svg')).position, 'absolute');
+  colors.tick(stamp('2026-10-11', '21:00')); eq(colorState(), [false, true]); eq(mainColor().color, 'rgb(73, 53, 11)'); ok(mainColor().backgroundImage.includes('rgb(255, 228, 154)'));
+  colors.tick(dueAt - 1000); eq(colorState(), [false, true]);
+  colors.tick(dueAt); eq(colorState(), [true, false]); eq(mainColor().color, 'rgb(255, 250, 240)'); ok(mainColor().backgroundImage.includes('rgb(67, 143, 72)'));
+  await colors.click('[data-rem-id="daily"] [data-rem-done]'); eq(colorState(), [false, true]);
+  colors.tick(stamp('2026-10-11', '22:30')); eq(colorState(), [true, false]);
+  await colors.click('[data-rem-id="later"] [data-rem-done]'); eq(colorState(), [false, false]);
+  colors.tick(stamp('2026-10-12', '22:00')); eq(colorState(), [true, false]);
+  await colors.click('[data-rem-snooze]'); eq(colorState(), [false, true]);
+  colors.tick(stamp('2026-10-12', '22:15')); eq(colorState(), [true, false]);
+  colors.api.open(); await colors.click('.qol-rem-saved-row[data-rem-id="daily"] [data-rem-toggle]'); eq(colorState(), [false, false]);
+  colors.dom.window.close();
   const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'))), content = manifest.content_scripts.find(entry => entry.js.includes('js/features/dailyReminders.js'));
   ok(content); ok(content.js.indexOf('js/modules/dailyReminders/schedule.js') < content.js.indexOf('js/features/dailyReminders.js'));
   ok(content.css.includes('css/features/dailyReminders.css')); eq(manifest.permissions, ['storage', 'unlimitedStorage']);
