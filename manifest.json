@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.161",
+  "version": "2.0.0.162",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -14,6 +14,7 @@
       ],
       "js": [
         "js/core/playerIdentityBridge.js",
+        "js/modules/visualTribeSkins/nightOverlayBridge.js",
         "js/modules/villageDashboard/bridge.js",
         "js/modules/villageDashboard/researchBridge.js",
         "js/modules/oasisScanner/networkBridge.js"

@@ -1,0 +1,24 @@
+<!doctype html><html><head><style>
+/* Native visual states seen in the supplied village and map HTML. */
+.nightMode .nightModeDarkness { opacity: 1; }
+.nightMode .nightModeBrightness { filter: brightness(.55) blur(0); }
+.nightMode .nightModeContrast { filter: contrast(1.3) blur(0); }
+.nightMode .nightModeContrastExclude { filter: contrast(.7) blur(0); }
+.nightMode .nightModeBuildingLights { opacity: 1; }
+.nightModeBuildingLights { position: absolute; }
+.ng-hide { display: none !important; }
+</style></head><body class="nightPeaceWorld halloweenWorld halloweenTheme">
+<div class="ingameContentContainer villagePage nightMode">
+  <div class="mainContentBackground villageBackground nightModeContrast" style="filter:contrast(1.3) blur(0)">
+    <div class="viewBackground village-water"><div class="nightModeDarkness premiumLocationState0" style="opacity:1"></div></div>
+    <div class="villageView"><div class="buildingLocation27">
+      <img id="buildingImage27" class="location nightModeBrightness" ng-src="https://static.kingdoms.com/game/0.121.7/layout/images/building/thumb/g15_g00.png" src="https://static.kingdoms.com/game/0.121.7/layout/images/building/thumb/g15_g00.png" style="filter:brightness(.55) blur(0)">
+      <img class="nightModeBuildingLights" src="https://static.kingdoms.com/game/0.121.7/layout/images/building/night/n15_g00.png">
+      <span class="buildingStatusButton nightModeContrastExclude" clickable="openBuildingDialog(27)">10</span>
+    </div></div>
+  </div>
+  <div class="mainContentBackground resourcesBackground nightModeContrast ng-hide"><div class="viewBackground resources"><div class="nightModeDarkness town"></div><div class="resDistribution nightModeBrightness"></div></div></div>
+  <div id="map" class="mapContainer"><div class="zoomContainer"><div class="nightModeContrast" style="filter:contrast(1.3) blur(0)"><canvas id="canvasMap" width="640" height="480"></canvas></div><div id="overlayMarkers"><span class="mapRobberCampNight"></span><span class="mapRobberCamp">Camp</span><span class="coordinateWrapper">0|0</span></div></div></div>
+</div>
+<div class="nightModeBrightness" id="outside-game" style="filter:grayscale(1)">Unrelated UI</div>
+</body></html>

@@ -165,7 +165,7 @@ const COSMETIC_FEATURES = [{
   key: 'visualTribeSkins',
   name: 'Visual Tribe Skin',
   icon: '♜',
-  description: 'Changes village building artwork to the selected Roman, Teuton or Gaul style without affecting gameplay.'
+  description: 'Choose tribe artwork and optionally remove the night overlay from villages, resource fields and the world map.'
 }];
 const KEYBINDS = [{
   keys: ['W', 'A', 'S', 'D'],

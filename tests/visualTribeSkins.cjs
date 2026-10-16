@@ -92,7 +92,7 @@ function setup(paths = samples, options = {}) {
   const images = paths.map((file, i) => new Building(file, i));
   options.beforeStart?.(images);
   const document = {
-    readyState: 'loading', documentElement: {},
+    readyState: 'loading', documentElement: new Element(),
     addEventListener(name, callback) { (documentEvents[name] ||= []).push(callback); },
     getElementById: id => ids.get(id) || null,
     createElement: () => new Element(),
