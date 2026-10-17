@@ -385,5 +385,11 @@
     close(panel) { panel.classList.remove('qol-ss-open'); },
     openClass: 'qol-ss-open'
   }));
+  workspace.register('kingdomManagement', makeSimpleAdapter({
+    panelId: 'qol-kingdom-management-panel',
+    open() { return window.APES_KINGDOM_MANAGEMENT?.open(); },
+    close() { window.APES_KINGDOM_MANAGEMENT?.close(); },
+    openClass: 'qol-km-open'
+  }));
 })();
 

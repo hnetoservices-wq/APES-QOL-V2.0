@@ -72,7 +72,13 @@ const BASIC_FEATURES = [{
   key: 'buildingAlarm',
   name: 'Building Alarm',
   icon: '◷',
-  description: 'Sounds a ding when a construction enters the free five-minute instant-finish window.'
+  description: 'Dings and alerts you at 5 minutes and 5 seconds remaining, just before free instant finish becomes available.'
+}, {
+  id: 'qol-chk-chat-links',
+  key: 'chatLinks',
+  name: 'Clickable Chat Links',
+  icon: '↗',
+  description: 'Makes web addresses in in-game conversations clickable and opens them in a new tab.'
 }, {
   id: 'qol-chk-chat-silencer',
   key: 'chatSilencer',
@@ -95,13 +101,13 @@ const BASIC_FEATURES = [{
   id: 'qol-chk-rally-parser',
   key: 'rallyPointParser',
   name: 'Rally Point Scanner',
-  icon: '⚔',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 13-6 3 6-13 6zM4 10l-2 1 2 4 3-1M17 4l2-1 3 6-2 1M11 14v4M11 18l-4 4M11 18l4 4"/></svg>',
   description: 'Scans attacks, sieges, raids, reinforcements and incoming resources from one tabbed window.'
 }, {
   id: 'qol-chk-npc-calc',
   key: 'npcCalculator',
   name: 'NPC Calculator',
-  icon: '◇',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
   description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
 }, {
   id: 'qol-chk-send-troops',
@@ -111,31 +117,37 @@ const BASIC_FEATURES = [{
   description: 'Keeps Continue, Back and Send fixed at the top while preparing multiple troop movements.'
 }];
 const ADVANCED_FEATURES = [{
-  id: 'qol-chk-distance-calculator',
-  key: 'distanceCalculator',
-  name: 'Distance & Arrival Calculator',
-  icon: '↗',
-  description: 'Calculates route distance, travel duration, exact send times and server-time arrival for troops and merchants.'
+  id: 'qol-chk-daily-reminders',
+  key: 'dailyReminders',
+  name: 'Daily Reminders',
+  icon: '🔔',
+  description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
 }, {
   id: 'qol-chk-cp-manager',
   key: 'cpManager',
   name: 'CP Manager',
-  icon: 'CP',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7M15 6h3v3"/></svg>',
   description: 'Scans and plans Culture Points, expansion slots, Town Halls, celebrations and Artworks.'
 }, {
   id: 'qol-chk-report-archive',
   key: 'reportArchive',
   name: 'Report Archive',
-  icon: '▰',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7h18"/></svg>',
   description: 'Preserves important reports in custom folders after the original game reports disappear.'
 }, {
   id: 'qol-chk-watchlist',
   key: 'watchlist',
   name: 'Watchlists',
-  icon: '◎',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>',
   description: 'Saves and organizes players for quick access to profiles, hero data and tracking information.'
 }];
 const KINGDOM_MANAGEMENT_FEATURES = [{
+  id: 'qol-chk-kingdom-management',
+  key: 'kingdomManagement',
+  name: 'Kingdom Management',
+  icon: '♛',
+  description: 'Scans every kingdom ranking, saves statistics snapshots and compares kingdom development.'
+}, {
   id: 'qol-chk-oasis-scanner',
   key: 'oasisScanner',
   name: 'Oasis Scanner',
@@ -153,7 +165,7 @@ const COSMETIC_FEATURES = [{
   key: 'visualTribeSkins',
   name: 'Visual Tribe Skin',
   icon: '♜',
-  description: 'Changes village building artwork to the selected Roman, Teuton or Gaul style without affecting gameplay.'
+  description: 'Choose tribe artwork and optionally remove the night overlay from villages, resource fields and the world map.'
 }];
 const KEYBINDS = [{
   keys: ['W', 'A', 'S', 'D'],
@@ -244,10 +256,6 @@ const TOOLBAR_ITEMS = [{
   label: 'NPC Calculator',
   key: 'npcCalculator'
 }, {
-  id: 'qol-distance-calc-toggle-btn',
-  label: 'Distance & Arrival Calculator',
-  key: 'distanceCalculator'
-}, {
   id: 'qol-oasis-toggle-btn',
   label: 'Oasis Scanner',
   key: 'oasisScanner'
@@ -263,6 +271,10 @@ const TOOLBAR_ITEMS = [{
   id: 'qol-ss-scanner-toggle-btn',
   label: 'Secret Society Scanner',
   key: 'secretSocietyScanner'
+}, {
+  id: 'qol-kingdom-management-toggle-btn',
+  label: 'Kingdom Management',
+  key: 'kingdomManagement'
 }, {
   id: 'qol-tribe-skins-toggle-btn',
   label: 'Visual Tribe Skin',
@@ -283,7 +295,7 @@ function escapeHtml(value) {
 function featureCardHtml(feature) {
   return `
         <article class="qol-feature-card" data-feature-key="${escapeHtml(feature.key)}">
-            <span class="qol-feature-icon" aria-hidden="true">${escapeHtml(feature.icon)}</span>
+            <span class="qol-feature-icon" aria-hidden="true">${String(feature.icon).startsWith('<svg class="qol-feature-symbol"') ? feature.icon : escapeHtml(feature.icon)}</span>
             <div class="qol-feature-copy">
                 <h3 class="qol-feature-name">${escapeHtml(feature.name)}</h3>
                 <p class="qol-feature-desc">${escapeHtml(feature.description)}</p>
@@ -359,11 +371,11 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-checklist-toggle-btn,
         body.qol-toolbar-collapsed #qol-building-alarm-toggle-btn,
         body.qol-toolbar-collapsed #qol-npc-calc-toggle-btn,
-        body.qol-toolbar-collapsed #qol-distance-calc-toggle-btn,
         body.qol-toolbar-collapsed #qol-oasis-toggle-btn,
         body.qol-toolbar-collapsed #qol-report-archive-toggle,
         body.qol-toolbar-collapsed #qol-cp-toggle-btn,
         body.qol-toolbar-collapsed #qol-ss-scanner-toggle-btn,
+        body.qol-toolbar-collapsed #qol-kingdom-management-toggle-btn,
         body.qol-toolbar-collapsed #qol-tribe-skins-toggle-btn{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
         #${QOL_TOOLBAR_DROPDOWN_ID}{position:fixed!important;display:none!important;flex-direction:column!important;min-width:220px!important;max-width:min(300px,88vw)!important;max-height:min(520px,80vh)!important;overflow-y:auto!important;padding:5px!important;border:2px solid var(--qol-border)!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 26px rgba(0,0,0,.38)!important;z-index:1000001!important;font-family:Arial,Helvetica,sans-serif!important;box-sizing:border-box!important}
@@ -1187,3 +1199,4 @@ if (document.readyState === 'loading') {
 } else {
   initQolUI();
 }
+

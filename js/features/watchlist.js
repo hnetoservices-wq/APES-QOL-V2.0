@@ -1213,14 +1213,7 @@
     watchlistToggleBtn = document.createElement('div');
     watchlistToggleBtn.id = 'qol-watchlist-toggle';
     watchlistToggleBtn.title = 'Toggle Player Watchlist';
-    watchlistToggleBtn.innerHTML = `
-            <svg viewBox="0 0 24 24" style="fill:none !important; stroke:var(--qol-accent) !important; stroke-width:2 !important; stroke-linecap:round !important; stroke-linejoin:round !important;">
-                <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"></path>
-                <rect x="8" y="2" width="8" height="4" rx="1" ry="1"></rect>
-                <path d="M9 12h6"></path>
-                <path d="M9 16h6"></path>
-            </svg>
-        `;
+    watchlistToggleBtn.innerHTML = '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>';
     let isOpening = false;
     watchlistToggleBtn.addEventListener('click', () => {
       if (isOpening) return;
@@ -1352,3 +1345,4 @@
     init();
   }
 })();
+

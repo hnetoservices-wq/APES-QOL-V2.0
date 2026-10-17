@@ -12,7 +12,6 @@
     ['qol-building-alarm-toggle-btn', 'buildingAlarm', 'Building Alarms'],
     ['qol-npc-calc-toggle-btn', 'npcCalculator', 'NPC Calculator'],
     ['qol-resource-planner-toggle-btn', 'resourceUpgradePlanner', 'Resource Upgrade Planner'],
-    ['qol-distance-calc-toggle-btn', 'distanceCalculator', 'Distance & Arrival Calculator'],
     ['qol-watchlist-toggle', 'watchlist', 'Watchlists'],
     ['qol-report-archive-toggle', 'reportArchive', 'Report Archive'],
     ['qol-cp-toggle-btn', 'cpManager', 'CP Manager'],
@@ -175,3 +174,4 @@
     };
   };
 })();
+

@@ -42,10 +42,6 @@
     label: 'Resource Upgrade Planner',
     key: 'resourceUpgradePlanner'
   }, {
-    id: 'qol-distance-calc-toggle-btn',
-    label: 'Distance & Arrival Calculator',
-    key: 'distanceCalculator'
-  }, {
     id: 'qol-oasis-toggle-btn',
     label: 'Oasis Scanner',
     key: 'oasisScanner'
@@ -61,6 +57,10 @@
     id: 'qol-ss-scanner-toggle-btn',
     label: 'Secret Society Scanner',
     key: 'secretSocietyScanner'
+  }, {
+    id: 'qol-kingdom-management-toggle-btn',
+    label: 'Kingdom Management',
+    key: 'kingdomManagement'
   }, {
     id: 'qol-tribe-skins-toggle-btn',
     label: 'Visual Tribe Skin',
@@ -605,3 +605,4 @@
     init();
   }
 })();
+

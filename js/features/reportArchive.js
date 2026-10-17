@@ -255,28 +255,7 @@
     return (hash >>> 0).toString(36);
   }
   function toolbarIcon() {
-    return `
-            <svg
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-            >
-                <path
-                    d="M3.5 7.5h6l2-2h9v14h-17z"
-                ></path>
-
-                <path
-                    d="M3.5 9.5h17"
-                ></path>
-
-                <path
-                    d="M12 12v4"
-                ></path>
-
-                <path
-                    d="M10.3 14.3 12 16l1.7-1.7"
-                ></path>
-            </svg>
-        `;
+    return '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7h18"/></svg>';
   }
   function reportSaveIcon(isArchived) {
     return isArchived ? `
