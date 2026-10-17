@@ -72,7 +72,7 @@ const BASIC_FEATURES = [{
   key: 'buildingAlarm',
   name: 'Building Alarm',
   icon: '◷',
-  description: 'Sounds a ding when a construction enters the free five-minute instant-finish window.'
+  description: 'Dings and alerts you at 5 minutes and 5 seconds remaining, just before free instant finish becomes available.'
 }, {
   id: 'qol-chk-chat-links',
   key: 'chatLinks',
