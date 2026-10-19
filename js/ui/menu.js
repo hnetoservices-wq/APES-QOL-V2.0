@@ -467,6 +467,7 @@ function injectQolMenuStyles() {
         #qol-modal .qol-footer-action{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:24px!important;padding:3px 9px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#5b472f!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important}
         #qol-modal .qol-footer-action:hover,#qol-modal .qol-footer-action:focus-visible{border-color:#765b39!important;background:#eee4d4!important;outline:none!important}
         #qol-modal .qol-thank-you-btn{border-color:var(--qol-accent)!important;color:var(--qol-accent-ink)!important}
+        #qol-modal .qol-check-updates-link{text-decoration:none!important;white-space:nowrap!important}
 
         #qol-modal-overlay .qol-cache-dialog-layer{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(18,16,13,.62)!important;z-index:1000002!important}
         #qol-modal-overlay .qol-cache-dialog-layer.qol-open{display:flex!important}
@@ -921,6 +922,7 @@ function buildSettingsMarkup() {
                     <div class="qol-footer-actions">
                         <div class="qol-footer-action qol-clear-cache-btn" role="button" tabindex="0">Manage Storage</div>
                         <div class="qol-footer-action qol-thank-you-btn" role="button" tabindex="0" aria-haspopup="dialog">♡ Thank You</div>
+                        <a class="qol-footer-action qol-check-updates-link" href="https://chromewebstore.google.com/detail/apes-qol-20-beta/fdlfjnpobgajblbcimfpcmajhodphifi" target="_blank" rel="noopener noreferrer" title="Open APES QoL on the Chrome Web Store in a new tab">Check for Updates</a>
                     </div>
                 </div>
                 <span class="qol-footer-hint">Press Esc or click outside to close</span>
@@ -966,10 +968,10 @@ function buildSettingsMarkup() {
                     <h3 class="qol-thank-heading">Thanks</h3>
                     <p>A big thank-you to every Ape, marsupial, and monkey in APES. My time in this game has been far more enjoyable because you were part of it.</p>
                     <p>Special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir, and Cookix for keeping me (in)sane through all the crazy times I’ve gone through.</p>
-                    <p>Special thanks also go to Tjabz, SirPates, and knupa, who tested the extension, offered suggestions, and reported bugs throughout its developmen</p>
-                    <p class="qol-thank-quote">Above all, I owe my greatest thanks to my wife. When I kept going on and on about how I had a ton of ideas for improving this game, she finally said, “Just do it then. Jesus fucking Christ, shut up about it already. Holy shit. Do it, just fucking do it, leave me alone.” She is an actual saint for putting up with me.</p>
+                    <p>Special thanks also go to Tjabz, SirPates, and knupa, who tested the extension, offered suggestions, and reported bugs throughout its development.</p>
+                    <p class="qol-thank-quote">Above all, I owe my greatest thanks to my wife. When I kept going on and on about how I had a ton of ideas for improving this game, she finally said, “Just do it then. Jesus fucking Christ, shut up about it already. Holy shit. Do it, just fucking do it, leave me alone.”</p>
                     <p>A huge thank-you also goes to my son, who made sure I took some (forced) breaks while structuring, organizing, and building this extension.</p>
-                    <p>And a big thank-you to a very special someone I never had the chance to meet and whom I miss terribly. You've never made a sound, yet you kept me up every night for over a week. Your tiny weight is the heaviest burden I'll ever carry. I'm a humbler man because of you. Rest easy knowing I will carry you with me forever, in my heart and soul.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
+                    <p>And a big thank you to a very special someone I never had the chance to meet but whom I miss terribly. You've never made a sound, yet you still keep me up at night. Your tiny weight is the heaviest I'll ever carry. I'm a humbler man now. I will carry you with me forever.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
 
                     <p class="qol-thank-contact">To all of you reading this: if you need anything—from just talking to asking me to be a temp king, from life to game related—you can always message me on Discord <span class="qol-thank-contact-handle">@restoss</span>.</p>
                 </div>
