@@ -19,17 +19,17 @@
     roman: {
       name: 'Roman',
       prefix: 'r',
-      mark: 'R'
+      icon: 'tribe_roman_medium_illu'
     },
     teuton: {
       name: 'Teuton',
       prefix: 't',
-      mark: 'T'
+      icon: 'tribe_teuton_medium_illu'
     },
     gaul: {
       name: 'Gaul',
       prefix: 'g',
-      mark: 'G'
+      icon: 'tribe_gaul_medium_illu'
     }
   });
   let observer = null;
@@ -331,6 +331,7 @@
             #${PANEL_ID} .qol-tribe-skins-choice:hover{border-color:#6e5435!important;background:#fff6e5!important;transform:translateY(-1px)!important}
             #${PANEL_ID} .qol-tribe-skins-choice:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
             #${PANEL_ID} .qol-tribe-skins-mark{display:flex!important;align-items:center!important;justify-content:center!important;width:37px!important;height:37px!important;border:2px solid var(--qol-accent-hover)!important;border-radius:50%!important;background:#f8f1e5!important;color:var(--qol-accent-ink)!important;font:700 17px Georgia,serif!important}
+            #${PANEL_ID} .qol-tribe-skins-portrait{display:block!important;width:30px!important;height:30px!important;flex:0 0 30px!important;background-repeat:no-repeat!important}
             #${PANEL_ID} .qol-tribe-skins-choice.qol-active{border-color:#487315!important;background:linear-gradient(to bottom,#7db830,#5f941f)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(72,115,21,.3),0 2px 5px rgba(0,0,0,.2)!important}
             #${PANEL_ID} .qol-tribe-skins-choice.qol-active .qol-tribe-skins-mark{border-color:#fff!important;background:#487315!important;color:#fff!important}
             #${PANEL_ID} .qol-tribe-skins-current{margin:0!important;padding:8px 9px!important;border:1px solid #d6cab8!important;border-radius:3px!important;background:#fff!important;color:#5f513f!important;font-size:9px!important;text-align:center!important}
@@ -382,7 +383,7 @@
                     <div class="qol-tribe-skins-choices">
                         ${Object.entries(SKINS).map(([key, skin]) => `
                             <div class="qol-tribe-skins-choice" data-skin="${key}" role="button" tabindex="0" aria-pressed="false">
-                                <span class="qol-tribe-skins-mark">${skin.mark}</span>
+                                <span class="qol-tribe-skins-mark" aria-hidden="true"><span class="qol-tribe-skins-portrait ${skin.icon}"></span></span>
                                 <span>${skin.name}</span>
                             </div>
                         `).join('')}
