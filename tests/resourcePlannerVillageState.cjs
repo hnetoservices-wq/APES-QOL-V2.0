@@ -157,6 +157,52 @@ async function cachedAndFallbackChecks(saved) {
     equal(standalone.api.calculate().startState.fields.wood, [7,7,7,7]);
   } finally { standalone.dom.window.close(); }
 }
+async function failedPlanDoesNotRetriggerCalculation() {
+  const e = environment();
+  try {
+    await e.api.open();
+    await until(() => e.storage.get('villageScanStates')?.villages['id:123']);
+    const panel = e.panel();
+    const calculate = panel.querySelector('[data-action="calculate"]');
+    let attempts = 0;
+    calculate.addEventListener('click', () => { attempts++; });
+
+    // Restore an invalid saved plan: without a guard, rendering its error
+    // fed the document-wide class MutationObserver, which clicked Calculate
+    // again and again until the Travian tab became unresponsive.
+    const invalid = e.api.getState();
+    invalid.buildings.bakery = 1;
+    invalid.buildings.mill = 0;
+    await e.api.setState(invalid, { villageId: '123' });
+    panel.querySelector('[data-results]').classList.remove('show');
+    calculate.click();
+    await until(() => panel.querySelector('[data-error].show'));
+    const previousAttempts = attempts;
+
+    // Simulate repeated class/child mutations from Travian's Angular digest
+    // and the planner's own result/input tree.
+    for (let i = 0; i < 25; i++) {
+      const child = e.w.document.createElement('div');
+      child.className = 'qol-resource-planner-test-mutation';
+      panel.appendChild(child);
+      child.classList.toggle('changed');
+      child.remove();
+    }
+    await delay(120);
+    equal(attempts, previousAttempts);
+    equal(panel.querySelector('[data-error]').classList.contains('show'), true);
+
+    // Manual Calculate stays functional when the user corrects the state.
+    invalid.buildings.bakery = 0;
+    await e.api.setState(invalid, { villageId: '123' });
+    calculate.click();
+    await until(() => panel.querySelector('[data-results]').classList.contains('show'));
+    equal(attempts, previousAttempts + 1);
+  } finally {
+    e.dom.window.close();
+  }
+}
+
 async function nativeVillageChecks() {
   const e = environment();
   try {
@@ -182,6 +228,7 @@ async function nativeVillageChecks() {
 }
 (async () => {
   await nativeVillageChecks();
+  await failedPlanDoesNotRetriggerCalculation();
   const saved = await lifecycleChecks();
   await cachedAndFallbackChecks(saved);
   console.log(`Passed ${checks} planner village-scan, cache, failure and city-detection checks.`);
