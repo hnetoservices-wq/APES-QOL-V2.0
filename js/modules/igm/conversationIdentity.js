@@ -121,15 +121,21 @@
       : null;
   }
 
-  window.qolIgmConversationIdentity = row => {
-    if (!row) return null;
-    return nativeAttributeIdentity(row)
-      || classIdentity(row)
-      || elementIdIdentity(row)
-      || linkIdentity(row)
-      || privatePlayerIdentity(row)
-      || titledConversationIdentity(row)
-      || activityIdentity(row)
-      || null;
+  // Candidate keys are ordered by stability. The fallback keys also let
+  // autoSort transfer explicit choices when Angular later supplies roomId.
+  window.qolIgmConversationKeys = row => {
+    if (!row) return [];
+    return [...new Set([
+      nativeAttributeIdentity(row),
+      classIdentity(row),
+      elementIdIdentity(row),
+      linkIdentity(row),
+      privatePlayerIdentity(row),
+      titledConversationIdentity(row),
+      activityIdentity(row)
+    ].filter(Boolean))];
   };
+
+  window.qolIgmConversationIdentity = row =>
+    window.qolIgmConversationKeys(row)[0] || null;
 })();
