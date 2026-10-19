@@ -113,7 +113,8 @@
 
     const label = document.createElement('span');
     label.className = 'qol-message-tab-label';
-    label.textContent = value;
+    label.textContent = value === 'Secret Society' ? 'SS' : value;
+    if (value === 'Secret Society') tab.title = 'Secret Society';
     tab.appendChild(label);
 
     if (custom) {
