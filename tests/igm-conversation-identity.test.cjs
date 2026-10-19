@@ -298,3 +298,21 @@ test('an APES-generated badge cannot override its own private-chat identity', ()
   badge.attrs['data-conversation-id'] = 'native:private-player:42';
   assert.equal(env.window.qolIgmConversationIdentity(privateChat), 'private-player:42');
 });
+
+test('SS is display-only: tabs, dropdowns and badges keep the full stored category', () => {
+  const enhancer = readScript('js/features/igmEnhancer.js');
+  const messageCenter = readScript('js/modules/igm/messageCenter.js');
+  const autoSort = readScript('js/modules/igm/autoSort.js');
+  const displayFunction = enhancer.match(/function displayCategory\(category\)\s*\{[^}]+\}/)?.[0];
+  assert.ok(displayFunction, 'shared visible-category formatter exists');
+  const label = vm.runInNewContext(`(() => { ${displayFunction}; return displayCategory('Secret Society'); })()`);
+  assert.equal(label, 'SS');
+  assert.match(messageCenter, /label\.textContent = value === 'Secret Society' \? 'SS' : value/);
+  assert.match(messageCenter, /tab\.dataset\.qolMessageFilter = value/);
+  assert.match(enhancer, /value: category,\s*label: displayCategory\(category\)/);
+  assert.match(enhancer, /badge\.textContent = displayCategory\(currentTag\)/);
+  assert.match(enhancer, /badge\.dataset\.currentTag = currentTag/);
+  assert.match(autoSort, /const SECRET_SOCIETY = 'Secret Society'/);
+  assert.match(autoSort, /badge\.textContent = desired === SECRET_SOCIETY \? 'SS' : desired/);
+  assert.match(autoSort, /badge\.dataset\.currentTag = desired/);
+});
