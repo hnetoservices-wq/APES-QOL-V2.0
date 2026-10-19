@@ -260,3 +260,25 @@ test('MAIN-world bridge publishes the actual Angular inboxEntry roomId', () => {
   window.refresh();
   assert.equal(row.getAttribute('data-apes-igm-room-id'), '88992');
 });
+
+test('explicit manual folder survives roomId publication after a timestamp fallback', () => {
+  const first = new Element({ children: [
+    new Element({ classes: ['conversation_secretSociety_medium_flat_black'], roomType: '7' }),
+    new Element({ tag: 'heading', text: 'triangles' }),
+    new Element({ tag: 'span', attrs: { i18ndt: '1791294996.841' } })
+  ] });
+  const badge = new Element({ tag: 'badge' });
+  badge.parent = first;
+  first.badge = badge;
+  const env = sandboxFor([first]);
+  env.startAutoSort();
+  env.moveSelected(first, 'Private');
+
+  // MAIN-world Angular bridge resolves the actual stable inbox room ID later.
+  first.attrs['data-apes-igm-room-id'] = '77741';
+  env.startAutoSort();
+  const tags = JSON.parse(env.storage.get('qol_conversation_tags_v3'));
+  const overrides = JSON.parse(env.storage.get('qol_conversation_tag_overrides_v3'));
+  assert.equal(tags['native:77741'], 'Private');
+  assert.equal(overrides['native:77741'], 'Private');
+});
