@@ -142,11 +142,33 @@
     const valid = allCategories();
     const filter = currentFilter();
     let tagsChanged = false;
+    let overridesChanged = false;
+
+    // Each native room ID can appear after the list was initially rendered.
+    // Migrate only explicit v3 manual choices, and only from fallback IDs
+    // unique across the currently visible conversation list. Never restore
+    // the old v2 type-wide override map.
+    const fallbackCounts = new Map();
+    const alternateKeys = new Map();
+    rows.forEach(row => {
+      const keys = window.qolIgmConversationKeys?.(row) || [];
+      alternateKeys.set(row, keys);
+      keys.forEach(key => fallbackCounts.set(key, (fallbackCounts.get(key) || 0) + 1));
+    });
 
     rows.forEach(row => {
       const id = identities.get(row);
       if (!id) return;
 
+      if (!valid.has(safeOverrides[id])) {
+        const previous = (alternateKeys.get(row) || []).find(key =>
+          key !== id && fallbackCounts.get(key) === 1 && valid.has(safeOverrides[key])
+        );
+        if (previous) {
+          safeOverrides[id] = safeOverrides[previous];
+          overridesChanged = true;
+        }
+      }
       const desired = valid.has(safeOverrides[id]) ? safeOverrides[id] : inferCategory(row);
 
       if (safeTags[id] !== desired) {
@@ -168,6 +190,7 @@
     });
 
     if (tagsChanged) writeJson(TAGS_KEY, safeTags);
+    if (overridesChanged) writeJson(OVERRIDES_KEY, safeOverrides);
     updateDividerVisibility();
   }
 
