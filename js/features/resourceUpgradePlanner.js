@@ -1407,17 +1407,6 @@
   window.addEventListener('qol_close_others', event => {
     if (event.detail?.source !== FEATURE_KEY) closePanel();
   });
-  window.addEventListener('apes_qol_world_speed_detected', () => {
-    // Config can become ready after a cached village plan has been drawn.
-    // Refresh its metrics immediately; no rescan or ranking-rule change.
-    if (!stateLoaded) return;
-    const oldSpeed = state.speed;
-    const info = applyDetectedWorldSpeed();
-    if (!info.detected || state.speed === oldSpeed) return;
-    renderInputState();
-    if (hasVillageState() && !isScanning) calculateAndRender();
-    void saveState();
-  });
   window.addEventListener('qol_setting_changed', event => {
     if (event.detail?.key !== FEATURE_KEY) return;
     if (event.detail.enabled) {
