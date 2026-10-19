@@ -74,6 +74,12 @@ const BASIC_FEATURES = [{
   icon: '◷',
   description: 'Dings and alerts you at 5 minutes and 5 seconds remaining, just before free instant finish becomes available.'
 }, {
+  id: 'qol-chk-farm-list-loot-percentage',
+  key: 'farmListLootPercentage',
+  name: 'Farm List Loot Percentage',
+  icon: '%',
+  description: 'Shows the percentage of troop carrying capacity filled by loot in farm-raid reports.'
+}, {
   id: 'qol-chk-chat-links',
   key: 'chatLinks',
   name: 'Clickable Chat Links',
