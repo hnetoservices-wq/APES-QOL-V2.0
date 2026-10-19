@@ -186,6 +186,9 @@
     const observer = new MutationObserver(mutations => {
       // Ignore our own badge edits; the game can redraw entries at any time.
       if (mutations.every(mutation => {
+        if (mutation.type === 'attributes') {
+          return Boolean(mutation.target.closest?.('.' + BADGE_CLASS));
+        }
         if (mutation.type === 'characterData') {
           return Boolean(mutation.target.parentElement?.closest('.' + BADGE_CLASS));
         }
@@ -196,7 +199,13 @@
       })) return;
       scheduleRender();
     });
-    observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+      attributes: true,
+      attributeFilter: ['data-loot', 'data-stolen', 'data-bounty', 'data-capacity', 'data-max-capacity', 'data-carry-capacity', 'title', 'aria-label']
+    });
     window.addEventListener('hashchange', scheduleRender);
     window.addEventListener('qol_setting_changed', event => {
       if (event.detail?.key === FEATURE_KEY) scheduleRender();
