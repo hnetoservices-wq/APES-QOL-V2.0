@@ -9,7 +9,9 @@ const source = fs.readFileSync(path.join(root, 'js/ui/menu.js'), 'utf8');
 const begin = source.indexOf('function buildSettingsMarkup() {');
 const end = source.indexOf('function reconcileCanonicalFeatureCards(', begin);
 assert.ok(begin >= 0 && end > begin, 'Settings markup function must exist');
+const requestedAssets = [];
 const markup = vm.runInNewContext(source.slice(begin, end) + '\nbuildSettingsMarkup()', {
+  chrome: { runtime: { getURL: asset => { requestedAssets.push(asset); return `chrome-extension://test-id/${asset}`; } } },
   KEYBINDS: [], BASIC_FEATURES: [], ADVANCED_FEATURES: [],
   KINGDOM_MANAGEMENT_FEATURES: [], COSMETIC_FEATURES: [],
   keybindHtml: () => '', featureCardHtml: () => '',
@@ -40,4 +42,16 @@ assert.ok(!markup.includes('Rest easy knowing I will carry you'));
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifest.json'), 'utf8'));
 assert.deepEqual(manifest.permissions, ['storage', 'unlimitedStorage'], 'No new permissions');
 assert.ok(!source.includes('fetch(') && !source.includes('XMLHttpRequest'), 'Settings does not make an update-check request');
-console.log('Settings footer and Thank You copy: 13 checks passed');
+
+assert.deepEqual(requestedAssets, ['images/apege.png'], 'Header resolves the packaged asset through runtime.getURL');
+assert.ok(markup.includes('<span class="qol-brand-mark" aria-hidden="true"><img src="chrome-extension://test-id/images/apege.png" alt=""></span>'), 'Decorative image replaces the header emoji');
+assert.ok(!markup.includes('🦧'), 'Settings header no longer renders the text orangutan');
+const png = fs.readFileSync(path.join(root, 'images/apege.png'));
+assert.equal(png.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', 'Packaged asset is a PNG');
+assert.ok(png.readUInt32BE(16) > 0 && png.readUInt32BE(20) > 0, 'PNG has nonzero dimensions');
+assert.deepEqual(manifest.web_accessible_resources, [{ resources: ['images/apege.png'], matches: ['*://*.kingdoms.com/*'] }], 'Only the header asset is exposed to game pages');
+const markCss = source.match(/#qol-modal \.qol-brand-mark\{([^}]+)\}/)[1];
+for (const rule of ['width:34px!important', 'height:34px!important', 'border-radius:50%!important', 'overflow:hidden!important', 'flex-shrink:0!important']) assert.ok(markCss.includes(rule), rule);
+const imageCss = source.match(/#qol-modal \.qol-brand-mark img\{([^}]+)\}/)[1];
+for (const rule of ['display:block!important', 'width:100%!important', 'height:100%!important', 'object-fit:cover!important']) assert.ok(imageCss.includes(rule), rule);
+console.log('Settings footer, Thank You copy and packaged header image: all checks passed');

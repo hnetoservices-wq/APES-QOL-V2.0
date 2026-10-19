@@ -391,7 +391,8 @@ function injectQolMenuStyles() {
         #qol-modal{display:flex!important;flex-direction:column!important;width:min(920px,94vw)!important;max-height:min(860px,92vh)!important;margin:0!important;padding:0!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 24px 64px rgba(0,0,0,.52)!important;overflow:hidden!important}
         #qol-modal .qol-modal-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:66px!important;padding:10px 12px 10px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#f8f0df!important}
         #qol-modal .qol-modal-title-group{display:flex!important;align-items:center!important;gap:11px!important;min-width:0!important}
-        #qol-modal .qol-brand-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:40px!important;height:40px!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:8px!important;background:rgba(24,15,8,.24)!important;font-size:23px!important}
+        #qol-modal .qol-brand-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;flex-shrink:0!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:50%!important;overflow:hidden!important;background:rgba(24,15,8,.24)!important;box-sizing:border-box!important}
+        #qol-modal .qol-brand-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important}
         #qol-modal .qol-title-copy{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
         #qol-modal .qol-title-line{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}
         #qol-modal .qol-modal-title{color:#fffaf0!important;font-size:15px!important;font-weight:700!important}
@@ -856,7 +857,7 @@ function buildSettingsMarkup() {
         <div id="qol-modal" role="dialog" aria-modal="true" aria-labelledby="qol-menu-title">
             <div class="qol-modal-header">
                 <div class="qol-modal-title-group">
-                    <span class="qol-brand-mark" aria-hidden="true">🦧</span>
+                    <span class="qol-brand-mark" aria-hidden="true"><img src="${chrome.runtime.getURL('images/apege.png')}" alt=""></span>
                     <div class="qol-title-copy">
                         <div class="qol-title-line">
                             <span class="qol-modal-title" id="qol-menu-title">APES QoL Settings</span>
