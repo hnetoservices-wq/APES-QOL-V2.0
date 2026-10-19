@@ -1,8 +1,10 @@
 (() => {
   'use strict';
 
-  // A folder belongs to a conversation, never to its type, display name or
-  // last-message timestamp. All IGM modules must use this same identity.
+  // Prefer genuine room/conversation IDs. The game does not expose one for
+  // every IGM row; use a unique room label or last-activity timestamp when
+  // needed to keep the folder controls available. Both consumers reject
+  // duplicate identities before persisting any manual choice.
   const ID_ATTRIBUTES = [
     'conversationid', 'conversation-id', 'data-conversation-id',
     'data-conversationid', 'room-id', 'data-room-id',
@@ -33,12 +35,12 @@
   function classIdentity(row) {
     for (const element of nodes(row, '[class*="conversation_"]')) {
       for (const name of element.classList || []) {
-        // The suffix must be an actual conversation identifier, not a shared
-        // room-type CSS class. Numeric IDs and UUID-like tokens are supported.
-        const match = /^conversation_(secretSociety|kingdom|private|player|group|room|chat)_([a-zA-Z0-9-]+)$/i.exec(name);
+        // Namespaced room tokens are not necessarily numeric or UUIDs:
+        // some Travian room IDs use arbitrary alphanumeric labels.
+        const match = /^conversation_(secretSociety|kingdom|private|player|group|room|chat)_([a-zA-Z0-9_.:-]+)$/i.exec(name);
         if (!match) continue;
-        const id = match[2];
-        if (!/^\d+$/.test(id) && !/^[a-f\d]{8,}(?:-[a-f\d]+)*$/i.test(id)) continue;
+        const id = normaliseId(match[2]);
+        if (!id) continue;
         return `class:${match[1].toLowerCase()}:${id.toLowerCase()}`;
       }
     }
@@ -73,6 +75,46 @@
     return playerIds.length === 1 ? `private-player:${playerIds[0]}` : null;
   }
 
+  function roomType(row) {
+    if (row.querySelector('[class*="conversation_secretSociety_"], .igmInfos .name.roomType7')) return 'secret-society';
+    if (row.querySelector('[class*="conversation_kingdom_"], .igmInfos .name.roomType5')) return 'kingdom';
+    return 'private';
+  }
+
+  function titledConversationIdentity(row) {
+    // Only read the conversation heading: never the preview, unread count,
+    // most recent message or a badge added by APES.
+    const heading = row.querySelector([
+      '.igmInfos .name',
+      '.igmInfos .conversationName',
+      '.igmInfos .roomName',
+      '.igmInfos .title',
+      '.conversationName',
+      '.roomName',
+      '.chatName',
+      '.conversationTitle'
+    ].join(', '));
+    const name = String(heading?.textContent || '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toLowerCase();
+    return name && name.length <= 160
+      ? `title:${roomType(row)}:${encodeURIComponent(name)}`
+      : null;
+  }
+
+  function activityIdentity(row) {
+    // Legacy compatibility: this was the identifier used by the working
+    // version of the folder UI. It may change after new messages arrive,
+    // but unlike the old type-level manual overrides it cannot affect every
+    // Secret Society/Kingdom chat (duplicate keys are rejected).
+    const timestamp = row.querySelector('span[i18ndt]')?.getAttribute('i18ndt');
+    const value = String(timestamp || '').trim();
+    return value
+      ? `activity:${roomType(row)}:${encodeURIComponent(value)}`
+      : null;
+  }
+
   window.qolIgmConversationIdentity = row => {
     if (!row) return null;
     return nativeAttributeIdentity(row)
@@ -80,8 +122,8 @@
       || elementIdIdentity(row)
       || linkIdentity(row)
       || privatePlayerIdentity(row)
+      || titledConversationIdentity(row)
+      || activityIdentity(row)
       || null;
-    // Deliberately no fallback to display name or message timestamp. It is
-    // safer to leave an unidentifiable chat untouched than change other chats.
   };
 })();
