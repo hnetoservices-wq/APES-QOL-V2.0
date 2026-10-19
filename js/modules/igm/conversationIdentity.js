@@ -8,7 +8,8 @@
   const ID_ATTRIBUTES = [
     'conversationid', 'conversation-id', 'data-conversation-id',
     'data-conversationid', 'room-id', 'data-room-id',
-    'chat-id', 'data-chat-id', 'thread-id', 'data-thread-id'
+    'chat-id', 'data-chat-id', 'thread-id', 'data-thread-id',
+    'data-apes-igm-room-id'
   ];
   const ID_SELECTOR = ID_ATTRIBUTES.map(attribute => `[${attribute}]`).join(', ');
   const VALID_ID = /^[a-zA-Z0-9_.:-]{1,128}$/;
@@ -19,7 +20,9 @@
   }
 
   function nodes(row, selector) {
-    return [row, ...Array.from(row.querySelectorAll(selector))];
+    // Never derive a native ID from our own generated badge.
+    return [row, ...Array.from(row.querySelectorAll(selector))]
+      .filter(element => !element.closest?.('.qol-igm-row-folder, .qol-row-category-select'));
   }
 
   function nativeAttributeIdentity(row) {
@@ -35,12 +38,12 @@
   function classIdentity(row) {
     for (const element of nodes(row, '[class*="conversation_"]')) {
       for (const name of element.classList || []) {
-        // Namespaced room tokens are not necessarily numeric or UUIDs:
-        // some Travian room IDs use arbitrary alphanumeric labels.
-        const match = /^conversation_(secretSociety|kingdom|private|player|group|room|chat)_([a-zA-Z0-9_.:-]+)$/i.exec(name);
+        // conversation_secretSociety_medium_flat_black is a shared ICON
+        // SPRITE, not a unique chat identifier. Only accept numeric/UUID IDs.
+        const match = /^conversation_(secretSociety|kingdom|private|player|group|room|chat)_([a-zA-Z0-9-]+)$/i.exec(name);
         if (!match) continue;
-        const id = normaliseId(match[2]);
-        if (!id) continue;
+        const id = match[2];
+        if (!/^\d+$/.test(id) && !/^[a-f\d]{8,}(?:-[a-f\d]+)*$/i.test(id)) continue;
         return `class:${match[1].toLowerCase()}:${id.toLowerCase()}`;
       }
     }
@@ -82,6 +85,9 @@
   }
 
   function titledConversationIdentity(row) {
+    // For group chats the displayed group name is shared by many rooms.
+    // Never use a shared Secret Society/Kingdom title as a room identity.
+    if (roomType(row) !== 'private') return null;
     // Only read the conversation heading: never the preview, unread count,
     // most recent message or a badge added by APES.
     const heading = row.querySelector([
