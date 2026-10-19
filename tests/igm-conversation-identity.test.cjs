@@ -60,7 +60,10 @@ class Element {
     return this.querySelectorAll(selector)[0] || null;
   }
 
-  closest(selector) { return selector === 'li.igmConversationEntry' ? this.parent : null; }
+  closest(selector) {
+    if (selector.includes('.qol-igm-row-folder') && this.tag === 'badge') return this;
+    return selector === 'li.igmConversationEntry' ? this.parent : null;
+  }
 }
 
 function row(id, type = 'secretSociety') {
@@ -281,4 +284,17 @@ test('explicit manual folder survives roomId publication after a timestamp fallb
   const overrides = JSON.parse(env.storage.get('qol_conversation_tag_overrides_v3'));
   assert.equal(tags['native:77741'], 'Private');
   assert.equal(overrides['native:77741'], 'Private');
+});
+
+test('an APES-generated badge cannot override its own private-chat identity', () => {
+  const avatar = new Element({ tag: 'avatar-image', attrs: { 'player-id': '42' } });
+  const badge = new Element({ tag: 'badge', attrs: { 'data-conversation-id': 'private-player:42' } });
+  const privateChat = new Element({ children: [avatar, badge] });
+  const env = sandboxFor([privateChat]);
+  assert.equal(env.window.qolIgmConversationIdentity(privateChat), 'private-player:42');
+
+  // The earlier bug recursively wrapped this ID as native:private-player:42,
+  // then native:native:private-player:42 on each refresh.
+  badge.attrs['data-conversation-id'] = 'native:private-player:42';
+  assert.equal(env.window.qolIgmConversationIdentity(privateChat), 'private-player:42');
 });
