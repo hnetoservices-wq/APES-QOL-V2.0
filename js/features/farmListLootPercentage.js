@@ -7,7 +7,7 @@
   const STYLE_ID = 'apes-farm-loot-percentage-style';
   const FARM_SELECTOR = '[class*="farmList" i], [id*="farmList" i], [class*="farm-list" i], [id*="farm-list" i]';
   const ROW_SELECTOR = 'tr, [class*="farmListEntry" i], [class*="farmListRow" i], [class*="farm-list-entry" i], [class*="farm-list-row" i]';
-  const LOOT_SELECTOR = '[class*="loot" i], [class*="bounty" i], [class*="plunder" i], [class*="stolen" i], [class*="haul" i], [data-loot], [data-stolen], [data-bounty]';
+  const LOOT_SELECTOR = '[class*="loot" i], [class*="bounty" i], [class*="plunder" i], [class*="stolen" i], [class*="haul" i], [class*="resource" i], [data-loot], [data-stolen], [data-bounty]';
   const CARRY_SELECTOR = '[class*="capacity" i], [class*="carry" i], [data-capacity], [data-max-capacity], [data-carry-capacity]';
   let scheduled = false;
 
@@ -55,6 +55,11 @@
     for (const text of [sourceText(node), node.getAttribute('title'), node.getAttribute('aria-label')]) {
       const value = numberFrom(text);
       if (value !== null) return value;
+      const labelled = String(text || '').trim().match(/^(?:loot|bounty|haul|stolen(?: resources)?|resources? stolen|carrying capacity|capacity|carry)\s*:\s*([0-9][0-9.,\s]*)$/i);
+      if (labelled) {
+        const amount = numberFrom(labelled[1]);
+        if (amount !== null) return amount;
+      }
     }
     return null;
   }
@@ -161,6 +166,8 @@
     const rows = new Set();
     for (const root of farmRoots) {
       if (root.matches(ROW_SELECTOR)) rows.add(root);
+      const containingRow = root.closest(ROW_SELECTOR);
+      if (containingRow) rows.add(containingRow);
       root.querySelectorAll(ROW_SELECTOR).forEach(row => rows.add(row));
     }
     if (!rows.size) return;
