@@ -185,7 +185,7 @@ async function worldSpeedChecks() {
   improvedX5.fields.crop[0] = 7;
   const gainX5 = env.private.computeProduction(improvedX5)[3] - beforeX5[3];
   equal(gainX5, 105);
-  equal(5420 / gainX1 / 5, 5420 / gainX5);
+  assert.ok(Math.abs(5420 / gainX1 / 5 - 5420 / gainX5) < 1e-9); checks++;
   const x5Plan = env.api.calculate();
   equal(x5Plan.startState.speed, 5);
   const orderAtX5 = x5Plan.results.map(row => [row.kind, row.resource || row.building, row.index, row.toLevel]);
