@@ -136,19 +136,21 @@
     }
     const { looted, capacity, anchor } = result;
     if (!anchor || !anchor.isConnected) return;
+    const host = anchor.matches('img, input, svg, br') ? anchor.parentElement : anchor;
+    if (!host) return;
     const label = formatPercent(looted, capacity);
     const tooltip = `${looted.toLocaleString()} / ${capacity.toLocaleString()} resources stolen (${label} of troop carrying capacity)`;
-    let badge = badges.find(node => node.parentElement === anchor);
+    let badge = badges.find(node => node.parentElement === host);
     if (!badge) {
       badges.forEach(node => node.remove());
       badge = document.createElement('span');
       badge.className = BADGE_CLASS;
-      badge.setAttribute('aria-label', 'Loot percentage');
-      anchor.appendChild(badge);
+      host.appendChild(badge);
     } else {
       badges.filter(node => node !== badge).forEach(node => node.remove());
     }
     if (badge.textContent !== label) badge.textContent = label;
+    if (badge.getAttribute('aria-label') !== label + ' of capacity') badge.setAttribute('aria-label', label + ' of capacity');
     if (badge.title !== tooltip) badge.title = tooltip;
   }
 
