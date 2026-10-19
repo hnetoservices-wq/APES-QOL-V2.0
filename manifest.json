@@ -42,6 +42,7 @@
         "js/features/oasisScanner.js",
         "js/modules/oasisScanner/csvInterop.js",
         "js/features/rallyPointEnhancer.js",
+        "js/modules/igm/conversationIdentity.js",
         "js/features/igmEnhancer.js",
         "js/modules/igm/autoSort.js",
         "js/modules/igm/messageCenter.js",
