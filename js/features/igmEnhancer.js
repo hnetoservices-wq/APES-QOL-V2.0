@@ -2,7 +2,7 @@ function initIgmEnhancer() {
   'use strict';
 
   const FEATURE_KEY = 'igmEnhanced';
-  const CONV_STORAGE_KEY = 'qol_conversation_tags';
+  const CONV_STORAGE_KEY = 'qol_conversation_tags_v3';
   const CUSTOM_FOLDERS_STORAGE_KEY = 'qol_custom_chat_tags';
   const TOOLBAR_ID = 'qol-igm-toolbar';
   const FILTER_BUTTON_ID = 'qol-igm-filter-button';
@@ -90,25 +90,24 @@ function initIgmEnhancer() {
   function getConversationRows() {
     return Array.from(document.querySelectorAll('li.igmConversationEntry'));
   }
-  function getConversationId(row) {
-    const timestamp = row.querySelector('span[i18ndt]')?.getAttribute('i18ndt');
-    if (timestamp) {
-      return `conv_ts_${timestamp}`;
-    }
-    const referenceElement = row.querySelector('a[href], ' + '[conversationid], ' + '[conversation-id], ' + '[data-conversation-id]');
-    const reference = referenceElement?.getAttribute('conversationid') || referenceElement?.getAttribute('conversation-id') || referenceElement?.getAttribute('data-conversation-id') || referenceElement?.getAttribute('href');
-    if (reference) {
-      return `conv_ref_` + String(reference).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_:#/.-]/g, '').slice(0, 90);
-    }
-    const clone = row.cloneNode(true);
-    clone.querySelectorAll('.qol-igm-row-folder, ' + '.qol-row-category-select').forEach(element => {
-      element.remove();
+  function getConversationIdentityMap(rows = getConversationRows()) {
+    const ids = new Map();
+    const counts = new Map();
+    rows.forEach(row => {
+      const id = window.qolIgmConversationIdentity?.(row) || null;
+      ids.set(row, id);
+      if (id) counts.set(id, (counts.get(id) || 0) + 1);
     });
-    const cleanText = (clone.innerText || clone.textContent || '').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-    return cleanText ? `conv_txt_${cleanText.substring(0, 70)}` : null;
+    ids.forEach((id, row) => {
+      if (id && counts.get(id) !== 1) ids.set(row, null);
+    });
+    return ids;
   }
-  function getConversationTag(row, tags = getStoredTags()) {
-    const conversationId = getConversationId(row);
+  function getConversationId(row, identities) {
+    return (identities || getConversationIdentityMap()).get(row) || null;
+  }
+  function getConversationTag(row, tags = getStoredTags(), identities) {
+    const conversationId = getConversationId(row, identities);
     const storedTag = conversationId ? tags[conversationId] : null;
     return getAllCategories().includes(storedTag) ? storedTag : 'Unsorted';
   }
@@ -847,12 +846,15 @@ function initIgmEnhancer() {
   }
   function injectRowBadges() {
     const tags = getStoredTags();
-    getConversationRows().forEach(row => {
-      const conversationId = getConversationId(row);
+    const rows = getConversationRows();
+    const identities = getConversationIdentityMap(rows);
+    rows.forEach(row => {
+      const conversationId = getConversationId(row, identities);
       if (!conversationId) {
+        row.querySelector('.qol-igm-row-folder')?.remove();
         return;
       }
-      const currentTag = getConversationTag(row, tags);
+      const currentTag = getConversationTag(row, tags, identities);
       let badge = row.querySelector('.qol-igm-row-folder');
       row.classList.add('qol-igm-enhanced-row');
       row.querySelector('.qol-row-category-select')?.remove();
@@ -1012,9 +1014,10 @@ function initIgmEnhancer() {
   function applyFilter() {
     const tags = getStoredTags();
     const rows = getConversationRows();
+    const identities = getConversationIdentityMap(rows);
     let visibleCount = 0;
     rows.forEach(row => {
-      const tag = getConversationTag(row, tags);
+      const tag = getConversationTag(row, tags, identities);
       const shouldShow = currentFilter === 'All' ? !['Spam', 'Trash'].includes(tag) : tag === currentFilter;
       row.style.display = shouldShow ? '' : 'none';
       if (shouldShow) {
