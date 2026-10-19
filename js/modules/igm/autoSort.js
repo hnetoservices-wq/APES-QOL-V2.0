@@ -58,15 +58,18 @@
     return 'Private';
   }
 
-  function conversationId(row) {
-    const id = window.qolIgmConversationIdentity?.(row);
-    if (!id) return null;
-
-    // Fail closed on ambiguous identities instead of changing all matching
-    // rows when one chat is moved to a different folder.
-    const collides = Array.from(document.querySelectorAll('li.igmConversationEntry'))
-      .some(other => other !== row && window.qolIgmConversationIdentity?.(other) === id);
-    return collides ? null : id;
+  function uniqueConversationIds(rows) {
+    const ids = new Map();
+    const counts = new Map();
+    rows.forEach(row => {
+      const id = window.qolIgmConversationIdentity?.(row) || null;
+      ids.set(row, id);
+      if (id) counts.set(id, (counts.get(id) || 0) + 1);
+    });
+    ids.forEach((id, row) => {
+      if (id && counts.get(id) !== 1) ids.set(row, null);
+    });
+    return ids;
   }
 
   function allCategories() {
@@ -130,6 +133,7 @@
 
     const rows = Array.from(document.querySelectorAll('li.igmConversationEntry'));
     if (!rows.length) return;
+    const identities = uniqueConversationIds(rows);
 
     const tags = readJson(TAGS_KEY, {});
     const safeTags = tags && typeof tags === 'object' && !Array.isArray(tags) ? tags : {};
@@ -140,7 +144,7 @@
     let tagsChanged = false;
 
     rows.forEach(row => {
-      const id = conversationId(row);
+      const id = identities.get(row);
       if (!id) return;
 
       const desired = valid.has(safeOverrides[id]) ? safeOverrides[id] : inferCategory(row);
@@ -186,7 +190,9 @@
 
     const overrides = readJson(OVERRIDES_KEY, {});
     const safeOverrides = overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {};
-    const id = conversationId(row);
+    const id = uniqueConversationIds(
+      Array.from(document.querySelectorAll('li.igmConversationEntry'))
+    ).get(row);
     if (!id) return;
     safeOverrides[id] = category;
     writeJson(OVERRIDES_KEY, safeOverrides);
