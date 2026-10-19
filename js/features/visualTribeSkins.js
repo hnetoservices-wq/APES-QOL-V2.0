@@ -275,8 +275,11 @@
       control.classList.toggle('qol-active', active);
       control.setAttribute('aria-pressed', String(active));
     });
+    const displayedArtwork = sessionArtwork === 'server'
+      ? (document.body?.classList?.contains('halloweenTheme') || document.querySelector?.('img.location[ng-src*="/halloween/"]') ? 'halloween' : 'standard')
+      : sessionArtwork;
     panel.querySelectorAll('[data-artwork]').forEach(control => {
-      const active = control.dataset.artwork === sessionArtwork;
+      const active = control.dataset.artwork === displayedArtwork;
       control.classList.toggle('qol-active', active);
       control.setAttribute('aria-pressed', String(active));
     });
@@ -288,7 +291,7 @@
     const current = panel.querySelector('.qol-tribe-skins-current');
     if (!current) return;
     const tribe = selected ? SKINS[selected].name : 'Your tribe';
-    current.textContent = tribe + ' · ' + ARTWORK[sessionArtwork].name + ' artwork. Buildings without a Halloween variant use regular artwork.';
+    current.textContent = tribe + ' · ' + ARTWORK[displayedArtwork].name + ' artwork. Buildings without a Halloween variant use regular artwork.';
   }
   function injectStyles() {
     if (document.getElementById('qol-tribe-skins-styles')) return;
@@ -312,8 +315,13 @@
             #${PANEL_ID} .qol-tribe-skins-night:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
             #${PANEL_ID} .qol-tribe-skins-night strong{display:block!important;font-size:10px!important;color:#5f513f!important}
             #${PANEL_ID} .qol-tribe-skins-night small{display:block!important;font-size:9px!important;color:#89765d!important}
-            #${PANEL_ID} [data-night-status]{padding:4px 8px!important;border:1px solid #b8a487!important;border-radius:3px!important;background:#eee7db!important;color:#5f513f!important;font-weight:bold!important;font-size:10px!important}
-            #${PANEL_ID} [aria-checked="true"] [data-night-status]{background:var(--qol-accent-soft,#ebdcb9)!important;color:var(--qol-accent-ink,#543f26)!important;border-color:var(--qol-accent,#806239)!important}
+            #${PANEL_ID} [data-night-status]{color:#5f513f!important;font-size:10px!important;min-width:20px!important;text-align:right!important}
+            #${PANEL_ID} .qol-night-toggle{display:flex!important;align-items:center!important;gap:8px!important}
+            #${PANEL_ID} .qol-night-track{display:block!important;position:relative!important;width:38px!important;height:22px!important;border-radius:999px!important;background:#a89d8d!important;flex-shrink:0!important;transition:background .15s!important}
+            #${PANEL_ID} .qol-night-thumb{position:absolute!important;left:3px!important;top:3px!important;width:16px!important;height:16px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.25)!important;transition:transform .15s!important}
+            #${PANEL_ID} [aria-checked="true"] .qol-night-track{background:#5f941f!important}
+            #${PANEL_ID} [aria-checked="true"] .qol-night-thumb{transform:translateX(16px)!important}
+            @media(prefers-reduced-motion:reduce){#${PANEL_ID} .qol-night-track,#${PANEL_ID} .qol-night-thumb{transition:none!important}}
 
             #${TOOLBAR_BUTTON_ID}{position:fixed!important;display:none!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;margin:0!important;padding:0!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;color:var(--qol-accent-ink)!important;box-shadow:0 2px 4px rgba(0,0,0,.22)!important;cursor:pointer!important;user-select:none!important;box-sizing:border-box!important;z-index:9999!important;font:700 17px Arial,Helvetica,sans-serif!important;text-shadow:none!important}
             #${TOOLBAR_BUTTON_ID}:hover{transform:scale(1.08)!important;background:#f7f5f0!important}
@@ -327,6 +335,7 @@
             #${PANEL_ID} .qol-tribe-skins-copy{margin:0!important;color:#5f513f!important}
             #${PANEL_ID} .qol-tribe-skins-choice-label{margin:1px 0 -5px!important;color:#5f513f!important;font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.4px!important}
             #${PANEL_ID} .qol-tribe-skins-choices{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+            #${PANEL_ID} .qol-tribe-skins-artworks{grid-template-columns:repeat(2,minmax(0,1fr))!important}
             #${PANEL_ID} .qol-tribe-skins-choice{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-width:0!important;min-height:82px!important;padding:9px 5px!important;border:1px solid #9c8668!important;border-radius:4px!important;background:linear-gradient(to bottom,#fff,#f0e7da)!important;color:var(--qol-text-accent)!important;cursor:pointer!important;user-select:none!important;font-size:10px!important;font-weight:700!important;text-align:center!important;box-shadow:0 1px 2px rgba(0,0,0,.12)!important}
             #${PANEL_ID} .qol-tribe-skins-choice:hover{border-color:#6e5435!important;background:#fff6e5!important;transform:translateY(-1px)!important}
             #${PANEL_ID} .qol-tribe-skins-choice:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
@@ -389,17 +398,17 @@
                         `).join('')}
                     </div>
                     <div class="qol-tribe-skins-choice-label">Artwork</div>
-                    <div class="qol-tribe-skins-choices">
-                        ${Object.entries(ARTWORK).map(([key, artwork]) => `
+                    <div class="qol-tribe-skins-choices qol-tribe-skins-artworks">
+                        ${Object.entries(ARTWORK).filter(([key]) => key !== 'server').map(([key, artwork]) => `
                             <div class="qol-tribe-skins-choice" data-artwork="${key}" role="button" tabindex="0" aria-pressed="false">
                                 <span class="qol-tribe-skins-mark">${artwork.mark}</span>
                                 <span>${artwork.name}</span>
                             </div>
                         `).join('')}
                     </div>
-                    <div class="qol-tribe-skins-night" data-night-appearance role="switch" tabindex="0" aria-checked="false" aria-label="Night appearance">
-                        <span><strong>Night appearance</strong><small>Use the night look on any server. Turn off for daylight. Night truce rules still apply.</small></span>
-                        <span data-night-status>Off</span>
+                    <div class="qol-tribe-skins-night" data-night-appearance role="switch" tabindex="0" aria-checked="false" aria-label="Night mode">
+                        <strong>Night mode</strong>
+                        <span class="qol-night-toggle"><span data-night-status>Off</span><span class="qol-night-track" aria-hidden="true"><span class="qol-night-thumb"></span></span></span>
                     </div>
                     <p class="qol-tribe-skins-current"></p>
                     <p class="qol-tribe-skins-note">Your choice is saved in this browser and applies automatically. No village scan is needed.</p>
