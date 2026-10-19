@@ -173,12 +173,15 @@ async function worldSpeedChecks() {
   const gainX1 = env.private.computeProduction(improvedX1)[3] - beforeX1[3];
   equal(gainX1, 21);
 
-  // A loaded game may publish TG_SPEED=5 after the initial panel opens.
+  // The bridge publishes TG_SPEED=5 before the next planner state load.
   env.document.documentElement = {
     getAttribute: key => key === 'data-apes-world-speed' ? '5' : null
   };
   equal(env.private.detectWorldSpeed().speed, 5);
-  env.listeners.get('apes_qol_world_speed_detected')();
+  // Avoid dispatching an event which recalculates and rewrites the panel
+  // while it is being opened. A normal state load uses the new x5 speed.
+  equal(env.listeners.has('apes_qol_world_speed_detected'), false);
+  await env.api.setState(raw);
   equal(env.api.getState().speed, 5);
   const beforeX5 = env.private.computeProduction(env.api.getState());
   const improvedX5 = env.api.getState();
@@ -211,7 +214,7 @@ async function worldSpeedChecks() {
     window: game, document, CustomEvent: class { constructor(type) { this.type = type; } }
   });
   equal(attrs['data-apes-world-speed'], '5');
-  equal(emitted, 1);
+  equal(emitted, 0); // Config changes must never trigger a render storm.
 
   // Real game pages load Travian.Config asynchronously. The bridge must wait
   // for that object instead of permanently accepting the default x1 value.
