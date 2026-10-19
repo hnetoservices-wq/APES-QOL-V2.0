@@ -37,6 +37,7 @@ function input(level = 10) {
 }
 function environment() {
   const writes = new Map();
+  const listeners = new Map();
   const error = element();
   let now = 0;
   const document = { readyState: 'loading', addEventListener() {}, getElementById: () => null,
@@ -50,14 +51,15 @@ function environment() {
   };
   const window = { location: { hostname: 'trickandtreat.kingdoms.com', hash: '#/page:village/villId:123' },
     APES: { context: { getVillageName: () => 'Fixture village', getVillageId: () => '123' } },
-    addEventListener() {}, dispatchEvent() {}, setTimeout(callback, ms) { now += ms; callback(); } };
+    addEventListener(name, callback) { listeners.set(name, callback); },
+    dispatchEvent() {}, setTimeout(callback, ms) { now += ms; callback(); } };
   const context = { window, document, location: window.location, console, performance: { now: () => now },
     localStorage: { getItem: key => writes.get(key) || null, setItem: (key, value) => writes.set(key, value) },
     setTimeout() {}, CustomEvent: class {}, URL };
   const source = read('js/features/resourceUpgradePlanner.js').replace('const begin = () => {',
-    'window.__checks = {readVillageBuildings, readResourceFields, normalizeState, generateCandidates}; const begin = () => {');
+    'window.__checks = {readVillageBuildings, readResourceFields, normalizeState, generateCandidates, computeProduction, detectWorldSpeed}; const begin = () => {');
   vm.runInNewContext(source, context);
-  return { ...context, writes, error, api: window.APES_RESOURCE_UPGRADE_PLANNER, private: window.__checks };
+  return { ...context, writes, listeners, error, api: window.APES_RESOURCE_UPGRADE_PLANNER, private: window.__checks };
 }
 
 async function scannerChecks() {
@@ -156,6 +158,62 @@ async function routeChecks() {
   assert.throws(() => api.validatePlan({ startState: atMax, results: [{ kind: 'building', building: 'mill', fromLevel: 5, toLevel: 6 }] })); checks++;
 }
 
+
+async function worldSpeedChecks() {
+  // The world speed is surfaced by the MAIN-world bridge, not inferred from
+  // the hostname 'trickandtreat' (which would incorrectly default to x1).
+  const env = environment();
+  const raw = input(6);
+  raw.buildings.mill = 1; // Crop 6 -> 7: 20 base * 1.05 mill bonus = +21/h at x1.
+  await env.api.setState(raw);
+  equal(env.api.getState().speed, 1);
+  const beforeX1 = env.private.computeProduction(env.api.getState());
+  const improvedX1 = env.api.getState();
+  improvedX1.fields.crop[0] = 7;
+  const gainX1 = env.private.computeProduction(improvedX1)[3] - beforeX1[3];
+  equal(gainX1, 21);
+
+  // A loaded game may publish TG_SPEED=5 after the initial panel opens.
+  env.document.documentElement = {
+    getAttribute: key => key === 'data-apes-world-speed' ? '5' : null
+  };
+  equal(env.private.detectWorldSpeed().speed, 5);
+  env.listeners.get('apes_qol_world_speed_detected')();
+  equal(env.api.getState().speed, 5);
+  const beforeX5 = env.private.computeProduction(env.api.getState());
+  const improvedX5 = env.api.getState();
+  improvedX5.fields.crop[0] = 7;
+  const gainX5 = env.private.computeProduction(improvedX5)[3] - beforeX5[3];
+  equal(gainX5, 105);
+  equal(5420 / gainX1 / 5, 5420 / gainX5);
+  const x5Plan = env.api.calculate();
+  equal(x5Plan.startState.speed, 5);
+  const orderAtX5 = x5Plan.results.map(row => [row.kind, row.resource || row.building, row.index, row.toLevel]);
+  env.document.documentElement = { getAttribute: () => null };
+  await env.api.setState({ ...raw, speed: 1 });
+  const x1Plan = env.api.calculate();
+  const orderAtX1 = x1Plan.results.map(row => [row.kind, row.resource || row.building, row.index, row.toLevel]);
+  equal(orderAtX5, orderAtX1); // Ranking logic is unchanged by speed.
+
+  // MAIN-world script publishes the game's authoritative TG_SPEED value
+  // without requiring permissions or a network request.
+  const attrs = {};
+  let emitted = 0;
+  const game = { Travian: { Config: { TG_SPEED: 5 } },
+    dispatchEvent: () => { emitted++; },
+    setInterval() { throw Error('Already loaded game config should not poll'); }
+  };
+  const document = { documentElement: {
+    getAttribute: key => attrs[key] ?? null,
+    setAttribute: (key, value) => { attrs[key] = value; }
+  }};
+  vm.runInNewContext(read('js/modules/resourceUpgradePlanner/worldSpeedBridge.js'), {
+    window: game, document, CustomEvent: class { constructor(type) { this.type = type; } }
+  });
+  equal(attrs['data-apes-world-speed'], '5');
+  equal(emitted, 1);
+}
+
 async function importChecks() {
   for (const [file, marker, method] of [
     ['js/modules/roadmaps/resourcePlannerImports.js', "if (document.readyState === 'loading')", 'importCountBasedRoadmap'],
@@ -199,6 +257,7 @@ async function importChecks() {
 (async () => {
   await scannerChecks();
   await routeChecks();
+  await worldSpeedChecks();
   await importChecks();
   console.log(`Passed ${checks} scanner, prerequisite, sequential-upgrade and roadmap-import checks.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });
