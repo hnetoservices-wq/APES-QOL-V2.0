@@ -5,7 +5,9 @@
   // tooltip-data="percent:15,used:11,max:75".
   // Read that local DOM information only; do not request, scan, or store reports.
   const FEATURE_KEY = 'farmListLootPercentage';
-  const LOOT_SELECTOR = '.reportBody .resourcesModule span.loot';
+  const REPORT_LOOT_SELECTOR = '.reportBody .resourcesModule span.loot';
+  const LIST_LOOT_SELECTOR = 'table.allianceReports td.reportDescription span.addon';
+  const LOOT_SELECTOR = REPORT_LOOT_SELECTOR + ', ' + LIST_LOOT_SELECTOR;
   const CARRY_SELECTOR = 'i.carry[tooltip-translate="Report.CarryCapacityTooltip"][tooltip-data]';
   const BADGE_CLASS = 'qol-farm-loot-percentage';
   const STYLE_ID = 'qol-farm-loot-percentage-styles';
@@ -29,12 +31,31 @@
     return { used, capacity, percent: Math.round(used / capacity * 100) };
   }
 
+  // A detailed Farm List report renders the carry numbers as text, not metadata.
+  // Read only the direct text nodes: nested "Loot limit" figures are unrelated.
+  function parseFarmlistLootText(container) {
+    const raw = Array.from(container.childNodes)
+      .filter(node => node.nodeType === Node.TEXT_NODE)
+      .map(node => node.nodeValue || '')
+      .join(' ')
+      .replace(/[\u200e\u200f\u202a-\u202e\u2066-\u2069]/g, '')
+      .trim();
+    const match = raw.match(/^([0-9][0-9.,\s]*)\s*\/\s*([0-9][0-9.,\s]*)$/);
+    if (!match) return null;
+
+    const used = Number(match[1].replace(/[.,\s]/g, ''));
+    const capacity = Number(match[2].replace(/[.,\s]/g, ''));
+    if (!Number.isSafeInteger(used) || used < 0 ||
+        !Number.isSafeInteger(capacity) || capacity <= 0) return null;
+    return { used, capacity, percent: Math.round(used / capacity * 100) };
+  }
+
   function addStyles() {
     if (document.getElementById(STYLE_ID)) return;
     const style = document.createElement('style');
     style.id = STYLE_ID;
     style.textContent = `
-      ${LOOT_SELECTOR} > .${BADGE_CLASS} {
+      .${BADGE_CLASS} {
         display: inline-block !important;
         margin: 0 7px 0 0 !important;
         padding: 0 !important;
@@ -52,8 +73,12 @@
   }
 
   function updateLoot(loot) {
-    const icon = loot.querySelector(CARRY_SELECTOR);
-    const data = icon ? parseLootData(icon.getAttribute('tooltip-data')) : null;
+    let icon = loot.querySelector(CARRY_SELECTOR);
+    let data = icon ? parseLootData(icon.getAttribute('tooltip-data')) : null;
+    if (!icon && loot.matches(REPORT_LOOT_SELECTOR) && loot.closest('.farmlistReport')) {
+      icon = loot.querySelector('i.carry[tooltip-translate="Report.CarryCapacity"]');
+      if (icon) data = parseFarmlistLootText(loot);
+    }
     let badge = loot.querySelector('.' + BADGE_CLASS);
 
     if (!enabled() || !data) {
@@ -101,6 +126,9 @@
       return mutation.target.matches?.(CARRY_SELECTOR) &&
         !!mutation.target.closest?.(LOOT_SELECTOR);
     }
+    if (mutation.type === 'characterData') {
+      return Boolean(mutation.target.parentElement?.matches?.(REPORT_LOOT_SELECTOR));
+    }
 
     const changed = [...mutation.addedNodes, ...mutation.removedNodes];
     // Changes made by our own badge should not trigger another refresh.
@@ -119,6 +147,7 @@
     observer.observe(document.body, {
       childList: true,
       subtree: true,
+      characterData: true,
       attributes: true,
       attributeFilter: ['tooltip-data']
     });
