@@ -45,6 +45,30 @@ const gyazo = 'https://gyazo.com/feb6cd9465305a8c1357e454080a59d8';
   eq([...varied.querySelectorAll('a')].map(link => link.textContent), ['https://en.wikipedia.org/wiki/Travian_(game)', 'www.example.com/path?x=1&y=2', 'discord.gg/APES', 'https://example.com/a#b']);
   eq([...varied.querySelectorAll('a')].map(link => link.href), ['https://en.wikipedia.org/wiki/Travian_(game)', 'https://www.example.com/path?x=1&y=2', 'https://discord.gg/APES', 'https://example.com/a#b']);
   eq(history.scrollTop, 400);
+  // In-game player names and ordinary dotted text are not web addresses.
+  // Regression: N.apoleon was previously matched as a fake .apoleon website.
+  const playerName = add('N.apoleon coords? n.apoleon n.apoleon/path www.N.apoleon server.unknownthing');
+  await pause();
+  eq(playerName.querySelectorAll('a').length, 0);
+  eq(playerName.textContent, 'N.apoleon coords? n.apoleon n.apoleon/path www.N.apoleon server.unknownthing');
+  const authorName = doc.createElement('strong');
+  authorName.textContent = 'N.apoleon';
+  history.append(authorName);
+  await pause(); eq(authorName.querySelectorAll('a').length, 0);
+  // Real domain names, including less common gTLDs and country-code TLDs,
+  // still work without a protocol prefix.
+  const validBare = add('discord.gg/APES example.pt www.example.com/a example.technology example.photography example.museum example.co.uk');
+  await pause();
+  eq([...validBare.querySelectorAll('a')].map(link => link.textContent), [
+    'discord.gg/APES', 'example.pt', 'www.example.com/a',
+    'example.technology', 'example.photography', 'example.museum', 'example.co.uk'
+  ]);
+  // An explicit scheme signals user intent, even for private hostnames.
+  const intentional = add('https://internal.invalidtld/path http://localhost:3000');
+  await pause();
+  eq([...intentional.querySelectorAll('a')].map(link => link.textContent), [
+    'https://internal.invalidtld/path', 'http://localhost:3000'
+  ]);
   const unsafeText = 'person@example.com ftp://example.com/x javascript:alert(1) data:text/html,test v2.0.0 https://[invalid';
   const unsafe = add(unsafeText); await pause(); eq(unsafe.textContent, unsafeText); eq(unsafe.querySelectorAll('a').length, 0);
   const htmlText = 'https://example.com/?q=<img src=x onerror=alert(1)> & <script>alert(1)</script>';
