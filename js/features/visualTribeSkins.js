@@ -6,6 +6,8 @@
   const PANEL_ID = 'qol-tribe-skins-panel';
   const SELECTION_KEY = 'apes_visual_tribe_skin_selection_v1';
   const ARTWORK_KEY = 'apes_visual_tribe_skin_artwork_v1';
+  const NIGHT_KEY = 'apes_visual_tribe_skin_night_v2';
+  const NIGHT_CLASS = 'qol-night-enabled';
   const DAYLIGHT_KEY = 'apes_visual_tribe_skin_remove_night_v1';
   const DAYLIGHT_CLASS = 'qol-daylight-enabled';
   const ARTWORK = Object.freeze({
@@ -34,7 +36,7 @@
   let scheduled = false;
   let sessionSelection = readSelection();
   let sessionArtwork = readArtwork();
-  let sessionDaylight = readDaylight();
+  let sessionNight = readNight();
   const imageRequests = new WeakMap();
   const imageCrossOrigins = new WeakMap();
   function enabled() {
@@ -59,16 +61,22 @@
       return 'server';
     }
   }
-  function readDaylight() {
-    try { return localStorage.getItem(DAYLIGHT_KEY) === 'true'; } catch (_) { return false; }
+  function readNight() {
+    try {
+      const saved = localStorage.getItem(NIGHT_KEY);
+      if (saved === 'true' || saved === 'false') return saved === 'true';
+      if (localStorage.getItem(DAYLIGHT_KEY) === 'true') return false;
+    } catch (_) {}
+    return false;
   }
   function applyNightOverlay() {
-    document.documentElement.classList.toggle(DAYLIGHT_CLASS, enabled() && sessionDaylight);
+    document.documentElement.classList.toggle(DAYLIGHT_CLASS, enabled() && !sessionNight);
+    document.documentElement.classList.toggle(NIGHT_CLASS, enabled() && sessionNight);
   }
-  function saveDaylight(value) {
+  function saveNight(value) {
     if (typeof value !== 'boolean') return;
-    sessionDaylight = value;
-    try { localStorage.setItem(DAYLIGHT_KEY, String(value)); } catch (_) {}
+    sessionNight = value;
+    try { localStorage.setItem(NIGHT_KEY, String(value)); } catch (_) {}
     applyNightOverlay();
     refreshUi();
   }
@@ -272,10 +280,10 @@
       control.classList.toggle('qol-active', active);
       control.setAttribute('aria-pressed', String(active));
     });
-    const daylight = panel.querySelector('[data-remove-night]');
+    const daylight = panel.querySelector('[data-night-appearance]');
     if (daylight) {
-      daylight.setAttribute('aria-checked', String(sessionDaylight));
-      daylight.querySelector('[data-night-status]').textContent = sessionDaylight ? 'On' : 'Off';
+      daylight.setAttribute('aria-checked', String(sessionNight));
+      daylight.querySelector('[data-night-status]').textContent = sessionNight ? 'On' : 'Off';
     }
     const current = panel.querySelector('.qol-tribe-skins-current');
     if (!current) return;
@@ -293,6 +301,12 @@
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrast,
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude,
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:none!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeDarkness,
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeBuildingLights{display:block!important;opacity:1!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:brightness(.55) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrast{filter:contrast(1.3) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude{filter:contrast(.7) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer #map .mapRobberCampNight{display:block!important}
             #${PANEL_ID} .qol-tribe-skins-night{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:9px!important;border:1px solid #b8a487!important;border-radius:4px!important;background:#fffdf8!important;cursor:pointer!important;user-select:none!important}
             #${PANEL_ID} .qol-tribe-skins-night:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
             #${PANEL_ID} .qol-tribe-skins-night strong{display:block!important;font-size:10px!important;color:#5f513f!important}
@@ -381,15 +395,15 @@
                             </div>
                         `).join('')}
                     </div>
-                    <div class="qol-tribe-skins-night" data-remove-night role="switch" tabindex="0" aria-checked="false" aria-label="Remove night overlay">
-                        <span><strong>Remove night overlay</strong><small>Daylight in villages, resource fields and the world map. Night truce still applies.</small></span>
+                    <div class="qol-tribe-skins-night" data-night-appearance role="switch" tabindex="0" aria-checked="false" aria-label="Night appearance">
+                        <span><strong>Night appearance</strong><small>Use the night look on any server. Turn off for daylight. Night truce rules still apply.</small></span>
                         <span data-night-status>Off</span>
                     </div>
                     <p class="qol-tribe-skins-current"></p>
                     <p class="qol-tribe-skins-note">Your choice is saved in this browser and applies automatically. No village scan is needed.</p>
                 </div>
             `;
-      activate(panel.querySelector('[data-remove-night]'), () => saveDaylight(!sessionDaylight));
+      activate(panel.querySelector('[data-night-appearance]'), () => saveNight(!sessionNight));
       activate(panel.querySelector('[data-close]'), () => panel.classList.remove('qol-tribe-skins-open'));
       panel.querySelectorAll('[data-skin]').forEach(control => {
         activate(control, () => saveSelection(control.dataset.skin));
@@ -445,8 +459,8 @@
     }
   });
   window.addEventListener('storage', event => {
-    if (event.key !== DAYLIGHT_KEY && event.key !== null) return;
-    sessionDaylight = readDaylight();
+    if (event.key !== NIGHT_KEY && event.key !== DAYLIGHT_KEY && event.key !== null) return;
+    sessionNight = readNight();
     applyNightOverlay();
     refreshUi();
   });
@@ -455,8 +469,10 @@
     set: saveSelection,
     getArtwork: () => sessionArtwork,
     setArtwork: saveArtwork,
-    getNightOverlayRemoved: () => sessionDaylight,
-    setNightOverlayRemoved: saveDaylight,
+    getNightAppearance: () => sessionNight,
+    setNightAppearance: saveNight,
+    getNightOverlayRemoved: () => !sessionNight,
+    setNightOverlayRemoved: value => { if (typeof value === 'boolean') saveNight(!value); },
     apply: applySelectedSkin,
     restore: restoreOriginalSkins
   });

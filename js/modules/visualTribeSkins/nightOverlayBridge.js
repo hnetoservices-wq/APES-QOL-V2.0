@@ -7,7 +7,8 @@
   if (window[FLAG]) return;
   window[FLAG] = true;
   let hooked = null, timer = null;
-  const active = () => document.documentElement?.classList.contains(CLASS) === true;
+  const forcedIntensity = () => document.documentElement?.classList.contains('qol-night-enabled') ? 1 : document.documentElement?.classList.contains(CLASS) ? 0 : null;
+  const active = () => forcedIntensity() !== null;
   function currentMap() {
     const angular = window.angular;
     if (typeof angular?.element !== 'function') return null;
@@ -38,7 +39,13 @@
     }
     if (timer === null) timer = window.setInterval(sync, 1000);
     const map = currentMap();
-    if (hooked?.map === map && map?.Hi === hooked.wrapper) return;
+    if (hooked?.map === map && map?.Hi === hooked.wrapper) {
+      if (hooked.applied !== forcedIntensity()) {
+        hooked.applied = forcedIntensity();
+        hooked.original.call(map, hooked.applied);
+      }
+      return;
+    }
     restore();
     if (typeof map?.Hi !== 'function') return;
     const intensity = map.renderer?.Gb;
@@ -46,12 +53,13 @@
       nativeIntensity: Number.isFinite(intensity) && intensity >= 0 && intensity <= 1 ? intensity : Number(Boolean(document.querySelector('.ingameContentContainer.nightMode'))) };
     record.wrapper = function (...args) {
       record.nativeIntensity = args[0];
-      return Reflect.apply(record.original, this, active() ? [0, ...args.slice(1)] : args);
+      return Reflect.apply(record.original, this, active() ? [forcedIntensity(), ...args.slice(1)] : args);
     };
     try {
       map.Hi = record.wrapper;
       hooked = record;
-      record.original.call(map, 0);
+      record.applied = forcedIntensity();
+      record.original.call(map, record.applied);
     } catch (_) { restore(); }
   }
   function start() {

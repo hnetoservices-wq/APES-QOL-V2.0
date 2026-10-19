@@ -165,7 +165,7 @@ const COSMETIC_FEATURES = [{
   key: 'visualTribeSkins',
   name: 'Visual Tribe Skin',
   icon: '♜',
-  description: 'Choose tribe artwork and optionally remove the night overlay from villages, resource fields and the world map.'
+  description: 'Choose tribe artwork and toggle the night appearance on or off on any server.'
 }];
 const KEYBINDS = [{
   keys: ['W', 'A', 'S', 'D'],
