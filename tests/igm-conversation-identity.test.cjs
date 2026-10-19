@@ -117,16 +117,14 @@ test('different Secret Society and Kingdom chats receive separate stable IDs', (
   assert.notEqual(identify(kingdom1), identify(kingdom2));
 });
 
-test('fallback uses room name rather than mutable last-message time', () => {
+test('shared Secret Society name is NOT used as a room ID', () => {
   const one = new Element({ children: [
     new Element({ roomType: '7' }),
-    new Element({ tag: 'heading', text: 'APES Officers' }),
-    new Element({ tag: 'span', attrs: { i18ndt: '12345' } })
+    new Element({ tag: 'heading', text: 'triangles' }),
+    new Element({ tag: 'span', attrs: { i18ndt: '1791294996.841' } })
   ] });
   const { window } = sandboxFor([one]);
-  assert.equal(window.qolIgmConversationIdentity(one), 'title:secret-society:apes%20officers');
-  one.children[2].attrs.i18ndt = '67890';
-  assert.equal(window.qolIgmConversationIdentity(one), 'title:secret-society:apes%20officers');
+  assert.equal(window.qolIgmConversationIdentity(one), 'activity:secret-society:1791294996.841');
 });
 
 test('last-activity fallback restores sorting when no name or native room ID exists', () => {
@@ -150,15 +148,26 @@ test('last-activity fallback restores sorting when no name or native room ID exi
   assert.equal(tags['activity:secret-society:67890'], 'Secret Society');
 });
 
-test('non-numeric Secret Society room tokens can be sorted individually', () => {
-  const first = row('apes-warroom'), second = row('allies-room');
+test('different roomId attributes persist even if last message timestamp changes', () => {
+  const first = new Element({ attrs: { 'data-apes-igm-room-id': '123' }, children: [
+    new Element({ roomType: '7' }), new Element({ tag: 'span', attrs: { i18ndt: '1791294996.841' } })
+  ] });
+  const second = new Element({ attrs: { 'data-apes-igm-room-id': '456' }, children: [
+    new Element({ roomType: '7' }), new Element({ tag: 'span', attrs: { i18ndt: '1791295005.079' } })
+  ] });
+  for (const conversation of [first, second]) {
+    const badge = new Element({ tag: 'badge' });
+    badge.parent = conversation;
+    conversation.badge = badge;
+  }
   const env = sandboxFor([first, second]);
-  assert.notEqual(env.window.qolIgmConversationIdentity(first), env.window.qolIgmConversationIdentity(second));
   env.startAutoSort();
   env.moveSelected(first, 'Spam');
+  first.children[1].attrs.i18ndt = '1799999999.100';
+  assert.equal(env.window.qolIgmConversationIdentity(first), 'native:123');
   const tags = JSON.parse(env.storage.get('qol_conversation_tags_v3'));
-  assert.equal(tags['class:secretsociety:apes-warroom'], 'Spam');
-  assert.equal(tags['class:secretsociety:allies-room'], 'Secret Society');
+  assert.equal(tags['native:123'], 'Spam');
+  assert.equal(tags['native:456'], 'Secret Society');
 });
 
 test('unidentifiable chat stays untouched without changing other conversations', () => {
@@ -202,4 +211,52 @@ test('duplicate activity fallback never creates a type-wide override', () => {
   env.startAutoSort();
   env.moveSelected(first, 'Private');
   assert.equal(env.storage.has('qol_conversation_tag_overrides_v3'), false);
+});
+
+test('real Travian sprite class is shared but does not hide Secret Society folder controls', () => {
+  // This CSS class and row shape come from the user's Travian Kingdoms HTML.
+  const make = timestamp => new Element({ children: [
+    new Element({ classes: ['conversation_secretSociety_medium_flat_black'], roomType: '7' }),
+    new Element({ tag: 'heading', text: 'triangles' }),
+    new Element({ tag: 'span', attrs: { i18ndt: timestamp } })
+  ] });
+  const first = make('1791294996.841');
+  const second = make('1791295005.079');
+  for (const conversation of [first, second]) {
+    const badge = new Element({ tag: 'badge' });
+    badge.parent = conversation;
+    conversation.badge = badge;
+  }
+  const env = sandboxFor([first, second]);
+  assert.equal(env.window.qolIgmConversationIdentity(first), 'activity:secret-society:1791294996.841');
+  assert.equal(env.window.qolIgmConversationIdentity(second), 'activity:secret-society:1791295005.079');
+  env.startAutoSort();
+  env.moveSelected(first, 'Private');
+  const tags = JSON.parse(env.storage.get('qol_conversation_tags_v3'));
+  assert.equal(tags['activity:secret-society:1791294996.841'], 'Private');
+  assert.equal(tags['activity:secret-society:1791295005.079'], 'Secret Society');
+});
+
+test('MAIN-world bridge publishes the actual Angular inboxEntry roomId', () => {
+  const row = {
+    attrs: {},
+    getAttribute(key) { return this.attrs[key] ?? null; },
+    setAttribute(key, value) { this.attrs[key] = value; },
+    hasAttribute(key) { return key in this.attrs; },
+    removeAttribute(key) { delete this.attrs[key]; }
+  };
+  const model = { inboxEntry: { data: { roomId: 88991 } } };
+  const window = {
+    angular: { element: () => ({ scope: () => model }) },
+    setInterval: callback => { window.refresh = callback; }
+  };
+  const document = {
+    readyState: 'complete',
+    querySelectorAll: () => [row]
+  };
+  vm.runInContext(readScript('js/modules/igm/roomIdBridge.js'), vm.createContext({ window, document }));
+  assert.equal(row.getAttribute('data-apes-igm-room-id'), '88991');
+  model.inboxEntry.data.roomId = 88992;
+  window.refresh();
+  assert.equal(row.getAttribute('data-apes-igm-room-id'), '88992');
 });
