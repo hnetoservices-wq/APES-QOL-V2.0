@@ -216,6 +216,9 @@
     if (!panelIsOpen() || !appliedHasSavedState || restoreBusy || preparationPromise || plannerApi()?.isScanning?.() || !plannerApi()?.hasVillageState?.()) return;
     const results = panel()?.querySelector('[data-results]');
     if (results?.classList.contains('show')) return;
+    // A failed or invalid plan must not be recalculated on every DOM update.
+    // The user can correct the inputs and press Calculate again explicitly.
+    if (panel()?.querySelector('[data-error].show')) return;
     const keepRoadmap = roadmapWasActive();
     if (clickCalculate()) restoreRoadmapTab(keepRoadmap);
   }
@@ -602,18 +605,17 @@
   window.addEventListener('qol_setting_changed', event => {
     if (event.detail?.key === FEATURE_KEY && event.detail.enabled !== false) scheduleRestore(true);
   });
-  const observer = new MutationObserver(() => {
+  // Only watch for the panel's initial insertion. Observing every class and
+  // subtree mutation caused planner rendering (including errors) to schedule
+  // village restoration and calculations again, creating a feedback loop.
+  // Village changes are handled by hashchange and the existing 650ms sync.
+  const observer = new MutationObserver(records => {
+    if (!records.some(record => Array.from(record.addedNodes || []).some(
+      node => node.nodeType === Node.ELEMENT_NODE && node.id === PANEL_ID
+    ))) return;
     ensureFloatingWindow();
-    if (!panelIsOpen()) return;
-    scheduleRestore(false);
-    ensureCurrentVillageResults();
   });
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class']
-  });
+  observer.observe(document.body, { childList: true });
   window.setInterval(() => {
     ensureFloatingWindow();
     const identity = currentVillageIdentity();
