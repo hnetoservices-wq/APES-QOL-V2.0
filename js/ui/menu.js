@@ -74,6 +74,12 @@ const BASIC_FEATURES = [{
   icon: '◷',
   description: 'Sounds a ding when a construction enters the free five-minute instant-finish window.'
 }, {
+  id: 'qol-chk-farm-list-loot-percentage',
+  key: 'farmListLootPercentage',
+  name: 'Farm List Loot Percentage',
+  icon: '%',
+  description: 'Shows the share of troop carrying capacity filled by the resources stolen in farm-list raids.'
+}, {
   id: 'qol-chk-chat-silencer',
   key: 'chatSilencer',
   name: 'Chat Silencer',
