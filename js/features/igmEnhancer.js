@@ -90,19 +90,24 @@ function initIgmEnhancer() {
   function getConversationRows() {
     return Array.from(document.querySelectorAll('li.igmConversationEntry'));
   }
-  function getConversationId(row) {
-    const id = window.qolIgmConversationIdentity?.(row);
-    if (!id) return null;
-
-    // Never display an editable badge when two visible conversations resolve
-    // to the same identity. A collision must not update multiple chats.
-    const collides = getConversationRows().some(other =>
-      other !== row && window.qolIgmConversationIdentity?.(other) === id
-    );
-    return collides ? null : id;
+  function getConversationIdentityMap(rows = getConversationRows()) {
+    const ids = new Map();
+    const counts = new Map();
+    rows.forEach(row => {
+      const id = window.qolIgmConversationIdentity?.(row) || null;
+      ids.set(row, id);
+      if (id) counts.set(id, (counts.get(id) || 0) + 1);
+    });
+    ids.forEach((id, row) => {
+      if (id && counts.get(id) !== 1) ids.set(row, null);
+    });
+    return ids;
   }
-  function getConversationTag(row, tags = getStoredTags()) {
-    const conversationId = getConversationId(row);
+  function getConversationId(row, identities) {
+    return (identities || getConversationIdentityMap()).get(row) || null;
+  }
+  function getConversationTag(row, tags = getStoredTags(), identities) {
+    const conversationId = getConversationId(row, identities);
     const storedTag = conversationId ? tags[conversationId] : null;
     return getAllCategories().includes(storedTag) ? storedTag : 'Unsorted';
   }
@@ -841,13 +846,15 @@ function initIgmEnhancer() {
   }
   function injectRowBadges() {
     const tags = getStoredTags();
-    getConversationRows().forEach(row => {
-      const conversationId = getConversationId(row);
+    const rows = getConversationRows();
+    const identities = getConversationIdentityMap(rows);
+    rows.forEach(row => {
+      const conversationId = getConversationId(row, identities);
       if (!conversationId) {
         row.querySelector('.qol-igm-row-folder')?.remove();
         return;
       }
-      const currentTag = getConversationTag(row, tags);
+      const currentTag = getConversationTag(row, tags, identities);
       let badge = row.querySelector('.qol-igm-row-folder');
       row.classList.add('qol-igm-enhanced-row');
       row.querySelector('.qol-row-category-select')?.remove();
@@ -1007,9 +1014,10 @@ function initIgmEnhancer() {
   function applyFilter() {
     const tags = getStoredTags();
     const rows = getConversationRows();
+    const identities = getConversationIdentityMap(rows);
     let visibleCount = 0;
     rows.forEach(row => {
-      const tag = getConversationTag(row, tags);
+      const tag = getConversationTag(row, tags, identities);
       const shouldShow = currentFilter === 'All' ? !['Spam', 'Trash'].includes(tag) : tag === currentFilter;
       row.style.display = shouldShow ? '' : 'none';
       if (shouldShow) {
