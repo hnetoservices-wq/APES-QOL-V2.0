@@ -216,6 +216,14 @@
     return WORLD_SPEED_VALUES.includes(speed) ? speed : null;
   }
   function detectWorldSpeed() {
+    // The official Travian config (TG_SPEED) is exposed by the MAIN-world
+    // bridge. Prefer it over guesses from the server name or page title.
+    const gameSpeed = Number(document.documentElement?.getAttribute('data-apes-world-speed'));
+    if (WORLD_SPEED_VALUES.includes(gameSpeed)) return {
+      speed: gameSpeed,
+      detected: true,
+      source: 'Travian game configuration'
+    };
     const hostnameSpeed = speedFromText(window.location.hostname);
     if (hostnameSpeed) return {
       speed: hostnameSpeed,
@@ -1398,6 +1406,17 @@
   }
   window.addEventListener('qol_close_others', event => {
     if (event.detail?.source !== FEATURE_KEY) closePanel();
+  });
+  window.addEventListener('apes_qol_world_speed_detected', () => {
+    // Config can become ready after a cached village plan has been drawn.
+    // Refresh its metrics immediately; no rescan or ranking-rule change.
+    if (!stateLoaded) return;
+    const oldSpeed = state.speed;
+    const info = applyDetectedWorldSpeed();
+    if (!info.detected || state.speed === oldSpeed) return;
+    renderInputState();
+    if (hasVillageState() && !isScanning) calculateAndRender();
+    void saveState();
   });
   window.addEventListener('qol_setting_changed', event => {
     if (event.detail?.key !== FEATURE_KEY) return;
