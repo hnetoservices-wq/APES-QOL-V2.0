@@ -38,12 +38,15 @@
         display: inline-block !important;
         margin: 0 7px 0 0 !important;
         padding: 0 !important;
-        color: #b82420 !important;
         font: 700 12px/1.2 Arial, sans-serif !important;
         vertical-align: middle !important;
         white-space: nowrap !important;
         text-shadow: none !important;
       }
+      ${LOOT_SELECTOR} > .${BADGE_CLASS}[data-loot-tier="low"] { color: #b82420 !important; }
+      ${LOOT_SELECTOR} > .${BADGE_CLASS}[data-loot-tier="mustard"] { color: #b18a16 !important; }
+      ${LOOT_SELECTOR} > .${BADGE_CLASS}[data-loot-tier="olive"] { color: #718d2d !important; }
+      ${LOOT_SELECTOR} > .${BADGE_CLASS}[data-loot-tier="green"] { color: #2e632b !important; }
     `;
     (document.head || document.documentElement).appendChild(style);
   }
@@ -66,6 +69,13 @@
       loot.insertBefore(badge, icon);
     }
     const label = data.percent + '%';
+    // Use the displayed (rounded) percentage so the color always matches the label.
+    const tier = data.percent < 25 ? 'low' :
+      data.percent < 50 ? 'mustard' :
+      data.percent < 75 ? 'olive' : 'green';
+    if (badge.getAttribute('data-loot-tier') !== tier) {
+      badge.setAttribute('data-loot-tier', tier);
+    }
     if (badge.textContent !== label) badge.textContent = label;
     const title = `${data.used.toLocaleString()} / ${data.capacity.toLocaleString()} resources stolen (${label})`;
     if (badge.title !== title) badge.title = title;
