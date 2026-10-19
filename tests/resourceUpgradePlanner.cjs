@@ -212,6 +212,34 @@ async function worldSpeedChecks() {
   });
   equal(attrs['data-apes-world-speed'], '5');
   equal(emitted, 1);
+
+  // Real game pages load Travian.Config asynchronously. The bridge must wait
+  // for that object instead of permanently accepting the default x1 value.
+  let poll, cleared = false;
+  const delayedAttributes = {};
+  const delayedGame = {
+    setInterval(callback) { poll = callback; return 14; },
+    clearInterval(timer) { if (timer === 14) cleared = true; },
+    dispatchEvent() {}
+  };
+  vm.runInNewContext(read('js/modules/resourceUpgradePlanner/worldSpeedBridge.js'), {
+    window: delayedGame,
+    document: { documentElement: {
+      getAttribute: key => delayedAttributes[key] ?? null,
+      setAttribute: (key, value) => { delayedAttributes[key] = value; }
+    }},
+    CustomEvent: class { constructor(type) { this.type = type; } }
+  });
+  equal(typeof poll, 'function');
+  delayedGame.Travian = { Config: { TG_SPEED: 3 } };
+  poll();
+  equal(delayedAttributes['data-apes-world-speed'], '3');
+  equal(cleared, true);
+
+  const manifest = JSON.parse(read('manifest.json'));
+  const bridgeScript = manifest.content_scripts.find(entry =>
+    entry.js.includes('js/modules/resourceUpgradePlanner/worldSpeedBridge.js'));
+  equal(bridgeScript?.world, 'MAIN');
 }
 
 async function importChecks() {
