@@ -43,9 +43,16 @@
     return null;
   }
 
+  function sourceText(node) {
+    if (!node.querySelector?.('.' + BADGE_CLASS)) return node.textContent;
+    const copy = node.cloneNode(true);
+    copy.querySelectorAll('.' + BADGE_CLASS).forEach(badge => badge.remove());
+    return copy.textContent;
+  }
+
   function scalarFrom(node) {
     if (!node) return null;
-    for (const text of [node.textContent, node.getAttribute('title'), node.getAttribute('aria-label')]) {
+    for (const text of [sourceText(node), node.getAttribute('title'), node.getAttribute('aria-label')]) {
       const value = numberFrom(text);
       if (value !== null) return value;
     }
@@ -64,7 +71,7 @@
     const lootNodes = row.matches(LOOT_SELECTOR) ? [row] : [...row.querySelectorAll(LOOT_SELECTOR)];
     for (const lootNode of lootNodes) {
       // Prefer a game-supplied ratio (including in its tooltip).
-      for (const value of [lootNode.textContent, lootNode.getAttribute('title'), lootNode.getAttribute('aria-label'), lootNode.getAttribute('data-original-title')]) {
+      for (const value of [sourceText(lootNode), lootNode.getAttribute('title'), lootNode.getAttribute('aria-label'), lootNode.getAttribute('data-original-title')]) {
         const pair = pairFrom(value);
         if (pair) return { ...pair, anchor: lootNode };
       }
@@ -171,11 +178,15 @@
     if (!document.body) return;
     const observer = new MutationObserver(mutations => {
       // Ignore our own badge edits; the game can redraw entries at any time.
-      if (mutations.every(mutation => mutation.target?.closest?.('.' + BADGE_CLASS) ||
-          [...mutation.addedNodes].every(node => node.nodeType === Node.ELEMENT_NODE &&
-            node.classList?.contains(BADGE_CLASS)) &&
-          [...mutation.removedNodes].every(node => node.nodeType === Node.ELEMENT_NODE &&
-            node.classList?.contains(BADGE_CLASS)))) return;
+      if (mutations.every(mutation => {
+        if (mutation.type === 'characterData') {
+          return Boolean(mutation.target.parentElement?.closest('.' + BADGE_CLASS));
+        }
+        const changed = [...mutation.addedNodes, ...mutation.removedNodes];
+        return changed.length > 0 && changed.every(node =>
+          node.nodeType === Node.ELEMENT_NODE && node.classList.contains(BADGE_CLASS)
+        );
+      })) return;
       scheduleRender();
     });
     observer.observe(document.body, { childList: true, subtree: true, characterData: true });
