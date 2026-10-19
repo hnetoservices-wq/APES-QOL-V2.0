@@ -8,7 +8,7 @@ const path = require('node:path');
 const readScript = relative => fs.readFileSync(path.resolve(__dirname, '..', relative), 'utf8');
 
 class Element {
-  constructor({ attrs = {}, classes = [], children = [], tag = 'div', roomType = '', id = '' } = {}) {
+  constructor({ attrs = {}, classes = [], children = [], tag = 'div', roomType = '', id = '', text = '' } = {}) {
     this.attrs = attrs;
     this.values = new Set(classes);
     this.classList = {
@@ -20,6 +20,7 @@ class Element {
     this.tag = tag;
     this.roomType = roomType;
     this.id = id;
+    this.textContent = text;
     this.dataset = {};
     this.style = {};
     this.badge = null;
@@ -37,6 +38,10 @@ class Element {
     collect(this);
     const matches = selector.split(',').map(part => part.trim()).map(part => {
       if (part === '[id]') return node => !!node.id;
+      if (part === 'span[i18ndt]') return node => node.tag === 'span' && node.getAttribute('i18ndt') !== null;
+      if (['.igmInfos .name', '.igmInfos .conversationName', '.igmInfos .roomName',
+        '.igmInfos .title', '.conversationName', '.roomName', '.chatName',
+        '.conversationTitle'].includes(part)) return node => node.tag === 'heading';
       if (part === 'a[href]') return node => node.tag === 'a' && node.getAttribute('href') !== null;
       if (part === 'avatar-image[player-id]') return node => node.tag === 'avatar-image' && node.getAttribute('player-id') !== null;
       if (part === '.igmInfos .name.roomType7') return node => node.roomType === '7';
@@ -112,8 +117,52 @@ test('different Secret Society and Kingdom chats receive separate stable IDs', (
   assert.notEqual(identify(kingdom1), identify(kingdom2));
 });
 
-test('timestamp and identical display names cannot identify a group chat', () => {
-  const unidentified = new Element({ children: [new Element({ roomType: '7', attrs: { i18ndt: '12345' } })] });
+test('fallback uses room name rather than mutable last-message time', () => {
+  const one = new Element({ children: [
+    new Element({ roomType: '7' }),
+    new Element({ tag: 'heading', text: 'APES Officers' }),
+    new Element({ tag: 'span', attrs: { i18ndt: '12345' } })
+  ] });
+  const { window } = sandboxFor([one]);
+  assert.equal(window.qolIgmConversationIdentity(one), 'title:secret-society:apes%20officers');
+  one.children[2].attrs.i18ndt = '67890';
+  assert.equal(window.qolIgmConversationIdentity(one), 'title:secret-society:apes%20officers');
+});
+
+test('last-activity fallback restores sorting when no name or native room ID exists', () => {
+  const first = new Element({ children: [
+    new Element({ roomType: '7' }), new Element({ tag: 'span', attrs: { i18ndt: '12345' } })
+  ] });
+  const second = new Element({ children: [
+    new Element({ roomType: '7' }), new Element({ tag: 'span', attrs: { i18ndt: '67890' } })
+  ] });
+  for (const conversation of [first, second]) {
+    const badge = new Element({ tag: 'badge' });
+    badge.parent = conversation;
+    conversation.badge = badge;
+  }
+  const env = sandboxFor([first, second]);
+  assert.notEqual(env.window.qolIgmConversationIdentity(first), env.window.qolIgmConversationIdentity(second));
+  env.startAutoSort();
+  env.moveSelected(first, 'Private');
+  const tags = JSON.parse(env.storage.get('qol_conversation_tags_v3'));
+  assert.equal(tags['activity:secret-society:12345'], 'Private');
+  assert.equal(tags['activity:secret-society:67890'], 'Secret Society');
+});
+
+test('non-numeric Secret Society room tokens can be sorted individually', () => {
+  const first = row('apes-warroom'), second = row('allies-room');
+  const env = sandboxFor([first, second]);
+  assert.notEqual(env.window.qolIgmConversationIdentity(first), env.window.qolIgmConversationIdentity(second));
+  env.startAutoSort();
+  env.moveSelected(first, 'Spam');
+  const tags = JSON.parse(env.storage.get('qol_conversation_tags_v3'));
+  assert.equal(tags['class:secretsociety:apes-warroom'], 'Spam');
+  assert.equal(tags['class:secretsociety:allies-room'], 'Secret Society');
+});
+
+test('unidentifiable chat stays untouched without changing other conversations', () => {
+  const unidentified = new Element({ children: [new Element({ roomType: '7' })] });
   const { window } = sandboxFor([unidentified]);
   assert.equal(window.qolIgmConversationIdentity(unidentified), null);
 });
@@ -138,5 +187,19 @@ test('ambiguous IDs fail closed rather than applying a bulk override', () => {
   const env = sandboxFor([first, duplicate]);
   env.startAutoSort();
   env.moveSelected(first, 'Spam');
+  assert.equal(env.storage.has('qol_conversation_tag_overrides_v3'), false);
+});
+
+test('duplicate activity fallback never creates a type-wide override', () => {
+  const first = new Element({ children: [new Element({ tag: 'span', attrs: { i18ndt: '12345' } })] });
+  const duplicate = new Element({ children: [new Element({ tag: 'span', attrs: { i18ndt: '12345' } })] });
+  for (const conversation of [first, duplicate]) {
+    const badge = new Element({ tag: 'badge' });
+    badge.parent = conversation;
+    conversation.badge = badge;
+  }
+  const env = sandboxFor([first, duplicate]);
+  env.startAutoSort();
+  env.moveSelected(first, 'Private');
   assert.equal(env.storage.has('qol_conversation_tag_overrides_v3'), false);
 });
