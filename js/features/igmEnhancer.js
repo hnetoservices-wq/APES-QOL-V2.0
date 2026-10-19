@@ -2,7 +2,7 @@ function initIgmEnhancer() {
   'use strict';
 
   const FEATURE_KEY = 'igmEnhanced';
-  const CONV_STORAGE_KEY = 'qol_conversation_tags';
+  const CONV_STORAGE_KEY = 'qol_conversation_tags_v3';
   const CUSTOM_FOLDERS_STORAGE_KEY = 'qol_custom_chat_tags';
   const TOOLBAR_ID = 'qol-igm-toolbar';
   const FILTER_BUTTON_ID = 'qol-igm-filter-button';
@@ -91,21 +91,15 @@ function initIgmEnhancer() {
     return Array.from(document.querySelectorAll('li.igmConversationEntry'));
   }
   function getConversationId(row) {
-    const timestamp = row.querySelector('span[i18ndt]')?.getAttribute('i18ndt');
-    if (timestamp) {
-      return `conv_ts_${timestamp}`;
-    }
-    const referenceElement = row.querySelector('a[href], ' + '[conversationid], ' + '[conversation-id], ' + '[data-conversation-id]');
-    const reference = referenceElement?.getAttribute('conversationid') || referenceElement?.getAttribute('conversation-id') || referenceElement?.getAttribute('data-conversation-id') || referenceElement?.getAttribute('href');
-    if (reference) {
-      return `conv_ref_` + String(reference).replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_:#/.-]/g, '').slice(0, 90);
-    }
-    const clone = row.cloneNode(true);
-    clone.querySelectorAll('.qol-igm-row-folder, ' + '.qol-row-category-select').forEach(element => {
-      element.remove();
-    });
-    const cleanText = (clone.innerText || clone.textContent || '').replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
-    return cleanText ? `conv_txt_${cleanText.substring(0, 70)}` : null;
+    const id = window.qolIgmConversationIdentity?.(row);
+    if (!id) return null;
+
+    // Never display an editable badge when two visible conversations resolve
+    // to the same identity. A collision must not update multiple chats.
+    const collides = getConversationRows().some(other =>
+      other !== row && window.qolIgmConversationIdentity?.(other) === id
+    );
+    return collides ? null : id;
   }
   function getConversationTag(row, tags = getStoredTags()) {
     const conversationId = getConversationId(row);
@@ -850,6 +844,7 @@ function initIgmEnhancer() {
     getConversationRows().forEach(row => {
       const conversationId = getConversationId(row);
       if (!conversationId) {
+        row.querySelector('.qol-igm-row-folder')?.remove();
         return;
       }
       const currentTag = getConversationTag(row, tags);
