@@ -6,6 +6,8 @@
   const PANEL_ID = 'qol-tribe-skins-panel';
   const SELECTION_KEY = 'apes_visual_tribe_skin_selection_v1';
   const ARTWORK_KEY = 'apes_visual_tribe_skin_artwork_v1';
+  const NIGHT_KEY = 'apes_visual_tribe_skin_night_v2';
+  const NIGHT_CLASS = 'qol-night-enabled';
   const DAYLIGHT_KEY = 'apes_visual_tribe_skin_remove_night_v1';
   const DAYLIGHT_CLASS = 'qol-daylight-enabled';
   const ARTWORK = Object.freeze({
@@ -17,24 +19,24 @@
     roman: {
       name: 'Roman',
       prefix: 'r',
-      mark: 'R'
+      icon: 'tribe_roman_medium_illu'
     },
     teuton: {
       name: 'Teuton',
       prefix: 't',
-      mark: 'T'
+      icon: 'tribe_teuton_medium_illu'
     },
     gaul: {
       name: 'Gaul',
       prefix: 'g',
-      mark: 'G'
+      icon: 'tribe_gaul_medium_illu'
     }
   });
   let observer = null;
   let scheduled = false;
   let sessionSelection = readSelection();
   let sessionArtwork = readArtwork();
-  let sessionDaylight = readDaylight();
+  let sessionNight = readNight();
   const imageRequests = new WeakMap();
   const imageCrossOrigins = new WeakMap();
   function enabled() {
@@ -59,16 +61,22 @@
       return 'server';
     }
   }
-  function readDaylight() {
-    try { return localStorage.getItem(DAYLIGHT_KEY) === 'true'; } catch (_) { return false; }
+  function readNight() {
+    try {
+      const saved = localStorage.getItem(NIGHT_KEY);
+      if (saved === 'true' || saved === 'false') return saved === 'true';
+      if (localStorage.getItem(DAYLIGHT_KEY) === 'true') return false;
+    } catch (_) {}
+    return false;
   }
   function applyNightOverlay() {
-    document.documentElement.classList.toggle(DAYLIGHT_CLASS, enabled() && sessionDaylight);
+    document.documentElement.classList.toggle(DAYLIGHT_CLASS, enabled() && !sessionNight);
+    document.documentElement.classList.toggle(NIGHT_CLASS, enabled() && sessionNight);
   }
-  function saveDaylight(value) {
+  function saveNight(value) {
     if (typeof value !== 'boolean') return;
-    sessionDaylight = value;
-    try { localStorage.setItem(DAYLIGHT_KEY, String(value)); } catch (_) {}
+    sessionNight = value;
+    try { localStorage.setItem(NIGHT_KEY, String(value)); } catch (_) {}
     applyNightOverlay();
     refreshUi();
   }
@@ -267,20 +275,23 @@
       control.classList.toggle('qol-active', active);
       control.setAttribute('aria-pressed', String(active));
     });
+    const displayedArtwork = sessionArtwork === 'server'
+      ? (document.body?.classList?.contains('halloweenTheme') || document.querySelector?.('img.location[ng-src*="/halloween/"]') ? 'halloween' : 'standard')
+      : sessionArtwork;
     panel.querySelectorAll('[data-artwork]').forEach(control => {
-      const active = control.dataset.artwork === sessionArtwork;
+      const active = control.dataset.artwork === displayedArtwork;
       control.classList.toggle('qol-active', active);
       control.setAttribute('aria-pressed', String(active));
     });
-    const daylight = panel.querySelector('[data-remove-night]');
+    const daylight = panel.querySelector('[data-night-appearance]');
     if (daylight) {
-      daylight.setAttribute('aria-checked', String(sessionDaylight));
-      daylight.querySelector('[data-night-status]').textContent = sessionDaylight ? 'On' : 'Off';
+      daylight.setAttribute('aria-checked', String(sessionNight));
+      daylight.querySelector('[data-night-status]').textContent = sessionNight ? 'On' : 'Off';
     }
     const current = panel.querySelector('.qol-tribe-skins-current');
     if (!current) return;
     const tribe = selected ? SKINS[selected].name : 'Your tribe';
-    current.textContent = tribe + ' · ' + ARTWORK[sessionArtwork].name + ' artwork. Buildings without a Halloween variant use regular artwork.';
+    current.textContent = tribe + ' · ' + ARTWORK[displayedArtwork].name + ' artwork. Buildings without a Halloween variant use regular artwork.';
   }
   function injectStyles() {
     if (document.getElementById('qol-tribe-skins-styles')) return;
@@ -293,12 +304,24 @@
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrast,
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude,
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:none!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeDarkness{display:block!important;opacity:.55!important}
+
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeBuildingLights{display:block!important;opacity:1!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:brightness(.55) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrast{filter:contrast(1.3) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude{filter:contrast(.7) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer #map .mapRobberCampNight{display:block!important}
             #${PANEL_ID} .qol-tribe-skins-night{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:9px!important;border:1px solid #b8a487!important;border-radius:4px!important;background:#fffdf8!important;cursor:pointer!important;user-select:none!important}
             #${PANEL_ID} .qol-tribe-skins-night:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
             #${PANEL_ID} .qol-tribe-skins-night strong{display:block!important;font-size:10px!important;color:#5f513f!important}
             #${PANEL_ID} .qol-tribe-skins-night small{display:block!important;font-size:9px!important;color:#89765d!important}
-            #${PANEL_ID} [data-night-status]{padding:4px 8px!important;border:1px solid #b8a487!important;border-radius:3px!important;background:#eee7db!important;color:#5f513f!important;font-weight:bold!important;font-size:10px!important}
-            #${PANEL_ID} [aria-checked="true"] [data-night-status]{background:var(--qol-accent-soft,#ebdcb9)!important;color:var(--qol-accent-ink,#543f26)!important;border-color:var(--qol-accent,#806239)!important}
+            #${PANEL_ID} [data-night-status]{color:#5f513f!important;font-size:10px!important;min-width:20px!important;text-align:right!important}
+            #${PANEL_ID} .qol-night-toggle{display:flex!important;align-items:center!important;gap:8px!important}
+            #${PANEL_ID} .qol-night-track{display:block!important;position:relative!important;width:38px!important;height:22px!important;border-radius:999px!important;background:#a89d8d!important;flex-shrink:0!important;transition:background .15s!important}
+            #${PANEL_ID} .qol-night-thumb{position:absolute!important;left:3px!important;top:3px!important;width:16px!important;height:16px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.25)!important;transition:transform .15s!important}
+            #${PANEL_ID} [aria-checked="true"] .qol-night-track{background:#5f941f!important}
+            #${PANEL_ID} [aria-checked="true"] .qol-night-thumb{transform:translateX(16px)!important}
+            @media(prefers-reduced-motion:reduce){#${PANEL_ID} .qol-night-track,#${PANEL_ID} .qol-night-thumb{transition:none!important}}
 
             #${TOOLBAR_BUTTON_ID}{position:fixed!important;display:none!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;margin:0!important;padding:0!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;color:var(--qol-accent-ink)!important;box-shadow:0 2px 4px rgba(0,0,0,.22)!important;cursor:pointer!important;user-select:none!important;box-sizing:border-box!important;z-index:9999!important;font:700 17px Arial,Helvetica,sans-serif!important;text-shadow:none!important}
             #${TOOLBAR_BUTTON_ID}:hover{transform:scale(1.08)!important;background:#f7f5f0!important}
@@ -312,10 +335,12 @@
             #${PANEL_ID} .qol-tribe-skins-copy{margin:0!important;color:#5f513f!important}
             #${PANEL_ID} .qol-tribe-skins-choice-label{margin:1px 0 -5px!important;color:#5f513f!important;font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.4px!important}
             #${PANEL_ID} .qol-tribe-skins-choices{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+            #${PANEL_ID} .qol-tribe-skins-artworks{grid-template-columns:repeat(2,minmax(0,1fr))!important}
             #${PANEL_ID} .qol-tribe-skins-choice{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-width:0!important;min-height:82px!important;padding:9px 5px!important;border:1px solid #9c8668!important;border-radius:4px!important;background:linear-gradient(to bottom,#fff,#f0e7da)!important;color:var(--qol-text-accent)!important;cursor:pointer!important;user-select:none!important;font-size:10px!important;font-weight:700!important;text-align:center!important;box-shadow:0 1px 2px rgba(0,0,0,.12)!important}
             #${PANEL_ID} .qol-tribe-skins-choice:hover{border-color:#6e5435!important;background:#fff6e5!important;transform:translateY(-1px)!important}
             #${PANEL_ID} .qol-tribe-skins-choice:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
             #${PANEL_ID} .qol-tribe-skins-mark{display:flex!important;align-items:center!important;justify-content:center!important;width:37px!important;height:37px!important;border:2px solid var(--qol-accent-hover)!important;border-radius:50%!important;background:#f8f1e5!important;color:var(--qol-accent-ink)!important;font:700 17px Georgia,serif!important}
+            #${PANEL_ID} .qol-tribe-skins-portrait{display:block!important;width:30px!important;height:30px!important;flex:0 0 30px!important;background-repeat:no-repeat!important}
             #${PANEL_ID} .qol-tribe-skins-choice.qol-active{border-color:#487315!important;background:linear-gradient(to bottom,#7db830,#5f941f)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(72,115,21,.3),0 2px 5px rgba(0,0,0,.2)!important}
             #${PANEL_ID} .qol-tribe-skins-choice.qol-active .qol-tribe-skins-mark{border-color:#fff!important;background:#487315!important;color:#fff!important}
             #${PANEL_ID} .qol-tribe-skins-current{margin:0!important;padding:8px 9px!important;border:1px solid #d6cab8!important;border-radius:3px!important;background:#fff!important;color:#5f513f!important;font-size:9px!important;text-align:center!important}
@@ -367,29 +392,29 @@
                     <div class="qol-tribe-skins-choices">
                         ${Object.entries(SKINS).map(([key, skin]) => `
                             <div class="qol-tribe-skins-choice" data-skin="${key}" role="button" tabindex="0" aria-pressed="false">
-                                <span class="qol-tribe-skins-mark">${skin.mark}</span>
+                                <span class="qol-tribe-skins-mark" aria-hidden="true"><span class="qol-tribe-skins-portrait ${skin.icon}"></span></span>
                                 <span>${skin.name}</span>
                             </div>
                         `).join('')}
                     </div>
                     <div class="qol-tribe-skins-choice-label">Artwork</div>
-                    <div class="qol-tribe-skins-choices">
-                        ${Object.entries(ARTWORK).map(([key, artwork]) => `
+                    <div class="qol-tribe-skins-choices qol-tribe-skins-artworks">
+                        ${Object.entries(ARTWORK).filter(([key]) => key !== 'server').map(([key, artwork]) => `
                             <div class="qol-tribe-skins-choice" data-artwork="${key}" role="button" tabindex="0" aria-pressed="false">
                                 <span class="qol-tribe-skins-mark">${artwork.mark}</span>
                                 <span>${artwork.name}</span>
                             </div>
                         `).join('')}
                     </div>
-                    <div class="qol-tribe-skins-night" data-remove-night role="switch" tabindex="0" aria-checked="false" aria-label="Remove night overlay">
-                        <span><strong>Remove night overlay</strong><small>Daylight in villages, resource fields and the world map. Night truce still applies.</small></span>
-                        <span data-night-status>Off</span>
+                    <div class="qol-tribe-skins-night" data-night-appearance role="switch" tabindex="0" aria-checked="false" aria-label="Night mode">
+                        <strong>Night mode</strong>
+                        <span class="qol-night-toggle"><span data-night-status>Off</span><span class="qol-night-track" aria-hidden="true"><span class="qol-night-thumb"></span></span></span>
                     </div>
                     <p class="qol-tribe-skins-current"></p>
                     <p class="qol-tribe-skins-note">Your choice is saved in this browser and applies automatically. No village scan is needed.</p>
                 </div>
             `;
-      activate(panel.querySelector('[data-remove-night]'), () => saveDaylight(!sessionDaylight));
+      activate(panel.querySelector('[data-night-appearance]'), () => saveNight(!sessionNight));
       activate(panel.querySelector('[data-close]'), () => panel.classList.remove('qol-tribe-skins-open'));
       panel.querySelectorAll('[data-skin]').forEach(control => {
         activate(control, () => saveSelection(control.dataset.skin));
@@ -445,8 +470,8 @@
     }
   });
   window.addEventListener('storage', event => {
-    if (event.key !== DAYLIGHT_KEY && event.key !== null) return;
-    sessionDaylight = readDaylight();
+    if (event.key !== NIGHT_KEY && event.key !== DAYLIGHT_KEY && event.key !== null) return;
+    sessionNight = readNight();
     applyNightOverlay();
     refreshUi();
   });
@@ -455,8 +480,10 @@
     set: saveSelection,
     getArtwork: () => sessionArtwork,
     setArtwork: saveArtwork,
-    getNightOverlayRemoved: () => sessionDaylight,
-    setNightOverlayRemoved: saveDaylight,
+    getNightAppearance: () => sessionNight,
+    setNightAppearance: saveNight,
+    getNightOverlayRemoved: () => !sessionNight,
+    setNightOverlayRemoved: value => { if (typeof value === 'boolean') saveNight(!value); },
     apply: applySelectedSkin,
     restore: restoreOriginalSkins
   });

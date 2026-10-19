@@ -2,14 +2,12 @@
   'use strict';
 
   const FEATURE_KEY = 'igmEnhanced';
-  const TAGS_KEY = 'qol_conversation_tags';
+  const TAGS_KEY = 'qol_conversation_tags_v3';
   const CUSTOM_FOLDERS_KEY = 'qol_custom_chat_tags';
-  // v2 deliberately discards the short-lived v1 override map. v1 could have
-  // promoted stale Spam/Trash tags into permanent overrides during auto-sort.
-  const OVERRIDES_KEY = 'qol_conversation_tag_overrides_v2';
+  // v3 deliberately does not inherit v2's type/name-wide manual overrides.
+  // Old entries may have affected multiple unrelated conversations.
+  const OVERRIDES_KEY = 'qol_conversation_tag_overrides_v3';
   const SECRET_SOCIETY = 'Secret Society';
-  const SYSTEM_CATEGORIES = new Set(['Unsorted', 'Kingdom', SECRET_SOCIETY, 'Private']);
-  const MANUAL_ONLY_CATEGORIES = new Set(['Spam', 'Trash']);
 
   let observer = null;
   let queued = false;
@@ -60,28 +58,18 @@
     return 'Private';
   }
 
-  function conversationId(row) {
-    const badgeId = row.querySelector('.qol-igm-row-folder')?.dataset?.conversationId;
-    if (badgeId) return badgeId;
-
-    const timestamp = row.querySelector('span[i18ndt]')?.getAttribute('i18ndt');
-    if (timestamp) return `conv_ts_${timestamp}`;
-
-    return null;
-  }
-
-  function stableConversationKey(row) {
-    const category = inferCategory(row);
-    const name = String(row.querySelector('.igmInfos .name')?.textContent || '')
-      .replace(/\s+/g, ' ')
-      .trim()
-      .toLowerCase();
-
-    if (category === 'Kingdom') return 'kingdom';
-    if (category === SECRET_SOCIETY) return `secret-society:${name || 'unknown'}`;
-
-    const playerId = row.querySelector('avatar-image[player-id]')?.getAttribute('player-id');
-    return `private:${playerId || name || 'unknown'}`;
+  function uniqueConversationIds(rows) {
+    const ids = new Map();
+    const counts = new Map();
+    rows.forEach(row => {
+      const id = window.qolIgmConversationIdentity?.(row) || null;
+      ids.set(row, id);
+      if (id) counts.set(id, (counts.get(id) || 0) + 1);
+    });
+    ids.forEach((id, row) => {
+      if (id && counts.get(id) !== 1) ids.set(row, null);
+    });
+    return ids;
   }
 
   function allCategories() {
@@ -145,6 +133,7 @@
 
     const rows = Array.from(document.querySelectorAll('li.igmConversationEntry'));
     if (!rows.length) return;
+    const identities = uniqueConversationIds(rows);
 
     const tags = readJson(TAGS_KEY, {});
     const safeTags = tags && typeof tags === 'object' && !Array.isArray(tags) ? tags : {};
@@ -155,30 +144,32 @@
     let tagsChanged = false;
     let overridesChanged = false;
 
+    // Each native room ID can appear after the list was initially rendered.
+    // Migrate only explicit v3 manual choices, and only from fallback IDs
+    // unique across the currently visible conversation list. Never restore
+    // the old v2 type-wide override map.
+    const fallbackCounts = new Map();
+    const alternateKeys = new Map();
     rows.forEach(row => {
-      const id = conversationId(row);
+      const keys = window.qolIgmConversationKeys?.(row) || [];
+      alternateKeys.set(row, keys);
+      keys.forEach(key => fallbackCounts.set(key, (fallbackCounts.get(key) || 0) + 1));
+    });
+
+    rows.forEach(row => {
+      const id = identities.get(row);
       if (!id) return;
 
-      const stableKey = stableConversationKey(row);
-      let desired = valid.has(safeOverrides[stableKey]) ? safeOverrides[stableKey] : null;
-      const existing = safeTags[id];
-
-      // Preserve old custom-folder assignments as deliberate user organization,
-      // but never adopt Spam/Trash from the raw tag store. Those two categories
-      // only survive when they exist in the explicit manual override map.
-      if (
-        !desired &&
-        existing &&
-        !SYSTEM_CATEGORIES.has(existing) &&
-        !MANUAL_ONLY_CATEGORIES.has(existing) &&
-        valid.has(existing)
-      ) {
-        desired = existing;
-        safeOverrides[stableKey] = existing;
-        overridesChanged = true;
+      if (!valid.has(safeOverrides[id])) {
+        const previous = (alternateKeys.get(row) || []).find(key =>
+          key !== id && fallbackCounts.get(key) === 1 && valid.has(safeOverrides[key])
+        );
+        if (previous) {
+          safeOverrides[id] = safeOverrides[previous];
+          overridesChanged = true;
+        }
       }
-
-      if (!desired) desired = inferCategory(row);
+      const desired = valid.has(safeOverrides[id]) ? safeOverrides[id] : inferCategory(row);
 
       if (safeTags[id] !== desired) {
         safeTags[id] = desired;
@@ -187,7 +178,7 @@
 
       const badge = row.querySelector('.qol-igm-row-folder');
       if (badge) {
-        badge.textContent = desired;
+        badge.textContent = desired === SECRET_SOCIETY ? 'SS' : desired;
         badge.title = `Current folder: ${desired}`;
         badge.dataset.currentTag = desired;
         badge.classList.toggle('spam', desired === 'Spam');
@@ -222,7 +213,11 @@
 
     const overrides = readJson(OVERRIDES_KEY, {});
     const safeOverrides = overrides && typeof overrides === 'object' && !Array.isArray(overrides) ? overrides : {};
-    safeOverrides[stableConversationKey(row)] = category;
+    const id = uniqueConversationIds(
+      Array.from(document.querySelectorAll('li.igmConversationEntry'))
+    ).get(row);
+    if (!id) return;
+    safeOverrides[id] = category;
     writeJson(OVERRIDES_KEY, safeOverrides);
     window.setTimeout(schedule, 0);
   }, true);

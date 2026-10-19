@@ -216,6 +216,14 @@
     return WORLD_SPEED_VALUES.includes(speed) ? speed : null;
   }
   function detectWorldSpeed() {
+    // The official Travian config (TG_SPEED) is exposed by the MAIN-world
+    // bridge. Prefer it over guesses from the server name or page title.
+    const gameSpeed = Number(document.documentElement?.getAttribute('data-apes-world-speed'));
+    if (WORLD_SPEED_VALUES.includes(gameSpeed)) return {
+      speed: gameSpeed,
+      detected: true,
+      source: 'Travian game configuration'
+    };
     const hostnameSpeed = speedFromText(window.location.hostname);
     if (hostnameSpeed) return {
       speed: hostnameSpeed,
