@@ -18,7 +18,6 @@
     const value = String(speed);
     if (root.getAttribute(ATTRIBUTE) !== value) {
       root.setAttribute(ATTRIBUTE, value);
-      window.dispatchEvent(new CustomEvent('apes_qol_world_speed_detected'));
     }
     return true;
   }
