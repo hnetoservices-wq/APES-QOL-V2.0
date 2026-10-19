@@ -178,7 +178,7 @@
 
       const badge = row.querySelector('.qol-igm-row-folder');
       if (badge) {
-        badge.textContent = desired;
+        badge.textContent = desired === SECRET_SOCIETY ? 'SS' : desired;
         badge.title = `Current folder: ${desired}`;
         badge.dataset.currentTag = desired;
         badge.classList.toggle('spam', desired === 'Spam');
