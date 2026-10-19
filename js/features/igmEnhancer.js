@@ -768,6 +768,9 @@ function initIgmEnhancer() {
     anchor.setAttribute('aria-expanded', 'true');
     positionMenu(menu, anchor);
   }
+  function displayCategory(category) {
+    return category === 'Secret Society' ? 'SS' : category;
+  }
   function updateFilterButton() {
     const button = document.getElementById(FILTER_BUTTON_ID);
     if (!button) {
@@ -792,7 +795,7 @@ function initIgmEnhancer() {
       label: 'All Conversations'
     }, ...getAllCategories().map(category => ({
       value: category,
-      label: category
+      label: displayCategory(category)
     }))];
     openMenu(anchor, items, currentFilter, value => {
       currentFilter = value;
@@ -817,7 +820,7 @@ function initIgmEnhancer() {
       }
       openMenu(badge, getAllCategories().map(category => ({
         value: category,
-        label: category
+        label: displayCategory(category)
       })), badge.dataset.currentTag, value => {
         setConversationTag(badge.dataset.conversationId, value);
       });
@@ -837,7 +840,7 @@ function initIgmEnhancer() {
     return badge;
   }
   function updateRowBadge(badge, conversationId, currentTag) {
-    badge.textContent = currentTag;
+    badge.textContent = displayCategory(currentTag);
     badge.title = `Current folder: ${currentTag}`;
     badge.dataset.conversationId = conversationId;
     badge.dataset.currentTag = currentTag;
