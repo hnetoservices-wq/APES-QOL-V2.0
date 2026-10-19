@@ -18,6 +18,17 @@ async function setup(options = {}) {
   const w = dom.window, d = w.document, timers = new Map(); let id = 0, enabled = options.enabled !== false, current = mapRenderer(options.day ? 0 : 1);
   const original = current.Hi;
   if (options.day) d.querySelector('.ingameContentContainer').classList.remove('nightMode');
+  // Ordinary-server structure from the supplied village and fields captures:
+  // one-time Angular bindings exist, but native night classes/nodes do not.
+  if (options.ordinary) {
+    d.querySelectorAll('.nightModeDarkness,.nightModeBuildingLights').forEach(n=>n.remove());
+    d.querySelectorAll('.ingameContentContainer, .ingameContentContainer *').forEach(n=>{
+      for (const c of [...n.classList]) if (c.startsWith('nightMode')) n.classList.remove(c);
+      n.style.removeProperty('filter');
+    });
+    d.querySelector('.villageBackground').innerHTML='<div class="village viewBackground"><img class="location" src="https://static.kingdoms.com/building/thumb/g15_g00.png"><button class="buildingStatusButton">10</button></div>';
+    d.querySelector('.resourcesBackground .viewBackground').classList.add('viewBackground');
+  }
   if (options.saved !== undefined) w.localStorage.setItem(KEY, options.saved);
   if (options.legacy !== undefined) w.localStorage.setItem('apes_visual_tribe_skin_remove_night_v1', options.legacy);
   w.isQolEnabled = () => enabled;
@@ -71,6 +82,23 @@ async function setup(options = {}) {
     e.replace(mapRenderer()); e.poll(); eq(e.map.renderer.Gb,0);
     e.dom.window.close();
   }
+  const ordinary = await setup({ordinary:true,day:true});
+  const {w:ow,d:od}=ordinary;
+  const scenes=['.villageBackground > .viewBackground','.resourcesBackground > .viewBackground'];
+  const baseline=scenes.map(selector=>ow.getComputedStyle(od.querySelector(selector)).filter);
+  ordinary.w.APES_TRIBE_SKINS.setNightAppearance(true); await flush();
+  for (const selector of scenes) eq(ow.getComputedStyle(od.querySelector(selector)).filter,'brightness(.55) saturate(.75)');
+  eq(ow.getComputedStyle(od.querySelector('.resourcesBackground')).display,'none');
+  let clicks=0; od.querySelector('.buildingStatusButton').addEventListener('click',()=>clicks++); od.querySelector('.buildingStatusButton').click(); eq(clicks,1);
+  // Route switches and replacement views inherit the CSS without rescanning.
+  od.querySelector('.resourcesBackground').classList.remove('ng-hide');
+  od.querySelector('.resourcesBackground').innerHTML='<div class="resources viewBackground"><div class="resDistribution"></div></div>';
+  eq(ow.getComputedStyle(od.querySelector(scenes[1])).filter,'brightness(.55) saturate(.75)');
+  ordinary.w.APES_TRIBE_SKINS.setNightAppearance(false); await flush();
+  scenes.forEach((selector,i)=>eq(ow.getComputedStyle(od.querySelector(selector)).filter,baseline[i]));
+  ordinary.w.APES_TRIBE_SKINS.setNightAppearance(true); await flush(); ordinary.toggle(false); await flush();
+  scenes.forEach((selector,i)=>eq(ow.getComputedStyle(od.querySelector(selector)).filter,baseline[i]));
+  ordinary.dom.window.close();
   for (const saved of ['true','false','invalid']) {
     const e=await setup({saved,day:true}); eq(e.w.APES_TRIBE_SKINS.getNightAppearance(),saved==='true'); eq(e.map.renderer.Gb,saved==='true'?1:0); e.dom.window.close();
   }
