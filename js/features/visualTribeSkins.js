@@ -301,15 +301,13 @@
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrast,
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude,
             html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:none!important}
-            html.${NIGHT_CLASS} .ingameContentContainer .nightModeDarkness,
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeDarkness{display:block!important;opacity:.55!important}
+
             html.${NIGHT_CLASS} .ingameContentContainer .nightModeBuildingLights{display:block!important;opacity:1!important}
             html.${NIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:brightness(.55) blur(0)!important}
             html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrast{filter:contrast(1.3) blur(0)!important}
             html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude{filter:contrast(.7) blur(0)!important}
             html.${NIGHT_CLASS} .ingameContentContainer #map .mapRobberCampNight{display:block!important}
-            /* Ordinary servers omit the native night classes and overlay nodes. */
-            html.${NIGHT_CLASS} .ingameContentContainer .villageBackground:not(.nightModeContrast) > .viewBackground,
-            html.${NIGHT_CLASS} .ingameContentContainer .resourcesBackground:not(.nightModeContrast) > .viewBackground{filter:brightness(.55) saturate(.75)!important}
             #${PANEL_ID} .qol-tribe-skins-night{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:9px!important;border:1px solid #b8a487!important;border-radius:4px!important;background:#fffdf8!important;cursor:pointer!important;user-select:none!important}
             #${PANEL_ID} .qol-tribe-skins-night:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
             #${PANEL_ID} .qol-tribe-skins-night strong{display:block!important;font-size:10px!important;color:#5f513f!important}

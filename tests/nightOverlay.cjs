@@ -3,6 +3,7 @@ const { JSDOM } = require('jsdom');
 const root = path.join(__dirname, '..');
 const source = fs.readFileSync(path.join(root, 'js/features/visualTribeSkins.js'), 'utf8');
 const bridge = fs.readFileSync(path.join(root, 'js/modules/visualTribeSkins/nightOverlayBridge.js'), 'utf8');
+const scenesSource = fs.readFileSync(path.join(root, 'js/modules/visualTribeSkins/nightScenes.js'),'utf8');
 const fixture = fs.readFileSync(path.join(__dirname, 'fixtures/nightOverlay.html'), 'utf8');
 const KEY = 'apes_visual_tribe_skin_night_v2', CLASS = 'qol-daylight-enabled';
 let checks = 0;
@@ -26,7 +27,7 @@ async function setup(options = {}) {
       for (const c of [...n.classList]) if (c.startsWith('nightMode')) n.classList.remove(c);
       n.style.removeProperty('filter');
     });
-    d.querySelector('.villageBackground').innerHTML='<div class="village viewBackground"><img class="location" src="https://static.kingdoms.com/building/thumb/g15_g00.png"><button class="buildingStatusButton">10</button></div>';
+    d.querySelector('.villageBackground').innerHTML='<div class="village viewBackground"><img class="location" src="https://static.kingdoms.com/game/0.120.29/layout/images/building/thumb/g15_g00.png"><button class="buildingStatusButton">10</button></div>';
     d.querySelector('.resourcesBackground .viewBackground').classList.add('viewBackground');
   }
   if (options.saved !== undefined) w.localStorage.setItem(KEY, options.saved);
@@ -37,7 +38,7 @@ async function setup(options = {}) {
   w.setInterval = callback => { timers.set(++id, callback); return id; }; w.clearInterval = id => timers.delete(id);
   const injector = { has: name => name === 'MapService', get: name => { eq(name, 'MapService'); return { yh: () => current }; } };
   w.angular = { element: () => ({ injector: () => injector }) };
-  w.eval(bridge); w.eval(source); await flush();
+  w.eval(bridge); w.eval(source); w.eval(scenesSource); await flush();
   return { w, d, dom, timers, original, config,
     get map() { return current; }, replace(map) { current = map; },
     poll() { for (const callback of timers.values()) callback(); },
@@ -58,7 +59,7 @@ async function setup(options = {}) {
     eq(w.localStorage.getItem(KEY),'true'); eq(control.getAttribute('aria-checked'),'true');
     eq(control.querySelector('[data-night-status]').textContent,'On');
     eq(style('img.location').filter,'brightness(.55) blur(0)');
-    eq(style('.nightModeDarkness').opacity,'1'); eq(style('.nightModeBuildingLights').display,'block');
+    eq(style('.nightModeDarkness').opacity,'0.55'); eq(style('.nightModeBuildingLights').display,'block');
     eq(style('.resourcesBackground').display,'none'); eq(style('#outside-game').filter,'grayscale(1)');
     eq(e.map.Hi(0,'native day'),'render:1'); eq(e.map.calls.at(-1)[1],'native day');
     const calls=e.map.calls.length; e.poll(); eq(e.map.calls.length,calls);
@@ -87,13 +88,30 @@ async function setup(options = {}) {
   const scenes=['.villageBackground > .viewBackground','.resourcesBackground > .viewBackground'];
   const baseline=scenes.map(selector=>ow.getComputedStyle(od.querySelector(selector)).filter);
   ordinary.w.APES_TRIBE_SKINS.setNightAppearance(true); await flush();
-  for (const selector of scenes) eq(ow.getComputedStyle(od.querySelector(selector)).filter,'brightness(.55) saturate(.75)');
+  for (const selector of scenes) eq(ow.getComputedStyle(od.querySelector(selector).parentElement).filter,'contrast(1.3) blur(0)');
   eq(ow.getComputedStyle(od.querySelector('.resourcesBackground')).display,'none');
+  const bulb=od.querySelector('img[data-qol-night-owned]');
+  eq(bulb.src,'https://static.kingdoms.com/game/0.120.29/layout/images/building/night/n15_g00.png');
+  eq(ow.getComputedStyle(bulb).display,'none'); bulb.dispatchEvent(new ow.Event('load'));
+  eq(bulb.hasAttribute('data-qol-night-loaded'),true);
+  eq(ow.getComputedStyle(bulb).filter,'none'); eq(ow.getComputedStyle(bulb).pointerEvents,'none');
+  eq(od.querySelectorAll('[data-qol-night-owned="background"]').length,2);
+  eq(od.querySelector('.villageBackground > .viewBackground').style.filter,'');
+  const art=od.querySelector('.villageBackground img.location');
+  art.style.top='236px'; art.style.left='533px'; await flush();
+  eq(bulb.style.top,'236px'); eq(bulb.style.left,'533px');
+  art.src='https://static.kingdoms.com/game/0.120.29/layout/images/halloween/building/thumb/g15_t00.png'; await flush();
+  const changed=od.querySelector('img[data-qol-night-owned]');
+  eq(bulb.isConnected,false); eq(changed.src,'https://static.kingdoms.com/game/0.120.29/layout/images/halloween/building/night/n15_t00.png');
+  changed.dispatchEvent(new ow.Event('error')); eq(changed.isConnected,false);
+  await flush(); eq(od.querySelectorAll('img[data-qol-night-owned]').length,0);
+
+
   let clicks=0; od.querySelector('.buildingStatusButton').addEventListener('click',()=>clicks++); od.querySelector('.buildingStatusButton').click(); eq(clicks,1);
   // Route switches and replacement views inherit the CSS without rescanning.
   od.querySelector('.resourcesBackground').classList.remove('ng-hide');
   od.querySelector('.resourcesBackground').innerHTML='<div class="resources viewBackground"><div class="resDistribution"></div></div>';
-  eq(ow.getComputedStyle(od.querySelector(scenes[1])).filter,'brightness(.55) saturate(.75)');
+  eq(ow.getComputedStyle(od.querySelector(scenes[1]).parentElement).filter,'contrast(1.3) blur(0)');
   ordinary.w.APES_TRIBE_SKINS.setNightAppearance(false); await flush();
   scenes.forEach((selector,i)=>eq(ow.getComputedStyle(od.querySelector(selector)).filter,baseline[i]));
   ordinary.w.APES_TRIBE_SKINS.setNightAppearance(true); await flush(); ordinary.toggle(false); await flush();
