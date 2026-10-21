@@ -649,9 +649,59 @@
         return entries.filter(entry => entry.amount === null || entry.amount > 0);
     }
 
+    // Read Travian's native end-of-queue timestamps. Each building can train
+    // independently, so never combine a Barracks and Stable into one ETA.
+    function trainingCompletionRows(village) {
+        const groups = village?.unitQueue?.buildingTypes;
+        if (!groups || typeof groups !== 'object') return [];
+
+        const buildings = [
+            [19, 'Barracks'], [20, 'Stable'],
+            [29, 'G. Barracks'], [30, 'G. Stable']
+        ];
+        return buildings.flatMap(([type, label]) => {
+            const queued = groups[type];
+            if (!Array.isArray(queued)) return [];
+            const active = queued.filter(item => item && Number(item.count) > 0);
+            if (!active.length) return [];
+
+            const count = active.reduce((total, item) => total + Number(item.count), 0);
+            const paused = active.some(item => Number(item.pause) > 0);
+            const finishes = active.map(item => asTimestamp(item.timeFinishedLast));
+            // Partial timing data cannot establish when an entire queue ends.
+            const finishMs = !paused && finishes.every(value => value !== null)
+                ? Math.max(...finishes) : null;
+            const status = paused ? 'Paused'
+                : finishMs === null ? 'ETA unavailable'
+                    : finishMs <= Date.now() ? 'Refresh needed' : 'active';
+            const troopDescription = active.map(item =>
+                `${formatInteger(item.count)} ${unitName(village?.tribeId, item.unitType)}`
+            ).join(' · ');
+            return [{ type, label, count, finishMs, status, troopDescription }];
+        });
+    }
+
+    function trainingCompletionHtml(village) {
+        const rows = trainingCompletionRows(village);
+        if (!rows.length) return '';
+        return `<div class="apes-vd-training-queues">${rows.map(row => {
+            const time = row.status === 'active'
+                ? `<small class="apes-vd-countdown apes-vd-training-countdown"
+                          data-finish-ms="${row.finishMs}">${escapeHtml(remainingText(row.finishMs))}</small>`
+                : `<small>${escapeHtml(row.status)}</small>`;
+            const tooltip = `${row.label}: ${row.troopDescription} — ${row.status === 'active'
+                ? remainingText(row.finishMs) + ' remaining' : row.status}`;
+            return `<span class="apes-vd-training-queue apes-vd-tooltip-target"
+                         title="${escapeHtml(tooltip)}">
+                        <span>${escapeHtml(row.label)}</span>${time}
+                    </span>`;
+        }).join('')}</div>`;
+    }
+
     function trainingHtml(village) {
         const entries = unitQueueEntries(village);
-        if (!entries.length) return '<span class="apes-vd-idle">Idle</span>';
+        const completionHtml = trainingCompletionHtml(village);
+        if (!entries.length) return completionHtml || '<span class="apes-vd-idle">Idle</span>';
 
         const total = entries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
         const details = entries.map(entry => {
@@ -670,6 +720,7 @@
                     <strong>${escapeHtml(amount + entry.label)}</strong>
                     ${entry.building ? `<small>${escapeHtml(entry.building)}</small>` : ''}
                 </span>
+                ${completionHtml}
             `;
         }
 
@@ -682,6 +733,7 @@
                 <strong>${escapeHtml(total > 0 ? `${formatInteger(total)} queued` : 'Training active')}</strong>
                 <small>${escapeHtml(primary)}</small>
             </span>
+            ${completionHtml}
         `;
     }
 
@@ -862,6 +914,11 @@
         document.querySelectorAll(`#${OVERLAY_ID} .apes-vd-countdown[data-finish-ms]`).forEach(element => {
             const finishMs = Number(element.dataset.finishMs);
             if (!Number.isFinite(finishMs)) return;
+            // A cached training queue that has expired may not yet be refreshed.
+            if (element.classList.contains('apes-vd-training-countdown') && finishMs <= Date.now()) {
+                element.textContent = 'Refresh needed';
+                return;
+            }
             element.textContent = formatDurationMilliseconds(finishMs - Date.now());
         });
     }
