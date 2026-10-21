@@ -977,6 +977,13 @@
         `;
         document.body.appendChild(overlay);
 
+        // Render the latest snapshot immediately after leaving Training.
+        overlay.addEventListener('pointerout', event => {
+            const tooltip = event.target?.closest?.('.apes-vd-row > .apes-vd-cell:nth-child(3) .apes-vd-tooltip-target');
+            if (!tooltip || tooltip.contains(event.relatedTarget)) return;
+            if (isOpen()) renderDashboard();
+        });
+
         overlay.addEventListener('click', event => {
             if (event.target === overlay) {
                 closeDashboard();
@@ -1040,6 +1047,13 @@
         if (!body) return;
 
         updateScanButton();
+
+        // Avoid destroying Chrome's native title tooltip during the 2.5s
+        // snapshot refresh. The existing 1s countdown updater still runs.
+        if (body.querySelector('.apes-vd-row > .apes-vd-cell:nth-child(3) .apes-vd-tooltip-target:hover')) {
+            updateConstructionCountdowns();
+            return;
+        }
 
         const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
         if (!villages.length) {
