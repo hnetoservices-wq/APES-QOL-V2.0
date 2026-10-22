@@ -2,6 +2,18 @@
   'use strict';
   const ROOT='apes-v2-village-overlay',KEY='apes_qol_account_population_history_v1',SOURCE='APES_QOL_VILLAGE_DASHBOARD_BRIDGE';
   const TRAINING={19:'Barracks',20:'Stable',21:'Workshop',29:'Great Barracks',30:'Great Stable'};
+  const RESOURCE_TYPES=[
+    {key:'wood',label:'Wood',color:'#a5b67a'},
+    {key:'clay',label:'Clay',color:'#d59c70'},
+    {key:'iron',label:'Iron',color:'#a4bdd2'},
+    {key:'crop',label:'Crop',color:'#dfc66e'}
+  ];
+  const TRIBES={1:'Romans',2:'Teutons',3:'Gauls'};
+  const TROOP_NAMES={
+    1:['Legionnaire','Praetorian','Imperian','Equites Legati','Equites Imperatoris','Equites Caesaris','Battering Ram','Fire Catapult','Senator','Settler'],
+    2:['Clubswinger','Spearman','Axeman','Scout','Paladin','Teutonic Knight','Ram','Catapult','Chief','Settler'],
+    3:['Phalanx','Swordsman','Pathfinder','Theutates Thunder','Druidrider','Haeduan','Ram','Trebuchet','Chieftain','Settler']
+  };
   let snapshot=null,lastPopulation='',lastRender='',armyBusy=false;
   const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const num=v=>v===''||v==null?null:Number.isFinite(Number(v))?Number(v):null;
@@ -53,6 +65,121 @@
       return {day:date,troops,attack,defense};
     }).filter(Boolean).sort((a,b)=>a.day.localeCompare(b.day)).slice(-365);
   }
+  function resourceOverview(villages){
+    const records=window.APES?.villageResourceProduction?.all?.()||{};
+    const complete=[];
+    for(const village of villages){
+      const record=records[String(village.villageId)];
+      const production=record?.production;
+      if(!production||RESOURCE_TYPES.some(item=>num(production[item.key])===null))continue;
+      complete.push({name:String(village.name||'Village'),
+        values:Object.fromEntries(RESOURCE_TYPES.map(item=>[item.key,num(production[item.key])])),
+        scannedAt:Number(record.scannedAt)||0});
+    }
+    const totals=Object.fromEntries(RESOURCE_TYPES.map(item=>
+      [item.key,complete.reduce((sum,v)=>sum+v.values[item.key],0)]));
+    return {totals,complete:complete.length,villages:villages.length,
+      oldest:complete.length?Math.min(...complete.map(v=>v.scannedAt)):0};
+  }
+
+  // Snapshot history is tribe-specific. Never merge local unit index 1
+  // from different tribes, and never include queued/untrained units here.
+  function unitCounter(villages){
+    const api=window.APES?.villageDashboardIntel;
+    const byType=new Map();
+    let scanned=0,oldest=null,latest=null;
+    if(!api?.historyForVillage)return {rows:[],total:0,scanned:0,villages:villages.length,oldest:null,latest:null};
+    for(const village of villages){
+      const scans=api.historyForVillage(village.villageId);
+      const record=Array.isArray(scans)&&scans.length?scans[scans.length-1]:null;
+      const counts=record?.counts,tribe=Number(record?.tribeId||village.tribeId);
+      if(!TROOP_NAMES[tribe]||!Array.isArray(counts)||counts.length<10||
+         counts.slice(0,10).some(value=>num(value)===null||Number(value)<0))continue;
+      scanned++;
+      const at=Number(record.timestamp);
+      if(Number.isFinite(at)&&at>0){
+        oldest=oldest===null?at:Math.min(oldest,at);
+        latest=latest===null?at:Math.max(latest,at);
+      }
+      counts.slice(0,10).forEach((raw,index)=>{
+        const count=Number(raw);
+        if(!count)return;
+        const key=tribe+':'+index;
+        const existing=byType.get(key);
+        if(existing)existing.count+=count;
+        else byType.set(key,{tribe,index,name:TROOP_NAMES[tribe][index],
+          tribeName:TRIBES[tribe],count,color:`hsl(${(70+(tribe-1)*112+index*37)%360} 62% 64%)`});
+      });
+    }
+    const rows=[...byType.values()].sort((a,b)=>b.count-a.count||
+      a.tribe-b.tribe||a.index-b.index);
+    const total=rows.reduce((sum,row)=>sum+row.count,0);
+    return {rows,total,scanned,villages:villages.length,oldest,latest};
+  }
+
+  function resourceHtml(summary){
+    const available=summary.complete>0;
+    const coverage=`${summary.complete}/${summary.villages} villages recorded`;
+    const tiles=RESOURCE_TYPES.map(resource=>{
+      const value=summary.totals[resource.key];
+      const display=available?`${value>0?'+':''}${fmt(value)}/h`:'—';
+      return `<div class="apes-ao-resource-tile ${resource.key}">
+        <div class="apes-ao-resource-label"><i style="background:${resource.color}"></i><span>${safe(resource.label)}</span></div>
+        <strong>${safe(display)}</strong></div>`;
+    }).join('');
+    const combined=RESOURCE_TYPES.reduce((sum,item)=>sum+summary.totals[item.key],0);
+    const oldest=summary.oldest>0?new Date(summary.oldest).toLocaleString():'—';
+    return `<section class="apes-ao-manager apes-ao-resources">
+      <div class="apes-ao-manager-head"><strong>Total Resource Production</strong>
+        <small>Per hour, including net crop · ${safe(coverage)}</small></div>
+      <div class="apes-ao-resource-tiles">${tiles}</div>
+      <div class="apes-ao-resource-bottom"><span>Combined net production
+        <b>${available?safe(fmt(combined)+'/h'):'—'}</b></span>
+        <small>${available?'Oldest village reading: '+safe(oldest):'No production readings yet. Use Scan Now to visit villages.'}</small></div>
+      ${summary.complete<summary.villages?
+        '<small class="apes-ao-caveat">Partial account data: unscanned villages are excluded, not counted as zero.</small>':''}
+    </section>`;
+  }
+
+  function troopHtml(counter){
+    const coverage=`${counter.scanned}/${counter.villages} villages scanned`;
+    if(!counter.scanned)return `<section class="apes-ao-manager apes-ao-units">
+      <div class="apes-ao-manager-head"><strong>Unit Counter</strong>
+        <small>Own troops · ${safe(coverage)}</small></div>
+      <div class="apes-ao-empty">No troop history yet. Click Scan Army to collect troop counts.</div>
+    </section>`;
+    let offset=0;
+    const stops=counter.rows.map(row=>{
+      const from=offset;
+      offset+=100*row.count/Math.max(1,counter.total);
+      return `${row.color} ${from.toFixed(4)}% ${offset.toFixed(4)}%`;
+    });
+    const gradient=stops.length?`conic-gradient(${stops.join(',')})`:
+      'conic-gradient(rgba(177,171,147,.22) 0% 100%)';
+    const ring=`<div class="apes-ao-unit-donut" style="background:${gradient}">
+      <div class="apes-ao-unit-center"><strong>${safe(fmt(counter.total))}</strong>
+        <small>Own troops</small></div></div>`;
+    const labels=counter.rows.map(row=>{
+      const pct=counter.total?100*row.count/counter.total:0;
+      return `<div class="apes-ao-unit-row" title="${safe(row.name)} (${safe(row.tribeName)}): ${safe(fmt(row.count))} troops">
+        <i style="background:${row.color}"></i><span>${safe(row.name)}
+          <small>${safe(row.tribeName)}</small></span>
+        <b>${safe(fmt(row.count))}</b><em>${pct<.1&&pct>0?'&lt;0.1':pct.toFixed(1)}%</em></div>`;
+    }).join('');
+    const oldest=counter.oldest?new Date(counter.oldest).toLocaleString():'Unknown';
+    const stale=counter.oldest&&Date.now()-counter.oldest>86400000;
+    return `<section class="apes-ao-manager apes-ao-units">
+      <div class="apes-ao-manager-head"><strong>Unit Counter</strong>
+        <small>Latest saved own-troop scans · ${safe(coverage)}
+          ${stale?' · Older data':''}</small></div>
+      <div class="apes-ao-unit-content">${ring}
+        <div class="apes-ao-unit-list">${labels||'<p class="apes-ao-empty-list">No troops recorded</p>'}</div></div>
+      <div class="apes-ao-unit-footer"><small>Oldest village scan: ${safe(oldest)}. Counts exclude troops still in training.</small>
+        ${counter.scanned<counter.villages?
+          '<small class="apes-ao-caveat">Partial account data. Scan Army to include every village.</small>':''}</div>
+    </section>`;
+  }
+
   function activeQueues(villages){
     let total=0;const rows=[];
     for(const v of villages){
@@ -105,12 +232,14 @@
     const villages=snapshot.villages;
     const pop=popHistory(snapshot.playerId).slice(-30),army=armyHistory(snapshot).slice(-30),last=army.at(-1);
     const c=celebrationCounts(villages),q=activeQueues(villages);
+    const resources=resourceOverview(villages),units=unitCounter(villages);
     const population=villages.reduce((a,v)=>a+Math.max(0,num(v.population)||0),0);
-    const signature=JSON.stringify({population,pop,army,c,q,busy:armyBusy,player:snapshot.playerId});
+    const signature=JSON.stringify({population,pop,army,c,q,resources,units,busy:armyBusy,player:snapshot.playerId});
     if(signature===lastRender)return;
     lastRender=signature;
     const stats=[['Villages',fmt(villages.length),'Owned villages'],['Population',fmt(population),'Combined population'],
-      ['Own troops',last?fmt(last.troops):'—',last?'Last army scan · '+dateLabel(last.day):'Run Scan Army'],
+      ['Own troops',units.scanned?fmt(units.total):'—',
+        units.scanned===villages.length?'Latest saved village scans':units.scanned+'/'+villages.length+' villages scanned'],
       ['Training',fmt(q.total),'Troops in training queues'],['Celebrations',fmt(c.active.length),fmt(c.idle.length)+' villages idle']]
       .map(([title,value,note])=>`<div class="apes-ao-stat"><span>${safe(title)}</span><strong>${safe(value)}</strong><small>${safe(note)}</small></div>`).join('');
     const charts=[
@@ -137,7 +266,8 @@
           <div class="apes-ao-counters"><span>Total queued <b>${fmt(q.total)}</b></span><span>Active villages <b>${fmt(q.rows.length)}</b></span></div>
           <div class="apes-ao-training-list">${training||'<p class="apes-ao-empty-list">No active training found</p>'}</div>
           <small class="apes-ao-caveat">Barracks, Stable, Workshop and Great variants. Healing excluded.</small></section>
-      </div>`;
+      </div>
+      <div class="apes-ao-additional">${resourceHtml(resources)}${troopHtml(units)}</div>`;
   }
   document.addEventListener('click',event=>{
     const target=event.target?.closest?.('[data-apes-ao-village],.apes-ao-scan-army');
@@ -164,5 +294,6 @@
     snapshot=event.data.payload;recordPopulation(snapshot);render();
   });
   window.addEventListener('apes_vd_army_history_updated',()=>{lastRender='';render();});
+  window.addEventListener('apes_vd_resource_production_updated',()=>{render();});
   window.APES_ACCOUNT_OVERVIEW=Object.freeze({render});
 })();
