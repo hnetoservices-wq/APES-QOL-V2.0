@@ -1146,6 +1146,7 @@
             ? [startVillageId, ...ids.filter(id => id !== startVillageId)]
             : ids;
 
+        const resourceCaptures = {};
         scanInProgress = true;
         scanProgress = { current: 0, total: orderedIds.length, returning: false };
         updateScanButton();
@@ -1167,6 +1168,12 @@
                 await waitForVillageNavigation(villageId);
                 await sleep(SCAN_SETTLE_MS);
                 captureCurrentVillageScan(villageId);
+                // Read each village's current DOM values during this scan pass.
+                // Do not substitute previously cached production if this capture fails.
+                if (currentVillageIdFromUrl() === villageId) {
+                    const production = window.APES?.villageResourceProduction?.captureForScan?.(villageId);
+                    if (production) resourceCaptures[villageId] = production;
+                }
                 requestSnapshot();
                 await sleep(SCAN_REFRESH_MS);
             }
@@ -1184,6 +1191,13 @@
                 captureCurrentVillageScan(startVillageId);
             }
         } finally {
+            // One historical snapshot per Scan Now pass; mark missing village
+            // readings as partial rather than reporting them as zero production.
+            try {
+                window.APES?.villageResourceProduction?.recordScan?.(orderedIds, resourceCaptures);
+            } catch (error) {
+                console.warn('[APES Village Dashboard] Resource history snapshot failed.', error);
+            }
             requestSnapshot();
             await sleep(SCAN_REFRESH_MS);
             scanInProgress = false;
