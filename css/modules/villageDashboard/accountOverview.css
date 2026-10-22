@@ -1,0 +1,109 @@
+
+/* APES QoL – Account Overview. Scoped to the existing Village Dashboard. */
+#apes-v2-village-overlay .apes-vd-view-toggle {
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  min-height: 26px !important; padding: 0 12px !important; flex: 0 0 auto !important;
+  border: 1px solid rgba(169,208,120,.65) !important; border-radius: 5px !important;
+  background: linear-gradient(180deg,rgba(60,85,45,.94),rgba(30,52,30,.94)) !important;
+  color: #e1f4cd !important; font: 800 10px Arial,sans-serif !important;
+  letter-spacing: .3px !important; cursor: pointer !important; white-space: nowrap !important;
+  user-select: none !important; box-shadow: 0 2px 8px rgba(0,0,0,.24) !important;
+}
+#apes-v2-village-overlay .apes-vd-view-toggle:hover,
+#apes-v2-village-overlay .apes-vd-view-toggle:focus-visible {
+  background: #4c6739 !important; border-color: #b7df89 !important; outline: 2px solid rgba(183,223,137,.3) !important;
+}
+#apes-v2-village-overlay .apes-vd-account-overview,
+#apes-v2-village-overlay .apes-vd-account-overview[hidden] { display: none !important; }
+#apes-v2-village-overlay .apes-vd-account-mode .apes-vd-table-wrap,
+#apes-v2-village-overlay .apes-vd-account-mode .apes-vd-next-events { display: none !important; }
+#apes-v2-village-overlay .apes-vd-account-mode .apes-vd-account-overview:not([hidden]) {
+  display: flex !important; flex-direction: column !important; gap: 12px !important;
+  flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important;
+  padding: 4px 7px 12px !important; scrollbar-color: rgba(206,174,100,.5) rgba(20,20,18,.24) !important;
+}
+#apes-v2-village-overlay .apes-vd-account-overview,
+#apes-v2-village-overlay .apes-vd-account-overview * { box-sizing: border-box !important; font-family: Arial,sans-serif !important; text-shadow: none !important; }
+#apes-v2-village-overlay .apes-ao-topline {
+  display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 12px !important;
+  padding: 8px 12px !important; border: 1px solid rgba(198,167,97,.35) !important; border-radius: 8px !important;
+  background: linear-gradient(110deg,rgba(47,44,33,.98),rgba(27,31,27,.96)) !important;
+}
+#apes-v2-village-overlay .apes-ao-topline > div:first-child { display: flex !important; flex-direction: column !important; gap: 3px !important; }
+#apes-v2-village-overlay .apes-ao-topline strong { color: #f5e6c4 !important; font-size: 13px !important; }
+#apes-v2-village-overlay .apes-ao-topline small { color: #b7b19f !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-scan-army {
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  padding: 7px 13px !important; border: 1px solid rgba(198,167,97,.75) !important; border-radius: 5px !important;
+  background: #51472e !important; color: #f5e5bb !important; font-size: 10px !important; font-weight: 800 !important;
+  cursor: pointer !important; white-space: nowrap !important;
+}
+#apes-v2-village-overlay .apes-ao-scan-army:hover { background: #675836 !important; }
+#apes-v2-village-overlay .apes-ao-scan-army[aria-disabled="true"] { opacity: .65 !important; cursor: wait !important; }
+#apes-v2-village-overlay .apes-ao-stats {
+  display: grid !important; grid-template-columns: repeat(5,minmax(0,1fr)) !important; gap: 9px !important;
+}
+#apes-v2-village-overlay .apes-ao-stat {
+  display: flex !important; flex-direction: column !important; gap: 5px !important; min-width: 0 !important;
+  padding: 12px 13px !important; border: 1px solid rgba(191,164,103,.31) !important; border-radius: 8px !important;
+  background: linear-gradient(130deg,rgba(57,52,39,.97),rgba(34,35,31,.96)) !important;
+}
+#apes-v2-village-overlay .apes-ao-stat > span { color: #d9cbad !important; font-size: 10px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .4px !important; }
+#apes-v2-village-overlay .apes-ao-stat > strong { color: #f3f5e6 !important; font-size: 22px !important; font-weight: 800 !important; font-variant-numeric: tabular-nums !important; }
+#apes-v2-village-overlay .apes-ao-stat > small { color: #a9ab9b !important; font-size: 9px !important; line-height: 1.3 !important; }
+#apes-v2-village-overlay .apes-ao-charts {
+  display: grid !important; grid-template-columns: repeat(3,minmax(0,1fr)) !important; gap: 10px !important;
+}
+#apes-v2-village-overlay .apes-ao-chart,
+#apes-v2-village-overlay .apes-ao-manager {
+  min-width: 0 !important; padding: 12px !important; border: 1px solid rgba(197,170,106,.33) !important; border-radius: 8px !important;
+  background: linear-gradient(150deg,rgba(43,45,37,.97),rgba(27,30,29,.97)) !important;
+}
+#apes-v2-village-overlay .apes-ao-chart-head { display: flex !important; justify-content: space-between !important; align-items: flex-start !important; gap: 8px !important; margin-bottom: 7px !important; }
+#apes-v2-village-overlay .apes-ao-chart-head > div { display: flex !important; flex-direction: column !important; gap: 3px !important; min-width: 0 !important; }
+#apes-v2-village-overlay .apes-ao-chart-head strong { font-size: 12px !important; color: #f7ebd0 !important; }
+#apes-v2-village-overlay .apes-ao-chart-head small { color: #b3afa1 !important; font-size: 9px !important; line-height: 1.35 !important; }
+#apes-v2-village-overlay .apes-ao-chart-head b { color: #d5e6ac !important; font-size: 14px !important; white-space: nowrap !important; }
+#apes-v2-village-overlay .apes-ao-chart svg { display: block !important; width: 100% !important; height: auto !important; min-height: 140px !important; overflow: visible !important; }
+#apes-v2-village-overlay .apes-ao-gridline { stroke: rgba(209,200,172,.15) !important; stroke-width: 1 !important; }
+#apes-v2-village-overlay .apes-ao-axis { fill: #b4ad95 !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-legend { display: flex !important; flex-wrap: wrap !important; gap: 10px !important; margin-top: 4px !important; }
+#apes-v2-village-overlay .apes-ao-legend span { display: inline-flex !important; align-items: center !important; gap: 4px !important; color: #ddd5c2 !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-legend i { width: 9px !important; height: 9px !important; border-radius: 50% !important; }
+#apes-v2-village-overlay .apes-ao-legend b { font-weight: 800 !important; color: #e9e1d2 !important; }
+#apes-v2-village-overlay .apes-ao-chart-foot { display: block !important; margin-top: 6px !important; color: #a4a99d !important; font-size: 9px !important; }
+#apes-v2-village-overlay .apes-ao-empty { display: flex !important; min-height: 148px !important; align-items: center !important; justify-content: center !important; color: #b7b5a9 !important; font-size: 11px !important; text-align: center !important; padding: 20px !important; }
+#apes-v2-village-overlay .apes-ao-management { display: grid !important; grid-template-columns: 1.35fr 1fr !important; gap: 10px !important; }
+#apes-v2-village-overlay .apes-ao-manager { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#apes-v2-village-overlay .apes-ao-manager-head { display: flex !important; flex-direction: column !important; gap: 4px !important; }
+#apes-v2-village-overlay .apes-ao-manager-head strong { color: #f4e7ca !important; font-size: 12px !important; }
+#apes-v2-village-overlay .apes-ao-manager-head small { color: #bbb5a5 !important; font-size: 9px !important; }
+#apes-v2-village-overlay .apes-ao-counters { display: flex !important; gap: 10px !important; }
+#apes-v2-village-overlay .apes-ao-counters > span { padding: 6px 9px !important; border-radius: 4px !important; background: rgba(185,161,92,.13) !important; color: #ded6c4 !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-counters b { color: #d7e6b7 !important; }
+#apes-v2-village-overlay .apes-ao-manager-split { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+#apes-v2-village-overlay .apes-ao-manager-split > div { min-width: 0 !important; }
+#apes-v2-village-overlay .apes-ao-manager h4 { margin: 0 0 7px !important; color: #d0c3a5 !important; font-size: 10px !important; font-weight: 800 !important; }
+#apes-v2-village-overlay .apes-ao-village-link {
+  display: flex !important; position: relative !important; flex-wrap: wrap !important; align-items: center !important; justify-content: space-between !important;
+  gap: 3px 8px !important; padding: 7px 8px !important; border-bottom: 1px solid rgba(195,174,133,.12) !important;
+  color: #f1eadb !important; font-size: 10px !important; cursor: pointer !important; min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-village-link:hover,
+#apes-v2-village-overlay .apes-ao-village-link:focus-visible { background: rgba(138,178,90,.14) !important; outline: none !important; }
+#apes-v2-village-overlay .apes-ao-village-link > span { font-weight: 700 !important; min-width: 0 !important; }
+#apes-v2-village-overlay .apes-ao-village-link em { color: #d1dda9 !important; font-style: normal !important; font-size: 9px !important; white-space: nowrap !important; }
+#apes-v2-village-overlay .apes-ao-village-link > small { color: #b9b4a7 !important; font-size: 9px !important; width: 100% !important; }
+#apes-v2-village-overlay .apes-ao-empty-list { color: #aaa799 !important; font-size: 10px !important; font-style: italic !important; }
+#apes-v2-village-overlay .apes-ao-caveat { color: #aaa99a !important; font-size: 9px !important; line-height: 1.35 !important; }
+@media (max-width: 1020px) {
+  #apes-v2-village-overlay .apes-ao-stats { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+  #apes-v2-village-overlay .apes-ao-charts { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  #apes-v2-village-overlay .apes-ao-management { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 700px) {
+  #apes-v2-village-overlay .apes-vd-heading { flex-wrap: wrap !important; }
+  #apes-v2-village-overlay .apes-ao-stats { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  #apes-v2-village-overlay .apes-ao-charts { grid-template-columns: 1fr !important; }
+  #apes-v2-village-overlay .apes-ao-manager-split { grid-template-columns: 1fr !important; }
+}
