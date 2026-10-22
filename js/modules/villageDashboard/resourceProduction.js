@@ -2,6 +2,8 @@
   'use strict';
 
   const STORE_PREFIX = 'apes_qol_village_resource_production_v1';
+  const HISTORY_PREFIX = 'apes_qol_account_resource_production_history_v1';
+  const MAX_SCAN_SNAPSHOTS = 180;
   const RESOURCE_DEFS = Object.freeze([
     { key: 'wood', label: 'Wood' },
     { key: 'clay', label: 'Clay' },
@@ -140,6 +142,66 @@
     return save(villageId, production);
   }
 
+  function captureForScan(expectedVillageId) {
+    const villageId=String(expectedVillageId || '');
+    if (!/^\d+$/.test(villageId) || currentVillageId()!==villageId ||
+        !/\/page:village(?:\/|$)/i.test(window.location.hash) ||
+        !document.getElementById('resourceBar')) return null;
+    const production=readCurrentProduction();
+    if (!production || RESOURCE_DEFS.some(resource=>!Number.isFinite(production[resource.key]))) return null;
+    if (!save(villageId,production)) return null;
+    return {villageId,production,capturedAt:Date.now()};
+  }
+
+  function historyStorageKey() {
+    const player=playerId();
+    return player ? `${HISTORY_PREFIX}:${window.location.hostname}:${player}` : '';
+  }
+
+  function scanHistory() {
+    const key=historyStorageKey();
+    if(!key)return [];
+    try{
+      const data=JSON.parse(localStorage.getItem(key)||'[]');
+      return Array.isArray(data) ? data.filter(row=>
+        Number.isFinite(Number(row?.timestamp))&&row?.totals&&typeof row.totals==='object'&&
+        Number.isInteger(Number(row?.captured))&&Number.isInteger(Number(row?.villages))
+      ).sort((a,b)=>Number(a.timestamp)-Number(b.timestamp)).slice(-MAX_SCAN_SNAPSHOTS) : [];
+    }catch(_error){return [];}
+  }
+
+  function recordScan(expectedVillageIds,captures) {
+    const key=historyStorageKey();
+    if(!key||!Array.isArray(expectedVillageIds)||!expectedVillageIds.length)return false;
+    const expected=[...new Set(expectedVillageIds.map(String).filter(id=>/^\d+$/.test(id)))];
+    if(!expected.length)return false;
+    const values=captures&&typeof captures==='object'?captures:{};
+    const perVillage={};
+    for(const id of expected) {
+      const reading=values[id];
+      if(reading?.villageId!==id||!reading?.production||
+         RESOURCE_DEFS.some(resource=>!Number.isFinite(Number(reading.production[resource.key]))))continue;
+      perVillage[id]=Object.fromEntries(RESOURCE_DEFS.map(resource=>[resource.key,Number(reading.production[resource.key])]));
+    }
+    const totals=Object.fromEntries(RESOURCE_DEFS.map(resource=>[
+      resource.key,Object.values(perVillage).reduce((sum,village)=>sum+village[resource.key],0)
+    ]));
+    const captured=Object.keys(perVillage).length;
+    const item={timestamp:Date.now(),villages:expected.length,captured,complete:captured===expected.length,totals,perVillage};
+    try{
+      const records=scanHistory();
+      records.push(item);
+      localStorage.setItem(key,JSON.stringify(records.slice(-MAX_SCAN_SNAPSHOTS)));
+      window.dispatchEvent(new CustomEvent('apes_vd_resource_history_updated',{
+        detail:{timestamp:item.timestamp,captured,villages:expected.length,complete:item.complete}
+      }));
+      return true;
+    }catch(error){
+      console.warn('[APES Village Dashboard] Could not save resource production scan history.',error);
+      return false;
+    }
+  }
+
   function scheduleCapture() {
     window.clearTimeout(captureTimer);
     window.clearTimeout(secondPassTimer);
@@ -157,6 +219,9 @@
   window.APES = window.APES || {};
   window.APES.villageResourceProduction = Object.freeze({
     capture: captureCurrent,
+    captureForScan,
+    recordScan,
+    scanHistory,
     get: villageId => readStore().villages?.[String(villageId || '')] || null,
     all: () => ({ ...(readStore().villages || {}) })
   });
