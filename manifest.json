@@ -174,7 +174,8 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "images/apege.png"
+        "images/apege.png",
+        "images/apepehappy.webp"
       ],
       "matches": [
         "*://*.kingdoms.com/*"
