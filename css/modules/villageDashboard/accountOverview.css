@@ -313,3 +313,75 @@
     grid-template-columns: 1fr !important;
   }
 }
+
+/* Production development: native Scan Now snapshots (not estimates). */
+#apes-v2-village-overlay .apes-ao-resource-trend {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  padding: 11px 0 0 !important;
+  border-top: 1px solid rgba(198,174,124,.18) !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend-head {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend-head strong {
+  color: #f4e7ca !important;
+  font-size: 12px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend-head small,
+#apes-v2-village-overlay .apes-ao-resource-trend > .apes-ao-caveat {
+  color: #b1ae9d !important;
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend svg {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 145px !important;
+  overflow: visible !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend {
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  gap: 7px 12px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  color: #dfd8c5 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend i {
+  flex: 0 0 auto !important;
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend b {
+  color: #dfd8c5 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend em {
+  margin-left: auto !important;
+  color: #d9e6c3 !important;
+  font-size: 10px !important;
+  font-style: normal !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-empty {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 130px !important;
+  padding: 16px !important;
+  text-align: center !important;
+  color: #b1ae9d !important;
+  font-size: 10px !important;
+}
