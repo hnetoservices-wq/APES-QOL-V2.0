@@ -222,6 +222,38 @@
     const legend=lines.length>1?`<div class="apes-ao-legend">${lines.map(l=>`<span><i style="background:${l.color}"></i>${safe(l.name)} <b>${safe(compact(l.values.at(-1)))}</b></span>`).join('')}</div>`:'';
     return `<section class="apes-ao-chart">${header}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${safe(title)} graph">${grid}${paths}${labels}</svg>${legend}<small class="apes-ao-chart-foot">${records.length} recorded day${records.length===1?' · More scans will build the trend':'s'}</small></section>`;
   }
+
+  // Account-wide population breakdown complements (rather than duplicates)
+  // the population history chart in the first row.
+  function populationByVillageHtml(villages){
+    const rows=villages.map(v=>({
+      name:String(v.name||'Village'),id:String(v.villageId||''),
+      population:Math.max(0,num(v.population)||0)
+    })).sort((a,b)=>b.population-a.population||a.name.localeCompare(b.name,undefined,{numeric:true}));
+    const total=rows.reduce((sum,row)=>sum+row.population,0);
+    const maximum=Math.max(1,...rows.map(row=>row.population));
+    const list=rows.map(row=>{
+      const percentage=total>0?(row.population/total*100):0;
+      const width=(row.population/maximum*100).toFixed(2);
+      return `<div class="apes-ao-population-item"
+        data-apes-ao-village="${safe(row.id)}" role="button" tabindex="0"
+        title="Open ${safe(row.name)}">
+        <div class="apes-ao-population-label">
+          <span>${safe(row.name)}</span><b>${safe(fmt(row.population))}</b>
+          <em>${percentage.toFixed(1)}%</em>
+        </div>
+        <div class="apes-ao-population-track"><i style="width:${width}%"></i></div>
+      </div>`;
+    }).join('');
+    return `<section class="apes-ao-chart apes-ao-population-card">
+      <div class="apes-ao-chart-head"><div>
+        <strong>Population by Village</strong>
+        <small>Current population distribution</small>
+      </div><b>${safe(fmt(total))}</b></div>
+      <div class="apes-ao-population-list">${list||'<div class="apes-ao-empty">No villages available.</div>'}</div>
+    </section>`;
+  }
+
   function villageRow(row,info,details=''){
     return `<div class="apes-ao-village-link" data-apes-ao-village="${safe(row.id)}" role="button" tabindex="0" title="Open ${safe(row.name)}"><span>${safe(row.name)}</span><em>${info}</em>${details}</div>`;
   }
@@ -242,8 +274,11 @@
         units.scanned===villages.length?'Latest saved village scans':units.scanned+'/'+villages.length+' villages scanned'],
       ['Training',fmt(q.total),'Troops in training queues'],['Celebrations',fmt(c.active.length),fmt(c.idle.length)+' villages idle']]
       .map(([title,value,note])=>`<div class="apes-ao-stat"><span>${safe(title)}</span><strong>${safe(value)}</strong><small>${safe(note)}</small></div>`).join('');
+    const populationDevelopment=graph('Population Development','Daily account population',
+      pop,[{name:'Population',color:'#a5d76b',values:pop.map(x=>Number(x.population))}],
+      'Population tracking starts with your first dashboard snapshot.');
     const charts=[
-      graph('Population Development','Daily account population',pop,[{name:'Population',color:'#a5d76b',values:pop.map(x=>Number(x.population))}],'Population tracking starts with your first dashboard snapshot.'),
+      populationByVillageHtml(villages),
       graph('Army Development','Own troops · complete daily scans',army,[{name:'Troops',color:'#bd9feb',values:army.map(x=>x.troops)}],'No complete account-wide troop history yet. Use Scan Army.'),
       graph('Power Development','Offensive power and average defensive power',army,[
         {name:'Attack',color:'#df886a',values:army.map(x=>x.attack)},
@@ -256,7 +291,8 @@
     panel.innerHTML=`
       <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div>
         <div class="apes-ao-scan-army" role="button" tabindex="0" aria-disabled="${armyBusy}">${armyBusy?'Scanning Army…':'Scan Army'}</div></div>
-      <div class="apes-ao-stats">${stats}</div><div class="apes-ao-charts">${charts}</div>
+      <div class="apes-ao-stats">${stats}</div>
+      <div class="apes-ao-row-primary">${resourceHtml(resources)}${populationDevelopment}</div>
       <div class="apes-ao-management">
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Celebration Manager</strong><small>${fmt(c.active.length)} active · ${fmt(c.idle.length)} idle villages</small></div>
           <div class="apes-ao-counters"><span>Celebrating <b>${fmt(c.active.length)}</b></span><span>Idle <b>${fmt(c.idle.length)}</b></span></div>
@@ -267,7 +303,8 @@
           <div class="apes-ao-training-list">${training||'<p class="apes-ao-empty-list">No active training found</p>'}</div>
           <small class="apes-ao-caveat">Barracks, Stable, Workshop and Great variants. Healing excluded.</small></section>
       </div>
-      <div class="apes-ao-additional">${resourceHtml(resources)}${troopHtml(units)}</div>`;
+      <div class="apes-ao-charts">${charts}</div>
+      <div class="apes-ao-unit-section">${troopHtml(units)}</div>`;
   }
   document.addEventListener('click',event=>{
     const target=event.target?.closest?.('[data-apes-ao-village],.apes-ao-scan-army');
