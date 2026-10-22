@@ -115,6 +115,7 @@
         "js/modules/villageDashboard/armySmithyScanner.js",
         "js/modules/villageDashboard/resourceProduction.js",
         "js/modules/villageDashboard/expandedVillageRefinementsSafe.js",
+        "js/modules/villageDashboard/accountOverview.js",
         "js/content.js"
       ],
       "css": [
@@ -126,6 +127,7 @@
         "css/v2.css",
         "css/modules/igm/messageCenter.css",
         "css/modules/villageDashboard/dashboard.css",
+        "css/modules/villageDashboard/accountOverview.css",
         "css/modules/villageDashboard/nextEvents.css",
         "css/modules/villageDashboard/expandedVillageIntel.css",
         "css/modules/villageDashboard/expandedVillageIntelPolish.css",
