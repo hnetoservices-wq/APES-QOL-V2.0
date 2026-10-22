@@ -954,9 +954,9 @@
                     <div class="apes-vd-brand">
                         <span>APES</span>
                         <strong>Village Dashboard</strong>
+                        <div class="apes-vd-view-toggle" role="button" tabindex="0" aria-label="Switch to Account Overview">Account Overview</div>
                     </div>
                     <div class="apes-vd-heading-actions">
-                        <div class="apes-vd-view-toggle" role="button" tabindex="0" aria-label="Switch to Account Overview">Account Overview</div>
                         <div class="apes-vd-scan-btn" role="button" tabindex="0" aria-disabled="false">Scan Now</div>
                         <div class="apes-vd-hint">H / Esc to close · Click a village to switch</div>
                     </div>
