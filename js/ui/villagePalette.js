@@ -116,6 +116,7 @@
     let refreshTimer = null;
     let retryTimer = null;
     let countdownTimer = null;
+    let dashboardMode = 'villages';
     let scanInProgress = false;
     let scanProgress = { current: 0, total: 0, returning: false };
 
@@ -955,6 +956,7 @@
                         <strong>Village Dashboard</strong>
                     </div>
                     <div class="apes-vd-heading-actions">
+                        <div class="apes-vd-view-toggle" role="button" tabindex="0" aria-label="Switch to Account Overview">Account Overview</div>
                         <div class="apes-vd-scan-btn" role="button" tabindex="0" aria-disabled="false">Scan Now</div>
                         <div class="apes-vd-hint">H / Esc to close · Click a village to switch</div>
                     </div>
@@ -973,6 +975,7 @@
                         <div class="apes-vd-loading">Reading Travian village cache…</div>
                     </div>
                 </div>
+                <div class="apes-vd-account-overview" role="region" aria-label="Account overview" hidden></div>
             </div>
         `;
         document.body.appendChild(overlay);
@@ -987,6 +990,14 @@
         overlay.addEventListener('click', event => {
             if (event.target === overlay) {
                 closeDashboard();
+                return;
+            }
+
+            const viewButton = event.target.closest('.apes-vd-view-toggle');
+            if (viewButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                switchDashboardMode(dashboardMode === 'account' ? 'villages' : 'account');
                 return;
             }
 
@@ -1047,6 +1058,11 @@
         if (!body) return;
 
         updateScanButton();
+
+        if (dashboardMode === 'account') {
+            window.APES_ACCOUNT_OVERVIEW?.render?.(snapshot);
+            return;
+        }
 
         // Avoid destroying Chrome's native title tooltip during the 2.5s
         // snapshot refresh. The existing 1s countdown updater still runs.
@@ -1177,6 +1193,24 @@
         }
     }
 
+    function switchDashboardMode(nextMode) {
+        dashboardMode = nextMode === 'account' ? 'account' : 'villages';
+        const overlay = mountDashboard();
+        const root = overlay.querySelector('.apes-v2-village-dashboard');
+        root?.classList.toggle('apes-vd-account-mode', dashboardMode === 'account');
+        const button = overlay.querySelector('.apes-vd-view-toggle');
+        if (button) {
+            button.textContent = dashboardMode === 'account' ? 'Village Overview' : 'Account Overview';
+            button.setAttribute('aria-label', 'Switch to ' + button.textContent);
+        }
+        const brand = overlay.querySelector('.apes-vd-brand > strong');
+        if (brand) brand.textContent = dashboardMode === 'account' ? 'Account Overview' : 'Village Dashboard';
+        const section = overlay.querySelector('.apes-vd-account-overview');
+        if (section) section.hidden = dashboardMode !== 'account';
+        if (dashboardMode === 'account') window.APES?.villageDashboardIntel?.collapseAll?.();
+        renderDashboard();
+    }
+
     function startRefresh() {
         stopRefresh();
         requestSnapshot();
@@ -1205,6 +1239,7 @@
         const overlay = mountDashboard();
         overlay.classList.add('open');
         overlay.setAttribute('aria-hidden', 'false');
+        switchDashboardMode(dashboardMode);
         renderDashboard();
         startRefresh();
     }
@@ -1300,7 +1335,8 @@
         toggle: toggleDashboard,
         refresh: requestSnapshot,
         scan: scanAllVillages,
-        getVillages: () => (snapshot?.villages || []).map(village => ({ ...village }))
+        getVillages: () => (snapshot?.villages || []).map(village => ({ ...village })),
+        showAccount: () => { openDashboard(); switchDashboardMode('account'); }
     });
 
     mountDashboard();
