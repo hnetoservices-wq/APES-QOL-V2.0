@@ -32,14 +32,6 @@
 #apes-v2-village-overlay .apes-ao-topline > div:first-child { display: flex !important; flex-direction: column !important; gap: 3px !important; }
 #apes-v2-village-overlay .apes-ao-topline strong { color: #f5e6c4 !important; font-size: 13px !important; }
 #apes-v2-village-overlay .apes-ao-topline small { color: #b7b19f !important; font-size: 10px !important; }
-#apes-v2-village-overlay .apes-ao-scan-army {
-  display: inline-flex !important; align-items: center !important; justify-content: center !important;
-  padding: 7px 13px !important; border: 1px solid rgba(198,167,97,.75) !important; border-radius: 5px !important;
-  background: #51472e !important; color: #f5e5bb !important; font-size: 10px !important; font-weight: 800 !important;
-  cursor: pointer !important; white-space: nowrap !important;
-}
-#apes-v2-village-overlay .apes-ao-scan-army:hover { background: #675836 !important; }
-#apes-v2-village-overlay .apes-ao-scan-army[aria-disabled="true"] { opacity: .65 !important; cursor: wait !important; }
 #apes-v2-village-overlay .apes-ao-stats {
   display: grid !important; grid-template-columns: repeat(5,minmax(0,1fr)) !important; gap: 9px !important;
 }
@@ -282,10 +274,10 @@
   #apes-v2-village-overlay .apes-ao-unit-donut { max-width: 210px !important; }
 }
 
-/* Account Overview layout: resources + population trend; managers; unit donut + army + power. */
+/* Account Overview layout: resource totals / resource trend / population trend; managers; military intelligence. */
 #apes-v2-village-overlay .apes-ao-row-primary {
   display: grid !important;
-  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
   align-items: stretch !important;
   gap: 10px !important;
 }
@@ -303,9 +295,32 @@
 #apes-v2-village-overlay .apes-ao-charts .apes-ao-unit-list {
   max-height: 208px !important;
 }
-@media (max-width: 1020px) {
+#apes-v2-village-overlay .apes-ao-row-primary .apes-ao-production-development {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-production-development .apes-ao-resource-trend {
+  padding: 0 !important;
+  border-top: none !important;
+}
+#apes-v2-village-overlay .apes-ao-production-development .apes-ao-resource-trend svg {
+  min-height: 120px !important;
+}
+@media (max-width: 1100px) {
+  #apes-v2-village-overlay .apes-ao-row-primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  #apes-v2-village-overlay .apes-ao-row-primary .apes-ao-production-development {
+    grid-column: 1 / -1 !important;
+  }
+}
+@media (max-width: 740px) {
   #apes-v2-village-overlay .apes-ao-row-primary {
     grid-template-columns: 1fr !important;
+  }
+  #apes-v2-village-overlay .apes-ao-row-primary .apes-ao-production-development {
+    grid-column: auto !important;
   }
 }
 @media (max-width: 620px) {
