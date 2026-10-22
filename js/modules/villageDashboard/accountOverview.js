@@ -117,7 +117,62 @@
     return {rows,total,scanned,villages:villages.length,oldest,latest};
   }
 
-  function resourceHtml(summary){
+  function resourceDevelopmentHtml(history) {
+    const all=Array.isArray(history)?history:[];
+    const records=all.filter(row=>row?.complete===true &&
+      Number(row?.captured)>0 && Number(row.captured)===Number(row.villages) &&
+      RESOURCE_TYPES.every(resource=>num(row?.totals?.[resource.key])!==null)).slice(-30);
+    const last=all.at(-1);
+    const note=last && !last.complete ? `Latest scan partial: ${fmt(last.captured)}/${fmt(last.villages)} villages; excluded from graph.` : '';
+    const heading=`<div class="apes-ao-resource-trend-head">
+      <strong>Resource Production Development</strong>
+      <small>Account totals per hour · ${records.length} complete scan${records.length===1?'':'s'}</small></div>`;
+    if(!records.length) return `<div class="apes-ao-resource-trend">${heading}
+      <div class="apes-ao-resource-empty">No complete production scans yet. Use Scan Now to record the first snapshot.</div>
+      ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
+    const W=500,H=216,L=55,R=13,T=15,B=32,PW=W-L-R,PH=H-T-B;
+    const amounts=records.flatMap(row=>RESOURCE_TYPES.map(item=>Number(row.totals[item.key])));
+    let minimum=Math.min(0,...amounts),maximum=Math.max(0,...amounts);
+    if(maximum===minimum){maximum+=1;minimum-=1;}
+    const range=maximum-minimum;
+    const x=i=>records.length===1?L+PW/2:L+PW*i/(records.length-1);
+    const y=n=>T+PH*(maximum-n)/range;
+    const grid=[0,.25,.5,.75,1].map(frac=>{
+      const value=minimum+frac*range, yy=y(value);
+      return `<line class="apes-ao-gridline" x1="${L}" y1="${yy.toFixed(2)}" x2="${W-R}" y2="${yy.toFixed(2)}"/>
+        <text class="apes-ao-axis" text-anchor="end" x="${L-7}" y="${(yy+3).toFixed(2)}">${safe(compact(value))}</text>`;
+    }).join('');
+    const lines=RESOURCE_TYPES.map(resource=>{
+      const values=records.map(row=>Number(row.totals[resource.key]));
+      const points=values.map((value,i)=>`${x(i).toFixed(2)},${y(value).toFixed(2)}`).join(' ');
+      const path=records.length>1?`<polyline points="${points}" fill="none" stroke="${resource.color}"
+        stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`:'';
+      const dots=values.map((value,i)=>{
+        const stamp=new Date(Number(records[i].timestamp)).toLocaleString();
+        return `<circle r="3.4" cx="${x(i).toFixed(2)}" cy="${y(value).toFixed(2)}"
+          fill="${resource.color}"><title>${safe(resource.label)}: ${safe(fmt(value))}/h · ${safe(stamp)}</title></circle>`;
+      }).join('');
+      return path+dots;
+    }).join('');
+    const labelIndexes=[...new Set([0,Math.floor((records.length-1)/2),records.length-1])];
+    const labels=labelIndexes.map(i=>{
+      const d=new Date(Number(records[i].timestamp));
+      const stamp=d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
+      return `<text class="apes-ao-axis" x="${x(i).toFixed(2)}" y="${H-8}" text-anchor="${i===0?'start':i===records.length-1?'end':'middle'}">${safe(stamp)}</text>`;
+    }).join('');
+    const legend=RESOURCE_TYPES.map(item=>{
+      const current=Number(records.at(-1).totals[item.key]);
+      return `<span><i style="background:${item.color}"></i><b>${safe(item.label)}</b>
+        <em>${current>0?'+':''}${safe(fmt(current))}/h</em></span>`;
+    }).join('');
+    return `<div class="apes-ao-resource-trend">${heading}
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Historical wood, clay, iron and crop production per hour">${grid}${lines}${labels}</svg>
+      <div class="apes-ao-resource-legend">${legend}</div>
+      <small class="apes-ao-chart-foot">Each point represents one complete Scan Now pass.${records.length===1?' Scan again to build a trend.':''}</small>
+      ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
+  }
+
+  function resourceHtml(summary, history){
     const available=summary.complete>0;
     const coverage=`${summary.complete}/${summary.villages} villages recorded`;
     const tiles=RESOURCE_TYPES.map(resource=>{
@@ -138,6 +193,7 @@
         <small>${available?'Oldest village reading: '+safe(oldest):'No production readings yet. Use Scan Now to visit villages.'}</small></div>
       ${summary.complete<summary.villages?
         '<small class="apes-ao-caveat">Partial account data: unscanned villages are excluded, not counted as zero.</small>':''}
+      ${resourceDevelopmentHtml(history)}
     </section>`;
   }
 
@@ -234,8 +290,10 @@
     const pop=popHistory(snapshot.playerId).slice(-30),army=armyHistory(snapshot).slice(-30),last=army.at(-1);
     const c=celebrationCounts(villages),q=activeQueues(villages);
     const resources=resourceOverview(villages),units=unitCounter(villages);
+    const resourceHistory=window.APES?.villageResourceProduction?.scanHistory?.()||[];
     const population=villages.reduce((a,v)=>a+Math.max(0,num(v.population)||0),0);
-    const signature=JSON.stringify({population,pop,army,c,q,resources,units,busy:armyBusy,player:snapshot.playerId});
+    const signature=JSON.stringify({population,pop,army,c,q,resources,units,busy:armyBusy,player:snapshot.playerId,
+      resourceHistoryCount:resourceHistory.length,resourceHistoryLatest:resourceHistory.at(-1)?.timestamp});
     if(signature===lastRender)return;
     lastRender=signature;
     const stats=[['Villages',fmt(villages.length),'Owned villages'],['Population',fmt(population),'Combined population'],
@@ -261,7 +319,7 @@
       <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div>
         <div class="apes-ao-scan-army" role="button" tabindex="0" aria-disabled="${armyBusy}">${armyBusy?'Scanning Army…':'Scan Army'}</div></div>
       <div class="apes-ao-stats">${stats}</div>
-      <div class="apes-ao-row-primary">${resourceHtml(resources)}${populationDevelopment}</div>
+      <div class="apes-ao-row-primary">${resourceHtml(resources,resourceHistory)}${populationDevelopment}</div>
       <div class="apes-ao-management">
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Celebration Manager</strong><small>${fmt(c.active.length)} active · ${fmt(c.idle.length)} idle villages</small></div>
           <div class="apes-ao-counters"><span>Celebrating <b>${fmt(c.active.length)}</b></span><span>Idle <b>${fmt(c.idle.length)}</b></span></div>
@@ -300,5 +358,6 @@
   });
   window.addEventListener('apes_vd_army_history_updated',()=>{lastRender='';render();});
   window.addEventListener('apes_vd_resource_production_updated',()=>{render();});
+  window.addEventListener('apes_vd_resource_history_updated',()=>{lastRender='';render();});
   window.APES_ACCOUNT_OVERVIEW=Object.freeze({render});
 })();
