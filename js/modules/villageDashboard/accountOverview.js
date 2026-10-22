@@ -14,7 +14,7 @@
     2:['Clubswinger','Spearman','Axeman','Scout','Paladin','Teutonic Knight','Ram','Catapult','Chief','Settler'],
     3:['Phalanx','Swordsman','Pathfinder','Theutates Thunder','Druidrider','Haeduan','Ram','Trebuchet','Chieftain','Settler']
   };
-  let snapshot=null,lastPopulation='',lastRender='',armyBusy=false;
+  let snapshot=null,lastPopulation='',lastRender='';
   const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const num=v=>v===''||v==null?null:Number.isFinite(Number(v))?Number(v):null;
   const fmt=v=>Math.round(Number(v)||0).toLocaleString();
@@ -172,7 +172,7 @@
       ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
   }
 
-  function resourceHtml(summary, history){
+  function resourceHtml(summary){
     const available=summary.complete>0;
     const coverage=`${summary.complete}/${summary.villages} villages recorded`;
     const tiles=RESOURCE_TYPES.map(resource=>{
@@ -193,7 +193,6 @@
         <small>${available?'Oldest village reading: '+safe(oldest):'No production readings yet. Use Scan Now to visit villages.'}</small></div>
       ${summary.complete<summary.villages?
         '<small class="apes-ao-caveat">Partial account data: unscanned villages are excluded, not counted as zero.</small>':''}
-      ${resourceDevelopmentHtml(history)}
     </section>`;
   }
 
@@ -202,7 +201,7 @@
     if(!counter.scanned)return `<section class="apes-ao-manager apes-ao-units">
       <div class="apes-ao-manager-head"><strong>Unit Counter</strong>
         <small>Own troops · ${safe(coverage)}</small></div>
-      <div class="apes-ao-empty">No troop history yet. Click Scan Army to collect troop counts.</div>
+      <div class="apes-ao-empty">No troop history yet. Run Scan Army in a village's expanded Info panel to collect troop counts.</div>
     </section>`;
     let offset=0;
     const stops=counter.rows.map(row=>{
@@ -292,7 +291,7 @@
     const resources=resourceOverview(villages),units=unitCounter(villages);
     const resourceHistory=window.APES?.villageResourceProduction?.scanHistory?.()||[];
     const population=villages.reduce((a,v)=>a+Math.max(0,num(v.population)||0),0);
-    const signature=JSON.stringify({population,pop,army,c,q,resources,units,busy:armyBusy,player:snapshot.playerId,
+    const signature=JSON.stringify({population,pop,army,c,q,resources,units,player:snapshot.playerId,
       resourceHistoryCount:resourceHistory.length,resourceHistoryLatest:resourceHistory.at(-1)?.timestamp});
     if(signature===lastRender)return;
     lastRender=signature;
@@ -316,10 +315,9 @@
     const idle=c.idle.map(v=>villageRow(v,'Idle')).join('');
     const training=q.rows.map(v=>villageRow(v,fmt(v.count)+' queued',`<small>${safe(v.details)}</small>`)).join('');
     panel.innerHTML=`
-      <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div>
-        <div class="apes-ao-scan-army" role="button" tabindex="0" aria-disabled="${armyBusy}">${armyBusy?'Scanning Army…':'Scan Army'}</div></div>
+      <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div></div>
       <div class="apes-ao-stats">${stats}</div>
-      <div class="apes-ao-row-primary">${resourceHtml(resources,resourceHistory)}${populationDevelopment}</div>
+      <div class="apes-ao-row-primary">${resourceHtml(resources)}<section class="apes-ao-chart apes-ao-production-development">${resourceDevelopmentHtml(resourceHistory)}</section>${populationDevelopment}</div>
       <div class="apes-ao-management">
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Celebration Manager</strong><small>${fmt(c.active.length)} active · ${fmt(c.idle.length)} idle villages</small></div>
           <div class="apes-ao-counters"><span>Celebrating <b>${fmt(c.active.length)}</b></span><span>Idle <b>${fmt(c.idle.length)}</b></span></div>
@@ -333,22 +331,17 @@
       <div class="apes-ao-charts">${charts}</div>`;
   }
   document.addEventListener('click',event=>{
-    const target=event.target?.closest?.('[data-apes-ao-village],.apes-ao-scan-army');
+    const target=event.target?.closest?.('[data-apes-ao-village]');
     if(!target?.closest?.('.apes-vd-account-overview'))return;
     event.preventDefault();event.stopPropagation();
-    if(target.hasAttribute('data-apes-ao-village')){
-      const id=String(target.dataset.apesAoVillage);
-      if(!/^\d+$/.test(id))return;
-      window.APES_VILLAGE_PALETTE?.close?.();location.hash='#/page:village/villId:'+id;return;
-    }
-    if(armyBusy||!window.APES?.villageDashboardIntel?.refreshTroops)return;
-    armyBusy=true;lastRender='';render();
-    Promise.resolve(window.APES.villageDashboardIntel.refreshTroops()).catch(error=>console.warn('[APES Account Overview] Army scan failed',error))
-      .finally(()=>{armyBusy=false;lastRender='';render();});
+    const id=String(target.dataset.apesAoVillage);
+    if(!/^\d+$/.test(id))return;
+    window.APES_VILLAGE_PALETTE?.close?.();
+    location.hash='#/page:village/villId:'+id;
   },true);
   document.addEventListener('keydown',event=>{
     if(event.key!=='Enter'&&event.key!==' ')return;
-    const target=event.target?.closest?.('[data-apes-ao-village],.apes-ao-scan-army');
+    const target=event.target?.closest?.('[data-apes-ao-village]');
     if(!target)return;
     event.preventDefault();target.click();
   },true);
