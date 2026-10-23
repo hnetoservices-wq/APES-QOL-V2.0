@@ -709,11 +709,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         if(normalizeName(current)!==normalizeName(target.name))
           throw new Error('Village controller still shows another village');
         const hall=readTownHallInCurrentVillage();
-        const cacheHall=window.APES_VILLAGE_PALETTE?.getVillages?.()
-          ?.find(v=>String(v.villageId)===target.id)
-          ?.buildings?.find(b=>Number(b.buildingType)===24&&Number(b.lvl)>0);
-        if(!hall&&cacheHall)
-          throw new Error('Town Hall exists in cached buildings but was absent from loaded village view');
+        // CP-specific native cache reading; no Village Dashboard dependency.
+        if(!hall&&target.hasTownHall===true)
+          throw new Error('Travian lists a Town Hall, but the loaded village did not show it');
         const village=hall||{
           villageName:target.name,villageId:target.id,hasTownHall:false,level:0,
           location:null,celebrations:[],allCelebrations:[],busyUntilMs:null,cpPerDay:null
