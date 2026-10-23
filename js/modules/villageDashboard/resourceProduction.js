@@ -106,18 +106,43 @@
     return found ? output : null;
   }
 
-  function save(villageId, production) {
+
+  // Use exact progressbar attributes, not the visually abbreviated "219k".
+  // Each reading is a single-village snapshot; stale snapshots remain labeled.
+  function readCurrentStock() {
+    const stock = {};
+    for (const resource of RESOURCE_DEFS) {
+      const bar = document.querySelector(
+        `#resourceBar .stockContainer.${resource.key} .progressbar[value][max-value]`
+      );
+      if (!bar) return null;
+      const amountText = bar.getAttribute('value');
+      const capacityText = bar.getAttribute('max-value');
+      if (amountText == null || capacityText == null ||
+          !String(amountText).trim() || !String(capacityText).trim()) return null;
+      const amount = Number(amountText);
+      const capacity = Number(capacityText);
+      if (!Number.isFinite(amount) || amount < 0 ||
+          !Number.isFinite(capacity) || capacity <= 0) return null;
+      stock[resource.key] = { amount, capacity };
+    }
+    return stock;
+  }
+
+  function save(villageId, production, currentStock = null) {
     const id = String(villageId || '');
     if (!/^\d+$/.test(id) || !production || typeof production !== 'object') return false;
     const store = readStore();
     const previous = store.villages[id] || {};
+    const now = Date.now();
     const next = {
       ...previous,
       production: {
         ...(previous.production || {}),
         ...production
       },
-      scannedAt: Date.now()
+      scannedAt: now,
+      ...(currentStock ? { stock: currentStock, stockAt: now } : {})
     };
     store.villages[id] = next;
     if (!writeStore(store)) return false;
@@ -139,7 +164,7 @@
     const signature = `${villageId}:${RESOURCE_DEFS.map(item => production[item.key] ?? '').join(':')}`;
     if (signature === lastSignature) return true;
     lastSignature = signature;
-    return save(villageId, production);
+    return save(villageId, production, readCurrentStock());
   }
 
   function captureForScan(expectedVillageId) {
@@ -149,7 +174,7 @@
         !document.getElementById('resourceBar')) return null;
     const production=readCurrentProduction();
     if (!production || RESOURCE_DEFS.some(resource=>!Number.isFinite(production[resource.key]))) return null;
-    if (!save(villageId,production)) return null;
+    if (!save(villageId,production,readCurrentStock())) return null;
     return {villageId,production,capturedAt:Date.now()};
   }
 
