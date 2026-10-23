@@ -915,13 +915,22 @@
         document.querySelectorAll(`#${OVERLAY_ID} .apes-vd-countdown[data-finish-ms]`).forEach(element => {
             const finishMs = Number(element.dataset.finishMs);
             if (!Number.isFinite(finishMs)) return;
-            // A cached training queue that has expired may not yet be refreshed.
+            const remainingMs = finishMs - Date.now();
+            const isStorageForecast = element.classList.contains('apes-vd-storage-countdown');
+            if (isStorageForecast) {
+                const direction = element.dataset.forecastDirection;
+                element.dataset.forecastTone = direction === 'empty' || remainingMs < 3 * 3600000 ? 'red'
+                    : remainingMs < 6 * 3600000 ? 'orange'
+                    : remainingMs <= 12 * 3600000 ? 'yellow' : 'green';
+            }
+            // A cached training queue or resource forecast that has expired
+            // requires a new village scan rather than a fictitious live reading.
             if ((element.classList.contains('apes-vd-training-countdown') ||
-                 element.classList.contains('apes-vd-storage-countdown')) && finishMs <= Date.now()) {
+                 isStorageForecast) && remainingMs <= 0) {
                 element.textContent = 'Refresh needed';
                 return;
             }
-            element.textContent = formatDurationMilliseconds(finishMs - Date.now());
+            element.textContent = formatDurationMilliseconds(remainingMs);
         });
     }
 
