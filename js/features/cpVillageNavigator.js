@@ -37,12 +37,14 @@
   }
   async function getOwnedVillages(timeout = 8000) {
     const deadline = Date.now() + timeout;
-    let requested = false;
+    let lastRequest = 0;
     while (Date.now() < deadline) {
       const villages = snapshotVillages();
       if (villages.length && villages.every(village => village.name)) return villages;
-      if (!requested || Date.now() + 1000 < deadline) PALETTE()?.refresh?.();
-      requested = true;
+      if (!lastRequest || Date.now() - lastRequest >= 1000) {
+        PALETTE()?.refresh?.();
+        lastRequest = Date.now();
+      }
       await sleep(175);
     }
     throw new Error('CP scan could not load a complete owned-village list from Village Dashboard. Refresh the game and retry.');
