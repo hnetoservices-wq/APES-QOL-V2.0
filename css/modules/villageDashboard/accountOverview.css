@@ -401,64 +401,157 @@
   font-size: 10px !important;
 }
 
-/* Account stock forecast: third card beside resource-production trends. */
+/* Per-village stock forecasts: 5 columns, header + two data rows. */
 #apes-v2-village-overlay .apes-ao-storage {
   display: flex !important;
   flex-direction: column !important;
   gap: 9px !important;
   min-width: 0 !important;
 }
+#apes-v2-village-overlay .apes-ao-row-primary {
+  grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr) !important;
+}
 #apes-v2-village-overlay .apes-ao-storage-list {
   display: flex !important;
   flex-direction: column !important;
-  gap: 7px !important;
+  gap: 9px !important;
   min-width: 0 !important;
+  max-height: 330px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(206,174,100,.5) transparent !important;
 }
-#apes-v2-village-overlay .apes-ao-storage-row {
-  display: flex !important;
-  flex-direction: column !important;
-  gap: 5px !important;
-  padding: 9px 10px !important;
-  border: 1px solid rgba(196, 174, 124, .22) !important;
+#apes-v2-village-overlay .apes-ao-storage-table {
+  table-layout: fixed !important;
+  width: 100% !important;
+  border-collapse: separate !important;
+  border-spacing: 0 !important;
+  border: 1px solid rgba(196,174,124,.25) !important;
   border-radius: 6px !important;
-  background: rgba(12, 17, 15, .28) !important;
+  background: rgba(12,17,15,.28) !important;
+  overflow: hidden !important;
 }
-#apes-v2-village-overlay .apes-ao-storage-row > div {
-  display: flex !important;
-  align-items: center !important;
-  justify-content: space-between !important;
-  flex-wrap: wrap !important;
-  gap: 5px !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-row b {
-  color: #eee5cb !important;
-  font-size: 10px !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-row strong {
-  color: #c9e49c !important;
-  font-size: 12px !important;
-  font-weight: 800 !important;
-  white-space: nowrap !important;
+#apes-v2-village-overlay .apes-ao-storage-table th,
+#apes-v2-village-overlay .apes-ao-storage-table td {
+  border: 0 !important;
+  padding: 7px 3px !important;
+  text-align: center !important;
+  vertical-align: middle !important;
+  font-size: 9px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+  overflow-wrap: anywhere !important;
   font-variant-numeric: tabular-nums !important;
+  color: #e5e3d9 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table th:first-child {
+  width: 25% !important;
+  text-align: left !important;
+  padding-left: 7px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table thead th {
+  background: rgba(165,138,83,.15) !important;
+  color: #e1cda6 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  border-bottom: 1px solid rgba(196,174,124,.2) !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table tbody th {
+  color: #c9c0ac !important;
+  font-weight: 700 !important;
+  font-size: 9px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table tbody tr + tr > * {
+  border-top: 1px solid rgba(196,174,124,.12) !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table tbody td {
+  color: #dbe3c4 !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  font-size: 9px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table td > .apes-vd-storage-countdown {
+  display: inline-block !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  color: #c9e49c !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table td > strong {
+  color: #c9e49c !important;
+  font-size: 9px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-table td > small {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #aaa799 !important;
+  font-size: 8px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-muted {
+  font-size: 9px !important;
+  color: #b3afa1 !important;
 }
 #apes-v2-village-overlay .apes-ao-storage-village {
-  width: fit-content !important;
+  display: block !important;
+  min-width: 0 !important;
   color: #e1c38c !important;
-  font-size: 10px !important;
-  font-weight: 700 !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
   text-decoration: underline !important;
   cursor: pointer !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
 }
 #apes-v2-village-overlay .apes-ao-storage-village:hover,
 #apes-v2-village-overlay .apes-ao-storage-village:focus-visible {
   color: #fff2d1 !important;
-  outline: none !important;
+  outline: 1px solid rgba(234,202,146,.5) !important;
 }
-#apes-v2-village-overlay .apes-ao-storage-row > small,
 #apes-v2-village-overlay .apes-ao-storage-foot {
   color: #b1ad9f !important;
   font-size: 9px !important;
   line-height: 1.4 !important;
+}
+@media (max-width: 1100px) {
+  #apes-v2-village-overlay .apes-ao-row-primary {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+}
+@media (max-width: 740px) {
+  #apes-v2-village-overlay .apes-ao-row-primary {
+    grid-template-columns: minmax(0,1fr) !important;
+  }
+}
+
+/* Exactly 10 visible entries per column in Celebration Manager. */
+#apes-v2-village-overlay .apes-ao-celebration-split {
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+}
+#apes-v2-village-overlay .apes-ao-celebration-rows {
+  max-height: 330px !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(206,174,100,.5) transparent !important;
+}
+#apes-v2-village-overlay .apes-ao-celebration-rows .apes-ao-village-link {
+  height: 33px !important;
+  min-height: 33px !important;
+  padding: 5px 6px !important;
+  flex-wrap: nowrap !important;
+  overflow: hidden !important;
+}
+#apes-v2-village-overlay .apes-ao-celebration-rows .apes-ao-village-link > span {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 1 auto !important;
+}
+#apes-v2-village-overlay .apes-ao-celebration-rows .apes-ao-village-link em {
+  flex: 0 0 auto !important;
+  font-size: 9px !important;
+  white-space: nowrap !important;
 }
 #apes-v2-village-overlay .apes-ao-population-bottom {
   width: 100% !important;
