@@ -763,8 +763,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     const candidates=[...owned].sort((a,b)=>Number(b.id===initialId)-Number(a.id===initialId));
     let skippedCities=0;
     const errors=[];
-    try {
-      for(const village of candidates){
+    for(const village of candidates){
         try {
           setStatus(`Checking city-founding CP in ${village.name} (${skippedCities+errors.length+1}/${owned.length})...`,'working');
           await navigator.navigate(village,owned);
@@ -794,10 +793,6 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       if(!errors.length&&skippedCities===owned.length)
         throw new Error(`All ${owned.length} owned villages are verified cities; no village CP threshold is available.`);
       throw new Error(`Could not verify city-founding CP in ${owned.length} villages. ${errors.slice(0,2).join('; ')}${errors.length>2?'; and '+(errors.length-2)+' more':''}`);
-    }finally{
-      // Do not restore the start inside this helper: the caller's finally
-      // restores the exact original URL, including its original game window.
-    }
   }
   function attachVillageCp(villages, culture) {
     const cpMap = new Map(culture.villageCp.map(item => [normalizeName(item.name), item.cpPerDay]));
