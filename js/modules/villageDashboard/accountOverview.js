@@ -339,7 +339,7 @@
         ...columns.map(item=>cell(rateHtml(item)))
       ],'apes-ao-storage-grid-production');
       const forecast=gridRow([
-        cell('Forecast timer','rowheader'),
+        cell('Timer','rowheader'),
         ...columns.map(item=>cell(timerHtml(item)))
       ],'apes-ao-storage-grid-forecast');
       return `<div class="apes-ao-storage-village-grid" role="table"
@@ -451,7 +451,13 @@
     panel.innerHTML=`
       <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div></div>
       <div class="apes-ao-stats">${stats}</div>
-      <div class="apes-ao-row-primary">${resourceHtml(resources)}<section class="apes-ao-chart apes-ao-production-development">${resourceDevelopmentHtml(resourceHistory)}</section>${storageForecastHtml(storage)}</div>
+      <div class="apes-ao-row-primary">
+        <div class="apes-ao-resource-stack">
+          ${resourceHtml(resources)}
+          <section class="apes-ao-chart apes-ao-production-development">${resourceDevelopmentHtml(resourceHistory)}</section>
+        </div>
+        ${storageForecastHtml(storage)}
+      </div>
       <div class="apes-ao-management">
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Celebration Manager</strong><small>${fmt(c.active.length)} active · ${fmt(c.idle.length)} idle villages</small></div>
           <div class="apes-ao-counters"><span>Celebrating <b>${fmt(c.active.length)}</b></span><span>Idle <b>${fmt(c.idle.length)}</b></span></div>
