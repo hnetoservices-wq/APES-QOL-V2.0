@@ -142,7 +142,7 @@
         ...production
       },
       scannedAt: now,
-      ...(currentStock ? { stock: currentStock, stockAt: now } : {})
+      ...(currentStock ? { stock: currentStock, stockRates: { ...production }, stockAt: now } : {})
     };
     store.villages[id] = next;
     if (!writeStore(store)) return false;
