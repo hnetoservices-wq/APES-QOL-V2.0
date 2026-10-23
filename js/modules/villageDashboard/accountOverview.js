@@ -250,89 +250,84 @@
     </section>`;
   }
 
+  // Show all villages, not only the earliest account-wide threshold. Each
+  // resource forecast uses the stock and rate captured together by Scan Now.
   function storageForecast(villages) {
     const records=window.APES?.villageResourceProduction?.all?.()||{};
-    const now=Date.now();
-    const types={
-      warehouse:{name:'Warehouse full',keys:['wood','clay','iron'],sign:1},
-      granaryFull:{name:'Granary full',keys:['crop'],sign:1},
-      granaryEmpty:{name:'Granary empty',keys:['crop'],sign:-1}
-    };
-    const candidates=Object.fromEntries(Object.keys(types).map(k=>[k,[]]));
-    let covered=0,latest=0,stale=0;
-    for(const village of villages){
-      const record=records[String(village.villageId)];
-      const at=num(record?.stockAt);
-      if(at===null||at<=0||at>now+60000||!record?.stock||!record?.stockRates){
-        continue;
-      }
-      // Forecasts based on readings older than a day are too speculative.
-      if(now-at>24*3600000){stale++;continue;}
-      const stock=record.stock,rates=record.stockRates;
-      if(RESOURCE_TYPES.some(r=>num(stock[r.key]?.amount)===null||
-        num(stock[r.key]?.capacity)===null||num(stock[r.key]?.capacity)<=0||
-        num(rates[r.key])===null))continue;
-      covered++;
-      latest=Math.max(latest,at);
-      for(const [kind,type] of Object.entries(types)){
-        for(const key of type.keys){
-          const amount=Number(stock[key].amount),capacity=Number(stock[key].capacity);
-          const rate=Number(rates[key]);
-          if(rate*type.sign<=0)continue;
-          const atTarget=type.sign===1?amount>=capacity:amount<=0;
-          const hours=type.sign===1?(capacity-amount)/rate:-amount/rate;
-          const finish=atTarget?at:at+Math.max(0,hours)*3600000;
-          if(!Number.isFinite(finish))continue;
-          candidates[kind].push({
-            id:String(village.villageId),name:String(village.name||'Village'),key,
-            amount,capacity,rate,at,finish,
-            status:atTarget?'reached':finish<=now?'due':'countdown'
-          });
+    const now=Date.now(),maxAge=24*3600000;
+    let covered=0,stale=0;
+    const rows=villages.map(village=>{
+      const id=String(village.villageId);
+      const record=records[id]||{};
+      const at=num(record.stockAt);
+      const hasStock=at!=null&&at>0&&at<=now+60000&&record.stock&&record.stockRates;
+      const expired=hasStock&&now-at>maxAge;
+      const rates=hasStock?record.stockRates:record.production||{};
+      const resources={};
+      let valid=Boolean(hasStock&&!expired);
+      for(const resource of RESOURCE_TYPES){
+        const stock=record.stock?.[resource.key];
+        const rate=num(rates?.[resource.key]);
+        const amount=num(stock?.amount),capacity=num(stock?.capacity);
+        if(rate===null||amount===null||capacity===null||amount<0||capacity<=0)valid=false;
+        resources[resource.key]={rate,amount,capacity,finish:null,status:'missing',direction:null};
+        if(!hasStock||expired||rate===null||amount===null||capacity===null||amount<0||capacity<=0){
+          resources[resource.key].status=expired?'stale':'missing';
+          continue;
         }
+        const item=resources[resource.key];
+        if(rate===0){item.status='steady';continue;}
+        const fill=rate>0,target=fill?capacity:0;
+        item.direction=fill?'full':'empty';
+        if(fill&&amount>=capacity||!fill&&amount<=0){item.status='reached';continue;}
+        const hours=(target-amount)/rate;
+        const finish=at+Math.max(0,hours)*3600000;
+        if(!Number.isFinite(finish)){item.status='missing';valid=false;continue;}
+        item.finish=finish;
+        item.status=finish<=now?'due':'countdown';
       }
-    }
-    const events={};
-    for(const kind of Object.keys(types)){
-      const rows=candidates[kind].sort((a,b)=>{
-        const score=x=>x.status==='reached'?0:x.status==='countdown'?1:2;
-        return score(a)-score(b)||a.finish-b.finish;
-      });
-      events[kind]=rows[0]||null;
-    }
-    return {covered,total:villages.length,stale,latest,events};
+      if(valid)covered++;
+      else if(expired)stale++;
+      return {id,name:String(village.name||'Village'),resources,valid,expired};
+    });
+    return {rows,covered,stale,total:villages.length};
   }
 
   function storageForecastHtml(summary) {
-    const display=[
-      ['warehouse','Warehouse full','Wood · Clay · Iron'],
-      ['granaryFull','Granary full','Crop surplus'],
-      ['granaryEmpty','Granary empty','Crop deficit']
-    ];
-    const rows=display.map(([key,title,hint])=>{
-      const event=summary.events[key];
-      const status=event?.status==='countdown'?
-        `<strong class="apes-vd-countdown apes-vd-storage-countdown" data-finish-ms="${Math.round(event.finish)}">—</strong>`:
-        `<strong>${event?.status==='reached'?(key==='granaryEmpty'?'Empty at last scan':'Full at last scan'):
-          event?.status==='due'?'Refresh needed':
-          summary.covered?'Not expected':'No recent readings'}</strong>`;
-      const details=event?`<span class="apes-ao-storage-village" data-apes-ao-village="${safe(event.id)}"
-          role="button" tabindex="0" title="Open ${safe(event.name)}">${safe(event.name)}</span>
-        <small>${safe(event.key.charAt(0).toUpperCase()+event.key.slice(1))}
-          ${safe(fmt(event.amount))}/${safe(fmt(event.capacity))} ·
-          ${event.rate>0?'+':''}${safe(fmt(event.rate))}/h</small>`:
-        `<small>${safe(hint)}</small>`;
-      return `<div class="apes-ao-storage-row">
-        <div><b>${safe(title)}</b>${status}</div>${details}
-      </div>`;
+    const resources=RESOURCE_TYPES;
+    const rateHtml=item=>item.rate===null?'—':
+      `${item.rate>0?'+':''}${safe(fmt(item.rate))}/h`;
+    const timerHtml=item=>{
+      if(item.status==='countdown')return `<span class="apes-vd-countdown apes-vd-storage-countdown"
+        data-finish-ms="${Math.round(item.finish)}" title="Expected ${item.direction} time, assuming constant production">—</span>
+        <small>${item.direction==='empty'?'Empty':'Full'}</small>`;
+      if(item.status==='reached')return `<strong>${item.direction==='empty'?'Empty':'Full'}</strong><small>At last scan</small>`;
+      if(item.status==='due'||item.status==='stale')return '<span class="apes-ao-storage-muted">Rescan</span>';
+      if(item.status==='steady')return '<span class="apes-ao-storage-muted">Stable</span>';
+      return '<span class="apes-ao-storage-muted">Scan Now</span>';
+    };
+    const entries=summary.rows.map(row=>{
+      const columns=resources.map(item=>row.resources[item.key]);
+      return `<table class="apes-ao-storage-table" aria-label="Storage forecast for ${safe(row.name)}">
+        <thead><tr><th scope="col"><span class="apes-ao-storage-village" data-apes-ao-village="${safe(row.id)}"
+            role="button" tabindex="0" title="Open ${safe(row.name)}">${safe(row.name)}</span></th>
+          ${resources.map(resource=>`<th scope="col">${safe(resource.label)}</th>`).join('')}</tr></thead>
+        <tbody><tr><th scope="row">Production</th>
+          ${columns.map(item=>`<td>${rateHtml(item)}</td>`).join('')}</tr>
+        <tr><th scope="row">Forecast timer</th>
+          ${columns.map(item=>`<td>${timerHtml(item)}</td>`).join('')}</tr></tbody>
+      </table>`;
     }).join('');
     return `<section class="apes-ao-chart apes-ao-storage">
       <div class="apes-ao-chart-head"><div><strong>Storage Forecast</strong>
-        <small>Next village threshold · estimated from latest stock and hourly production</small>
+        <small>Per-village production and estimated time until full or empty</small>
       </div></div>
-      <div class="apes-ao-storage-list">${rows}</div>
-      <small class="apes-ao-storage-foot">${safe(fmt(summary.covered))}/${safe(fmt(summary.total))}
-        villages with recent storage readings${summary.stale?' · '+safe(fmt(summary.stale))+' outdated':''}.
-        ${summary.covered?'Forecasts assume no resource spending or incoming deliveries.':'Run Scan Now to gather stock and capacity.'}</small>
+      <div class="apes-ao-storage-list" data-apes-ao-scroll="storage">
+        ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}
+      </div>
+      <small class="apes-ao-storage-foot">${safe(fmt(summary.covered))}/${safe(fmt(summary.total))} villages with recent stock readings${summary.stale?' · '+safe(fmt(summary.stale))+' outdated':''}.
+        Timers assume no resource spending, transfers, or other production changes.
+        ${summary.covered?'':'Run Scan Now to collect current stock and capacity.'}</small>
     </section>`;
   }
 
@@ -421,6 +416,11 @@
     const celebrating=c.active.map(v=>villageRow(v,`${safe(v.label)} · <span class="apes-vd-countdown" data-finish-ms="${v.end}">—</span>`)).join('');
     const idle=c.idle.map(v=>villageRow(v,'Idle')).join('');
     const training=q.rows.map(v=>villageRow(v,fmt(v.count)+' queued',`<small>${safe(v.details)}</small>`)).join('');
+    // Preserve scrolling when live village snapshots cause a new render.
+    const scrollPositions=Object.fromEntries(
+      [...panel.querySelectorAll('[data-apes-ao-scroll]')]
+        .map(element=>[element.dataset.apesAoScroll,element.scrollTop])
+    );
     panel.innerHTML=`
       <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div></div>
       <div class="apes-ao-stats">${stats}</div>
@@ -428,8 +428,12 @@
       <div class="apes-ao-management">
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Celebration Manager</strong><small>${fmt(c.active.length)} active · ${fmt(c.idle.length)} idle villages</small></div>
           <div class="apes-ao-counters"><span>Celebrating <b>${fmt(c.active.length)}</b></span><span>Idle <b>${fmt(c.idle.length)}</b></span></div>
-          <div class="apes-ao-manager-split"><div><h4>Active celebrations</h4>${celebrating||'<p class="apes-ao-empty-list">No active celebrations</p>'}</div>
-            <div><h4>Idle villages</h4>${idle||'<p class="apes-ao-empty-list">All villages celebrating</p>'}</div></div></section>
+          <div class="apes-ao-manager-split apes-ao-celebration-split">
+            <div><h4>Active celebrations</h4><div class="apes-ao-celebration-rows" data-apes-ao-scroll="celebrations-active">
+              ${celebrating||'<p class="apes-ao-empty-list">No active celebrations</p>'}</div></div>
+            <div><h4>Idle villages</h4><div class="apes-ao-celebration-rows" data-apes-ao-scroll="celebrations-idle">
+              ${idle||'<p class="apes-ao-empty-list">All villages celebrating</p>'}</div></div>
+          </div></section>
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Training Overview</strong><small>${fmt(q.total)} troops queued in ${fmt(q.rows.length)} villages</small></div>
           <div class="apes-ao-counters"><span>Total queued <b>${fmt(q.total)}</b></span><span>Active villages <b>${fmt(q.rows.length)}</b></span></div>
           <div class="apes-ao-training-list">${training||'<p class="apes-ao-empty-list">No active training found</p>'}</div>
@@ -437,6 +441,9 @@
       </div>
       <div class="apes-ao-charts">${charts}</div>
       <div class="apes-ao-population-bottom">${populationDevelopment}</div>`;
+    panel.querySelectorAll('[data-apes-ao-scroll]').forEach(element=>{
+      element.scrollTop=scrollPositions[element.dataset.apesAoScroll]||0;
+    });
   }
   document.addEventListener('click',event=>{
     const target=event.target?.closest?.('[data-apes-ao-village]');
