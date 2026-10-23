@@ -293,30 +293,57 @@
     return {rows,covered,stale,total:villages.length};
   }
 
+  // Keep forecast colors consistent with each second of remaining time.
+  function storageCountdownTone(direction, remainingMs) {
+    if (direction === 'empty' || remainingMs < 3 * 3600000) return 'red';
+    if (remainingMs < 6 * 3600000) return 'orange';
+    if (remainingMs <= 12 * 3600000) return 'yellow';
+    return 'green';
+  }
+
   function storageForecastHtml(summary) {
     const resources=RESOURCE_TYPES;
     const rateHtml=item=>item.rate===null?'—':
       `${item.rate>0?'+':''}${safe(fmt(item.rate))}/h`;
     const timerHtml=item=>{
-      if(item.status==='countdown')return `<span class="apes-vd-countdown apes-vd-storage-countdown"
-        data-finish-ms="${Math.round(item.finish)}" title="Expected ${item.direction} time, assuming constant production">—</span>
-        <small>${item.direction==='empty'?'Empty':'Full'}</small>`;
-      if(item.status==='reached')return `<strong>${item.direction==='empty'?'Empty':'Full'}</strong><small>At last scan</small>`;
-      if(item.status==='due'||item.status==='stale')return '<span class="apes-ao-storage-muted">Rescan</span>';
-      if(item.status==='steady')return '<span class="apes-ao-storage-muted">Stable</span>';
+      if(item.status==='countdown'){
+        const direction=item.direction==='empty'?'empty':'full';
+        const tone=storageCountdownTone(direction,item.finish-Date.now());
+        return `<span class="apes-vd-countdown apes-vd-storage-countdown"
+          data-finish-ms="${Math.round(item.finish)}"
+          data-forecast-direction="${direction}" data-forecast-tone="${tone}"
+          title="Forecast: ${direction==='empty'?'resource depletion':'storage capacity reached'}, assuming constant production">—</span>`;
+      }
+      if(item.status==='reached')
+        return `<span class="apes-ao-storage-status" data-forecast-tone="red"
+          title="Forecast target already reached at last scan">Reached</span>`;
+      if(item.status==='due')
+        return '<span class="apes-ao-storage-status" data-forecast-tone="red" title="Forecast time has elapsed">Rescan</span>';
+      if(item.status==='stale')
+        return '<span class="apes-ao-storage-muted">Rescan</span>';
+      if(item.status==='steady')
+        return '<span class="apes-ao-storage-muted">Stable</span>';
       return '<span class="apes-ao-storage-muted">Scan Now</span>';
     };
     const entries=summary.rows.map(row=>{
       const columns=resources.map(item=>row.resources[item.key]);
-      return `<table class="apes-ao-storage-table" aria-label="Storage forecast for ${safe(row.name)}">
-        <thead><tr><th scope="col"><span class="apes-ao-storage-village" data-apes-ao-village="${safe(row.id)}"
-            role="button" tabindex="0" title="Open ${safe(row.name)}">${safe(row.name)}</span></th>
-          ${resources.map(resource=>`<th scope="col">${safe(resource.label)}</th>`).join('')}</tr></thead>
-        <tbody><tr><th scope="row">Production</th>
-          ${columns.map(item=>`<td>${rateHtml(item)}</td>`).join('')}</tr>
-        <tr><th scope="row">Forecast timer</th>
-          ${columns.map(item=>`<td>${timerHtml(item)}</td>`).join('')}</tr></tbody>
-      </table>`;
+      const gridRow=(cells,kind)=>`<div class="apes-ao-storage-grid-row ${kind}" role="row">${cells.join('')}</div>`;
+      const cell=(text,role='cell')=>`<div class="apes-ao-storage-grid-cell" role="${role}">${text}</div>`;
+      const header=gridRow([
+        cell(`<span class="apes-ao-storage-village" data-apes-ao-village="${safe(row.id)}"
+          role="button" tabindex="0" title="Open ${safe(row.name)}">${safe(row.name)}</span>`,'columnheader'),
+        ...resources.map(resource=>cell(safe(resource.label),'columnheader'))
+      ],'apes-ao-storage-grid-header');
+      const production=gridRow([
+        cell('Production','rowheader'),
+        ...columns.map(item=>cell(rateHtml(item)))
+      ],'apes-ao-storage-grid-production');
+      const forecast=gridRow([
+        cell('Forecast timer','rowheader'),
+        ...columns.map(item=>cell(timerHtml(item)))
+      ],'apes-ao-storage-grid-forecast');
+      return `<div class="apes-ao-storage-village-grid" role="table"
+        aria-label="Storage forecast for ${safe(row.name)}">${header}${production}${forecast}</div>`;
     }).join('');
     return `<section class="apes-ao-chart apes-ao-storage">
       <div class="apes-ao-chart-head"><div><strong>Storage Forecast</strong>
