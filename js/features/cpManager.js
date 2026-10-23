@@ -494,34 +494,123 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
   // Village Dashboard already maintains the authoritative owned-village list.
   // Direct village routes do not depend on Travian's sometimes-hidden arrow
   // controls, which can be unusable under the CP scan screen lock.
-  async function getScanVillageIds() {
+  // Use the game's own controller first: unlike changing the URL alone,
+  // this updates Travian's active-village state and related Angular models.
+  function findVillageNavigationButton(direction) {
+    const buttons = Array.from(document.querySelectorAll(`#villageList .navigation.${direction}`));
+    return buttons.find(button => {
+      const style = getComputedStyle(button);
+      const rect = button.getBoundingClientRect();
+      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+    }) || document.querySelector(`.currentVillageName.dropdown a.navigation.${direction}.clickable`) || buttons[0] || null;
+  }
+  function clickVillageNavigation(direction) {
+    const button = findVillageNavigationButton(direction);
+    if (!button) return false;
+    button.dispatchEvent(new MouseEvent('click', {
+      view: window,
+      bubbles: true,
+      cancelable: true,
+      composed: true,
+      button: 0
+    }));
+    return true;
+  }
+  async function waitForVillageChange(previous, timeout = 5000) {
+    const started = performance.now();
+    while (performance.now() - started < timeout) {
+      await sleep(100);
+      if (getVillageIdentity() !== previous) return true;
+    }
+    return false;
+  }
+  async function moveVillage(direction) {
+    const previous = getVillageIdentity();
+    if (!clickVillageNavigation(direction) || !(await waitForVillageChange(previous))) return false;
+    await sleep(250);
+    return true;
+  }
+  async function restoreStartingVillage(hops) {
+    for (let index = 0; index < hops; index += 1) if (!(await moveVillage('previous'))) return false;
+    return true;
+  }
+
+  async function getScanVillages() {
     for (let attempt = 0; attempt < 15; attempt += 1) {
-      const villages = window.APES_VILLAGE_PALETTE?.getVillages?.();
-      const ids = Array.isArray(villages) ? [...new Set(villages
-        .map(village => String(village?.villageId || ''))
-        .filter(id => /^\d+$/.test(id)))] : [];
-      if (ids.length) return ids;
+      const raw = window.APES_VILLAGE_PALETTE?.getVillages?.();
+      const villages = Array.isArray(raw) ? raw.filter(village =>
+        /^\d+$/.test(String(village?.villageId || ''))) : [];
+      const unique = [...new Map(villages.map(v => [String(v.villageId), v])).values()];
+      if (unique.length) return unique;
       window.APES_VILLAGE_PALETTE?.refresh?.();
       await sleep(150);
     }
-    throw new Error('Could not load the account village list. Wait for the Village Dashboard to load, then retry Scan CP.');
+    throw new Error('Could not load the account village list. Wait for Village Dashboard data, then retry Scan CP.');
+  }
+  async function waitForVillageContent(villageId, timeout = 8000) {
+    const expected = window.APES_VILLAGE_PALETTE?.getVillages?.()
+      ?.find(v => String(v.villageId) === String(villageId));
+    const expectedName = normalizeName(expected?.name);
+    const started = performance.now();
+    while (performance.now() - started < timeout) {
+      const view = document.getElementById('villageView');
+      const name = normalizeName(getCurrentVillageName());
+      if (getVillageIdFromHash() === String(villageId) &&
+          view?.querySelector('building-location') &&
+          (!expectedName || expectedName === name)) return view;
+      await sleep(100);
+    }
+    throw new Error(`Village ${villageId} did not finish loading. CP scan stopped rather than reading stale Town Hall data.`);
   }
   async function navigateToScanVillage(villageId) {
     const id = String(villageId || '');
-    if (!/^\d+$/.test(id)) throw new Error('Invalid village ID in the CP scan.');
+    if (!/^\d+$/.test(id)) throw new Error('Invalid village ID in CP scan.');
     if (getVillageIdFromHash() !== id ||
         !/\/page:village(?:\/|$)/i.test(window.location.hash)) {
       setVillageHash(['page:village', `villId:${id}`]);
     } else {
       openVillageBase();
     }
-    // The hash updates synchronously but Angular's village view may not.
-    await sleep(400);
-    const view = await waitForVillageView();
-    if (!view || getVillageIdFromHash() !== id) {
-      throw new Error(`Could not load village ${id} for the CP scan.`);
+    await waitForVillageContent(id);
+    await sleep(200);
+  }
+  async function nextUnvisitedVillage(visited, villages) {
+    const ids = new Set(villages.map(v => String(v.villageId)));
+    // Native switching can work even when CP Manager overlaps the arrows.
+    // It dispatches to Travian's own click handler; overlap is not relevant.
+    if (await moveVillage('next')) {
+      const id = getVillageIdFromHash();
+      if (id && ids.has(id) && !visited.has(id)) {
+        try {
+          await waitForVillageContent(id);
+          return id;
+        } catch (error) {
+          console.warn('[APES CP Manager] Native navigation not fully loaded, retrying by village ID.', error);
+          await navigateToScanVillage(id);
+          return id;
+        }
+      }
     }
-    await sleep(180);
+    const unvisited = villages.find(village => !visited.has(String(village.villageId)));
+    if (!unvisited) return null;
+    const id = String(unvisited.villageId);
+    setStatus(`Native village navigation unavailable. Opening ${unvisited.name || id} directly...`, 'working');
+    await navigateToScanVillage(id);
+    return id;
+  }
+  async function waitForVerifiedTownState(villageId, timeout = 7000) {
+    const village = window.APES_VILLAGE_PALETTE?.getVillages?.()
+      ?.find(entry => String(entry.villageId) === String(villageId));
+    const expectedCity = village && typeof village.isTown === 'boolean' ? village.isTown : null;
+    const started = performance.now();
+    while (performance.now() - started < timeout) {
+      const state = readTownState();
+      if (state && (expectedCity === null ||
+          (expectedCity && state.type === 'city') ||
+          (!expectedCity && state.type === 'village'))) return state;
+      await sleep(120);
+    }
+    throw new Error(`City-founding details for village ${villageId} did not match its village state. The CP scan was stopped to avoid incorrect city detection.`);
   }
   function getCulturePointsTable() {
     return document.querySelector('.loadedTab.tabCulturePoints.currentTab .cpOverview table.villagesTable') || document.querySelector('.loadedTab.tabCulturePoints.activeTab .cpOverview table.villagesTable') || document.querySelector('.cpOverview table.villagesTable');
@@ -681,26 +770,26 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     townHall.busyUntilMs = data.busyUntilMs;
   }
   async function scanAllVillages(cpReadAtMs) {
-    const ids = await getScanVillageIds();
-    const startingId = getVillageIdFromHash() || ids[0];
+    const owned = await getScanVillages();
+    const startId = getVillageIdFromHash() || String(owned[0].villageId);
+    const visited = new Set();
     const villages = [];
     const celebrationEvents = [];
     try {
-      for (const id of ids) {
-        await navigateToScanVillage(id);
+      await navigateToScanVillage(startId);
+      for (let attempt = 0; attempt < owned.length; attempt += 1) {
+        const id = getVillageIdFromHash();
+        if (!id || visited.has(id)) throw new Error('Could not advance to an unscanned village.');
+        await waitForVillageContent(id);
+        visited.add(id);
+        openVillageBase();
+        await sleep(220);
         const villageName = getCurrentVillageName();
-        setStatus(`Scanning Town Halls and celebrations: ${villageName} (${villages.length + 1}/${ids.length})...`, 'working');
-        // Do not count a village until its own view has loaded.
+        setStatus(`Scanning Town Halls and celebrations: ${villageName} (${visited.size}/${owned.length})...`, 'working');
         const village = readTownHallInCurrentVillage() || {
-          villageName,
-          villageId: id,
-          hasTownHall: false,
-          level: 0,
-          location: null,
-          celebrations: [],
-          allCelebrations: [],
-          busyUntilMs: null,
-          cpPerDay: null
+          villageName, villageId: id, hasTownHall: false, level: 0,
+          location: null, celebrations: [], allCelebrations: [],
+          busyUntilMs: null, cpPerDay: null
         };
         if (village.hasTownHall) {
           try {
@@ -711,13 +800,17 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
           }
         }
         villages.push(village);
+        if (visited.size === owned.length) break;
+        openVillageBase();
+        await sleep(120);
+        const next = await nextUnvisitedVillage(visited, owned);
+        if (!next) throw new Error(`Village scan stopped at ${visited.size}/${owned.length}.`);
       }
     } finally {
-      // Always return to the starting village, even when a scan fails.
       try {
-        await navigateToScanVillage(startingId);
+        await navigateToScanVillage(startId);
       } catch (error) {
-        console.warn('[APES CP Manager] Could not restore the starting village.', error);
+        console.warn('[APES CP Manager] Could not restore starting village.', error);
       }
     }
     const uniqueEvents = [];
@@ -728,44 +821,40 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       seenEvents.add(key);
       uniqueEvents.push(event);
     });
-    return {
-      villages,
-      celebrationEvents: uniqueEvents,
-      scannedCount: villages.length,
-      complete: villages.length === ids.length
-    };
+    return { villages, celebrationEvents: uniqueEvents,
+      scannedCount: visited.size, complete: visited.size === owned.length };
   }
   async function scanCpRequirement() {
-    const ids = await getScanVillageIds();
-    const startingId = getVillageIdFromHash() || ids[0];
-    const orderedIds = ids.includes(startingId)
-      ? [startingId, ...ids.filter(id => id !== startingId)] : ids;
+    const owned = await getScanVillages();
+    const startId = getVillageIdFromHash() || String(owned[0].villageId);
+    const visited = new Set();
     let skippedCities = 0;
     try {
-      for (const id of orderedIds) {
-        await navigateToScanVillage(id);
+      await navigateToScanVillage(startId);
+      for (let attempt = 0; attempt < owned.length; attempt += 1) {
+        const id = getVillageIdFromHash();
+        if (!id || visited.has(id)) throw new Error('Could not advance to an unscanned village.');
+        await waitForVillageContent(id);
+        visited.add(id);
         openCityFoundingWindow();
         await sleep(250);
-        const state = await waitForTownState();
-        if (!state) throw new Error(`The City founding section could not be read in village ${id}.`);
+        const state = await waitForVerifiedTownState(id);
         if (state.type === 'village') {
-          return {
-            current: state.current,
-            target: state.target,
-            villageName: getCurrentVillageName(),
-            skippedCities,
-            readAtMs: Date.now()
-          };
+          return { current: state.current, target: state.target,
+            villageName: getCurrentVillageName(), skippedCities, readAtMs: Date.now() };
         }
         skippedCities += 1;
         setStatus(`City detected in ${getCurrentVillageName()}. Checking another village...`, 'working');
+        if (visited.size === owned.length) break;
+        const next = await nextUnvisitedVillage(visited, owned);
+        if (!next) throw new Error('Could not navigate to the next available village.');
       }
-      throw new Error('Every available village appears to be a city.');
+      throw new Error('All villages are marked as cities in the account data. CP requirement cannot be read.');
     } finally {
       try {
-        await navigateToScanVillage(startingId);
+        await navigateToScanVillage(startId);
       } catch (error) {
-        console.warn('[APES CP Manager] Could not restore the starting village.', error);
+        console.warn('[APES CP Manager] Could not restore starting village.', error);
       }
     }
   }
