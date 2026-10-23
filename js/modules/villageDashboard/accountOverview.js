@@ -250,6 +250,92 @@
     </section>`;
   }
 
+  function storageForecast(villages) {
+    const records=window.APES?.villageResourceProduction?.all?.()||{};
+    const now=Date.now();
+    const types={
+      warehouse:{name:'Warehouse full',keys:['wood','clay','iron'],sign:1},
+      granaryFull:{name:'Granary full',keys:['crop'],sign:1},
+      granaryEmpty:{name:'Granary empty',keys:['crop'],sign:-1}
+    };
+    const candidates=Object.fromEntries(Object.keys(types).map(k=>[k,[]]));
+    let covered=0,latest=0,stale=0;
+    for(const village of villages){
+      const record=records[String(village.villageId)];
+      const at=num(record?.stockAt);
+      if(at===null||at<=0||at>now+60000||!record?.stock||!record?.stockRates){
+        continue;
+      }
+      // Forecasts based on readings older than a day are too speculative.
+      if(now-at>24*3600000){stale++;continue;}
+      const stock=record.stock,rates=record.stockRates;
+      if(RESOURCE_TYPES.some(r=>num(stock[r.key]?.amount)===null||
+        num(stock[r.key]?.capacity)===null||num(stock[r.key]?.capacity)<=0||
+        num(rates[r.key])===null))continue;
+      covered++;
+      latest=Math.max(latest,at);
+      for(const [kind,type] of Object.entries(types)){
+        for(const key of type.keys){
+          const amount=Number(stock[key].amount),capacity=Number(stock[key].capacity);
+          const rate=Number(rates[key]);
+          if(rate*type.sign<=0)continue;
+          const atTarget=type.sign===1?amount>=capacity:amount<=0;
+          const hours=type.sign===1?(capacity-amount)/rate:-amount/rate;
+          const finish=atTarget?at:at+Math.max(0,hours)*3600000;
+          if(!Number.isFinite(finish))continue;
+          candidates[kind].push({
+            id:String(village.villageId),name:String(village.name||'Village'),key,
+            amount,capacity,rate,at,finish,
+            status:atTarget?'reached':finish<=now?'due':'countdown'
+          });
+        }
+      }
+    }
+    const events={};
+    for(const kind of Object.keys(types)){
+      const rows=candidates[kind].sort((a,b)=>{
+        const score=x=>x.status==='reached'?0:x.status==='countdown'?1:2;
+        return score(a)-score(b)||a.finish-b.finish;
+      });
+      events[kind]=rows[0]||null;
+    }
+    return {covered,total:villages.length,stale,latest,events};
+  }
+
+  function storageForecastHtml(summary) {
+    const display=[
+      ['warehouse','Warehouse full','Wood · Clay · Iron'],
+      ['granaryFull','Granary full','Crop surplus'],
+      ['granaryEmpty','Granary empty','Crop deficit']
+    ];
+    const rows=display.map(([key,title,hint])=>{
+      const event=summary.events[key];
+      const status=event?.status==='countdown'?
+        `<strong class="apes-vd-countdown apes-vd-storage-countdown" data-finish-ms="${Math.round(event.finish)}">—</strong>`:
+        `<strong>${event?.status==='reached'?'Full / empty at last scan':
+          event?.status==='due'?'Refresh needed':
+          summary.covered?'Not expected':'No recent readings'}</strong>`;
+      const details=event?`<span class="apes-ao-storage-village" data-apes-ao-village="${safe(event.id)}"
+          role="button" tabindex="0" title="Open ${safe(event.name)}">${safe(event.name)}</span>
+        <small>${safe(event.key.charAt(0).toUpperCase()+event.key.slice(1))}
+          ${safe(fmt(event.amount))}/${safe(fmt(event.capacity))} ·
+          ${event.rate>0?'+':''}${safe(fmt(event.rate))}/h</small>`:
+        `<small>${safe(hint)}</small>`;
+      return `<div class="apes-ao-storage-row">
+        <div><b>${safe(title)}</b>${status}</div>${details}
+      </div>`;
+    }).join('');
+    return `<section class="apes-ao-chart apes-ao-storage">
+      <div class="apes-ao-chart-head"><div><strong>Storage Forecast</strong>
+        <small>Next village threshold · estimated from latest stock and hourly production</small>
+      </div></div>
+      <div class="apes-ao-storage-list">${rows}</div>
+      <small class="apes-ao-storage-foot">${safe(fmt(summary.covered))}/${safe(fmt(summary.total))}
+        villages with recent storage readings${summary.stale?' · '+safe(fmt(summary.stale))+' outdated':''}.
+        ${summary.covered?'Forecasts assume no resource spending or incoming deliveries.':'Run Scan Now to gather stock and capacity.'}</small>
+    </section>`;
+  }
+
   function activeQueues(villages){
     let total=0;const rows=[];
     for(const v of villages){
@@ -304,9 +390,10 @@
     const pop=popHistory(snapshot.playerId).slice(-30),army=armyHistory(snapshot).slice(-30),last=army.at(-1);
     const c=celebrationCounts(villages),q=activeQueues(villages);
     const resources=resourceOverview(villages),units=unitCounter(villages);
+    const storage=storageForecast(villages);
     const resourceHistory=window.APES?.villageResourceProduction?.scanHistory?.()||[];
     const population=villages.reduce((a,v)=>a+Math.max(0,num(v.population)||0),0);
-    const signature=JSON.stringify({population,pop,army,c,q,resources,units,player:snapshot.playerId,
+    const signature=JSON.stringify({population,pop,army,c,q,resources,units,storage,player:snapshot.playerId,
       resourceHistoryCount:resourceHistory.length,resourceHistoryLatest:resourceHistory.at(-1)?.timestamp});
     if(signature===lastRender)return;
     lastRender=signature;
@@ -320,11 +407,11 @@
       'Population tracking starts with your first dashboard snapshot.');
     const charts=[
       troopHtml(units),
-      graph('Army Development','Own troops · complete daily scans',army,[{name:'Troops',color:'#bd9feb',values:army.map(x=>x.troops)}],'No complete account-wide troop history yet. Use Scan Army.'),
-      graph('Power Development','Offensive power and average defensive power',army,[
+      graph('Army Development','Merged existing village scan history',army,[{name:'Troops',color:'#bd9feb',values:army.map(x=>x.troops)}],'No saved village troop history yet. Scan Army from a village.'),
+      graph('Power Development','Merged village offensive and average defensive power',army,[
         {name:'Attack',color:'#df886a',values:army.map(x=>x.attack)},
         {name:'Defense',color:'#73b3db',values:army.map(x=>x.defense)}
-      ],'Scan Army to create a complete account power snapshot.')
+      ],'No saved village power history yet. Scan Army from a village.')
     ].join('');
     const celebrating=c.active.map(v=>villageRow(v,`${safe(v.label)} · <span class="apes-vd-countdown" data-finish-ms="${v.end}">—</span>`)).join('');
     const idle=c.idle.map(v=>villageRow(v,'Idle')).join('');
@@ -332,7 +419,7 @@
     panel.innerHTML=`
       <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div></div>
       <div class="apes-ao-stats">${stats}</div>
-      <div class="apes-ao-row-primary">${resourceHtml(resources)}<section class="apes-ao-chart apes-ao-production-development">${resourceDevelopmentHtml(resourceHistory)}</section>${populationDevelopment}</div>
+      <div class="apes-ao-row-primary">${resourceHtml(resources)}<section class="apes-ao-chart apes-ao-production-development">${resourceDevelopmentHtml(resourceHistory)}</section>${storageForecastHtml(storage)}</div>
       <div class="apes-ao-management">
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Celebration Manager</strong><small>${fmt(c.active.length)} active · ${fmt(c.idle.length)} idle villages</small></div>
           <div class="apes-ao-counters"><span>Celebrating <b>${fmt(c.active.length)}</b></span><span>Idle <b>${fmt(c.idle.length)}</b></span></div>
@@ -343,7 +430,8 @@
           <div class="apes-ao-training-list">${training||'<p class="apes-ao-empty-list">No active training found</p>'}</div>
           <small class="apes-ao-caveat">Barracks, Stable, Workshop and Great variants. Healing excluded.</small></section>
       </div>
-      <div class="apes-ao-charts">${charts}</div>`;
+      <div class="apes-ao-charts">${charts}</div>
+      <div class="apes-ao-population-bottom">${populationDevelopment}</div>`;
   }
   document.addEventListener('click',event=>{
     const target=event.target?.closest?.('[data-apes-ao-village]');
