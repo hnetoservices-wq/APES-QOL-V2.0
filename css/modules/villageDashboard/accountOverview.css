@@ -400,3 +400,77 @@
   color: #b1ae9d !important;
   font-size: 10px !important;
 }
+
+/* Account stock forecast: third card beside resource-production trends. */
+#apes-v2-village-overlay .apes-ao-storage {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 9px !important;
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  padding: 9px 10px !important;
+  border: 1px solid rgba(196, 174, 124, .22) !important;
+  border-radius: 6px !important;
+  background: rgba(12, 17, 15, .28) !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row b {
+  color: #eee5cb !important;
+  font-size: 10px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row strong {
+  color: #c9e49c !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-village {
+  width: fit-content !important;
+  color: #e1c38c !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-village:hover,
+#apes-v2-village-overlay .apes-ao-storage-village:focus-visible {
+  color: #fff2d1 !important;
+  outline: none !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row > small,
+#apes-v2-village-overlay .apes-ao-storage-foot {
+  color: #b1ad9f !important;
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+#apes-v2-village-overlay .apes-ao-population-bottom {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: 2px !important;
+}
+#apes-v2-village-overlay .apes-ao-population-bottom > .apes-ao-chart svg {
+  width: 100% !important;
+  max-height: 280px !important;
+}
+#apes-v2-village-overlay .apes-ao-chart-foot .apes-ao-history-caveat {
+  display: block !important;
+  color: #b1ad9f !important;
+  font-size: 9px !important;
+}
