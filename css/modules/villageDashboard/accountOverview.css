@@ -401,7 +401,8 @@
   font-size: 10px !important;
 }
 
-/* Per-village stock forecasts: 5 columns, header + two data rows. */
+/* Storage Forecast: understated dark rows, like Celebration Manager.
+   Div-based grids avoid Travian's global table styles/white cell backgrounds. */
 #apes-v2-village-overlay .apes-ao-storage {
   display: flex !important;
   flex-direction: column !important;
@@ -414,7 +415,7 @@
 #apes-v2-village-overlay .apes-ao-storage-list {
   display: flex !important;
   flex-direction: column !important;
-  gap: 9px !important;
+  gap: 0 !important;
   min-width: 0 !important;
   max-height: 330px !important;
   overflow-y: auto !important;
@@ -422,82 +423,73 @@
   scrollbar-width: thin !important;
   scrollbar-color: rgba(206,174,100,.5) transparent !important;
 }
-#apes-v2-village-overlay .apes-ao-storage-table {
-  table-layout: fixed !important;
-  width: 100% !important;
-  border-collapse: separate !important;
-  border-spacing: 0 !important;
-  border: 1px solid rgba(196,174,124,.25) !important;
-  border-radius: 6px !important;
-  background: rgba(12,17,15,.28) !important;
-  overflow: hidden !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table th,
-#apes-v2-village-overlay .apes-ao-storage-table td {
-  border: 0 !important;
-  padding: 7px 3px !important;
-  text-align: center !important;
-  vertical-align: middle !important;
-  font-size: 9px !important;
-  min-width: 0 !important;
-  overflow: hidden !important;
-  overflow-wrap: anywhere !important;
-  font-variant-numeric: tabular-nums !important;
-  color: #e5e3d9 !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table th:first-child {
-  width: 25% !important;
-  text-align: left !important;
-  padding-left: 7px !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table thead th {
-  background: rgba(165,138,83,.15) !important;
-  color: #e1cda6 !important;
-  font-size: 9px !important;
-  font-weight: 800 !important;
-  border-bottom: 1px solid rgba(196,174,124,.2) !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table tbody th {
-  color: #c9c0ac !important;
-  font-weight: 700 !important;
-  font-size: 9px !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table tbody tr + tr > * {
-  border-top: 1px solid rgba(196,174,124,.12) !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table tbody td {
-  color: #dbe3c4 !important;
-  font-weight: 700 !important;
-  white-space: nowrap !important;
-  font-size: 9px !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table td > .apes-vd-storage-countdown {
-  display: inline-block !important;
-  font-size: 9px !important;
-  font-weight: 800 !important;
-  color: #c9e49c !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table td > strong {
-  color: #c9e49c !important;
-  font-size: 9px !important;
-}
-#apes-v2-village-overlay .apes-ao-storage-table td > small {
+#apes-v2-village-overlay .apes-ao-storage-village-grid {
   display: block !important;
-  margin-top: 2px !important;
-  color: #aaa799 !important;
-  font-size: 8px !important;
+  min-width: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  border-bottom: 1px solid rgba(195,174,133,.2) !important;
+  padding: 0 0 6px !important;
+  margin: 0 0 6px !important;
 }
-#apes-v2-village-overlay .apes-ao-storage-muted {
+#apes-v2-village-overlay .apes-ao-storage-grid-row {
+  display: grid !important;
+  grid-template-columns: minmax(85px,1.35fr) repeat(4,minmax(0,1fr)) !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 30px !important;
+  gap: 3px !important;
+  min-width: 0 !important;
+  background: transparent !important;
+  border: 0 !important;
+  padding: 0 2px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-header {
+  min-height: 30px !important;
+  border-bottom: 1px solid rgba(195,174,133,.14) !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-forecast {
+  border-top: 1px solid rgba(195,174,133,.1) !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-cell {
+  display: block !important;
+  min-width: 0 !important;
+  padding: 5px 1px !important;
+  color: #e6e0d1 !important;
   font-size: 9px !important;
-  color: #b3afa1 !important;
+  font-weight: 500 !important;
+  text-align: center !important;
+  background: transparent !important;
+  border: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-cell:first-child {
+  text-align: left !important;
+  padding-left: 2px !important;
+  color: #bcb3a0 !important;
+  font-weight: 700 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-header .apes-ao-storage-grid-cell {
+  font-weight: 800 !important;
+  color: #d6c29e !important;
+  font-size: 9px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-forecast .apes-ao-storage-grid-cell:not(:first-child) {
+  font-size: 9px !important;
+  font-weight: 800 !important;
 }
 #apes-v2-village-overlay .apes-ao-storage-village {
   display: block !important;
   min-width: 0 !important;
-  color: #e1c38c !important;
+  width: fit-content !important;
+  max-width: 100% !important;
+  color: #f1e6cc !important;
   font-size: 9px !important;
   font-weight: 800 !important;
-  text-decoration: underline !important;
   cursor: pointer !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
@@ -505,8 +497,33 @@
 }
 #apes-v2-village-overlay .apes-ao-storage-village:hover,
 #apes-v2-village-overlay .apes-ao-storage-village:focus-visible {
-  color: #fff2d1 !important;
-  outline: 1px solid rgba(234,202,146,.5) !important;
+  color: #fff5df !important;
+  text-decoration: underline !important;
+  outline: none !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-cell .apes-vd-storage-countdown,
+#apes-v2-village-overlay .apes-ao-storage-grid-cell .apes-ao-storage-status {
+  display: inline-block !important;
+  max-width: 100% !important;
+  font-size: 9px !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-cell [data-forecast-tone="green"] {
+  color: #aed98c !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-cell [data-forecast-tone="yellow"] {
+  color: #e9d278 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-cell [data-forecast-tone="orange"] {
+  color: #eeaa69 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-grid-cell [data-forecast-tone="red"] {
+  color: #f07970 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-muted {
+  font-size: 9px !important;
+  color: #b3afa1 !important;
 }
 #apes-v2-village-overlay .apes-ao-storage-foot {
   color: #b1ad9f !important;
