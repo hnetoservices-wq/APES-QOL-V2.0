@@ -1,0 +1,476 @@
+
+/* APES QoL – Account Overview. Scoped to the existing Village Dashboard. */
+#apes-v2-village-overlay .apes-vd-view-toggle {
+  display: inline-flex !important; align-items: center !important; justify-content: center !important;
+  min-height: 26px !important; padding: 0 12px !important; flex: 0 0 auto !important;
+  border: 1px solid rgba(169,208,120,.65) !important; border-radius: 5px !important;
+  background: linear-gradient(180deg,rgba(60,85,45,.94),rgba(30,52,30,.94)) !important;
+  color: #e1f4cd !important; font: 800 10px Arial,sans-serif !important;
+  letter-spacing: .3px !important; cursor: pointer !important; white-space: nowrap !important;
+  user-select: none !important; box-shadow: 0 2px 8px rgba(0,0,0,.24) !important;
+}
+#apes-v2-village-overlay .apes-vd-view-toggle:hover,
+#apes-v2-village-overlay .apes-vd-view-toggle:focus-visible {
+  background: #4c6739 !important; border-color: #b7df89 !important; outline: 2px solid rgba(183,223,137,.3) !important;
+}
+#apes-v2-village-overlay .apes-vd-account-overview,
+#apes-v2-village-overlay .apes-vd-account-overview[hidden] { display: none !important; }
+#apes-v2-village-overlay .apes-vd-account-mode .apes-vd-table-wrap,
+#apes-v2-village-overlay .apes-vd-account-mode .apes-vd-next-events { display: none !important; }
+#apes-v2-village-overlay .apes-vd-account-mode .apes-vd-account-overview:not([hidden]) {
+  display: flex !important; flex-direction: column !important; gap: 12px !important;
+  flex: 1 1 auto !important; min-height: 0 !important; overflow-y: auto !important;
+  padding: 4px 7px 12px !important; scrollbar-color: rgba(206,174,100,.5) rgba(20,20,18,.24) !important;
+}
+#apes-v2-village-overlay .apes-vd-account-overview,
+#apes-v2-village-overlay .apes-vd-account-overview * { box-sizing: border-box !important; font-family: Arial,sans-serif !important; text-shadow: none !important; }
+#apes-v2-village-overlay .apes-ao-topline {
+  display: flex !important; align-items: center !important; justify-content: space-between !important; gap: 12px !important;
+  padding: 8px 12px !important; border: 1px solid rgba(198,167,97,.35) !important; border-radius: 8px !important;
+  background: linear-gradient(110deg,rgba(47,44,33,.98),rgba(27,31,27,.96)) !important;
+}
+#apes-v2-village-overlay .apes-ao-topline > div:first-child { display: flex !important; flex-direction: column !important; gap: 3px !important; }
+#apes-v2-village-overlay .apes-ao-topline strong { color: #f5e6c4 !important; font-size: 13px !important; }
+#apes-v2-village-overlay .apes-ao-topline small { color: #b7b19f !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-stats {
+  display: grid !important; grid-template-columns: repeat(5,minmax(0,1fr)) !important; gap: 9px !important;
+}
+#apes-v2-village-overlay .apes-ao-stat {
+  display: flex !important; flex-direction: column !important; gap: 5px !important; min-width: 0 !important;
+  padding: 12px 13px !important; border: 1px solid rgba(191,164,103,.31) !important; border-radius: 8px !important;
+  background: linear-gradient(130deg,rgba(57,52,39,.97),rgba(34,35,31,.96)) !important;
+}
+#apes-v2-village-overlay .apes-ao-stat > span { color: #d9cbad !important; font-size: 10px !important; font-weight: 800 !important; text-transform: uppercase !important; letter-spacing: .4px !important; }
+#apes-v2-village-overlay .apes-ao-stat > strong { color: #f3f5e6 !important; font-size: 22px !important; font-weight: 800 !important; font-variant-numeric: tabular-nums !important; }
+#apes-v2-village-overlay .apes-ao-stat > small { color: #a9ab9b !important; font-size: 9px !important; line-height: 1.3 !important; }
+#apes-v2-village-overlay .apes-ao-charts {
+  display: grid !important; grid-template-columns: repeat(3,minmax(0,1fr)) !important; gap: 10px !important;
+}
+#apes-v2-village-overlay .apes-ao-chart,
+#apes-v2-village-overlay .apes-ao-manager {
+  min-width: 0 !important; padding: 12px !important; border: 1px solid rgba(197,170,106,.33) !important; border-radius: 8px !important;
+  background: linear-gradient(150deg,rgba(43,45,37,.97),rgba(27,30,29,.97)) !important;
+}
+#apes-v2-village-overlay .apes-ao-chart-head { display: flex !important; justify-content: space-between !important; align-items: flex-start !important; gap: 8px !important; margin-bottom: 7px !important; }
+#apes-v2-village-overlay .apes-ao-chart-head > div { display: flex !important; flex-direction: column !important; gap: 3px !important; min-width: 0 !important; }
+#apes-v2-village-overlay .apes-ao-chart-head strong { font-size: 12px !important; color: #f7ebd0 !important; }
+#apes-v2-village-overlay .apes-ao-chart-head small { color: #b3afa1 !important; font-size: 9px !important; line-height: 1.35 !important; }
+#apes-v2-village-overlay .apes-ao-chart-head b { color: #d5e6ac !important; font-size: 14px !important; white-space: nowrap !important; }
+#apes-v2-village-overlay .apes-ao-chart svg { display: block !important; width: 100% !important; height: auto !important; min-height: 140px !important; overflow: visible !important; }
+#apes-v2-village-overlay .apes-ao-gridline { stroke: rgba(209,200,172,.15) !important; stroke-width: 1 !important; }
+#apes-v2-village-overlay .apes-ao-axis { fill: #b4ad95 !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-legend { display: flex !important; flex-wrap: wrap !important; gap: 10px !important; margin-top: 4px !important; }
+#apes-v2-village-overlay .apes-ao-legend span { display: inline-flex !important; align-items: center !important; gap: 4px !important; color: #ddd5c2 !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-legend i { width: 9px !important; height: 9px !important; border-radius: 50% !important; }
+#apes-v2-village-overlay .apes-ao-legend b { font-weight: 800 !important; color: #e9e1d2 !important; }
+#apes-v2-village-overlay .apes-ao-chart-foot { display: block !important; margin-top: 6px !important; color: #a4a99d !important; font-size: 9px !important; }
+#apes-v2-village-overlay .apes-ao-empty { display: flex !important; min-height: 148px !important; align-items: center !important; justify-content: center !important; color: #b7b5a9 !important; font-size: 11px !important; text-align: center !important; padding: 20px !important; }
+#apes-v2-village-overlay .apes-ao-management { display: grid !important; grid-template-columns: 1.35fr 1fr !important; gap: 10px !important; }
+#apes-v2-village-overlay .apes-ao-manager { display: flex !important; flex-direction: column !important; gap: 10px !important; }
+#apes-v2-village-overlay .apes-ao-manager-head { display: flex !important; flex-direction: column !important; gap: 4px !important; }
+#apes-v2-village-overlay .apes-ao-manager-head strong { color: #f4e7ca !important; font-size: 12px !important; }
+#apes-v2-village-overlay .apes-ao-manager-head small { color: #bbb5a5 !important; font-size: 9px !important; }
+#apes-v2-village-overlay .apes-ao-counters { display: flex !important; gap: 10px !important; }
+#apes-v2-village-overlay .apes-ao-counters > span { padding: 6px 9px !important; border-radius: 4px !important; background: rgba(185,161,92,.13) !important; color: #ded6c4 !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-counters b { color: #d7e6b7 !important; }
+#apes-v2-village-overlay .apes-ao-manager-split { display: grid !important; grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
+#apes-v2-village-overlay .apes-ao-manager-split > div { min-width: 0 !important; }
+#apes-v2-village-overlay .apes-ao-manager h4 { margin: 0 0 7px !important; color: #d0c3a5 !important; font-size: 10px !important; font-weight: 800 !important; }
+#apes-v2-village-overlay .apes-ao-village-link {
+  display: flex !important; position: relative !important; flex-wrap: wrap !important; align-items: center !important; justify-content: space-between !important;
+  gap: 3px 8px !important; padding: 7px 8px !important; border-bottom: 1px solid rgba(195,174,133,.12) !important;
+  color: #f1eadb !important; font-size: 10px !important; cursor: pointer !important; min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-village-link:hover,
+#apes-v2-village-overlay .apes-ao-village-link:focus-visible { background: rgba(138,178,90,.14) !important; outline: none !important; }
+#apes-v2-village-overlay .apes-ao-village-link > span { font-weight: 700 !important; min-width: 0 !important; }
+#apes-v2-village-overlay .apes-ao-village-link em { color: #d1dda9 !important; font-style: normal !important; font-size: 9px !important; white-space: nowrap !important; }
+#apes-v2-village-overlay .apes-ao-village-link > small { color: #b9b4a7 !important; font-size: 9px !important; width: 100% !important; }
+#apes-v2-village-overlay .apes-ao-empty-list { color: #aaa799 !important; font-size: 10px !important; font-style: italic !important; }
+#apes-v2-village-overlay .apes-ao-caveat { color: #aaa99a !important; font-size: 9px !important; line-height: 1.35 !important; }
+@media (max-width: 1020px) {
+  #apes-v2-village-overlay .apes-ao-stats { grid-template-columns: repeat(3,minmax(0,1fr)) !important; }
+  #apes-v2-village-overlay .apes-ao-charts { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  #apes-v2-village-overlay .apes-ao-management { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 700px) {
+  #apes-v2-village-overlay .apes-vd-heading { flex-wrap: wrap !important; }
+  #apes-v2-village-overlay .apes-ao-stats { grid-template-columns: repeat(2,minmax(0,1fr)) !important; }
+  #apes-v2-village-overlay .apes-ao-charts { grid-template-columns: 1fr !important; }
+  #apes-v2-village-overlay .apes-ao-manager-split { grid-template-columns: 1fr !important; }
+}
+
+/* Account-wide resource production and per-unit army composition. */
+#apes-v2-village-overlay .apes-ao-additional {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr) !important;
+  gap: 10px !important;
+  align-items: start !important;
+}
+#apes-v2-village-overlay .apes-ao-resources,
+#apes-v2-village-overlay .apes-ao-units {
+  min-width: 0 !important;
+  gap: 12px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-tiles {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 8px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-tile {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  padding: 12px !important;
+  min-width: 0 !important;
+  border: 1px solid rgba(197, 170, 106, .22) !important;
+  border-radius: 6px !important;
+  background: rgba(11, 14, 13, .35) !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-label {
+  display: flex !important;
+  align-items: center !important;
+  gap: 7px !important;
+  color: #d8d1bf !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-label i,
+#apes-v2-village-overlay .apes-ao-unit-row > i {
+  display: inline-block !important;
+  flex: 0 0 auto !important;
+  width: 10px !important;
+  height: 10px !important;
+  border-radius: 3px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-tile strong {
+  color: #f1ecd9 !important;
+  font-size: 19px !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+  overflow-wrap: anywhere !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-tile.crop strong { color: #e8d9a0 !important; }
+#apes-v2-village-overlay .apes-ao-resource-bottom {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  padding: 9px 10px !important;
+  border-top: 1px solid rgba(196, 174, 130, .18) !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-bottom > span {
+  display: flex !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+  color: #d9d0bc !important;
+  font-size: 10px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-bottom b { color: #d5e6b7 !important; font-size: 12px !important; }
+#apes-v2-village-overlay .apes-ao-resource-bottom > small {
+  color: #aba99c !important;
+  font-size: 9px !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-content {
+  display: grid !important;
+  grid-template-columns: minmax(155px, .8fr) minmax(0, 1.45fr) !important;
+  align-items: center !important;
+  gap: 18px !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-donut {
+  position: relative !important;
+  width: min(100%, 240px) !important;
+  aspect-ratio: 1 !important;
+  margin: 0 auto !important;
+  border-radius: 50% !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-shadow: 0 4px 18px rgba(0,0,0,.3) !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-center {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 3px !important;
+  width: 62% !important;
+  height: 62% !important;
+  border-radius: 50% !important;
+  background: #262c28 !important;
+  box-shadow: inset 0 1px 5px rgba(0,0,0,.35) !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-center strong {
+  color: #f5eddb !important;
+  font-size: clamp(15px, 2vw, 23px) !important;
+  font-weight: 800 !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-center small { color: #bbb9a8 !important; font-size: 10px !important; }
+#apes-v2-village-overlay .apes-ao-unit-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 0 !important;
+  min-width: 0 !important;
+  max-height: 290px !important;
+  overflow-y: auto !important;
+  scrollbar-width: thin !important;
+  scrollbar-color: rgba(206,174,100,.45) transparent !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-row {
+  display: grid !important;
+  grid-template-columns: 11px minmax(0, 1fr) auto 48px !important;
+  gap: 8px !important;
+  align-items: center !important;
+  min-width: 0 !important;
+  padding: 6px 5px !important;
+  border-bottom: 1px solid rgba(198, 174, 124, .11) !important;
+  color: #e9e5d6 !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-row:hover { background: rgba(174, 199, 126, .08) !important; }
+#apes-v2-village-overlay .apes-ao-unit-row > span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-row > span small {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #aead9f !important;
+  font-size: 9px !important;
+  font-weight: 400 !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-row b {
+  font-size: 10px !important;
+  font-variant-numeric: tabular-nums !important;
+  text-align: right !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-row em {
+  font-size: 9px !important;
+  font-style: normal !important;
+  color: #bfbdad !important;
+  text-align: right !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+  padding-top: 6px !important;
+  border-top: 1px solid rgba(198,174,124,.15) !important;
+}
+#apes-v2-village-overlay .apes-ao-unit-footer > small,
+#apes-v2-village-overlay .apes-ao-resources > .apes-ao-caveat {
+  color: #afa99a !important;
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+@media (max-width: 1050px) {
+  #apes-v2-village-overlay .apes-ao-additional { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 620px) {
+  #apes-v2-village-overlay .apes-ao-unit-content { grid-template-columns: 1fr !important; }
+  #apes-v2-village-overlay .apes-ao-unit-donut { max-width: 210px !important; }
+}
+
+/* Account Overview layout: resource totals / resource trend / population trend; managers; military intelligence. */
+#apes-v2-village-overlay .apes-ao-row-primary {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+}
+#apes-v2-village-overlay .apes-ao-row-primary > *,
+#apes-v2-village-overlay .apes-ao-charts > * {
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-charts .apes-ao-unit-content {
+  grid-template-columns: minmax(110px, .8fr) minmax(0, 1.2fr) !important;
+  gap: 10px !important;
+}
+#apes-v2-village-overlay .apes-ao-charts .apes-ao-unit-donut {
+  width: min(100%, 165px) !important;
+}
+#apes-v2-village-overlay .apes-ao-charts .apes-ao-unit-list {
+  max-height: 208px !important;
+}
+#apes-v2-village-overlay .apes-ao-row-primary .apes-ao-production-development {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-production-development .apes-ao-resource-trend {
+  padding: 0 !important;
+  border-top: none !important;
+}
+#apes-v2-village-overlay .apes-ao-production-development .apes-ao-resource-trend svg {
+  min-height: 120px !important;
+}
+@media (max-width: 1100px) {
+  #apes-v2-village-overlay .apes-ao-row-primary {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+  #apes-v2-village-overlay .apes-ao-row-primary .apes-ao-production-development {
+    grid-column: 1 / -1 !important;
+  }
+}
+@media (max-width: 740px) {
+  #apes-v2-village-overlay .apes-ao-row-primary {
+    grid-template-columns: 1fr !important;
+  }
+  #apes-v2-village-overlay .apes-ao-row-primary .apes-ao-production-development {
+    grid-column: auto !important;
+  }
+}
+@media (max-width: 620px) {
+  #apes-v2-village-overlay .apes-ao-charts .apes-ao-unit-content {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* Production development: native Scan Now snapshots (not estimates). */
+#apes-v2-village-overlay .apes-ao-resource-trend {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  min-width: 0 !important;
+  padding: 11px 0 0 !important;
+  border-top: 1px solid rgba(198,174,124,.18) !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend-head {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend-head strong {
+  color: #f4e7ca !important;
+  font-size: 12px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend-head small,
+#apes-v2-village-overlay .apes-ao-resource-trend > .apes-ao-caveat {
+  color: #b1ae9d !important;
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-trend svg {
+  display: block !important;
+  width: 100% !important;
+  height: auto !important;
+  min-height: 145px !important;
+  overflow: visible !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend {
+  display: grid !important;
+  grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  gap: 7px 12px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend span {
+  display: flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  min-width: 0 !important;
+  color: #dfd8c5 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend i {
+  flex: 0 0 auto !important;
+  width: 9px !important;
+  height: 9px !important;
+  border-radius: 50% !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend b {
+  color: #dfd8c5 !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-legend em {
+  margin-left: auto !important;
+  color: #d9e6c3 !important;
+  font-size: 10px !important;
+  font-style: normal !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-empty {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 130px !important;
+  padding: 16px !important;
+  text-align: center !important;
+  color: #b1ae9d !important;
+  font-size: 10px !important;
+}
+
+/* Account stock forecast: third card beside resource-production trends. */
+#apes-v2-village-overlay .apes-ao-storage {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 9px !important;
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-list {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 7px !important;
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 5px !important;
+  padding: 9px 10px !important;
+  border: 1px solid rgba(196, 174, 124, .22) !important;
+  border-radius: 6px !important;
+  background: rgba(12, 17, 15, .28) !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row > div {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  flex-wrap: wrap !important;
+  gap: 5px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row b {
+  color: #eee5cb !important;
+  font-size: 10px !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row strong {
+  color: #c9e49c !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  white-space: nowrap !important;
+  font-variant-numeric: tabular-nums !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-village {
+  width: fit-content !important;
+  color: #e1c38c !important;
+  font-size: 10px !important;
+  font-weight: 700 !important;
+  text-decoration: underline !important;
+  cursor: pointer !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-village:hover,
+#apes-v2-village-overlay .apes-ao-storage-village:focus-visible {
+  color: #fff2d1 !important;
+  outline: none !important;
+}
+#apes-v2-village-overlay .apes-ao-storage-row > small,
+#apes-v2-village-overlay .apes-ao-storage-foot {
+  color: #b1ad9f !important;
+  font-size: 9px !important;
+  line-height: 1.4 !important;
+}
+#apes-v2-village-overlay .apes-ao-population-bottom {
+  width: 100% !important;
+  min-width: 0 !important;
+  margin-top: 2px !important;
+}
+#apes-v2-village-overlay .apes-ao-population-bottom > .apes-ao-chart svg {
+  width: 100% !important;
+  max-height: 280px !important;
+}
+#apes-v2-village-overlay .apes-ao-chart-foot .apes-ao-history-caveat {
+  display: block !important;
+  color: #b1ad9f !important;
+  font-size: 9px !important;
+}

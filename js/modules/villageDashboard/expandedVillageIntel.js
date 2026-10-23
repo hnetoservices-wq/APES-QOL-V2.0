@@ -708,6 +708,7 @@
   window.APES.villageDashboardIntel = Object.freeze({
     refreshTroops: () => refreshOverviewTroops(true),
     historyForVillage: villageId => historyForVillage(villageId),
+    powerForCounts: (tribeId, counts) => powerSummary({ tribeId }, counts),
     collapseAll: () => { expanded.clear(); renderExpandedRows(true); }
   });
 })();

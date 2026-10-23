@@ -116,6 +116,7 @@
     let refreshTimer = null;
     let retryTimer = null;
     let countdownTimer = null;
+    let dashboardMode = 'villages';
     let scanInProgress = false;
     let scanProgress = { current: 0, total: 0, returning: false };
 
@@ -649,9 +650,59 @@
         return entries.filter(entry => entry.amount === null || entry.amount > 0);
     }
 
+    // Read Travian's native end-of-queue timestamps. Each building can train
+    // independently, so never combine a Barracks and Stable into one ETA.
+    function trainingCompletionRows(village) {
+        const groups = village?.unitQueue?.buildingTypes;
+        if (!groups || typeof groups !== 'object') return [];
+
+        const buildings = [
+            [19, 'Barracks'], [20, 'Stable'],
+            [29, 'G. Barracks'], [30, 'G. Stable']
+        ];
+        return buildings.flatMap(([type, label]) => {
+            const queued = groups[type];
+            if (!Array.isArray(queued)) return [];
+            const active = queued.filter(item => item && Number(item.count) > 0);
+            if (!active.length) return [];
+
+            const count = active.reduce((total, item) => total + Number(item.count), 0);
+            const paused = active.some(item => Number(item.pause) > 0);
+            const finishes = active.map(item => asTimestamp(item.timeFinishedLast));
+            // Partial timing data cannot establish when an entire queue ends.
+            const finishMs = !paused && finishes.every(value => value !== null)
+                ? Math.max(...finishes) : null;
+            const status = paused ? 'Paused'
+                : finishMs === null ? 'ETA unavailable'
+                    : finishMs <= Date.now() ? 'Refresh needed' : 'active';
+            const troopDescription = active.map(item =>
+                `${formatInteger(item.count)} ${unitName(village?.tribeId, item.unitType)}`
+            ).join(' · ');
+            return [{ type, label, count, finishMs, status, troopDescription }];
+        });
+    }
+
+    function trainingCompletionHtml(village) {
+        const rows = trainingCompletionRows(village);
+        if (!rows.length) return '';
+        return `<div class="apes-vd-training-queues">${rows.map(row => {
+            const time = row.status === 'active'
+                ? `<small class="apes-vd-countdown apes-vd-training-countdown"
+                          data-finish-ms="${row.finishMs}">${escapeHtml(remainingText(row.finishMs))}</small>`
+                : `<small>${escapeHtml(row.status)}</small>`;
+            const tooltip = `${row.label}: ${row.troopDescription} — ${row.status === 'active'
+                ? remainingText(row.finishMs) + ' remaining' : row.status}`;
+            return `<span class="apes-vd-training-queue apes-vd-tooltip-target"
+                         title="${escapeHtml(tooltip)}">
+                        <span>${escapeHtml(row.label)}</span>${time}
+                    </span>`;
+        }).join('')}</div>`;
+    }
+
     function trainingHtml(village) {
         const entries = unitQueueEntries(village);
-        if (!entries.length) return '<span class="apes-vd-idle">Idle</span>';
+        const completionHtml = trainingCompletionHtml(village);
+        if (!entries.length) return completionHtml || '<span class="apes-vd-idle">Idle</span>';
 
         const total = entries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
         const details = entries.map(entry => {
@@ -670,6 +721,7 @@
                     <strong>${escapeHtml(amount + entry.label)}</strong>
                     ${entry.building ? `<small>${escapeHtml(entry.building)}</small>` : ''}
                 </span>
+                ${completionHtml}
             `;
         }
 
@@ -682,6 +734,7 @@
                 <strong>${escapeHtml(total > 0 ? `${formatInteger(total)} queued` : 'Training active')}</strong>
                 <small>${escapeHtml(primary)}</small>
             </span>
+            ${completionHtml}
         `;
     }
 
@@ -862,6 +915,12 @@
         document.querySelectorAll(`#${OVERLAY_ID} .apes-vd-countdown[data-finish-ms]`).forEach(element => {
             const finishMs = Number(element.dataset.finishMs);
             if (!Number.isFinite(finishMs)) return;
+            // A cached training queue that has expired may not yet be refreshed.
+            if ((element.classList.contains('apes-vd-training-countdown') ||
+                 element.classList.contains('apes-vd-storage-countdown')) && finishMs <= Date.now()) {
+                element.textContent = 'Refresh needed';
+                return;
+            }
             element.textContent = formatDurationMilliseconds(finishMs - Date.now());
         });
     }
@@ -896,6 +955,7 @@
                     <div class="apes-vd-brand">
                         <span>APES</span>
                         <strong>Village Dashboard</strong>
+                        <div class="apes-vd-view-toggle" role="button" tabindex="0" aria-label="Switch to Account Overview">Account Overview</div>
                     </div>
                     <div class="apes-vd-heading-actions">
                         <div class="apes-vd-scan-btn" role="button" tabindex="0" aria-disabled="false">Scan Now</div>
@@ -916,13 +976,29 @@
                         <div class="apes-vd-loading">Reading Travian village cache…</div>
                     </div>
                 </div>
+                <div class="apes-vd-account-overview" role="region" aria-label="Account overview" hidden></div>
             </div>
         `;
         document.body.appendChild(overlay);
 
+        // Render the latest snapshot immediately after leaving Training.
+        overlay.addEventListener('pointerout', event => {
+            const tooltip = event.target?.closest?.('.apes-vd-row > .apes-vd-cell:nth-child(3) .apes-vd-tooltip-target');
+            if (!tooltip || tooltip.contains(event.relatedTarget)) return;
+            if (isOpen()) renderDashboard();
+        });
+
         overlay.addEventListener('click', event => {
             if (event.target === overlay) {
                 closeDashboard();
+                return;
+            }
+
+            const viewButton = event.target.closest('.apes-vd-view-toggle');
+            if (viewButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                switchDashboardMode(dashboardMode === 'account' ? 'villages' : 'account');
                 return;
             }
 
@@ -983,6 +1059,18 @@
         if (!body) return;
 
         updateScanButton();
+
+        if (dashboardMode === 'account') {
+            window.APES_ACCOUNT_OVERVIEW?.render?.(snapshot);
+            return;
+        }
+
+        // Avoid destroying Chrome's native title tooltip during the 2.5s
+        // snapshot refresh. The existing 1s countdown updater still runs.
+        if (body.querySelector('.apes-vd-row > .apes-vd-cell:nth-child(3) .apes-vd-tooltip-target:hover')) {
+            updateConstructionCountdowns();
+            return;
+        }
 
         const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
         if (!villages.length) {
@@ -1059,6 +1147,7 @@
             ? [startVillageId, ...ids.filter(id => id !== startVillageId)]
             : ids;
 
+        const resourceCaptures = {};
         scanInProgress = true;
         scanProgress = { current: 0, total: orderedIds.length, returning: false };
         updateScanButton();
@@ -1080,6 +1169,12 @@
                 await waitForVillageNavigation(villageId);
                 await sleep(SCAN_SETTLE_MS);
                 captureCurrentVillageScan(villageId);
+                // Read each village's current DOM values during this scan pass.
+                // Do not substitute previously cached production if this capture fails.
+                if (currentVillageIdFromUrl() === villageId) {
+                    const production = window.APES?.villageResourceProduction?.captureForScan?.(villageId);
+                    if (production) resourceCaptures[villageId] = production;
+                }
                 requestSnapshot();
                 await sleep(SCAN_REFRESH_MS);
             }
@@ -1097,6 +1192,13 @@
                 captureCurrentVillageScan(startVillageId);
             }
         } finally {
+            // One historical snapshot per Scan Now pass; mark missing village
+            // readings as partial rather than reporting them as zero production.
+            try {
+                window.APES?.villageResourceProduction?.recordScan?.(orderedIds, resourceCaptures);
+            } catch (error) {
+                console.warn('[APES Village Dashboard] Resource history snapshot failed.', error);
+            }
             requestSnapshot();
             await sleep(SCAN_REFRESH_MS);
             scanInProgress = false;
@@ -1104,6 +1206,24 @@
             updateScanButton();
             if (isOpen()) renderDashboard();
         }
+    }
+
+    function switchDashboardMode(nextMode) {
+        dashboardMode = nextMode === 'account' ? 'account' : 'villages';
+        const overlay = mountDashboard();
+        const root = overlay.querySelector('.apes-v2-village-dashboard');
+        root?.classList.toggle('apes-vd-account-mode', dashboardMode === 'account');
+        const button = overlay.querySelector('.apes-vd-view-toggle');
+        if (button) {
+            button.textContent = dashboardMode === 'account' ? 'Village Overview' : 'Account Overview';
+            button.setAttribute('aria-label', 'Switch to ' + button.textContent);
+        }
+        const brand = overlay.querySelector('.apes-vd-brand > strong');
+        if (brand) brand.textContent = dashboardMode === 'account' ? 'Account Overview' : 'Village Dashboard';
+        const section = overlay.querySelector('.apes-vd-account-overview');
+        if (section) section.hidden = dashboardMode !== 'account';
+        if (dashboardMode === 'account') window.APES?.villageDashboardIntel?.collapseAll?.();
+        renderDashboard();
     }
 
     function startRefresh() {
@@ -1134,6 +1254,7 @@
         const overlay = mountDashboard();
         overlay.classList.add('open');
         overlay.setAttribute('aria-hidden', 'false');
+        switchDashboardMode(dashboardMode);
         renderDashboard();
         startRefresh();
     }
@@ -1229,7 +1350,8 @@
         toggle: toggleDashboard,
         refresh: requestSnapshot,
         scan: scanAllVillages,
-        getVillages: () => (snapshot?.villages || []).map(village => ({ ...village }))
+        getVillages: () => (snapshot?.villages || []).map(village => ({ ...village })),
+        showAccount: () => { openDashboard(); switchDashboardMode('account'); }
     });
 
     mountDashboard();

@@ -74,6 +74,12 @@ const BASIC_FEATURES = [{
   icon: '◷',
   description: 'Dings and alerts you at 5 minutes and 5 seconds remaining, just before free instant finish becomes available.'
 }, {
+  id: 'qol-chk-farm-list-loot-percentage',
+  key: 'farmListLootPercentage',
+  name: 'Farm List Loot Percentage',
+  icon: '%',
+  description: 'Shows the percentage of troop carrying capacity filled by loot in farm-raid reports.'
+}, {
   id: 'qol-chk-chat-links',
   key: 'chatLinks',
   name: 'Clickable Chat Links',
@@ -391,8 +397,8 @@ function injectQolMenuStyles() {
         #qol-modal{display:flex!important;flex-direction:column!important;width:min(920px,94vw)!important;max-height:min(860px,92vh)!important;margin:0!important;padding:0!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 24px 64px rgba(0,0,0,.52)!important;overflow:hidden!important}
         #qol-modal .qol-modal-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:66px!important;padding:10px 12px 10px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#f8f0df!important}
         #qol-modal .qol-modal-title-group{display:flex!important;align-items:center!important;gap:11px!important;min-width:0!important}
-        #qol-modal .qol-brand-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;flex-shrink:0!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:50%!important;overflow:hidden!important;background:rgba(24,15,8,.24)!important;box-sizing:border-box!important}
-        #qol-modal .qol-brand-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:cover!important}
+        #qol-modal .qol-brand-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;flex-shrink:0!important;border:0!important;border-radius:0!important;overflow:visible!important;background:transparent!important;box-sizing:border-box!important}
+        #qol-modal .qol-brand-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}
         #qol-modal .qol-title-copy{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
         #qol-modal .qol-title-line{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}
         #qol-modal .qol-modal-title{color:#fffaf0!important;font-size:15px!important;font-weight:700!important}
@@ -487,7 +493,7 @@ function injectQolMenuStyles() {
         #qol-modal-overlay .qol-thank-dialog{display:flex!important;flex-direction:column!important;width:min(640px,92vw)!important;max-height:min(720px,84vh)!important;border:2px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 22px 58px rgba(0,0,0,.52)!important;overflow:hidden!important}
         #qol-modal-overlay .qol-thank-dialog-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex:0 0 auto!important;min-height:54px!important;padding:9px 11px 9px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important}
         #qol-modal-overlay .qol-thank-dialog-title-group{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
-        #qol-modal-overlay .qol-thank-dialog-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:50%!important;background:rgba(24,15,8,.22)!important;color:#fff6e7!important;font-size:20px!important;line-height:1!important}
+        #qol-modal-overlay .qol-thank-dialog-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:40px!important;height:40px!important;flex-shrink:0!important;border:0!important;border-radius:0!important;background:transparent!important;overflow:visible!important}#qol-modal-overlay .qol-thank-dialog-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}
         #qol-modal-overlay .qol-thank-dialog-title{margin:0!important;color:#fffaf0!important;font-size:15px!important;font-weight:700!important;line-height:20px!important}
         #qol-modal-overlay .qol-thank-dialog-subtitle{display:block!important;margin-top:1px!important;color:#d9ccb5!important;font-size:9px!important;line-height:13px!important}
         #qol-modal-overlay .qol-thank-dialog-x{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:29px!important;height:29px!important;border-radius:5px!important;background:rgba(0,0,0,.2)!important;color:#fff!important;font-size:22px!important;font-weight:bold!important;cursor:pointer!important;user-select:none!important}
@@ -952,7 +958,7 @@ function buildSettingsMarkup() {
             <div class="qol-thank-dialog" role="dialog" aria-modal="true" aria-labelledby="qol-thank-dialog-title">
                 <div class="qol-thank-dialog-header">
                     <div class="qol-thank-dialog-title-group">
-                        <span class="qol-thank-dialog-mark" aria-hidden="true">♡</span>
+                        <span class="qol-thank-dialog-mark" aria-hidden="true"><img src="${chrome.runtime.getURL('images/apepehappy.webp')}" alt=""></span>
                         <div>
                             <h2 class="qol-thank-dialog-title" id="qol-thank-dialog-title">Enjoying APES QoL?</h2>
                             <span class="qol-thank-dialog-subtitle">A message from Restos</span>
@@ -969,7 +975,7 @@ function buildSettingsMarkup() {
                     <h3 class="qol-thank-heading">Thanks</h3>
                     <p>A big thank-you to every Ape, marsupial, and monkey in APES. My time in this game has been far more enjoyable because you were part of it.</p>
                     <p>Special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir, and Cookix for keeping me (in)sane through all the crazy times I’ve gone through.</p>
-                    <p>Special thanks also go to Tjabz, SirPates, and knupa, who tested the extension, offered suggestions, and reported bugs throughout its development.</p>
+                    <p>Special thanks also go to Tjabz, SirPates, knupa and Barbara, who tested the extension, offered suggestions, and reported bugs throughout its development.</p>
                     <p class="qol-thank-quote">Above all, I owe my greatest thanks to my wife. When I kept going on and on about how I had a ton of ideas for improving this game, she finally said, “Just do it then. Jesus fucking Christ, shut up about it already. Holy shit. Do it, just fucking do it, leave me alone.”</p>
                     <p>A huge thank-you also goes to my son, who made sure I took some (forced) breaks while structuring, organizing, and building this extension.</p>
                     <p>And a big thank you to a very special someone I never had the chance to meet but whom I miss terribly. You've never made a sound, yet you still keep me up at night. Your tiny weight is the heaviest I'll ever carry. I'm a humbler man now. I will carry you with me forever.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>

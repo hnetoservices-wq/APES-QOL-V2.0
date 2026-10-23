@@ -13,7 +13,7 @@
   });
   const ROLE_INDEXES = Object.freeze({
     Defense: Object.freeze({
-      1: [0, 1, 3],
+      1: [0, 1, 3, 5], // Legionnaire, Praetorian, Equites Legati, Equites Caesaris
       2: [1, 3, 4],
       3: [0, 2, 4, 5]
     }),
