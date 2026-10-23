@@ -83,6 +83,7 @@
   }
   async function nativeNext(owned) {
     const before = currentId();
+    const beforeName = normal(selectedName());
     const button = nextButton();
     if (!button) return false;
     button.dispatchEvent(new MouseEvent('click', {
@@ -92,7 +93,10 @@
     while (Date.now() < deadline) {
       const id = currentId();
       const landed = owned.find(village => village.id === id);
-      if (id && id !== before && landed && await waitForVillage(landed, owned, 1000)) return true;
+      // A failed URL-only route may already point to this ID while Travian
+      // still shows the previous village. Confirm the selected-name change too.
+      if (id && landed && (id !== before || normal(selectedName()) !== beforeName) &&
+          await waitForVillage(landed, owned, 1000)) return true;
       await sleep(100);
     }
     return false;
