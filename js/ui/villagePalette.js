@@ -916,7 +916,8 @@
             const finishMs = Number(element.dataset.finishMs);
             if (!Number.isFinite(finishMs)) return;
             // A cached training queue that has expired may not yet be refreshed.
-            if (element.classList.contains('apes-vd-training-countdown') && finishMs <= Date.now()) {
+            if ((element.classList.contains('apes-vd-training-countdown') ||
+                 element.classList.contains('apes-vd-storage-countdown')) && finishMs <= Date.now()) {
                 element.textContent = 'Refresh needed';
                 return;
             }
