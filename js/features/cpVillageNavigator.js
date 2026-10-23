@@ -1,6 +1,28 @@
 (function installCPVillageNavigator() {
   'use strict';
-  const PALETTE = () => window.APES_VILLAGE_PALETTE;
+  let requestCounter=0;
+  async function gameOwnedSnapshot(){
+    const requestId=++requestCounter;
+    return new Promise((resolve,reject)=>{
+      const timeout=setTimeout(()=>{
+        window.removeEventListener('message',onMessage);
+        reject(new Error('Travian village-data reader did not respond.'));
+      },1100);
+      function onMessage(event){
+        if(event.source!==window||event.origin!==window.location.origin||
+           event.data?.source!=='APES_CP_SOURCE_RESPONSE'||
+           event.data?.type!=='OWNED_RESULT'||
+           event.data?.requestId!==requestId)return;
+        clearTimeout(timeout);
+        window.removeEventListener('message',onMessage);
+        resolve(event.data);
+      }
+      window.addEventListener('message',onMessage);
+      window.postMessage({
+        source:'APES_CP_SOURCE_REQUEST',type:'READ_OWNED',requestId
+      },window.location.origin);
+    });
+  }
   const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
   const normal = value => String(value ?? '').replace(/\s+/g, ' ').trim().toLocaleLowerCase();
   const validId = id => /^\d+$/.test(String(id || ''));
@@ -18,64 +40,60 @@
     return '';
   };
   const viewReady = () => Boolean(document.querySelector('#villageView building-location'));
-  function snapshotVillages() {
-    const villages = PALETTE()?.getVillages?.();
-    if (!Array.isArray(villages)) return [];
-    const unique = new Map();
-    for (const entry of villages) {
-      const id = String(entry?.villageId || '');
-      if (!validId(id) || unique.has(id)) continue;
-      unique.set(id, Object.freeze({
-        id,
-        name: String(entry?.name || '').trim(),
-        // The Village model exposes this flag (not the CP founding window).
-        isTown: entry?.isTown === true,
-        playerId: entry?.playerId
+  function normalizeOwned(snapshot){
+    const unique=new Map();
+    for(const v of Array.isArray(snapshot?.villages)?snapshot.villages:[]){
+      const id=String(v?.id??'');
+      const name=String(v?.name??'').trim();
+      if(!validId(id)||!name||unique.has(id))continue;
+      unique.set(id,Object.freeze({
+        id,name,isTown:v.isTown===true,isActive:v.isActive===true,
+        playerId:v.playerId,hasTownHall:v.hasTownHall===true
       }));
     }
     return [...unique.values()];
   }
-  async function getOwnedVillages(timeout = 8000) {
-    const deadline = Date.now() + timeout;
-    let lastRequest = 0;
-    while (Date.now() < deadline) {
-      const villages = snapshotVillages();
-      if (villages.length && villages.every(village => village.name)) return villages;
-      if (!lastRequest || Date.now() - lastRequest >= 1000) {
-        PALETTE()?.refresh?.();
-        lastRequest = Date.now();
-      }
-      await sleep(175);
+  async function getOwnedVillages(timeout=8000){
+    const deadline=Date.now()+timeout;
+    let lastFailure='';
+    while(Date.now()<deadline){
+      try{
+        const snapshot=await gameOwnedSnapshot();
+        const villages=normalizeOwned(snapshot);
+        if(villages.length)return villages;
+        lastFailure=snapshot.error||'Travian has not populated its own village records yet';
+      }catch(error){lastFailure=error?.message||String(error);}
+      await sleep(250);
     }
-    throw new Error('CP scan could not load a complete owned-village list from Village Dashboard. Refresh the game and retry.');
+    throw new Error(
+      'CP Manager could not read the owned-village list directly from Travian. '+lastFailure
+    );
   }
-  function selectedMatches(target, owned) {
-    const actual = normal(selectedName());
-    if (!actual || normal(target.name) !== actual) return false;
-    // A repeated name is insufficient proof of which village is selected.
-    const siblings = owned.filter(v => normal(v.name) === actual);
-    if (siblings.length > 1) {
-      const active = PALETTE()?.getVillages?.()?.filter(v => v.isActive === true);
-      return Array.isArray(active) && active.length === 1 && String(active[0].villageId) === target.id;
-    }
-    return true;
+  async function selectedMatches(target,owned){
+    const actual=normal(selectedName());
+    if(!actual||normal(target.name)!==actual)return false;
+    const siblings=owned.filter(v=>normal(v.name)===actual);
+    if(siblings.length<=1)return true;
+    // If names collide, require Travian's native isActive model to
+    // distinguish villages. The URL is not proof of active controller state.
+    const snapshot=await gameOwnedSnapshot().catch(()=>null);
+    return snapshot?.activeId===target.id;
   }
-  async function waitForVillage(target, owned, timeout = 7500) {
-    const deadline = Date.now() + timeout;
-    let confirmed = 0;
-    while (Date.now() < deadline) {
-      const matches = currentId() === target.id &&
-        /(?:^|\/)page:village(?:\/|$)/i.test(window.location.hash || '') &&
-        selectedMatches(target, owned) && viewReady();
-      confirmed = matches ? confirmed + 1 : 0;
-      if (confirmed >= 2) return true;
+  async function waitForVillage(target,owned,timeout=7500){
+    const deadline=Date.now()+timeout;
+    let confirmed=0;
+    while(Date.now()<deadline){
+      const matches=currentId()===target.id &&
+        /(?:^|\/)page:village(?:\/|$)/i.test(window.location.hash||'') &&
+        viewReady()&&await selectedMatches(target,owned);
+      confirmed=matches?confirmed+1:0;
+      if(confirmed>=2)return true;
       await sleep(120);
     }
     return false;
   }
   async function routeTo(target, owned) {
     window.location.hash = `#/page:village/villId:${target.id}`;
-    PALETTE()?.refresh?.();
     return waitForVillage(target, owned, 7500);
   }
   function nextButton() {
