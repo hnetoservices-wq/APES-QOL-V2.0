@@ -491,43 +491,37 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     }
     return null;
   }
-  function findVillageNavigationButton(direction) {
-    const buttons = Array.from(document.querySelectorAll(`#villageList .navigation.${direction}`));
-    return buttons.find(button => {
-      const style = getComputedStyle(button);
-      const rect = button.getBoundingClientRect();
-      return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
-    }) || document.querySelector(`.currentVillageName.dropdown a.navigation.${direction}.clickable`) || buttons[0] || null;
-  }
-  function clickVillageNavigation(direction) {
-    const button = findVillageNavigationButton(direction);
-    if (!button) return false;
-    button.dispatchEvent(new MouseEvent('click', {
-      view: window,
-      bubbles: true,
-      cancelable: true,
-      composed: true,
-      button: 0
-    }));
-    return true;
-  }
-  async function waitForVillageChange(previous, timeout = 5000) {
-    const started = performance.now();
-    while (performance.now() - started < timeout) {
-      await sleep(100);
-      if (getVillageIdentity() !== previous) return true;
+  // Village Dashboard already maintains the authoritative owned-village list.
+  // Direct village routes do not depend on Travian's sometimes-hidden arrow
+  // controls, which can be unusable under the CP scan screen lock.
+  async function getScanVillageIds() {
+    for (let attempt = 0; attempt < 15; attempt += 1) {
+      const villages = window.APES_VILLAGE_PALETTE?.getVillages?.();
+      const ids = Array.isArray(villages) ? [...new Set(villages
+        .map(village => String(village?.villageId || ''))
+        .filter(id => /^\d+$/.test(id)))] : [];
+      if (ids.length) return ids;
+      window.APES_VILLAGE_PALETTE?.refresh?.();
+      await sleep(150);
     }
-    return false;
+    throw new Error('Could not load the account village list. Wait for the Village Dashboard to load, then retry Scan CP.');
   }
-  async function moveVillage(direction) {
-    const previous = getVillageIdentity();
-    if (!clickVillageNavigation(direction) || !(await waitForVillageChange(previous))) return false;
-    await sleep(250);
-    return true;
-  }
-  async function restoreStartingVillage(hops) {
-    for (let index = 0; index < hops; index += 1) if (!(await moveVillage('previous'))) return false;
-    return true;
+  async function navigateToScanVillage(villageId) {
+    const id = String(villageId || '');
+    if (!/^\d+$/.test(id)) throw new Error('Invalid village ID in the CP scan.');
+    if (getVillageIdFromHash() !== id ||
+        !/\/page:village(?:\/|$)/i.test(window.location.hash)) {
+      setVillageHash(['page:village', `villId:${id}`]);
+    } else {
+      openVillageBase();
+    }
+    // The hash updates synchronously but Angular's village view may not.
+    await sleep(400);
+    const view = await waitForVillageView();
+    if (!view || getVillageIdFromHash() !== id) {
+      throw new Error(`Could not load village ${id} for the CP scan.`);
+    }
+    await sleep(180);
   }
   function getCulturePointsTable() {
     return document.querySelector('.loadedTab.tabCulturePoints.currentTab .cpOverview table.villagesTable') || document.querySelector('.loadedTab.tabCulturePoints.activeTab .cpOverview table.villagesTable') || document.querySelector('.cpOverview table.villagesTable');
@@ -687,32 +681,19 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     townHall.busyUntilMs = data.busyUntilMs;
   }
   async function scanAllVillages(cpReadAtMs) {
-    const startingIdentity = getVillageIdentity();
-    const visited = new Set();
+    const ids = await getScanVillageIds();
+    const startingId = getVillageIdFromHash() || ids[0];
     const villages = [];
     const celebrationEvents = [];
-    let hops = 0;
-    let complete = false;
-    openVillageBase();
-    await sleep(300);
-    if (!(await waitForVillageView())) throw new Error('The village view could not be loaded for Town Hall scanning.');
-    for (let attempt = 0; attempt < MAX_VILLAGE_HOPS; attempt += 1) {
-      const identity = getVillageIdentity();
-      if (visited.has(identity)) {
-        complete = identity === startingIdentity;
-        break;
-      }
-      visited.add(identity);
-      openVillageBase();
-      await sleep(220);
-      if (!(await waitForVillageView())) break;
-      const villageName = getCurrentVillageName();
-      setStatus(`Scanning Town Halls and celebrations: ${villageName} (${visited.size})...`, 'working');
-      let village = readTownHallInCurrentVillage();
-      if (!village) {
-        village = {
+    try {
+      for (const id of ids) {
+        await navigateToScanVillage(id);
+        const villageName = getCurrentVillageName();
+        setStatus(`Scanning Town Halls and celebrations: ${villageName} (${villages.length + 1}/${ids.length})...`, 'working');
+        // Do not count a village until its own view has loaded.
+        const village = readTownHallInCurrentVillage() || {
           villageName,
-          villageId: getVillageIdFromHash(),
+          villageId: id,
           hasTownHall: false,
           level: 0,
           location: null,
@@ -721,28 +702,24 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
           busyUntilMs: null,
           cpPerDay: null
         };
-      } else {
-        try {
-          await scanTownHallCelebrations(village, cpReadAtMs);
-          village.celebrations.forEach(event => celebrationEvents.push(event));
-        } catch (error) {
-          console.warn(`[APES CP Manager] Celebration scan failed for ${villageName}.`, error);
+        if (village.hasTownHall) {
+          try {
+            await scanTownHallCelebrations(village, cpReadAtMs);
+            village.celebrations.forEach(event => celebrationEvents.push(event));
+          } catch (error) {
+            console.warn(`[APES CP Manager] Celebration scan failed for ${villageName}.`, error);
+          }
         }
+        villages.push(village);
       }
-      villages.push(village);
-      openVillageBase();
-      await sleep(120);
-      if (!(await moveVillage('next'))) {
-        complete = visited.size === 1;
-        break;
-      }
-      hops += 1;
-      if (getVillageIdentity() === startingIdentity) {
-        complete = true;
-        break;
+    } finally {
+      // Always return to the starting village, even when a scan fails.
+      try {
+        await navigateToScanVillage(startingId);
+      } catch (error) {
+        console.warn('[APES CP Manager] Could not restore the starting village.', error);
       }
     }
-    if (!complete && hops > 0) await restoreStartingVillage(hops);
     const uniqueEvents = [];
     const seenEvents = new Set();
     celebrationEvents.sort((a, b) => a.startMs - b.startMs).forEach(event => {
@@ -754,41 +731,43 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     return {
       villages,
       celebrationEvents: uniqueEvents,
-      scannedCount: visited.size,
-      complete
+      scannedCount: villages.length,
+      complete: villages.length === ids.length
     };
   }
   async function scanCpRequirement() {
-    let hops = 0;
-    const startingIdentity = getVillageIdentity();
-    const visited = new Set();
-    openCityFoundingWindow();
-    await sleep(250);
-    for (let attempt = 0; attempt < MAX_VILLAGE_HOPS; attempt += 1) {
-      const identity = getVillageIdentity();
-      if (visited.has(identity)) throw new Error('Every available village appears to be a city.');
-      visited.add(identity);
-      openCityFoundingWindow();
-      await sleep(200);
-      const state = await waitForTownState();
-      if (!state) throw new Error('The City founding section could not be found in Main Building location 27.');
-      if (state.type === 'village') {
-        const result = {
-          current: state.current,
-          target: state.target,
-          villageName: getCurrentVillageName(),
-          skippedCities: hops,
-          readAtMs: Date.now()
-        };
-        if (hops > 0 && !(await restoreStartingVillage(hops))) throw new Error('Could not return to the starting village.');
-        return result;
+    const ids = await getScanVillageIds();
+    const startingId = getVillageIdFromHash() || ids[0];
+    const orderedIds = ids.includes(startingId)
+      ? [startingId, ...ids.filter(id => id !== startingId)] : ids;
+    let skippedCities = 0;
+    try {
+      for (const id of orderedIds) {
+        await navigateToScanVillage(id);
+        openCityFoundingWindow();
+        await sleep(250);
+        const state = await waitForTownState();
+        if (!state) throw new Error(`The City founding section could not be read in village ${id}.`);
+        if (state.type === 'village') {
+          return {
+            current: state.current,
+            target: state.target,
+            villageName: getCurrentVillageName(),
+            skippedCities,
+            readAtMs: Date.now()
+          };
+        }
+        skippedCities += 1;
+        setStatus(`City detected in ${getCurrentVillageName()}. Checking another village...`, 'working');
       }
-      setStatus(`City detected in ${getCurrentVillageName()}. Checking the next village...`, 'working');
-      if (!(await moveVillage('next'))) throw new Error('The next-village control could not be used.');
-      hops += 1;
-      if (getVillageIdentity() === startingIdentity) throw new Error('Every available village appears to be a city.');
+      throw new Error('Every available village appears to be a city.');
+    } finally {
+      try {
+        await navigateToScanVillage(startingId);
+      } catch (error) {
+        console.warn('[APES CP Manager] Could not restore the starting village.', error);
+      }
     }
-    throw new Error('Could not determine current and target CP.');
   }
   function attachVillageCp(villages, culture) {
     const cpMap = new Map(culture.villageCp.map(item => [normalizeName(item.name), item.cpPerDay]));
@@ -1096,7 +1075,8 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (isScanning || !isEnabled()) return;
     isScanning = true;
     const originalHash = window.location.hash || '';
-    resetResults();
+    // Keep the previous complete scan visible until a new scan succeeds.
+    // Repeated partial scans must never erase previously detected Town Halls.
     setScanButtonState(true, 'Scanning...');
     showScanOverlay();
     setStatus('Opening Main Building and reading city-founding CP...', 'working');
@@ -1109,6 +1089,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       if (!culture) throw new Error('The Culture Points overview opened, but CP/day could not be read.');
       setStatus('Scanning all villages for Town Halls and celebrations...', 'working');
       const townHalls = await scanAllVillages(requirement.readAtMs);
+      if (!townHalls.complete) {
+        throw new Error(`CP village scan incomplete (${townHalls.scannedCount} villages). Previous results were preserved.`);
+      }
       attachVillageCp(townHalls.villages, culture);
       const prediction = buildPrediction(requirement.current, requirement.target, culture.total, townHalls.celebrationEvents, requirement.readAtMs);
       const result = {
@@ -1130,7 +1113,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     } catch (error) {
       console.error('[APES CP Manager] Scan failed.', error);
       if (window.location.hash !== originalHash) window.location.hash = originalHash;
-      setStatus(error?.message || 'Could not scan culture point information.', 'error');
+      setStatus(`${error?.message || 'Could not scan culture point information.'}${lastScanResult ? ' Previous scan results are still shown.' : ''}`, 'error');
     } finally {
       removeScanOverlay();
       isScanning = false;
