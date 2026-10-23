@@ -145,7 +145,7 @@
     if(!records.length) return `<div class="apes-ao-resource-trend">${heading}
       <div class="apes-ao-resource-empty">No complete production scans yet. Use Scan Now to record the first snapshot.</div>
       ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
-    const W=500,H=216,L=55,R=13,T=15,B=32,PW=W-L-R,PH=H-T-B;
+    const W=700,H=150,L=55,R=13,T=13,B=26,PW=W-L-R,PH=H-T-B;
     const amounts=records.flatMap(row=>RESOURCE_TYPES.map(item=>Number(row.totals[item.key])));
     let minimum=Math.min(0,...amounts),maximum=Math.max(0,...amounts);
     if(maximum===minimum){maximum+=1;minimum-=1;}
@@ -200,8 +200,9 @@
     const combined=RESOURCE_TYPES.reduce((sum,item)=>sum+summary.totals[item.key],0);
     const oldest=summary.oldest>0?new Date(summary.oldest).toLocaleString():'—';
     return `<section class="apes-ao-manager apes-ao-resources">
-      <div class="apes-ao-manager-head"><strong>Total Resource Production</strong>
-        <small>Per hour, including net crop · ${safe(coverage)}</small></div>
+      <div class="apes-ao-manager-head"><div class="apes-ao-resource-heading">
+        <strong>Total Resource Production</strong>
+        <small>${safe(coverage)}</small></div></div>
       <div class="apes-ao-resource-tiles">${tiles}</div>
       <div class="apes-ao-resource-bottom"><span>Combined net production
         <b>${available?safe(fmt(combined)+'/h'):'—'}</b></span>
