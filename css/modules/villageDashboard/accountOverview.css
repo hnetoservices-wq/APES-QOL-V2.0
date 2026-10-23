@@ -410,7 +410,58 @@
   min-width: 0 !important;
 }
 #apes-v2-village-overlay .apes-ao-row-primary {
-  grid-template-columns: minmax(0,1fr) minmax(0,1fr) minmax(0,1.35fr) !important;
+  /* Left: the production summary above its trend. Right: storage forecast. */
+  grid-template-columns: minmax(0,2fr) minmax(0,1.35fr) !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack > * {
+  min-width: 0 !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-tiles {
+  grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+  gap: 8px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-tile {
+  padding: 9px 10px !important;
+  gap: 5px !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-tile strong {
+  font-size: clamp(12px,1.35vw,19px) !important;
+  white-space: nowrap !important;
+  overflow-wrap: normal !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-production-development {
+  flex: 1 1 auto !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-production-development .apes-ao-resource-trend {
+  flex: 1 1 auto !important;
+}
+#apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-trend svg {
+  width: 100% !important;
+  height: auto !important;
+}
+/* Small text is easier to read at a regular weight in these three panels. */
+#apes-v2-village-overlay .apes-ao-row-primary .apes-ao-resource-stack *,
+#apes-v2-village-overlay .apes-ao-row-primary .apes-ao-storage * {
+  font-weight: 400 !important;
+}
+@media (max-width: 1100px) {
+  #apes-v2-village-overlay .apes-ao-row-primary {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+  #apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-tiles {
+    grid-template-columns: repeat(2,minmax(0,1fr)) !important;
+  }
+}
+@media (max-width: 740px) {
+  #apes-v2-village-overlay .apes-ao-row-primary {
+    grid-template-columns: minmax(0,1fr) !important;
+  }
 }
 #apes-v2-village-overlay .apes-ao-storage-list {
   display: flex !important;
