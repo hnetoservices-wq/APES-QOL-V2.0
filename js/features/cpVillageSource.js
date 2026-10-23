@@ -44,6 +44,14 @@
     }
     return null;
   }
+  function publishGameWorldSpeed(){
+    // Independently read Travian's actual x1/x2/x3/x5 configuration.
+    // CP Manager does not rely on the Resource Planner being enabled.
+    const speed=Number(window.Travian?.Config?.TG_SPEED??window.config?.TG_SPEED);
+    if(![1,2,3,5].includes(speed))return null;
+    document.documentElement?.setAttribute('data-apes-cp-world-speed',String(speed));
+    return speed;
+  }
   function ownSnapshot(){
     const cache=window.Cache?.c??{};
     const activeId=(window.location.hash||'').match(/(?:^|\/)villId:(\d+)/)?.[1]||'';
@@ -92,7 +100,7 @@
     const requestId=event.data.requestId;
     if(typeof requestId!=='number'||!Number.isSafeInteger(requestId))return;
     let result;
-    try{result=ownSnapshot();}
+    try{publishGameWorldSpeed();result=ownSnapshot();}
     catch(error){result={villages:[],error:String(error?.message??error)};}
     window.postMessage({source:RESPONSE_SOURCE,type:'OWNED_RESULT',requestId,...result},window.location.origin);
   });
