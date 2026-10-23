@@ -40,30 +40,45 @@
     try{localStorage.setItem(storageKey(player),JSON.stringify(records.slice(-365)));lastPopulation=signature;}
     catch(error){console.warn('[APES Account Overview] Population history storage failed:',error);}
   }
+  // Derive account totals directly from existing dated village histories.
+  // Each day uses the most recent reading at or before that day per village,
+  // so villages do not have to be scanned on exactly the same date.
+  // Coverage is explicit: a village with no earlier reading is not zero.
   function armyHistory(payload){
     const villages=payload?.villages||[],api=window.APES?.villageDashboardIntel;
     if(!villages.length||!api?.historyForVillage||!api?.powerForCounts)return [];
-    const perVillage=villages.map(v=>({v,rows:api.historyForVillage(v.villageId)}));
-    if(perVillage.some(x=>!x.rows.length))return [];
-    const dates=new Map();
-    for(const {v,rows} of perVillage)for(const scan of rows){
-      const date=scan.day||day(scan.timestamp);
-      if(!/^\d{4}-\d{2}-\d{2}$/.test(date))continue;
-      if(!dates.has(date))dates.set(date,new Map());
-      const group=dates.get(date),id=String(v.villageId),current=group.get(id);
-      if(!current||Number(scan.timestamp)>Number(current.timestamp))group.set(id,scan);
-    }
-    return [...dates].filter(([_,group])=>group.size===villages.length).map(([date,group])=>{
-      let troops=0,attack=0,defense=0;
-      for(const {v} of perVillage){
-        const entry=group.get(String(v.villageId)),counts=entry?.counts;
-        if(!Array.isArray(counts)||counts.length<10||counts.some(c=>num(c)==null||Number(c)<0))return null;
-        troops+=counts.reduce((a,b)=>a+Number(b),0);
-        const p=api.powerForCounts(entry.tribeId||v.tribeId,counts);
-        attack+=p.attack;defense+=(p.defInf+p.defCav)/2;
+    const perVillage=villages.map(v=>{
+      const rows=api.historyForVillage(v.villageId);
+      const daily=new Map();
+      for(const scan of Array.isArray(rows)?rows:[]){
+        const counts=scan?.counts;
+        const date=scan?.day|| (num(scan?.timestamp)!==null?day(Number(scan.timestamp)):null);
+        const tribe=Number(scan?.tribeId||v.tribeId);
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(date||'')||!TROOP_NAMES[tribe]||
+           !Array.isArray(counts)||counts.length<10||
+           counts.slice(0,10).some(value=>num(value)===null||Number(value)<0))continue;
+        const previous=daily.get(date);
+        if(!previous||Number(scan.timestamp)>Number(previous.timestamp))daily.set(date,scan);
       }
-      return {day:date,troops,attack,defense};
-    }).filter(Boolean).sort((a,b)=>a.day.localeCompare(b.day)).slice(-365);
+      return {v, daily};
+    });
+    const dates=[...new Set(perVillage.flatMap(item=>[...item.daily.keys()]))].sort();
+    return dates.map(date=>{
+      let troops=0,attack=0,defense=0,coverage=0,updated=0;
+      for(const {v,daily} of perVillage){
+        const latest=[...daily.keys()].filter(key=>key<=date).sort().at(-1);
+        if(!latest)continue;
+        const reading=daily.get(latest),counts=reading.counts.slice(0,10).map(Number);
+        const power=api.powerForCounts(reading.tribeId||v.tribeId,counts);
+        if(!power||![power.attack,power.defInf,power.defCav].every(Number.isFinite))continue;
+        troops+=counts.reduce((sum,value)=>sum+value,0);
+        attack+=power.attack;
+        defense+=(power.defInf+power.defCav)/2;
+        coverage++;
+        if(latest===date)updated++;
+      }
+      return {day:date,troops,attack,defense,coverage,updated,villages:villages.length};
+    }).filter(row=>row.coverage>0).slice(-365);
   }
   function resourceOverview(villages){
     const records=window.APES?.villageResourceProduction?.all?.()||{};
