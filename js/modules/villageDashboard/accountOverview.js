@@ -312,7 +312,7 @@
       const event=summary.events[key];
       const status=event?.status==='countdown'?
         `<strong class="apes-vd-countdown apes-vd-storage-countdown" data-finish-ms="${Math.round(event.finish)}">—</strong>`:
-        `<strong>${event?.status==='reached'?'Full / empty at last scan':
+        `<strong>${event?.status==='reached'?(key==='granaryEmpty'?'Empty at last scan':'Full at last scan'):
           event?.status==='due'?'Refresh needed':
           summary.covered?'Not expected':'No recent readings'}</strong>`;
       const details=event?`<span class="apes-ao-storage-village" data-apes-ao-village="${safe(event.id)}"
