@@ -369,14 +369,19 @@
     const value=Math.max(1,...lines.flatMap(l=>l.values)),base=Math.pow(10,Math.floor(Math.log10(value))),ratio=value/base,max=base*(ratio<=1?1:ratio<=2?2:ratio<=5?5:10);
     const x=i=>records.length<=1?L+PW/2:L+PW*i/(records.length-1),y=v=>T+PH*(1-Math.max(0,v)/max);
     const grid=[0,.25,.5,.75,1].map(f=>`<line class="apes-ao-gridline" x1="${L}" x2="${W-R}" y1="${y(max*f)}" y2="${y(max*f)}"/><text class="apes-ao-axis" x="${L-7}" y="${y(max*f)+3}" text-anchor="end">${safe(compact(max*f))}</text>`).join('');
+    const hasVillageCoverage=records.some(row=>Number.isFinite(row.coverage));
+    const partial=hasVillageCoverage&&records.some(row=>row.coverage<row.villages);
     const paths=lines.map(line=>{
       const points=line.values.map((v,i)=>`${x(i).toFixed(1)},${y(v).toFixed(1)}`).join(' ');
       const path=records.length>1?`<polyline points="${points}" fill="none" stroke="${line.color}" stroke-width="2.5" stroke-linejoin="round"/>`:'';
-      return path+line.values.map((v,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${line.color}"><title>${safe(line.name)} · ${safe(fmt(v))} · ${safe(records[i].day)}</title></circle>`).join('');
+      return path+line.values.map((v,i)=>`<circle cx="${x(i).toFixed(1)}" cy="${y(v).toFixed(1)}" r="3" fill="${line.color}"><title>${safe(line.name)} · ${safe(fmt(v))} · ${safe(records[i].day)}${hasVillageCoverage?
+      ' · '+records[i].coverage+'/'+records[i].villages+' villages ('+records[i].updated+' updated that day)':''}</title></circle>`).join('');
     }).join('');
     const labels=[...new Set([0,Math.floor((records.length-1)/2),records.length-1])].map(i=>`<text class="apes-ao-axis" x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="${i===0?'start':i===records.length-1?'end':'middle'}">${safe(dateLabel(records[i].day))}</text>`).join('');
     const legend=lines.length>1?`<div class="apes-ao-legend">${lines.map(l=>`<span><i style="background:${l.color}"></i>${safe(l.name)} <b>${safe(compact(l.values.at(-1)))}</b></span>`).join('')}</div>`:'';
-    return `<section class="apes-ao-chart">${header}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${safe(title)} graph">${grid}${paths}${labels}</svg>${legend}<small class="apes-ao-chart-foot">${records.length} recorded day${records.length===1?' · More scans will build the trend':'s'}</small></section>`;
+    return `<section class="apes-ao-chart">${header}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${safe(title)} graph">${grid}${paths}${labels}</svg>${legend}<small class="apes-ao-chart-foot">${records.length} recorded day${records.length===1?' · More scans will build the trend':'s'}
+       ${hasVillageCoverage?'<span class="apes-ao-history-caveat">Merged from village history; last-known troop counts are carried forward between scans.'+
+         (partial?' Some dates have partial village coverage.':'')+'</span>':''}</small></section>`;
   }
 
   function villageRow(row,info,details=''){
