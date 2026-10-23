@@ -491,11 +491,6 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     }
     return null;
   }
-  // Village Dashboard already maintains the authoritative owned-village list.
-  // Direct village routes do not depend on Travian's sometimes-hidden arrow
-  // controls, which can be unusable under the CP scan screen lock.
-  // Use the game's own controller first: unlike changing the URL alone,
-  // this updates Travian's active-village state and related Angular models.
   function findVillageNavigationButton(direction) {
     const buttons = Array.from(document.querySelectorAll(`#villageList .navigation.${direction}`));
     return buttons.find(button => {
@@ -533,84 +528,6 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
   async function restoreStartingVillage(hops) {
     for (let index = 0; index < hops; index += 1) if (!(await moveVillage('previous'))) return false;
     return true;
-  }
-
-  async function getScanVillages() {
-    for (let attempt = 0; attempt < 15; attempt += 1) {
-      const raw = window.APES_VILLAGE_PALETTE?.getVillages?.();
-      const villages = Array.isArray(raw) ? raw.filter(village =>
-        /^\d+$/.test(String(village?.villageId || ''))) : [];
-      const unique = [...new Map(villages.map(v => [String(v.villageId), v])).values()];
-      if (unique.length) return unique;
-      window.APES_VILLAGE_PALETTE?.refresh?.();
-      await sleep(150);
-    }
-    throw new Error('Could not load the account village list. Wait for Village Dashboard data, then retry Scan CP.');
-  }
-  async function waitForVillageContent(villageId, timeout = 8000) {
-    const expected = window.APES_VILLAGE_PALETTE?.getVillages?.()
-      ?.find(v => String(v.villageId) === String(villageId));
-    const expectedName = normalizeName(expected?.name);
-    const started = performance.now();
-    while (performance.now() - started < timeout) {
-      const view = document.getElementById('villageView');
-      const name = normalizeName(getCurrentVillageName());
-      if (getVillageIdFromHash() === String(villageId) &&
-          view?.querySelector('building-location') &&
-          (!expectedName || expectedName === name)) return view;
-      await sleep(100);
-    }
-    throw new Error(`Village ${villageId} did not finish loading. CP scan stopped rather than reading stale Town Hall data.`);
-  }
-  async function navigateToScanVillage(villageId) {
-    const id = String(villageId || '');
-    if (!/^\d+$/.test(id)) throw new Error('Invalid village ID in CP scan.');
-    if (getVillageIdFromHash() !== id ||
-        !/\/page:village(?:\/|$)/i.test(window.location.hash)) {
-      setVillageHash(['page:village', `villId:${id}`]);
-    } else {
-      openVillageBase();
-    }
-    await waitForVillageContent(id);
-    await sleep(200);
-  }
-  async function nextUnvisitedVillage(visited, villages) {
-    const ids = new Set(villages.map(v => String(v.villageId)));
-    // Native switching can work even when CP Manager overlaps the arrows.
-    // It dispatches to Travian's own click handler; overlap is not relevant.
-    if (await moveVillage('next')) {
-      const id = getVillageIdFromHash();
-      if (id && ids.has(id) && !visited.has(id)) {
-        try {
-          await waitForVillageContent(id);
-          return id;
-        } catch (error) {
-          console.warn('[APES CP Manager] Native navigation not fully loaded, retrying by village ID.', error);
-          await navigateToScanVillage(id);
-          return id;
-        }
-      }
-    }
-    const unvisited = villages.find(village => !visited.has(String(village.villageId)));
-    if (!unvisited) return null;
-    const id = String(unvisited.villageId);
-    setStatus(`Native village navigation unavailable. Opening ${unvisited.name || id} directly...`, 'working');
-    await navigateToScanVillage(id);
-    return id;
-  }
-  async function waitForVerifiedTownState(villageId, timeout = 7000) {
-    const village = window.APES_VILLAGE_PALETTE?.getVillages?.()
-      ?.find(entry => String(entry.villageId) === String(villageId));
-    const expectedCity = village && typeof village.isTown === 'boolean' ? village.isTown : null;
-    const started = performance.now();
-    while (performance.now() - started < timeout) {
-      const state = readTownState();
-      if (state && (expectedCity === null ||
-          (expectedCity && state.type === 'city') ||
-          (!expectedCity && state.type === 'village'))) return state;
-      await sleep(120);
-    }
-    throw new Error(`City-founding details for village ${villageId} did not match its village state. The CP scan was stopped to avoid incorrect city detection.`);
   }
   function getCulturePointsTable() {
     return document.querySelector('.loadedTab.tabCulturePoints.currentTab .cpOverview table.villagesTable') || document.querySelector('.loadedTab.tabCulturePoints.activeTab .cpOverview table.villagesTable') || document.querySelector('.cpOverview table.villagesTable');
@@ -770,49 +687,62 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     townHall.busyUntilMs = data.busyUntilMs;
   }
   async function scanAllVillages(cpReadAtMs) {
-    const owned = await getScanVillages();
-    const startId = getVillageIdFromHash() || String(owned[0].villageId);
+    const startingIdentity = getVillageIdentity();
     const visited = new Set();
     const villages = [];
     const celebrationEvents = [];
-    try {
-      await navigateToScanVillage(startId);
-      for (let attempt = 0; attempt < owned.length; attempt += 1) {
-        const id = getVillageIdFromHash();
-        if (!id || visited.has(id)) throw new Error('Could not advance to an unscanned village.');
-        await waitForVillageContent(id);
-        visited.add(id);
-        openVillageBase();
-        await sleep(220);
-        const villageName = getCurrentVillageName();
-        setStatus(`Scanning Town Halls and celebrations: ${villageName} (${visited.size}/${owned.length})...`, 'working');
-        const village = readTownHallInCurrentVillage() || {
-          villageName, villageId: id, hasTownHall: false, level: 0,
-          location: null, celebrations: [], allCelebrations: [],
-          busyUntilMs: null, cpPerDay: null
-        };
-        if (village.hasTownHall) {
-          try {
-            await scanTownHallCelebrations(village, cpReadAtMs);
-            village.celebrations.forEach(event => celebrationEvents.push(event));
-          } catch (error) {
-            console.warn(`[APES CP Manager] Celebration scan failed for ${villageName}.`, error);
-          }
-        }
-        villages.push(village);
-        if (visited.size === owned.length) break;
-        openVillageBase();
-        await sleep(120);
-        const next = await nextUnvisitedVillage(visited, owned);
-        if (!next) throw new Error(`Village scan stopped at ${visited.size}/${owned.length}.`);
+    let hops = 0;
+    let complete = false;
+    openVillageBase();
+    await sleep(300);
+    if (!(await waitForVillageView())) throw new Error('The village view could not be loaded for Town Hall scanning.');
+    for (let attempt = 0; attempt < MAX_VILLAGE_HOPS; attempt += 1) {
+      const identity = getVillageIdentity();
+      if (visited.has(identity)) {
+        complete = identity === startingIdentity;
+        break;
       }
-    } finally {
-      try {
-        await navigateToScanVillage(startId);
-      } catch (error) {
-        console.warn('[APES CP Manager] Could not restore starting village.', error);
+      visited.add(identity);
+      openVillageBase();
+      await sleep(220);
+      if (!(await waitForVillageView())) break;
+      const villageName = getCurrentVillageName();
+      setStatus(`Scanning Town Halls and celebrations: ${villageName} (${visited.size})...`, 'working');
+      let village = readTownHallInCurrentVillage();
+      if (!village) {
+        village = {
+          villageName,
+          villageId: getVillageIdFromHash(),
+          hasTownHall: false,
+          level: 0,
+          location: null,
+          celebrations: [],
+          allCelebrations: [],
+          busyUntilMs: null,
+          cpPerDay: null
+        };
+      } else {
+        try {
+          await scanTownHallCelebrations(village, cpReadAtMs);
+          village.celebrations.forEach(event => celebrationEvents.push(event));
+        } catch (error) {
+          console.warn(`[APES CP Manager] Celebration scan failed for ${villageName}.`, error);
+        }
+      }
+      villages.push(village);
+      openVillageBase();
+      await sleep(120);
+      if (!(await moveVillage('next'))) {
+        complete = visited.size === 1;
+        break;
+      }
+      hops += 1;
+      if (getVillageIdentity() === startingIdentity) {
+        complete = true;
+        break;
       }
     }
+    if (!complete && hops > 0) await restoreStartingVillage(hops);
     const uniqueEvents = [];
     const seenEvents = new Set();
     celebrationEvents.sort((a, b) => a.startMs - b.startMs).forEach(event => {
@@ -821,42 +751,44 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       seenEvents.add(key);
       uniqueEvents.push(event);
     });
-    return { villages, celebrationEvents: uniqueEvents,
-      scannedCount: visited.size, complete: visited.size === owned.length };
+    return {
+      villages,
+      celebrationEvents: uniqueEvents,
+      scannedCount: visited.size,
+      complete
+    };
   }
   async function scanCpRequirement() {
-    const owned = await getScanVillages();
-    const startId = getVillageIdFromHash() || String(owned[0].villageId);
+    let hops = 0;
+    const startingIdentity = getVillageIdentity();
     const visited = new Set();
-    let skippedCities = 0;
-    try {
-      await navigateToScanVillage(startId);
-      for (let attempt = 0; attempt < owned.length; attempt += 1) {
-        const id = getVillageIdFromHash();
-        if (!id || visited.has(id)) throw new Error('Could not advance to an unscanned village.');
-        await waitForVillageContent(id);
-        visited.add(id);
-        openCityFoundingWindow();
-        await sleep(250);
-        const state = await waitForVerifiedTownState(id);
-        if (state.type === 'village') {
-          return { current: state.current, target: state.target,
-            villageName: getCurrentVillageName(), skippedCities, readAtMs: Date.now() };
-        }
-        skippedCities += 1;
-        setStatus(`City detected in ${getCurrentVillageName()}. Checking another village...`, 'working');
-        if (visited.size === owned.length) break;
-        const next = await nextUnvisitedVillage(visited, owned);
-        if (!next) throw new Error('Could not navigate to the next available village.');
+    openCityFoundingWindow();
+    await sleep(250);
+    for (let attempt = 0; attempt < MAX_VILLAGE_HOPS; attempt += 1) {
+      const identity = getVillageIdentity();
+      if (visited.has(identity)) throw new Error('Every available village appears to be a city.');
+      visited.add(identity);
+      openCityFoundingWindow();
+      await sleep(200);
+      const state = await waitForTownState();
+      if (!state) throw new Error('The City founding section could not be found in Main Building location 27.');
+      if (state.type === 'village') {
+        const result = {
+          current: state.current,
+          target: state.target,
+          villageName: getCurrentVillageName(),
+          skippedCities: hops,
+          readAtMs: Date.now()
+        };
+        if (hops > 0 && !(await restoreStartingVillage(hops))) throw new Error('Could not return to the starting village.');
+        return result;
       }
-      throw new Error('All villages are marked as cities in the account data. CP requirement cannot be read.');
-    } finally {
-      try {
-        await navigateToScanVillage(startId);
-      } catch (error) {
-        console.warn('[APES CP Manager] Could not restore starting village.', error);
-      }
+      setStatus(`City detected in ${getCurrentVillageName()}. Checking the next village...`, 'working');
+      if (!(await moveVillage('next'))) throw new Error('The next-village control could not be used.');
+      hops += 1;
+      if (getVillageIdentity() === startingIdentity) throw new Error('Every available village appears to be a city.');
     }
+    throw new Error('Could not determine current and target CP.');
   }
   function attachVillageCp(villages, culture) {
     const cpMap = new Map(culture.villageCp.map(item => [normalizeName(item.name), item.cpPerDay]));
@@ -1164,8 +1096,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (isScanning || !isEnabled()) return;
     isScanning = true;
     const originalHash = window.location.hash || '';
-    // Keep the previous complete scan visible until a new scan succeeds.
-    // Repeated partial scans must never erase previously detected Town Halls.
+    resetResults();
     setScanButtonState(true, 'Scanning...');
     showScanOverlay();
     setStatus('Opening Main Building and reading city-founding CP...', 'working');
@@ -1178,9 +1109,6 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       if (!culture) throw new Error('The Culture Points overview opened, but CP/day could not be read.');
       setStatus('Scanning all villages for Town Halls and celebrations...', 'working');
       const townHalls = await scanAllVillages(requirement.readAtMs);
-      if (!townHalls.complete) {
-        throw new Error(`CP village scan incomplete (${townHalls.scannedCount} villages). Previous results were preserved.`);
-      }
       attachVillageCp(townHalls.villages, culture);
       const prediction = buildPrediction(requirement.current, requirement.target, culture.total, townHalls.celebrationEvents, requirement.readAtMs);
       const result = {
@@ -1202,7 +1130,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     } catch (error) {
       console.error('[APES CP Manager] Scan failed.', error);
       if (window.location.hash !== originalHash) window.location.hash = originalHash;
-      setStatus(`${error?.message || 'Could not scan culture point information.'}${lastScanResult ? ' Previous scan results are still shown.' : ''}`, 'error');
+      setStatus(error?.message || 'Could not scan culture point information.', 'error');
     } finally {
       removeScanOverlay();
       isScanning = false;
