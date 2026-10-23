@@ -636,17 +636,18 @@
   font-size: 9px !important;
 }
 
-/* Compact 430px production + forecast row, aligned to the reference layout.
-   Override earlier generic chart sizing so the wide SVG does not grow too tall. */
+/* Compact production + forecast row. Let the layout participate in normal
+   document flow: fixed height plus forced 0-height flex children caused
+   the following manager panels to overlap the production panels. */
 @media (min-width: 1101px) {
   #apes-v2-village-overlay .apes-ao-row-primary {
-    height: 432px !important;
-    min-height: 0 !important;
+    height: auto !important;
+    min-height: 432px !important;
     align-items: stretch !important;
   }
   #apes-v2-village-overlay .apes-ao-row-primary > .apes-ao-storage {
-    height: 100% !important;
     min-height: 0 !important;
+    height: auto !important;
     overflow: hidden !important;
   }
   #apes-v2-village-overlay .apes-ao-row-primary > .apes-ao-storage .apes-ao-storage-list {
@@ -655,7 +656,7 @@
     max-height: none !important;
   }
   #apes-v2-village-overlay .apes-ao-row-primary > .apes-ao-resource-stack {
-    height: 100% !important;
+    height: auto !important;
     min-height: 0 !important;
   }
   #apes-v2-village-overlay .apes-ao-resource-stack > .apes-ao-resources {
@@ -672,18 +673,18 @@
     gap: 3px !important;
   }
   #apes-v2-village-overlay .apes-ao-resource-stack > .apes-ao-production-development {
-    flex: 1 1 0 !important;
-    height: 0 !important;
+    flex: 1 0 auto !important;
+    height: auto !important;
     min-height: 0 !important;
     overflow: hidden !important;
     padding: 9px 10px !important;
   }
   #apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-trend {
-    flex: 1 1 auto !important;
+    flex: 1 0 auto !important;
     min-height: 0 !important;
-    height: 100% !important;
+    height: auto !important;
     gap: 5px !important;
-    justify-content: space-between !important;
+    justify-content: flex-start !important;
     overflow: hidden !important;
   }
   #apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-trend svg {
