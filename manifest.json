@@ -17,6 +17,7 @@
         "js/modules/igm/roomIdBridge.js",
         "js/modules/resourceUpgradePlanner/worldSpeedBridge.js",
         "js/modules/visualTribeSkins/nightOverlayBridge.js",
+        "js/features/cpVillageSource.js",
         "js/modules/villageDashboard/bridge.js",
         "js/modules/villageDashboard/researchBridge.js",
         "js/modules/oasisScanner/networkBridge.js"
