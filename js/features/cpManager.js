@@ -213,31 +213,53 @@
     } : formatPredictionResult(cursor + (target - cp) / rate, applied);
   }
   function detectServerSpeed(result) {
-    const hostname = String(window.location.hostname || '').toLowerCase();
-    if (/x3/.test(hostname)) return {
-      speed: 3,
-      source: 'server name'
+    const speeds = [1, 2, 3, 5];
+    // Prefer the game's official TG_SPEED, independently exposed by the
+    // CP-specific MAIN-world reader during the owned-village request.
+    const official = Number(document.documentElement?.getAttribute('data-apes-cp-world-speed'));
+    if (speeds.includes(official)) return {
+      speed: official, source: 'Travian game configuration', detected: true
     };
+    const shared = Number(document.documentElement?.getAttribute('data-apes-world-speed'));
+    if (speeds.includes(shared)) return {
+      speed: shared, source: 'Travian game configuration', detected: true
+    };
+    // Already queued celebrations have real speed-adjusted durations.
+    // Infer the server speed from those if no game configuration is available.
+    const votes = new Map(speeds.map(speed => [speed, { count: 0, error: 0 }]));
     for (const village of result?.townHalls?.villages || []) {
       if (!village.hasTownHall || !Number.isFinite(village.level)) continue;
       for (const event of village.allCelebrations || []) {
         const base = getCelebrationDurationSeconds(village.level, event.type, 1);
-        if (!base || !event.durationSeconds) continue;
+        if (!base || !Number.isFinite(event.durationSeconds) || event.durationSeconds <= 0) continue;
         const ratio = base / event.durationSeconds;
-        if (Math.abs(ratio - 3) < .12) return {
-          speed: 3,
-          source: 'celebration timing'
-        };
-        if (Math.abs(ratio - 1) < .12) return {
-          speed: 1,
-          source: 'celebration timing'
-        };
+        const speed = speeds.find(value => Math.abs(ratio / value - 1) <= .12);
+        if (!speed) continue;
+        votes.get(speed).count += 1;
+        votes.get(speed).error += Math.abs(ratio / speed - 1);
       }
     }
-    return {
-      speed: 1,
-      source: 'standard server'
+    const candidates = [...votes.entries()].filter(([, value]) => value.count > 0)
+      .sort((a, b) => b[1].count - a[1].count || a[1].error - b[1].error);
+    if (candidates.length && (candidates.length === 1 ||
+        candidates[0][1].count > candidates[1][1].count)) return {
+      speed: candidates[0][0], source: 'actual celebration durations', detected: true
     };
+    const explicitSpeed = value => {
+      const text = String(value || '').toLowerCase();
+      const match = text.match(/x\s*([1235])(?=[.\s_:/-]|$)|(?:speed|world)[\s_:/-]*x?\s*([1235])(?=[.\s_:/-]|$)/i);
+      const speed = Number(match?.[1] || match?.[2]);
+      return speeds.includes(speed) ? speed : null;
+    };
+    for (const [text, source] of [
+      [window.location.hostname, 'server name'],
+      [document.title, 'page title']
+    ]) {
+      const speed = explicitSpeed(text);
+      if (speed) return { speed, source, detected: true };
+    }
+    // Distinguish unknown from verified x1.
+    return { speed: 1, source: 'unverified x1 fallback', detected: false };
   }
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -851,7 +873,10 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     return Math.min(BIG_CELEBRATION_CAP, result.cpPerDay || 0);
   }
   function getArtworkReward(result) {
-    return Math.min(ARTWORK_CAP, Math.max(0, Number(result?.cpPerDay || 0)));
+    // Travian Kingdoms: artwork grants the smaller of daily account CP or
+    // 2,000 * gameworld speed; usable once per real-world day.
+    const worldSpeed = detectServerSpeed(result).speed;
+    return Math.min(ARTWORK_CAP * worldSpeed, Math.max(0, Number(result?.cpPerDay || 0)));
   }
   function getPlannerArtworkCount() {
     const value = Number.parseInt(document.querySelector(`#${PLANNER_ID} .qol-cp-artwork-input`)?.value || '0', 10);
@@ -1046,7 +1071,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     planner.querySelector('.qol-cp-plan-eta').textContent = prediction.text;
     planner.querySelector('.qol-cp-target-remaining').textContent = `${formatNumber(remaining)} CP remaining`;
     planner.querySelector('.qol-cp-artwork-hint').textContent = `${formatNumber(artworkReward)} CP each · 1/day`;
-    planner.querySelector('.qol-cp-speed').textContent = `Detected x${speedInfo.speed} · ${speedInfo.source}`;
+    planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
     updateRoadmap(planner, plans, periodDays, targetSlot, artworkCount);
   }
   function buildLevelOptions(village) {
@@ -1066,7 +1091,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       return `<tr class="qol-cp-plan-row" data-index="${index}"><td>${escapeHtml(village.villageName)}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
     }).join('');
     planner.querySelector('.qol-cp-planner-body').innerHTML = `<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th>24/7</th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
-    planner.querySelector('.qol-cp-speed').textContent = `Detected x${speedInfo.speed} · ${speedInfo.source}`;
+    planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
     planner.querySelectorAll('select,input').forEach(control => control.addEventListener('change', updatePlanner));
     planner.querySelector('.qol-cp-period-input')?.addEventListener('input', updatePlanner);
     planner.querySelector('.qol-cp-artwork-input')?.addEventListener('input', updatePlanner);
