@@ -7,10 +7,9 @@
   const CATEGORIES = Object.freeze([
     { id: 'speedsettling', title: 'Speedsettling', symbol: '⚑', guides: [
       {id:'speed_x1',name:'x1 Guide',roadmapId:'x1_speedsettle'},
-      {id:'speed_x2',name:'x2 Guide'},
+      {id:'speed_x2',name:'x2 Guide',roadmapId:'x2_speedsettle'},
       {id:'speed_x3',name:'x3 Guide',roadmapId:'x3_speedsettle'},
-      {id:'speed_x3_mayhem',name:'x3 Mayhem Guide'},
-      {id:'speed_x5',name:'x5 Guide'}
+      {id:'speed_x5',name:'x5 Guide',roadmapId:'x5_speedsettle'}
     ]},
     {id:'natar',title:'Natar Defenses',symbol:'◇',guides:[
       {id:'natar_x1',name:'x1 Natar Defenses'},
