@@ -3,7 +3,7 @@
 
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
   const HUB_ID = 'qol-roadmaps-container';
-  const OFFICIAL_IDS = new Set(['x3_speedsettle', 'x1_support_500cp']);
+  const OFFICIAL_IDS = new Set(['x1_speedsettle', 'x3_speedsettle', 'x1_support_500cp']);
 
   let installed = false;
   let installTimer = null;
@@ -49,6 +49,51 @@
     for (let level = from; level <= through; level += 1) {
       route.push(resource(`${prefix}-lv${level}`, group, level));
     }
+  }
+
+  function buildX1SpeedsettleRoute() {
+    // Preserve the 36 authored guide steps and their original ordering.
+    // These are manual instructions: building automation can be added later
+    // without changing the published route or guessing intermediate levels.
+    const entries = [
+      ['tutorial', 'Finish tutorial. Do not skip it.'],
+      ['queue-five-units', 'Queue 5 units.'],
+      ['first-hideouts', 'Attack the closest hideout over and over until it is empty and start adventuring non-stop. Switch to the second hideout when the first is empty.'],
+      ['warehouse-three', 'Warehouse to level 3.'],
+      ['granary-three', 'Granary to level 3.'],
+      ['embassy-oasis', 'Embassy to level 1 and annex an oasis if possible.'],
+      ['market-one', 'Marketplace to level 1.'],
+      ['cranny-one', 'Cranny to level 1.'],
+      ['crop-fields-three', 'All crop fields to level 1, then 2, then 3.'],
+      ['optional-resource-fields', 'All resource fields to level 2 (optional; do not do this if you plan on demolishing the spawn village).'],
+      ['residence-one', 'Residence to level 1.'],
+      ['gold-bonuses', 'Buy gold and activate Travian Plus, Resource Boost, and Crop Boost.'],
+      ['warehouse-granary-five', 'Warehouse and Granary to level 5 for the Residence quest reward.'],
+      ['residence-five', 'Residence to level 5.'],
+      ['free-quests-cards', 'Use the waiting time to do free quests: village name, hero production, auction bid, healing the hero, etc. Play card games for an extra adventure point and golden resource/crop chests at this point as well.'],
+      ['settler-one', 'When Residence level 5 is done, collect the quest reward for level 10 and queue the first Settler.'],
+      ['settler-two', 'Queue the second Settler using resources from fully clearing the first two hideouts, selling the stolen goods (SGs), and the 7th adventure.'],
+      ['catch-animals', 'Catch animals in a close oasis after the 7th adventure for the quest reward. Try to do this so you can annex the oasis for the extra quest reward if you have not annexed an oasis yet.'],
+      ['wait-hideouts-three-four', 'Wait for the third and fourth hideouts to spawn (2 hours after clearing the first and second respectively). Keep adventuring for the possibility of another resource adventure.'],
+      ['settler-hideout-help', 'If possible, use a Settler to empty the hideouts faster. Make sure not to kill it.'],
+      ['settler-three', 'Queue the third Settler. Use a resource/crop chest if necessary.'],
+      ['warehouse-six', 'Warehouse to level 6 and collect the Settler quest reward.'],
+      ['main-building-ten', 'Main Building to level 10.'],
+      ['demolish-residence', 'Demolish the Residence, making sure it is demolished only after all Settlers are done training. Demolishing the Residence on x1 takes 4h20min.'],
+      ['hideouts-five-six', 'Do the fifth and sixth hideouts while you wait for Residence demolition (about 4–5 hours after clearing the third and fourth hideouts).'],
+      ['warehouse-seven', 'Warehouse to level 7 to fit the rubble resources.'],
+      ['barracks-three', 'Barracks to level 3.'],
+      ['academy-ten', 'Academy to level 10.'],
+      ['town-hall-one', 'Town Hall to level 1.'],
+      ['workshop-one', 'Workshop to level 1.'],
+      ['granary-eight', 'Granary to level 8.'],
+      ['remaining-chests', 'Use a resource/crop chest if you have not yet.'],
+      ['demolish-workshop-academy', 'Demolish Workshop and Academy (and Main Building if you are short on resources).'],
+      ['small-party', 'Start a Small Party.'],
+      ['relocate', 'Relocate close to your settling direction.'],
+      ['send-settlers', 'Send Settlers.']
+    ];
+    return entries.map(([id, text]) => instruction('x1-speedsettle-' + id, text));
   }
 
   function buildX3Route() {
@@ -159,6 +204,21 @@
   }
 
   const DEFINITIONS = Object.freeze({
+    x1_speedsettle: {
+      name: 'x1 Speedsettling',
+      description: 'An APES x1 speedsettling route from the tutorial through hideouts, settler training, Residence demolition, a Small Party, relocation and settling.',
+      meta: {
+        official: true,
+        version: '1.0',
+        speed: 'x1',
+        villageType: 'Spawn village',
+        author: 'APES QoL',
+        maintainedBy: 'APES QoL',
+        contributors: [],
+        goal: 'Follow the 36-step x1 Speedsettling guide to send settlers.'
+      },
+      steps: buildX1SpeedsettleRoute()
+    },
     x3_speedsettle: {
       name: 'x3 Speed Settle',
       description: 'A chronological APES settlement route for x3 servers. Building and resource objectives use automatic detection when enabled; tactical decisions and game actions remain manual checkpoints.',
