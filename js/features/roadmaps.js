@@ -20,6 +20,13 @@
   });
 
   const BUILTIN_ROADMAPS = Object.freeze({
+    // The official x1 instructions are installed by officialGuides.js,
+    // alongside the existing x3 route, before the Roadmaps UI is used.
+    x1_speedsettle: {
+      name: 'x1 Speedsettling',
+      description: 'APES x1 speedsettling guide, from finishing the tutorial through sending settlers.',
+      steps: []
+    },
     x3_speedsettle: {
       name: 'x3 Speed Settle',
       description: 'The existing APES x3 settlement guide, represented in the new Roadmap format. These steps remain manual instructions for now.',
