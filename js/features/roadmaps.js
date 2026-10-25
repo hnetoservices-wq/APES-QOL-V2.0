@@ -157,7 +157,8 @@
     return {
       name: cleanText(source.name) || fallbackName,
       description: cleanText(source.description ?? source.pretext),
-      steps: Array.isArray(source.steps) ? source.steps.map(normalizeStep).filter(Boolean) : []
+      steps: Array.isArray(source.steps) ? source.steps.map(normalizeStep).filter(Boolean) : [],
+      ...(cleanText(source.sourceGuideId) ? { sourceGuideId: cleanText(source.sourceGuideId) } : {})
     };
   }
 
@@ -341,6 +342,47 @@
       render();
       showToast('Roadmap copy created.');
     });
+  }
+
+  // Library exports are independent copies: a future APES guide update
+  // must never overwrite a player's tasks or completion state.
+  function importFromLibrary({ sourceGuideId, name, description, steps } = {}) {
+    const origin = cleanText(sourceGuideId);
+    const title = cleanText(name);
+    if (!/^[a-z0-9_-]{1,80}$/i.test(origin) || !title) {
+      throw new Error('Invalid APES Library guide.');
+    }
+    if (!Array.isArray(steps) || !steps.length || steps.length > 1000) {
+      throw new Error('Choose between 1 and 1,000 roadmap steps.');
+    }
+    if (typeof window.isQolEnabled === 'function' && window.isQolEnabled(FEATURE_KEY) !== true) {
+      throw new Error('Enable Roadmaps in APES Settings before exporting.');
+    }
+    const parsed = steps.map(normalizeStep);
+    if (parsed.some(step => !step)) throw new Error('The guide contains an invalid step.');
+    const custom = getCustomRoadmaps();
+    const matching = Object.entries(custom).find(([, value]) =>
+      value.sourceGuideId === origin && JSON.stringify(value.steps) === JSON.stringify(parsed)
+    );
+    if (matching) {
+      saveSelected(matching[0]);
+      open();
+      return { created: false, id: matching[0], name: matching[1].name };
+    }
+    const names = new Set(Object.values(getAllRoadmaps()).map(v => normalizedText(v.name)));
+    let finalName = title, suffix = 2;
+    while (names.has(normalizedText(finalName))) finalName = `${title} (${suffix++})`;
+    const id = `custom_library_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
+    custom[id] = normalizeRoadmap({
+      name: finalName,
+      description: cleanText(description),
+      steps: parsed,
+      sourceGuideId: origin
+    });
+    if (!saveCustomRoadmaps(custom)) throw new Error('Could not save the new Roadmap.');
+    saveSelected(id);
+    open();
+    return { created: true, id, name: finalName };
   }
 
   function renameSelected() {
@@ -602,7 +644,7 @@
       }
     }, true);
     window.APES = window.APES || {};
-    window.APES.roadmaps = Object.freeze({ open, close, toggle, getAllRoadmaps });
+    window.APES.roadmaps = Object.freeze({ open, close, toggle, getAllRoadmaps, importFromLibrary });
     setTimeout(scheduleLauncherPosition, 200);
     setTimeout(scheduleLauncherPosition, 900);
   }
