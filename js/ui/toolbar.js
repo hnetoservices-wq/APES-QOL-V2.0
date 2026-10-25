@@ -30,6 +30,10 @@
     label: 'Checklists',
     key: 'checklists'
   }, {
+    id: 'qol-apes-library-toggle-btn',
+    label: 'APES Library',
+    key: 'apesLibrary'
+  }, {
     id: 'qol-building-alarm-toggle-btn',
     label: 'Building Alarms',
     key: 'buildingAlarm'
