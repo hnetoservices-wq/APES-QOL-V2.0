@@ -52,48 +52,67 @@
   }
 
   function buildX1SpeedsettleRoute() {
-    // Preserve the 36 authored guide steps and their original ordering.
-    // These are manual instructions: building automation can be added later
-    // without changing the published route or guessing intermediate levels.
-    const entries = [
-      ['tutorial', 'Finish tutorial. Do not skip it.'],
-      ['queue-five-units', 'Queue 5 units.'],
-      ['first-hideouts', 'Attack the closest hideout over and over until it is empty and start adventuring non-stop. Switch to the second hideout when the first is empty.'],
-      ['warehouse-three', 'Warehouse to level 3.'],
-      ['granary-three', 'Granary to level 3.'],
-      ['embassy-oasis', 'Embassy to level 1 and annex an oasis if possible.'],
-      ['market-one', 'Marketplace to level 1.'],
-      ['cranny-one', 'Cranny to level 1.'],
-      ['crop-fields-three', 'All crop fields to level 1, then 2, then 3.'],
-      ['optional-resource-fields', 'All resource fields to level 2 (optional; do not do this if you plan on demolishing the spawn village).'],
-      ['residence-one', 'Residence to level 1.'],
-      ['gold-bonuses', 'Buy gold and activate Travian Plus, Resource Boost, and Crop Boost.'],
-      ['warehouse-granary-five', 'Warehouse and Granary to level 5 for the Residence quest reward.'],
-      ['residence-five', 'Residence to level 5.'],
-      ['free-quests-cards', 'Use the waiting time to do free quests: village name, hero production, auction bid, healing the hero, etc. Play card games for an extra adventure point and golden resource/crop chests at this point as well.'],
-      ['settler-one', 'When Residence level 5 is done, collect the quest reward for level 10 and queue the first Settler.'],
-      ['settler-two', 'Queue the second Settler using resources from fully clearing the first two hideouts, selling the stolen goods (SGs), and the 7th adventure.'],
-      ['catch-animals', 'Catch animals in a close oasis after the 7th adventure for the quest reward. Try to do this so you can annex the oasis for the extra quest reward if you have not annexed an oasis yet.'],
-      ['wait-hideouts-three-four', 'Wait for the third and fourth hideouts to spawn (2 hours after clearing the first and second respectively). Keep adventuring for the possibility of another resource adventure.'],
-      ['settler-hideout-help', 'If possible, use a Settler to empty the hideouts faster. Make sure not to kill it.'],
-      ['settler-three', 'Queue the third Settler. Use a resource/crop chest if necessary.'],
-      ['warehouse-six', 'Warehouse to level 6 and collect the Settler quest reward.'],
-      ['main-building-ten', 'Main Building to level 10.'],
-      ['demolish-residence', 'Demolish the Residence, making sure it is demolished only after all Settlers are done training. Demolishing the Residence on x1 takes 4h20min.'],
-      ['hideouts-five-six', 'Do the fifth and sixth hideouts while you wait for Residence demolition (about 4–5 hours after clearing the third and fourth hideouts).'],
-      ['warehouse-seven', 'Warehouse to level 7 to fit the rubble resources.'],
-      ['barracks-three', 'Barracks to level 3.'],
-      ['academy-ten', 'Academy to level 10.'],
-      ['town-hall-one', 'Town Hall to level 1.'],
-      ['workshop-one', 'Workshop to level 1.'],
-      ['granary-eight', 'Granary to level 8.'],
-      ['remaining-chests', 'Use a resource/crop chest if you have not yet.'],
-      ['demolish-workshop-academy', 'Demolish Workshop and Academy (and Main Building if you are short on resources).'],
-      ['small-party', 'Start a Small Party.'],
-      ['relocate', 'Relocate close to your settling direction.'],
-      ['send-settlers', 'Send Settlers.']
-    ];
-    return entries.map(([id, text]) => instruction('x1-speedsettle-' + id, text));
+    // Like x3: every building level is a distinct, automatically detectable
+    // step, while game actions, decisions and field groups stay manual.
+    // Keep step IDs stable between guide updates.
+    const route = [];
+
+    route.push(instruction('x1-speedsettle-tutorial', 'Finish the tutorial. Do not skip it.'));
+    route.push(checkpoint('x1-speedsettle-queue-five-units', 'Queue 5 units, then continue.'));
+    route.push(instruction('x1-speedsettle-first-hideouts', 'Attack the closest hideout repeatedly until it is empty and keep adventuring non-stop. Switch to the second hideout when the first is empty.'));
+
+    addBuildingThrough(route, 'x1-speedsettle-warehouse', 'Warehouse', 10, 1, 3, { exact: true });
+    addBuildingThrough(route, 'x1-speedsettle-granary', 'Granary', 11, 1, 3, { exact: true });
+
+    route.push(building('x1-speedsettle-embassy-lv1', 'Embassy', 18, 1, { exact: true }));
+    route.push(checkpoint('x1-speedsettle-oasis', 'Annex an oasis if possible. Skip this checkpoint if no suitable oasis is available.'));
+    route.push(building('x1-speedsettle-marketplace-lv1', 'Marketplace', 17, 1, { exact: true }));
+    route.push(building('x1-speedsettle-cranny-lv1', 'Cranny', 23, 1, { instance: 1, exact: true }));
+
+    addResourceThrough(route, 'x1-speedsettle-crop', 'All Crop Fields', 1, 3);
+    route.push(checkpoint('x1-speedsettle-optional-resource-fields', 'Optional: upgrade all resource fields to Level 2. Do not do this if you plan on demolishing your spawn village; Skip this checkpoint instead.'));
+
+    route.push(building('x1-speedsettle-residence-lv1', 'Residence', 25, 1, { exact: true }));
+    route.push(checkpoint('x1-speedsettle-gold-bonuses', 'Buy gold and activate Travian Plus, Resource Boost, and Crop Boost.'));
+
+    // Storage for Residence quest reward: continue from the earlier levels.
+    addBuildingThrough(route, 'x1-speedsettle-warehouse', 'Warehouse', 10, 4, 5, { exact: true });
+    addBuildingThrough(route, 'x1-speedsettle-granary', 'Granary', 11, 4, 5, { exact: true });
+    addBuildingThrough(route, 'x1-speedsettle-residence', 'Residence', 25, 2, 5, { exact: true });
+
+    route.push(instruction('x1-speedsettle-free-quests', 'While waiting, complete free quests: village name, hero production, auction bid, heal the hero, and any other free quests.'));
+    route.push(instruction('x1-speedsettle-card-games', 'Play card games now for an extra adventure point and golden resource/crop chests.'));
+    route.push(checkpoint('x1-speedsettle-residence-five-reward', 'When Residence Level 5 finishes, collect the quest reward for Level 10.'));
+    route.push(checkpoint('x1-speedsettle-settler-one', 'Queue the first Settler.'));
+    route.push(checkpoint('x1-speedsettle-settler-two', 'Queue the second Settler using resources from fully clearing the first two hideouts, selling stolen goods (SGs), and the 7th adventure.'));
+    route.push(checkpoint('x1-speedsettle-catch-animals', 'Catch animals in a nearby oasis after the 7th adventure for the quest reward. If possible, annex that oasis for the extra quest reward if you have not already annexed one.'));
+    route.push(instruction('x1-speedsettle-wait-hideouts-three-four', 'Wait for the third and fourth hideouts to spawn, 2 hours after clearing the first and second respectively. Keep adventuring in case another resource adventure appears.'));
+    route.push(checkpoint('x1-speedsettle-settler-hideout-help', 'If possible, use a Settler to empty the hideouts faster. Make sure the Settler survives.'));
+    route.push(checkpoint('x1-speedsettle-settler-three', 'Queue the third Settler. Use resource or crop chests if necessary.'));
+
+    route.push(building('x1-speedsettle-warehouse-lv6', 'Warehouse', 10, 6, { exact: true }));
+    route.push(checkpoint('x1-speedsettle-settler-reward', 'Collect the Settler quest reward after upgrading Warehouse to Level 6.'));
+    addBuildingThrough(route, 'x1-speedsettle-main-building', 'Main Building', 15, 1, 10, { exact: true });
+
+    route.push(checkpoint('x1-speedsettle-demolish-residence', 'Demolish the Residence, but only after all three Settlers have finished training. Residence demolition takes 4h20min on x1.'));
+    route.push(checkpoint('x1-speedsettle-hideouts-five-six', 'Clear the fifth and sixth hideouts while waiting for Residence demolition, roughly 4–5 hours after clearing the third and fourth hideouts.'));
+
+    route.push(building('x1-speedsettle-warehouse-lv7', 'Warehouse', 10, 7, { exact: true }));
+    route.push(checkpoint('x1-speedsettle-warehouse-rubble', 'Make sure Warehouse Level 7 can hold the resources recovered from the rubble.'));
+
+    addBuildingThrough(route, 'x1-speedsettle-barracks', 'Barracks', 19, 1, 3, { exact: true });
+    addBuildingThrough(route, 'x1-speedsettle-academy', 'Academy', 22, 1, 10, { exact: true });
+    route.push(building('x1-speedsettle-town-hall-lv1', 'Town Hall', 24, 1, { exact: true }));
+    route.push(building('x1-speedsettle-workshop-lv1', 'Workshop', 21, 1, { exact: true }));
+    addBuildingThrough(route, 'x1-speedsettle-granary', 'Granary', 11, 6, 8, { exact: true });
+
+    route.push(checkpoint('x1-speedsettle-remaining-chests', 'Use resource or crop chests now if you have not already.'));
+    route.push(checkpoint('x1-speedsettle-demolish-workshop-academy', 'Demolish the Workshop and Academy, and the Main Building too if you are short on resources.'));
+    route.push(checkpoint('x1-speedsettle-small-party', 'Start a Small Party.'));
+    route.push(checkpoint('x1-speedsettle-relocate', 'Relocate close to your intended settling direction.'));
+    route.push(checkpoint('x1-speedsettle-send-settlers', 'Send the Settlers.'));
+
+    return route;
   }
 
   function buildX3Route() {
