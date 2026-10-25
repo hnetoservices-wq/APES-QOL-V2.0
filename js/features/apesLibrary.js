@@ -6,7 +6,7 @@
   const ICON = '<svg class="qol-feature-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 5.5A3.5 3.5 0 0 1 6.5 2H11v18H6.5A3.5 3.5 0 0 0 3 22zM21 5.5A3.5 3.5 0 0 0 17.5 2H13v18h4.5A3.5 3.5 0 0 1 21 22z"/></svg>';
   const CATEGORIES = Object.freeze([
     { id: 'speedsettling', title: 'Speedsettling', symbol: '⚑', guides: [
-      {id:'speed_x1',name:'x1 Guide'},
+      {id:'speed_x1',name:'x1 Guide',roadmapId:'x1_speedsettle'},
       {id:'speed_x2',name:'x2 Guide'},
       {id:'speed_x3',name:'x3 Guide',roadmapId:'x3_speedsettle'},
       {id:'speed_x3_mayhem',name:'x3 Mayhem Guide'},
