@@ -409,23 +409,24 @@
 
   // Read existing village snapshots and production records; never turn
   // missing village values into zeroes.
+  // Both panels share one natural alphabetical comparator so corresponding
+  // rows remain aligned, including missing data and numeric village prefixes.
+  const compareVillageNames=(a,b)=>
+    a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})||
+    a.id.localeCompare(b.id,undefined,{numeric:true});
   function villagePopulationRows(villages) {
     return villages.map(v=>{
       const value=num(v?.population);
       return {id:String(v?.villageId||''),name:String(v?.name||'Village'),
         population:value!==null&&value>=0?value:null};
-    }).sort((a,b)=>(a.population===null)-(b.population===null)||
-      (b.population??0)-(a.population??0)||
-      a.name.localeCompare(b.name,undefined,{numeric:true}));
+    }).sort(compareVillageNames);
   }
   function villageCropBalanceRows(villages) {
     const records=window.APES?.villageResourceProduction?.all?.()||{};
     return villages.map(v=>{
       const value=num(records[String(v?.villageId||'')]?.production?.crop);
       return {id:String(v?.villageId||''),name:String(v?.name||'Village'),rate:value};
-    }).sort((a,b)=>(a.rate===null)-(b.rate===null)||
-      (a.rate??0)-(b.rate??0)||
-      a.name.localeCompare(b.name,undefined,{numeric:true}));
+    }).sort(compareVillageNames);
   }
   function villagePopulationHtml(rows) {
     const observed=rows.filter(v=>v.population!==null);
@@ -442,7 +443,7 @@
     }).join('');
     return `<section class="apes-ao-chart apes-ao-village-ranking">
       <div class="apes-ao-chart-head"><div><strong>Village Population</strong>
-        <small>Current population by village · largest first</small></div></div>
+        <small>Current population by village · alphabetical order</small></div></div>
       <div class="apes-ao-rank-scroll" data-apes-ao-scroll="village-population">
         ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}</div>
       <small class="apes-ao-chart-foot">${safe(fmt(observed.length))}/${safe(fmt(rows.length))} villages with population data${rows.length>10?' · Scroll for more':''}</small>
@@ -464,7 +465,7 @@
     }).join('');
     return `<section class="apes-ao-chart apes-ao-village-ranking apes-ao-crop-balance">
       <div class="apes-ao-chart-head"><div><strong>Crop Balance</strong>
-        <small>Net crop production by village · deficits first</small></div></div>
+        <small>Net crop production by village · alphabetical order</small></div></div>
       <div class="apes-ao-rank-scroll" data-apes-ao-scroll="crop-balance">
         ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}</div>
       <small class="apes-ao-chart-foot">${safe(fmt(observed.length))}/${safe(fmt(rows.length))} villages with crop readings${rows.length>10?' · Scroll for more':''}. Trade routes not included.</small>
