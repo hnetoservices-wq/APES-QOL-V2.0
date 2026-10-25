@@ -44,4 +44,45 @@ assert.ok(manifest.content_scripts.some(item =>
   item.css?.includes('css/features/apesLibrary.css')
 ), 'Library content scripts and styles must be registered');
 
+// The export control belongs next to the Guide badge, never after the steps.
+const articleSource = source.slice(source.indexOf('  const CATEGORIES ='), source.indexOf('  function notify('));
+const app = { APES: { roadmaps: { getAllRoadmaps: () => ({
+  x3_speedsettle: {
+    name: 'x3 Speedsettling',
+    description: 'Existing official guide.',
+    steps: [{ type: 'building', building: 'Warehouse', level: 1, buildingId: 10, exact: true }]
+  }
+}) } } };
+const article = new Function('window', articleSource +
+  '\nreturn { renderArticle, setPanel: value => panel = value, select: id => selectedId = id };'
+)(app);
+let html = '';
+article.setPanel({ querySelector(selector) {
+  return selector === '.apes-lib-article' ? {
+    set innerHTML(value) { html = value; },
+    get innerHTML() { return html; }
+  } : null;
+}});
+article.select('speed_x3');
+article.renderArticle();
+const head = html.match(/<div class="apes-lib-article-head">([\s\S]*?)<\/div><\/div>/)?.[0];
+assert.ok(head, 'Guide header is present');
+assert.match(head, /apes-lib-pill[^>]*>Guide<\/span>[\s\S]*?data-library-export/,
+  'Export action sits directly to the right of Guide badge');
+assert.equal((html.match(/data-library-export(?=\s|>)/g) || []).length, 1,
+  'Guide renders exactly one export action');
+assert.ok(html.indexOf('data-library-export') < html.indexOf('apes-lib-steps'),
+  'Export button is shown before the steps');
+assert.doesNotMatch(html, /apes-lib-article-actions/,
+  'Do not keep a redundant export action below the guide steps');
+assert.match(css, /\.apes-lib-head-actions\{/,
+  'Header badge and export share an APES styled action group');
+assert.match(css, /\.apes-lib-head-export\{/,
+  'Export action has compact header styling');
+article.select('speed_x2');
+article.renderArticle();
+assert.doesNotMatch(html, /data-library-export(?=\s|>)/,
+  'Unpublished guides do not offer export');
+assert.match(html, /Coming soon/, 'Unpublished guide badge remains visible');
+
 console.log('APES Library regression: native button collision prevented, keyboard and export controls preserved.');
