@@ -72,7 +72,10 @@
     if(!guide){content.innerHTML='<p>No guide selected.</p>';return;}
     const ready=Array.isArray(data?.steps)&&data.steps.length>0;
     const title='<div class="apes-lib-article-head"><div><small>APES LIBRARY / '+escapeHtml(guide.category)+'</small>'+
-      '<h2>'+escapeHtml(guide.name)+'</h2></div><span class="apes-lib-pill">'+(ready?'Guide':'Coming soon')+'</span></div>';
+      '<h2>'+escapeHtml(guide.name)+'</h2></div>'+
+      '<div class="apes-lib-head-actions"><span class="apes-lib-pill">'+(ready?'Guide':'Coming soon')+'</span>'+
+      (ready?'<div class="apes-lib-primary apes-lib-head-export" data-library-export role="button" tabindex="0">Export to Roadmaps</div>':'')+
+      '</div></div>';
     if(!ready){
       content.innerHTML=title+'<div class="apes-lib-coming-soon"><span class="apes-lib-book-icon">▤</span>'+
         '<h3>Guide not published yet</h3><p>This category is ready for content. We will add the actual guide here rather than populate it with unverified instructions.</p></div>';
@@ -84,9 +87,7 @@
       '<div class="apes-lib-section-head"><span>Guide steps</span><span>'+steps.length+' available</span></div>'+
       '<ol class="apes-lib-steps">'+steps.map(step=>
         '<li><span class="apes-lib-step-type">'+(step.type==='building'?'Building':'Instruction')+
-        '</span><span>'+escapeHtml(guideStepText(step))+'</span></li>').join('')+'</ol>'+
-      '<div class="apes-lib-article-actions"><span>Import copies tasks. Your Roadmap remains editable and will not be overwritten by Library updates.</span>'+
-      '<div class="apes-lib-primary" data-library-export role="button" tabindex="0">Export to Roadmaps</div></div>';
+        '</span><span>'+escapeHtml(guideStepText(step))+'</span></li>').join('')+'</ol>';
   }
   function render(){
     renderSidebar();
@@ -111,7 +112,7 @@
     layer.innerHTML='<div class="apes-lib-export-dialog">'+
       '<div class="apes-lib-export-heading"><div><strong>Export to Roadmaps</strong><small>'+escapeHtml(guide.name)+'</small></div>'+
       '<div class="apes-lib-icon-button" data-library-export-close aria-label="Close export dialog" role="button" tabindex="0">×</div></div>'+
-      '<p>Select the actionable steps you want to copy into a new, editable Roadmap.</p>'+
+      '<p>Select the actionable steps you want to copy into a new, editable Roadmap. This creates an independent copy; future Library updates will not overwrite your tasks.</p>'+
       '<label class="apes-lib-select-all"><input type="checkbox" data-library-select-all checked> Select all ('+data.steps.length+')</label>'+
       '<div class="apes-lib-export-options">'+data.steps.map((step,index)=>
         '<label class="apes-lib-export-item"><input type="checkbox" data-library-export-step="'+index+'" checked>'+
