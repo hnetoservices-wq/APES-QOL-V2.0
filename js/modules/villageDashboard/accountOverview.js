@@ -407,6 +407,70 @@
          (partial?' Some dates have partial village coverage.':'')+'</span>':''}</small></section>`;
   }
 
+  // Read existing village snapshots and production records; never turn
+  // missing village values into zeroes.
+  function villagePopulationRows(villages) {
+    return villages.map(v=>{
+      const value=num(v?.population);
+      return {id:String(v?.villageId||''),name:String(v?.name||'Village'),
+        population:value!==null&&value>=0?value:null};
+    }).sort((a,b)=>(a.population===null)-(b.population===null)||
+      (b.population??0)-(a.population??0)||
+      a.name.localeCompare(b.name,undefined,{numeric:true}));
+  }
+  function villageCropBalanceRows(villages) {
+    const records=window.APES?.villageResourceProduction?.all?.()||{};
+    return villages.map(v=>{
+      const value=num(records[String(v?.villageId||'')]?.production?.crop);
+      return {id:String(v?.villageId||''),name:String(v?.name||'Village'),rate:value};
+    }).sort((a,b)=>(a.rate===null)-(b.rate===null)||
+      (a.rate??0)-(b.rate??0)||
+      a.name.localeCompare(b.name,undefined,{numeric:true}));
+  }
+  function villagePopulationHtml(rows) {
+    const observed=rows.filter(v=>v.population!==null);
+    const max=Math.max(1,...observed.map(v=>v.population));
+    const entries=rows.map(v=>{
+      const value=v.population;
+      const width=value===null?0:100*value/max;
+      return `<div class="apes-ao-rank-row" title="${safe(v.name)}: ${value===null?'No population data':fmt(value)+' population'}">
+        <span class="apes-ao-rank-name" data-apes-ao-village="${safe(v.id)}"
+          role="button" tabindex="0" title="Open ${safe(v.name)}">${safe(v.name)}</span>
+        <span class="apes-ao-rank-track" aria-hidden="true"><i class="apes-ao-population-bar"
+          style="width:${width.toFixed(2)}%"></i></span>
+        <span class="apes-ao-rank-value">${value===null?'—':safe(fmt(value))}</span></div>`;
+    }).join('');
+    return `<section class="apes-ao-chart apes-ao-village-ranking">
+      <div class="apes-ao-chart-head"><div><strong>Village Population</strong>
+        <small>Current population by village · largest first</small></div></div>
+      <div class="apes-ao-rank-scroll" data-apes-ao-scroll="village-population">
+        ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}</div>
+      <small class="apes-ao-chart-foot">${safe(fmt(observed.length))}/${safe(fmt(rows.length))} villages with population data${rows.length>10?' · Scroll for more':''}</small>
+    </section>`;
+  }
+  function villageCropBalanceHtml(rows) {
+    const observed=rows.filter(v=>v.rate!==null);
+    const max=Math.max(1,...observed.map(v=>Math.abs(v.rate)));
+    const entries=rows.map(v=>{
+      const value=v.rate;
+      const sign=value===null?'unknown':value<0?'negative':value>0?'positive':'zero';
+      const width=value===null?0:Math.min(50,50*Math.abs(value)/max);
+      return `<div class="apes-ao-rank-row" title="${safe(v.name)}: ${value===null?'No crop production reading':(value>0?'+':'')+fmt(value)+'/h'}">
+        <span class="apes-ao-rank-name" data-apes-ao-village="${safe(v.id)}"
+          role="button" tabindex="0" title="Open ${safe(v.name)}">${safe(v.name)}</span>
+        <span class="apes-ao-crop-track" aria-hidden="true"><i class="apes-ao-crop-bar"
+          data-sign="${sign}" style="width:${width.toFixed(2)}%"></i></span>
+        <span class="apes-ao-rank-value" data-sign="${sign}">${value===null?'—':safe((value>0?'+':'')+fmt(value)+'/h')}</span></div>`;
+    }).join('');
+    return `<section class="apes-ao-chart apes-ao-village-ranking apes-ao-crop-balance">
+      <div class="apes-ao-chart-head"><div><strong>Crop Balance</strong>
+        <small>Net crop production by village · deficits first</small></div></div>
+      <div class="apes-ao-rank-scroll" data-apes-ao-scroll="crop-balance">
+        ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}</div>
+      <small class="apes-ao-chart-foot">${safe(fmt(observed.length))}/${safe(fmt(rows.length))} villages with crop readings${rows.length>10?' · Scroll for more':''}. Trade routes not included.</small>
+    </section>`;
+  }
+
   function villageRow(row,info,details=''){
     return `<div class="apes-ao-village-link" data-apes-ao-village="${safe(row.id)}" role="button" tabindex="0" title="Open ${safe(row.name)}"><span>${safe(row.name)}</span><em>${info}</em>${details}</div>`;
   }
@@ -418,10 +482,13 @@
     const pop=popHistory(snapshot.playerId).slice(-30),army=armyHistory(snapshot).slice(-30),last=army.at(-1);
     const c=celebrationCounts(villages),q=activeQueues(villages);
     const resources=resourceOverview(villages),units=unitCounter(villages);
+    const villagePopulation=villagePopulationRows(villages);
+    const villageCropBalance=villageCropBalanceRows(villages);
     const storage=storageForecast(villages);
     const resourceHistory=window.APES?.villageResourceProduction?.scanHistory?.()||[];
     const population=villages.reduce((a,v)=>a+Math.max(0,num(v.population)||0),0);
-    const signature=JSON.stringify({population,pop,army,c,q,resources,units,storage,player:snapshot.playerId,
+    const signature=JSON.stringify({population,pop,army,c,q,resources,units,storage,
+      villagePopulation,villageCropBalance,player:snapshot.playerId,
       resourceHistoryCount:resourceHistory.length,resourceHistoryLatest:resourceHistory.at(-1)?.timestamp});
     if(signature===lastRender)return;
     lastRender=signature;
@@ -474,7 +541,11 @@
           <small class="apes-ao-caveat">Barracks, Stable, Workshop and Great variants. Healing excluded.</small></section>
       </div>
       <div class="apes-ao-charts">${charts}</div>
-      <div class="apes-ao-population-bottom">${populationDevelopment}</div>`;
+      <div class="apes-ao-population-bottom">
+        ${populationDevelopment}
+        ${villagePopulationHtml(villagePopulation)}
+        ${villageCropBalanceHtml(villageCropBalance)}
+      </div>`;
     panel.querySelectorAll('[data-apes-ao-scroll]').forEach(element=>{
       element.scrollTop=scrollPositions[element.dataset.apesAoScroll]||0;
     });
