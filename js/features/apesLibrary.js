@@ -52,17 +52,17 @@
   function renderSidebar(){
     const aside=panel?.querySelector('.apes-lib-sidebar-content');
     if(!aside)return;
-    aside.innerHTML='<button type="button" class="apes-lib-library-toggle" data-library-toggle aria-expanded="'+libraryExpanded+'"><span>▣ &nbsp; APES LIBRARY</span><span>'+(libraryExpanded?'▾':'▸')+'</span></button>'+
+    aside.innerHTML='<div class="apes-lib-library-toggle" data-library-toggle aria-expanded="'+libraryExpanded+'" role="button" tabindex="0"><span>▣ &nbsp; APES LIBRARY</span><span>'+(libraryExpanded?'▾':'▸')+'</span></div>'+
       (libraryExpanded?CATEGORIES.map(category=>'<div class="apes-lib-category">'+
-        '<button type="button" class="apes-lib-category-toggle" data-category="'+category.id+'" aria-expanded="'+openedCategories.has(category.id)+'">'+
+        '<div class="apes-lib-category-toggle" data-category="'+category.id+'" aria-expanded="'+openedCategories.has(category.id)+'" role="button" tabindex="0">'+
           '<span class="apes-lib-category-label"><span class="apes-lib-category-symbol">'+escapeHtml(category.symbol)+'</span>'+escapeHtml(category.title)+'</span>'+
-          '<span>'+category.guides.length+' &nbsp; '+(openedCategories.has(category.id)?'▾':'▸')+'</span></button>'+
+          '<span>'+category.guides.length+' &nbsp; '+(openedCategories.has(category.id)?'▾':'▸')+'</span></div>'+
         (openedCategories.has(category.id)?'<div class="apes-lib-guide-list">'+category.guides.map(guide=>{
           const ready=Boolean(guideData(guide)?.steps?.length);
-          return '<button type="button" class="apes-lib-guide '+(selectedId===guide.id?'is-selected':'')+
-            '" data-library-guide="'+guide.id+'" aria-current="'+(selectedId===guide.id?'page':'false')+'">'+
+          return '<div class="apes-lib-guide '+(selectedId===guide.id?'is-selected':'')+
+            '" data-library-guide="'+guide.id+'" aria-current="'+(selectedId===guide.id?'page':'false')+'" role="button" tabindex="0">'+
               '<span>▤ &nbsp; '+escapeHtml(guide.name)+'</span>'+
-              '<span class="apes-lib-guide-state">'+(ready?(selectedId===guide.id?'✓':'›'):'·')+'</span></button>';
+              '<span class="apes-lib-guide-state">'+(ready?(selectedId===guide.id?'✓':'›'):'·')+'</span></div>';
         }).join('')+'</div>':'')+'</div>').join(''):'');
   }
   function renderArticle(){
@@ -87,7 +87,7 @@
         '<li><span class="apes-lib-step-type">'+(step.type==='building'?'Building':'Instruction')+
         '</span><span>'+escapeHtml(guideStepText(step))+'</span></li>').join('')+'</ol>'+
       '<div class="apes-lib-article-actions"><span>Import copies tasks. Your Roadmap remains editable and will not be overwritten by Library updates.</span>'+
-      '<button type="button" class="apes-lib-primary" data-library-export>Export to Roadmaps</button></div>';
+      '<div class="apes-lib-primary" data-library-export role="button" tabindex="0">Export to Roadmaps</div></div>';
   }
   function render(){
     renderSidebar();
@@ -111,15 +111,15 @@
     layer.setAttribute('aria-label','Export guide steps to Roadmaps');
     layer.innerHTML='<div class="apes-lib-export-dialog">'+
       '<div class="apes-lib-export-heading"><div><strong>Export to Roadmaps</strong><small>'+escapeHtml(guide.name)+'</small></div>'+
-      '<button type="button" class="apes-lib-icon-button" data-library-export-close aria-label="Close export dialog">×</button></div>'+
+      '<div class="apes-lib-icon-button" data-library-export-close aria-label="Close export dialog" role="button" tabindex="0">×</div></div>'+
       '<p>Select the actionable steps you want to copy into a new, editable Roadmap.</p>'+
       '<label class="apes-lib-select-all"><input type="checkbox" data-library-select-all checked> Select all ('+data.steps.length+')</label>'+
       '<div class="apes-lib-export-options">'+data.steps.map((step,index)=>
         '<label class="apes-lib-export-item"><input type="checkbox" data-library-export-step="'+index+'" checked>'+
         '<span><small>'+escapeHtml(step.type==='building'?'Building':'Instruction')+'</small>'+escapeHtml(guideStepText(step))+'</span></label>').join('')+'</div>'+
       '<div class="apes-lib-export-footer"><span data-library-export-count>'+data.steps.length+' steps selected</span>'+
-      '<button type="button" class="apes-lib-secondary" data-library-export-cancel>Cancel</button>'+
-      '<button type="button" class="apes-lib-primary" data-library-export-confirm>Export selected</button></div>'+
+      '<div class="apes-lib-secondary" data-library-export-cancel role="button" tabindex="0">Cancel</div>'+
+      '<div class="apes-lib-primary" data-library-export-confirm role="button" tabindex="0">Export selected</div></div>'+
       '<div class="apes-lib-export-error" aria-live="polite"></div></div>';
     panel.appendChild(layer);
     layer.querySelector('[data-library-export-close]').focus();
@@ -133,7 +133,7 @@
     all.checked=selected===items.length;
     all.indeterminate=selected>0&&selected<items.length;
     layer.querySelector('[data-library-export-count]').textContent=selected+' steps selected';
-    layer.querySelector('[data-library-export-confirm]').disabled=selected===0;
+    layer.querySelector('[data-library-export-confirm]').setAttribute('aria-disabled',String(selected===0));
   }
   function commitExport(){
     const layer=panel?.querySelector('.apes-lib-export-layer');
@@ -165,12 +165,12 @@
     panel.setAttribute('aria-hidden','true');
     panel.innerHTML='<header class="apes-lib-header"><div class="apes-lib-header-title"><span class="apes-lib-logo">'+ICON+'</span>'+
       '<div><strong>APES Library</strong><small>Strategy guides · References · Roadmap exports</small></div></div>'+
-      '<button class="apes-lib-close" type="button" aria-label="Close APES Library" data-library-close>×</button></header>'+
+      '<div class="apes-lib-close" aria-label="Close APES Library" data-library-close role="button" tabindex="0">×</div></header>'+
       '<div class="apes-lib-workspace"><aside class="apes-lib-sidebar"><div class="apes-lib-sidebar-content"></div></aside>'+
       '<main class="apes-lib-article"></main></div><div class="apes-lib-feedback" role="status" aria-live="polite"></div>';
     panel.addEventListener('click',event=>{
-      const target=event.target.closest('button');
-      if(!target)return;
+      const target=event.target.closest('[role="button"]');
+      if(!target || !panel.contains(target) || target.getAttribute('aria-disabled')==='true')return;
       if(target.hasAttribute('data-library-close'))return close();
       if(target.hasAttribute('data-library-toggle')){libraryExpanded=!libraryExpanded;renderSidebar();return;}
       if(target.dataset.category){if(openedCategories.has(target.dataset.category))openedCategories.delete(target.dataset.category);
@@ -179,6 +179,18 @@
       if(target.hasAttribute('data-library-export'))return openExport();
       if(target.hasAttribute('data-library-export-close')||target.hasAttribute('data-library-export-cancel'))return closeExport();
       if(target.hasAttribute('data-library-export-confirm'))return commitExport();
+    });
+    // Travian styles native button elements, so every APES control uses
+    // a focusable role=button surface and gets equivalent keyboard activation.
+    panel.addEventListener('keydown',event=>{
+      if(event.key!=='Enter' && event.key!==' ')return;
+      if(event.altKey||event.ctrlKey||event.metaKey||event.repeat)return;
+      const target=event.target;
+      if(!target?.matches?.('[role="button"]') ||
+         target.getAttribute('aria-disabled')==='true')return;
+      event.preventDefault();
+      event.stopPropagation();
+      target.click();
     });
     panel.addEventListener('change',event=>{
       if(event.target.matches('[data-library-select-all]')){
@@ -212,14 +224,21 @@
   }
   function createSource(){
     if(document.getElementById(LAUNCHER_ID))return;
-    const button=document.createElement('button');
-    button.type='button';
+    const button=document.createElement('div');
+    button.setAttribute('role','button');
+    button.setAttribute('tabindex','0');
     button.id=LAUNCHER_ID;
     button.className='apes-lib-toolbar-source';
     button.title='APES Library';
     button.setAttribute('aria-label','Open APES Library');
     button.innerHTML=ICON;
     button.addEventListener('click',toggle);
+    button.addEventListener('keydown',event=>{
+      if(event.key!=='Enter'&&event.key!==' ')return;
+      event.preventDefault();
+      event.stopPropagation();
+      button.click();
+    });
     document.body.appendChild(button);
     window.qolRefreshToolbar?.();
   }
