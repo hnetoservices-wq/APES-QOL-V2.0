@@ -151,7 +151,7 @@
   // scanner exactly the same navigation environment it has in standalone mode.
   workspace.register('cpManager', (() => {
     const MAIN_ID = 'qol-cp-manager-panel';
-    const SUB_IDS = ['qol-cp-planner-panel', 'qol-cp-trade-planner-panel'];
+    const SUB_IDS = ['qol-cp-planner-panel'];
     const SCAN_OVERLAY_ID = 'qol-cp-scan-overlay';
     let panel = null;
     let host = null;
@@ -254,7 +254,7 @@
           isolateForScan();
           return;
         }
-        if (!event.target.closest('.qol-cp-plan-btn,.qol-cp-trade-btn')) return;
+        if (!event.target.closest('.qol-cp-plan-btn')) return;
         setTimeout(adoptSubpanels, 0);
         setTimeout(adoptSubpanels, 60);
         setTimeout(adoptSubpanels, 180);
@@ -385,4 +385,11 @@
     close(panel) { panel.classList.remove('qol-ss-open'); },
     openClass: 'qol-ss-open'
   }));
+  workspace.register('kingdomManagement', makeSimpleAdapter({
+    panelId: 'qol-kingdom-management-panel',
+    open() { return window.APES_KINGDOM_MANAGEMENT?.open(); },
+    close() { window.APES_KINGDOM_MANAGEMENT?.close(); },
+    openClass: 'qol-km-open'
+  }));
 })();
+

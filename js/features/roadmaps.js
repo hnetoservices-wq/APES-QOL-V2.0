@@ -39,7 +39,9 @@
         instruction('Upgrade the Residence to level 5.'),
         instruction('Complete free quests such as renaming the village, changing hero production and healing the hero.'),
         instruction('If affordable, play card games for an extra adventure point and chests.'),
-        instruction('After Residence level 5 finishes, collect the quest reward, upgrade it to level 10 and queue the first Settler.'),
+        instruction('After Residence level 5 finishes, collect the quest reward.'),
+        instruction('Collect Level 10 Residence Quest Reward'),
+        instruction('Queue the first Settler.'),
         instruction('Queue the second Settler as soon as possible. Clear the first two hideouts, sell stolen goods and use the seventh hero adventure for more resources.'),
         instruction('Catch animals in a nearby oasis after the seventh adventure for the quest reward.'),
         instruction('Wait for the third and fourth hideouts. They should spawn roughly 1h27m after clearing the first two.'),
@@ -468,7 +470,7 @@
     panel.id = PANEL_ID;
     panel.innerHTML = `
       <div class="qol-rm-header">
-        <div class="qol-rm-header-copy"><span class="qol-rm-header-icon">↪</span><div><strong>Roadmaps</strong><small>Guide profiles and build routes</small></div></div>
+        <div class="qol-rm-header-copy"><span class="qol-rm-header-icon"><svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/></svg></span><div><strong>Roadmaps</strong><small>Guide profiles and build routes</small></div></div>
         <div class="qol-rm-close" role="button" tabindex="0" aria-label="Close Roadmaps">×</div>
       </div>
       <div class="qol-rm-workspace">
@@ -566,7 +568,7 @@
     launcher.setAttribute('tabindex', '0');
     launcher.setAttribute('aria-label', 'Open Roadmaps');
     launcher.title = 'Roadmaps';
-    launcher.innerHTML = '<span aria-hidden="true">↪</span>';
+    launcher.innerHTML = '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/></svg>';
     launcher.addEventListener('click', toggle);
     launcher.addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') toggle(event);
@@ -608,3 +610,4 @@
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init, { once: true });
   else init();
 })();
+

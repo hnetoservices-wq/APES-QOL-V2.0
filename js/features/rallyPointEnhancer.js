@@ -19,6 +19,7 @@ function initRallyPointEnhancer() {
   let compiledWaves = [];
   let isScanning = false;
   let activeMovementTypes = null;
+  let incomingScanToken = null;
   function isEnabled() {
     if (typeof window.isQolEnabled === 'function') {
       return window.isQolEnabled(FEATURE_KEY) === true;
@@ -644,6 +645,9 @@ function initRallyPointEnhancer() {
     });
   }
   function getRallyPointContainer() {
+    const incomingTab = document.querySelector('.tabIncoming.currentTab, .tabIncoming.activeTab');
+    if (incomingTab) return incomingTab.closest('.buildingDetails.rallypoint') || incomingTab;
+    if (document.querySelector('.tabOutgoing.currentTab, .tabOutgoing.activeTab')) return null;
     const selectors = ['.rallyPoint', '.movementsView', '.buildingView[data-building-type="16"]', '.buildingView', '.windowContent', '#windowContent'];
     for (const selector of selectors) {
       const element = document.querySelector(selector);
@@ -664,6 +668,11 @@ function initRallyPointEnhancer() {
     if (!container) {
       return null;
     }
+    container = getIncomingNavigation(container);
+    const exact = container.querySelector(`.tg-pagination > ul > li.${type === 'next' ? 'nextPage' : 'firstPage'}`);
+    if (exact) {
+      return exact.classList.contains('disabled') || exact.classList.contains('inactive') ? null : exact;
+    }
     const candidates = container.querySelectorAll('button, a, span, div, li, i, svg, ' + '[class*="next"], ' + '[class*="pager"], ' + '[class*="arrow"], ' + '[class*="page"]');
     for (const element of candidates) {
       if (element.offsetWidth === 0 && element.offsetHeight === 0) {
@@ -673,7 +682,8 @@ function initRallyPointEnhancer() {
         continue;
       }
       const className = element.className && typeof element.className === 'string' ? element.className.toLowerCase() : '';
-      if (className.includes('disabled') || className.includes('inactive')) {
+      if (className.includes('disabled') || className.includes('inactive')
+        || element.closest('.disabled, .inactive, [aria-disabled="true"]')) {
         continue;
       }
       const text = (element.textContent || '').trim().toLowerCase();
@@ -693,8 +703,8 @@ function initRallyPointEnhancer() {
         }
       }
       if (type === 'first') {
-        const hasFirstClass = className.includes('first') || className.includes('arrowleft') || className.includes('pageleft');
-        const hasFirstText = text === '<' || text === '«' || text === '<<' || text === 'first' || title.includes('first');
+        const hasFirstClass = className.includes('first');
+        const hasFirstText = text === '«' || text === '<<' || text === 'first' || title.includes('first');
         if (hasFirstClass || hasFirstText) {
           return element.closest('button, ' + 'a, ' + 'div[role="button"]') || element;
         }
@@ -708,6 +718,7 @@ function initRallyPointEnhancer() {
     }
     try {
       element.click();
+      return;
     } catch (error) {}
     ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click'].forEach(eventType => {
       const event = new MouseEvent(eventType, {
@@ -722,14 +733,87 @@ function initRallyPointEnhancer() {
     if (!container) {
       return '';
     }
-    let signature = '';
-    container.querySelectorAll('tr, div, li').forEach(element => {
-      const text = (element.innerText || '').replace(/\s+/g, ' ');
-      if (text.includes('by') && text.includes('from')) {
-        signature += text.trim().substring(0, 30);
+    const rows = getIncomingRows(container);
+    if (!rows.length) {
+      const content = getIncomingContent(container).cloneNode(true);
+      content.querySelectorAll('[countdown]').forEach(node => node.remove());
+      return content.textContent.replace(/(?:in|within)\s+[0-9:]+/gi, '')
+        .replace(/\s+/g, ' ').trim();
+    }
+    return JSON.stringify(rows.map(row => {
+      const clone = row.cloneNode(true);
+      clone.querySelectorAll('[countdown], .timer, .duration, .remaining').forEach(node => node.remove());
+      return [clone.textContent.replace(/\s+/g, ' ').trim(),
+        row.querySelector('[i18ndt]')?.getAttribute('i18ndt') || '',
+        row.querySelector('[data-time-finish]')?.getAttribute('data-time-finish') || '',
+        row.querySelector('[class*="movement_"]')?.className || ''];
+    }));
+  }
+  function getIncomingContent(container) {
+    if (!container) return null;
+    if (container.matches('.tabIncoming.currentTab, .tabIncoming.activeTab')) return container;
+    return container.querySelector('.tabIncoming.currentTab, .tabIncoming.activeTab') || container;
+  }
+  function getIncomingRows(container) {
+    const content = getIncomingContent(container);
+    if (!content) return [];
+    const detailRows = [...content.querySelectorAll('troop-details-rallypoint.movingTroops > .troopsDetailContainer, .movingTroops > .troopsDetailContainer')];
+    if (detailRows.length) return detailRows;
+    return [...content.querySelectorAll('tr.movement, tr.troopRow, div.movementRow, .movementList .entry')];
+  }
+  function getIncomingNavigation(container) {
+    const content = getIncomingContent(container);
+    return content?.querySelector('.tg-pagination') ? content : container;
+  }
+  function getIncomingCurrentPage(container) {
+    container = getIncomingNavigation(container);
+    const current = container?.querySelector('.tg-pagination li.number.disabled a, .tg-pagination li.number.disabled, .tg-pagination [aria-current="page"]');
+    const page = Number.parseInt(current?.textContent.trim(), 10);
+    if (Number.isFinite(page)) return page;
+    const match = String(window.location.hash || '').match(/(?:^|\/)cp:(\d+)/);
+    return match ? Number(match[1]) : 1;
+  }
+  function getIncomingPageState(container) {
+    const rows = getIncomingRows(container);
+    return { page: getIncomingCurrentPage(container), signature: getPageSignature(container),
+      rows: rows.length ? rows : [...(getIncomingContent(container)?.childNodes || [])] };
+  }
+  function buildIncomingHash(page = 1) {
+    const village = String(window.location.hash || '').match(/villId:[^/]+/);
+    return `page:village/${village ? `${village[0]}/` : ''}cp:${page}/location:32/window:building/subtab:Incoming`;
+  }
+  async function waitForIncomingPage(expectedPage, previous = null, timeout = 8000, token = null) {
+    const started = Date.now();
+    let stable = null;
+    let stableChecks = 0;
+    while (Date.now() - started < timeout) {
+      if (!isEnabled() || (token && token !== incomingScanToken)) throw new Error('Incoming scan cancelled.');
+      const container = getRallyPointContainer();
+      if (container) {
+        const state = getIncomingPageState(container);
+        const content = getIncomingContent(container);
+        const loaded = getIncomingRows(container).length > 0
+          || /No (?:incoming|inbound) (?:troops|movements)|No troops|\bby\b.+\bfrom\b.+\b(?:at|on)\b/i.test(content.textContent || '');
+        // The pager/hash can advance before Angular replaces the movement rows.
+        // Row identity also distinguishes two pages with identical arrivals.
+        const rendered = !previous || state.signature !== previous.signature
+          || state.rows.length !== previous.rows.length
+          || state.rows.some((row, index) => row !== previous.rows[index]);
+        const sameRows = stable && state.signature === stable.signature
+          && state.rows.length === stable.rows.length
+          && state.rows.every((row, index) => row === stable.rows[index]);
+        if (state.page === expectedPage && loaded && rendered) {
+          stableChecks = sameRows ? stableChecks + 1 : 1;
+          stable = state;
+          if (stableChecks >= 3) return container;
+        } else {
+          stable = null;
+          stableChecks = 0;
+        }
       }
-    });
-    return signature;
+      await new Promise(resolve => setTimeout(resolve, 120));
+    }
+    throw new Error(`Incoming page ${expectedPage} did not finish loading. The scan is incomplete; try again.`);
   }
   async function triggerVirtualScrollSweep(container) {
     if (!container) {
@@ -752,6 +836,7 @@ function initRallyPointEnhancer() {
     if (!container) {
       return;
     }
+    container = getIncomingContent(container);
     const pageWaves = [];
     const detailRows = container.querySelectorAll('troop-details-rallypoint.movingTroops > ' + '.troopsDetailContainer, ' + '.movingTroops > .troopsDetailContainer');
     const rowElements = detailRows.length > 0 ? [] : container.querySelectorAll('tr.movement, ' + 'tr.troopRow, ' + 'div.movementRow, ' + '.movementList .entry');
@@ -814,7 +899,7 @@ function initRallyPointEnhancer() {
     });
     const waveRegex = /([A-Za-z\s]+?)\s+by\s+(.+?)\s+from\s+(.+?)\s+(?:in|within)\s+([0-9:]+)\s+(?:at|on)\s+([0-9:]+)/gi;
     const rawText = (container.innerText || container.textContent || '').replace(/\s+/g, ' ');
-    const matches = detailRows.length > 0 ? [] : [...rawText.matchAll(waveRegex)];
+    const matches = detailRows.length > 0 || rowElements.length > 0 ? [] : [...rawText.matchAll(waveRegex)];
     for (const match of matches) {
       const [, type, enemy, enemyVillage, travel, landing] = match;
       const trimmedType = type.trim();
@@ -830,98 +915,62 @@ function initRallyPointEnhancer() {
         });
       }
     }
-    pageWaves.forEach(newWave => {
-      const existingMatches = compiledWaves.filter(wave => {
-        return wave.landing === newWave.landing && wave.enemyVillage === newWave.enemyVillage && wave.enemy === newWave.enemy && wave.type === newWave.type;
-      }).length;
-      const pageMatches = pageWaves.filter(wave => {
-        return wave.landing === newWave.landing && wave.enemyVillage === newWave.enemyVillage && wave.enemy === newWave.enemy && wave.type === newWave.type;
-      }).length;
-      if (existingMatches < pageMatches) {
-        compiledWaves.push(newWave);
-      }
-    });
+    // Each verified page is scraped once. Separate movements can have exactly
+    // the same sender, village, type and arrival second, including across pages.
+    compiledWaves.push(...pageWaves);
   }
   async function awaitRallyPointRender(timeoutMilliseconds = 8000) {
-    const startTime = Date.now();
-    while (Date.now() - startTime < timeoutMilliseconds) {
-      const container = getRallyPointContainer();
-      if (container) {
-        const nextButton = findPaginationButton('next', container);
-        const firstButton = findPaginationButton('first', container);
-        let wavesExist = false;
-        container.querySelectorAll('tr, div').forEach(element => {
-          const text = (element.innerText || '').replace(/\s+/g, ' ');
-          if (text.includes('by') && text.includes('from') || text.includes('Inbound troops') || text.includes('Incoming')) {
-            wavesExist = true;
-          }
-        });
-        if (wavesExist || nextButton || firstButton) {
-          await new Promise(resolve => {
-            setTimeout(resolve, 400);
-          });
-          return true;
-        }
-      }
-      await new Promise(resolve => {
-        setTimeout(resolve, 300);
-      });
+    const page = getIncomingCurrentPage(null);
+    try {
+      await waitForIncomingPage(page, null, timeoutMilliseconds);
+      return true;
+    } catch (_) {
+      return false;
     }
-    return false;
   }
   async function collectAllPages(statusBox, onComplete) {
     compiledWaves = [];
-    let pageCount = 1;
+    const token = {};
+    incomingScanToken = token;
     const contextData = getContextData();
     const initialContainer = getRallyPointContainer();
     if (!initialContainer) {
-      statusBox.textContent = 'Error: Rally Point container not found.';
-      updateScanLock('Rally Point container could not be found.');
-      onComplete();
-      return;
+      throw new Error('Rally Point container not found.');
     }
-    const firstButton = findPaginationButton('first', initialContainer);
-    if (firstButton) {
+    let previous = null;
+    if (getIncomingCurrentPage(initialContainer) !== 1) {
+      previous = getIncomingPageState(initialContainer);
       updateScanLock('Returning to the first incoming page...');
-      triggerClick(firstButton);
-      await new Promise(resolve => {
-        setTimeout(resolve, 800);
-      });
+      const firstButton = findPaginationButton('first', initialContainer);
+      if (firstButton) triggerClick(firstButton);
+      else window.location.hash = buildIncomingHash(1);
     }
-    while (pageCount <= 50) {
+    let currentContainer = await waitForIncomingPage(1, previous, 8000, token);
+    const visitedPages = new Set();
+    for (let pageCount = 1; pageCount <= 50; pageCount += 1) {
+      if (!isEnabled() || incomingScanToken !== token) throw new Error('Incoming scan cancelled.');
       statusBox.textContent = `Scanning page ${pageCount}...`;
       updateScanLock(`Scanning incoming page ${pageCount}...`);
-      const currentContainer = getRallyPointContainer();
-      if (!currentContainer) {
-        break;
-      }
       await triggerVirtualScrollSweep(currentContainer);
-      const currentSignature = getPageSignature(currentContainer);
+      currentContainer = getRallyPointContainer();
+      if (!currentContainer || getIncomingCurrentPage(currentContainer) !== pageCount || visitedPages.has(pageCount)) {
+        throw new Error(`Incoming page ${pageCount} changed before it could be read. Try again.`);
+      }
+      visitedPages.add(pageCount);
       scrapePageData(currentContainer, contextData);
       const nextButton = findPaginationButton('next', currentContainer);
-      if (nextButton) {
-        triggerClick(nextButton);
-        let waited = 0;
-        let pageChanged = false;
-        while (waited < 3500) {
-          await new Promise(resolve => {
-            setTimeout(resolve, 200);
-          });
-          waited += 200;
-          const newContainer = getRallyPointContainer();
-          const newSignature = getPageSignature(newContainer);
-          if (newSignature !== currentSignature && newSignature.length > 0) {
-            pageChanged = true;
-            break;
-          }
+      if (!nextButton) {
+        const pages = [...getIncomingNavigation(currentContainer).querySelectorAll('.tg-pagination li.number')]
+          .map(control => Number.parseInt(control.textContent.trim(), 10)).filter(Number.isFinite);
+        if (pages.some(page => page > pageCount)) {
+          throw new Error(`Incoming page ${pageCount + 1} is listed but could not be opened. The scan is incomplete.`);
         }
-        if (!pageChanged) {
-          break;
-        }
-        pageCount += 1;
-      } else {
         break;
       }
+      if (pageCount === 50) throw new Error('Incoming scan reached its page limit before the last page.');
+      previous = getIncomingPageState(currentContainer);
+      triggerClick(nextButton);
+      currentContainer = await waitForIncomingPage(pageCount + 1, previous, 8000, token);
     }
     statusBox.textContent = `Done! Processed ${compiledWaves.length} movements.`;
     updateScanLock(`Finishing scan with ${compiledWaves.length} matching movements...`);
@@ -1152,9 +1201,7 @@ function initRallyPointEnhancer() {
       const currentAddress = window.location.hash || '';
       const isAlreadyOnTab = currentAddress.includes('subtab:Incoming') && currentAddress.includes('window:building');
       if (!isAlreadyOnTab) {
-        const cpMatch = currentAddress.match(/cp:([^/]+)/);
-        const targetCp = cpMatch ? cpMatch[1] : '1';
-        window.location.hash = `page:village/cp:${targetCp}/` + `location:32/window:building/` + `subtab:Incoming`;
+        window.location.hash = buildIncomingHash(1);
       }
       let panelLoaded = false;
       try {
@@ -1197,13 +1244,15 @@ function initRallyPointEnhancer() {
       }).catch(error => {
         console.error('[RallyPointEnhancer] Incoming scan error:', error);
         isScanning = false;
+        compiledWaves = [];
         activeMovementTypes = null;
         hideScanLock();
         parseButton.textContent = 'Scan Incomings';
         setButtonDisabled(parseButton, false);
         setButtonDisabled(copyButton, false);
         setButtonDisabled(clearButton, false);
-        setStatus('The incoming scan stopped unexpectedly.', 'error');
+        setStatus(error.message || 'The incoming scan stopped unexpectedly.', 'error');
+        updateResultCount();
         renderEmptyState(tableTarget, 'Incoming scan stopped.', 'Try the scan again. The screen is no longer locked.');
       });
     });
@@ -1286,6 +1335,7 @@ function initRallyPointEnhancer() {
     }
   }
   function destroyUI() {
+    incomingScanToken = null;
     hideScanLock();
     const bar = document.getElementById(PANEL_ID);
     const toggleButton = document.getElementById(TOGGLE_ID);
@@ -1341,3 +1391,4 @@ function initRallyPointEnhancer() {
   window.setInterval(ensureUI, 1200);
 }
 initRallyPointEnhancer();
+

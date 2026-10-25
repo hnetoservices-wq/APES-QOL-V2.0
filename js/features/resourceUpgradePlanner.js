@@ -183,6 +183,7 @@
   let resultMeta = null;
   let scanToken = 0;
   let isScanning = false;
+  let stateVillageId = '';
   function clone(value) {
     return JSON.parse(JSON.stringify(value));
   }
@@ -215,6 +216,14 @@
     return WORLD_SPEED_VALUES.includes(speed) ? speed : null;
   }
   function detectWorldSpeed() {
+    // The official Travian config (TG_SPEED) is exposed by the MAIN-world
+    // bridge. Prefer it over guesses from the server name or page title.
+    const gameSpeed = Number(document.documentElement?.getAttribute('data-apes-world-speed'));
+    if (WORLD_SPEED_VALUES.includes(gameSpeed)) return {
+      speed: gameSpeed,
+      detected: true,
+      source: 'Travian game configuration'
+    };
     const hostnameSpeed = speedFromText(window.location.hostname);
     if (hostnameSpeed) return {
       speed: hostnameSpeed,
@@ -389,22 +398,59 @@
     const match = String(element?.className || '').match(expression);
     return match ? Number(match[1]) : null;
   }
+  function readCompletedBuildingLevel(wrapper) {
+    const badge = wrapper.querySelector('.buildingLevel');
+    if (!badge) return null;
+    // Read separate text nodes in display order. Flattening the badge can
+    // concatenate the completed level and an upgrade indicator (2 + 3 = 23).
+    const texts = [];
+    const collect = node => {
+      if (node.nodeType === 3) {
+        texts.push(node.nodeValue ?? node.textContent ?? '');
+        return;
+      }
+      if (node.hidden || node.getAttribute?.('aria-hidden') === 'true' || node.classList?.contains('ng-hide')) return;
+      if (node.childNodes?.length) Array.from(node.childNodes).forEach(collect);
+      else texts.push(node.textContent || '');
+    };
+    collect(badge);
+    for (const text of texts) {
+      const match = normalizeText(text).match(/(?:^|\D)(\d{1,2})(?!\d)/);
+      if (!match) continue;
+      const level = Number(match[1]);
+      return level <= 20 ? level : null;
+    }
+    return null;
+  }
   function readVillageBuildings() {
     const root = document.querySelector('.mainContentBackground.villageBackground #villageView, #villageView:not(#villageViewRes)');
     if (!root) return null;
     const buildings = {};
     let embassyLocation = null;
-    root.querySelectorAll('building-location').forEach(wrapper => {
-      const marker = wrapper.querySelector('[class*="buildingId"], .buildingStatusButton[class*="type_"]');
-      const buildingId = elementClassNumber(marker, /(?:buildingId|type_)(\d+)/i);
+    const locations = Array.from(root.querySelectorAll('building-location'));
+    if (!locations.length) return null;
+    for (const wrapper of locations) {
+      const status = wrapper.querySelector('.buildingStatusButton[class*="type_"]');
+      const marker = status || wrapper.querySelector('[class*="buildingId"]');
+      const buildingId = status ? elementClassNumber(status, /type_(\d+)/i) : elementClassNumber(marker, /buildingId(\d+)/i);
+      // Native empty plots have only `buildingLocation ... free`, with no
+      // status, image, or level. Angular has explicitly classified them empty.
+      if (!Number.isInteger(buildingId) && wrapper.classList?.contains('free')) continue;
+      // A missing marker/level is an unfinished render, not a level-zero
+      // building. Other empty slots expose an explicit type/buildingId of zero.
+      if (!Number.isInteger(buildingId)) return null;
+      if (buildingId === 0) continue;
+      const level = readCompletedBuildingLevel(wrapper);
+      if (level === null) return null;
       const key = PRODUCTION_BUILDING_MAP[buildingId];
-      if (!key) return;
-      const level = Math.max(0, Math.round(parseNumber(wrapper.querySelector('.buildingLevel')?.textContent)));
-      buildings[key] = level;
-      if (buildingId === 18) {
+      if (!key) continue;
+      const previous = Number(buildings[key] || 0);
+      buildings[key] = Math.max(previous, level);
+      if (buildingId === 18 && (embassyLocation === null || level > previous)) {
         embassyLocation = elementClassNumber(wrapper, /buildingLocation(\d+)/i) ?? elementClassNumber(wrapper.querySelector('.buildingStatusButton'), /location_(\d+)/i);
       }
-    });
+    }
+    if (buildings.embassy > 0 && !embassyLocation) return null;
     Object.values(PRODUCTION_BUILDING_MAP).forEach(key => {
       if (!Object.hasOwn(buildings, key)) buildings[key] = 0;
     });
@@ -459,12 +505,12 @@
       const type = elementClassNumber(status, /type_(\d+)/i);
       const resource = RESOURCE_TYPE_MAP[type];
       if (!resource) return;
-      const levelNode = wrapper.querySelector('.buildingLevel');
-      if (!levelNode) return;
+      const level = readCompletedBuildingLevel(wrapper);
+      if (level === null) return;
       seenLocations.add(location);
       fields[resource].push({
         location,
-        level: Math.max(0, Math.round(parseNumber(levelNode.textContent)))
+        level
       });
     });
     RESOURCE_KEYS.forEach(resource => fields[resource].sort((a, b) => a.location - b.location));
@@ -513,65 +559,74 @@
     if (isScanning) return;
     const token = ++scanToken;
     const identity = currentVillageIdentity();
-    if (!identity.villageName) {
+    if (!identity.villageName || !identity.villageId) {
       showError('APES could not identify the active village. Close the village dropdown and try again.');
       return;
     }
     hideError();
     setScanBusy(true);
     showScanLock();
+    window.dispatchEvent(new CustomEvent('apes_resource_upgrade_scan_started', { detail: identity }));
     const warnings = [];
     const speedInfo = applyDetectedWorldSpeed();
+    const scannedOases = Array.from({ length: 3 }, () => normalizeOasis(null));
     try {
       setScanStatus(`Opening ${identity.villageName}…`);
       navigateTo(villageRoute('village', identity.villageId));
       const village = await waitForStableRead(readVillageBuildings, value => Boolean(value), token);
       if (!village) throw new Error('The village building view did not finish loading.');
-      state.buildings = {
-        ...state.buildings,
-        ...village.buildings
-      };
       if (village.embassyLocation && village.buildings.embassy > 0) {
         setScanStatus('Checking Embassy oasis assignments…');
         navigateTo(villageRoute('village', identity.villageId, [`location:${village.embassyLocation}`, 'window:building', 'tab:Oases']));
         const oasisResult = await waitForStableRead(() => readAssignedOases(identity.villageName, identity.villageId), value => value?.ready === true, token);
         if (oasisResult) {
-          state.oases = Array.from({
-            length: 3
-          }, (_, index) => oasisResult.oases[index] || normalizeOasis(null));
+          oasisResult.oases.forEach((oasis, index) => {
+            if (index < scannedOases.length) scannedOases[index] = oasis;
+          });
         } else {
           warnings.push('Embassy oases could not be read');
+          // Preserve the last known oasis assignments if that part of the
+          // scan times out, rather than silently clearing their production.
+          state.oases.forEach((oasis, index) => { scannedOases[index] = clone(oasis); });
         }
-      } else {
-        state.buildings.embassy = 0;
-        state.oases = Array.from({
-          length: 3
-        }, () => normalizeOasis(null));
       }
       setScanStatus('Reading all 18 resource fields…');
       navigateTo(villageRoute('resources', identity.villageId));
       const resourceResult = await waitForStableRead(readResourceFields, value => value?.ready === true, token);
       if (!resourceResult) throw new Error('APES could not read all 18 resource fields.');
+      if (!scanIsCurrent(token) || currentVillageIdentity().villageId !== identity.villageId) throw new Error('Village changed during the scan.');
+      // Commit a complete scan together. A later failure must not leave new
+      // booster levels combined with resource fields from an older scan.
+      state.buildings = { ...state.buildings, ...village.buildings };
+      state.oases = scannedOases;
       const highestLevel = Math.max(...RESOURCE_KEYS.flatMap(resource => resourceResult.fields[resource]));
       if (highestLevel > 12) state.maxLevel = 20;else if (highestLevel > 10 && state.maxLevel < 12) state.maxLevel = 12;
       state.layout = resourceResult.layout;
       state.fields = resourceResult.fields;
+      stateVillageId = identity.villageId;
       stateLoaded = true;
       resultMeta = null;
       await saveState();
       renderInputState();
-      runCalculation();
+      // The scan is complete, but keep the screen locked while saving and
+      // rendering. Only this completed snapshot may calculate during a scan.
+      calculateAndRender();
       setInputSectionsCollapsed(true);
       const annexed = state.oases.filter(oasis => oasis.state === 'annexed').length;
       const suffix = warnings.length ? ` (${warnings.join('; ')}.)` : '';
       const speedText = speedInfo.detected ? `x${state.speed} world detected from ${speedInfo.source}` : `x${state.speed} world`;
       setScanStatus(`Scanned ${identity.villageName}: ${state.layout}, 18 fields, ${annexed} assigned oasis${annexed === 1 ? '' : 'es'}, ${speedText}.${suffix}`, warnings.length ? 'warning' : 'success');
+      window.dispatchEvent(new CustomEvent('apes_resource_upgrade_scan_completed', {
+        detail: { ...identity, state: clone(state), scannedAt: Date.now() }
+      }));
+      return true;
     } catch (error) {
       if (scanIsCurrent(token)) {
         const message = error?.message || String(error);
         showError(message);
         setScanStatus(message, 'error');
       }
+      return false;
     } finally {
       if (token === scanToken) {
         setScanBusy(false);
@@ -637,6 +692,22 @@
     return candidates;
   }
   function applyCandidate(current, candidate) {
+    if (candidate.kind === 'building') {
+      const building = BUILDINGS[candidate.building];
+      if (!building || !building.prerequisite(current)) {
+        throw new Error(`${building?.label || 'Production building'} prerequisites are not met at this step.`);
+      }
+      const fromLevel = Number(current.buildings[candidate.building] || 0);
+      if (candidate.fromLevel !== fromLevel || candidate.toLevel !== fromLevel + 1 || candidate.toLevel > building.max) {
+        throw new Error(`${building.label} must continue from its current level ${fromLevel}.`);
+      }
+    }
+    if (candidate.kind === 'field') {
+      const fromLevel = current.fields[candidate.resource]?.[candidate.index];
+      if (!Number.isInteger(fromLevel) || candidate.fromLevel !== fromLevel || candidate.toLevel !== fromLevel + 1 || candidate.toLevel > current.maxLevel) {
+        throw new Error('Resource upgrades must continue from the current field level.');
+      }
+    }
     if (candidate.kind === 'field') current.fields[candidate.resource][candidate.index] = candidate.toLevel;
     if (candidate.kind === 'building') current.buildings[candidate.building] = candidate.toLevel;
   }
@@ -677,6 +748,15 @@
     }
     if (current.buildings.bakery > 0 && current.buildings.mill < 5) return 'Bakery requires Grain Mill level 5.';
     return '';
+  }
+  function validatePlan(plan) {
+    if (!plan?.startState || !Array.isArray(plan.results)) throw new Error('The resource plan is missing its starting village state.');
+    const current = normalizeState(clone(plan.startState));
+    for (const row of plan.results) {
+      if (!['field', 'building'].includes(row?.kind)) throw new Error('The resource plan contains an unsupported upgrade.');
+      applyCandidate(current, row);
+    }
+    return true;
   }
   function calculatePlan(input) {
     const current = normalizeState(clone(input));
@@ -884,7 +964,7 @@
     document.head.appendChild(style);
   }
   function iconSvg() {
-    return '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 19h16M6 16v-5M10 16V7M14 16v-3M18 16V4"></path><path d="m5 8 4-4 4 3 6-5"></path></svg>';
+    return '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V9M12 2c-3 3-3 5 0 7 3-2 3-4 0-7zM12 13c-5 0-7-3-7-6 4 0 7 2 7 6zM12 13c5 0 7-3 7-6-4 0-7 2-7 6zM12 19c-5 0-7-3-7-6 4 0 7 2 7 6zM12 19c5 0 7-3 7-6-4 0-7 2-7 6z"/></svg>';
   }
   function renderFields() {
     const panel = document.getElementById(PANEL_ID);
@@ -1197,7 +1277,20 @@
     panel?.querySelectorAll('[data-tab]').forEach(button => button.classList.toggle('active', button.dataset.tab === tab));
     panel?.querySelectorAll('[data-view]').forEach(view => view.classList.toggle('active', view.dataset.view === tab));
   }
-  function runCalculation() {
+  function hasVillageState() {
+    return Boolean(stateVillageId && stateVillageId === currentVillageIdentity().villageId);
+  }
+  function requireVillageState() {
+    if (isScanning) throw new Error('Wait for the village scan to finish.');
+    if (!hasVillageState()) throw new Error('Scan this village before calculating an upgrade order.');
+  }
+  async function prepareVillage() {
+    const prepare = window.APES_RESOURCE_UPGRADE_VILLAGE_STATES?.prepare;
+    if (prepare) return prepare({ retry: true });
+    if (!hasVillageState()) return scanCurrentVillage();
+    return true;
+  }
+  function calculateAndRender() {
     hideError();
     try {
       resultMeta = calculatePlan(state);
@@ -1207,10 +1300,21 @@
       showError(error?.message || String(error));
     }
   }
+  async function runCalculation() {
+    if (isScanning) return;
+    try {
+      await prepareVillage();
+      requireVillageState();
+      calculateAndRender();
+    } catch (error) {
+      showError(error?.message || String(error));
+    }
+  }
   function resetState() {
     state = normalizeState(null);
     stateLoaded = true;
     resultMeta = null;
+    stateVillageId = '';
     void saveState();
     renderInputState();
     setInputSectionsCollapsed(false);
@@ -1292,6 +1396,8 @@
     APES?.ui?.closeOtherTools?.(FEATURE_KEY);
     panel.classList.add('qol-open');
     panel.setAttribute('aria-hidden', 'false');
+    await prepareVillage();
+    if (hasVillageState() && !isScanning) calculateAndRender();
   }
   function closePanel() {
     const panel = document.getElementById(PANEL_ID);
@@ -1326,10 +1432,16 @@
     open: openPanel,
     close: closePanel,
     scan: scanCurrentVillage,
-    calculate: () => calculatePlan(state),
+    calculate: () => { requireVillageState(); return calculatePlan(state); },
+    hasVillageState,
+    isScanning: () => isScanning,
+    validatePlan,
     getState: () => clone(state),
-    setState: async value => {
+    setState: async (value, options = {}) => {
+      await loadState();
       state = normalizeState(value);
+      stateVillageId = options.ready === false ? '' : String(options.villageId || currentVillageIdentity().villageId);
+      resultMeta = null;
       stateLoaded = true;
       await saveState();
       renderInputState();
@@ -1344,3 +1456,4 @@
     once: true
   });else begin();
 })();
+

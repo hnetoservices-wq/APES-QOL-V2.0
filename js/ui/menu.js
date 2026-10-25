@@ -72,7 +72,19 @@ const BASIC_FEATURES = [{
   key: 'buildingAlarm',
   name: 'Building Alarm',
   icon: '◷',
-  description: 'Sounds a ding when a construction enters the free five-minute instant-finish window.'
+  description: 'Dings and alerts you at 5 minutes and 5 seconds remaining, just before free instant finish becomes available.'
+}, {
+  id: 'qol-chk-farm-list-loot-percentage',
+  key: 'farmListLootPercentage',
+  name: 'Farm List Loot Percentage',
+  icon: '%',
+  description: 'Shows the percentage of troop carrying capacity filled by loot in farm-raid reports.'
+}, {
+  id: 'qol-chk-chat-links',
+  key: 'chatLinks',
+  name: 'Clickable Chat Links',
+  icon: '↗',
+  description: 'Makes web addresses in in-game conversations clickable and opens them in a new tab.'
 }, {
   id: 'qol-chk-chat-silencer',
   key: 'chatSilencer',
@@ -95,13 +107,13 @@ const BASIC_FEATURES = [{
   id: 'qol-chk-rally-parser',
   key: 'rallyPointParser',
   name: 'Rally Point Scanner',
-  icon: '⚔',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 13-6 3 6-13 6zM4 10l-2 1 2 4 3-1M17 4l2-1 3 6-2 1M11 14v4M11 18l-4 4M11 18l4 4"/></svg>',
   description: 'Scans attacks, sieges, raids, reinforcements and incoming resources from one tabbed window.'
 }, {
   id: 'qol-chk-npc-calc',
   key: 'npcCalculator',
   name: 'NPC Calculator',
-  icon: '◇',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
   description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
 }, {
   id: 'qol-chk-send-troops',
@@ -111,31 +123,37 @@ const BASIC_FEATURES = [{
   description: 'Keeps Continue, Back and Send fixed at the top while preparing multiple troop movements.'
 }];
 const ADVANCED_FEATURES = [{
-  id: 'qol-chk-distance-calculator',
-  key: 'distanceCalculator',
-  name: 'Distance & Arrival Calculator',
-  icon: '↗',
-  description: 'Calculates route distance, travel duration, exact send times and server-time arrival for troops and merchants.'
+  id: 'qol-chk-daily-reminders',
+  key: 'dailyReminders',
+  name: 'Daily Reminders',
+  icon: '🔔',
+  description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
 }, {
   id: 'qol-chk-cp-manager',
   key: 'cpManager',
   name: 'CP Manager',
-  icon: 'CP',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7M15 6h3v3"/></svg>',
   description: 'Scans and plans Culture Points, expansion slots, Town Halls, celebrations and Artworks.'
 }, {
   id: 'qol-chk-report-archive',
   key: 'reportArchive',
   name: 'Report Archive',
-  icon: '▰',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h5l2 3h7a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2zM3 7h18"/></svg>',
   description: 'Preserves important reports in custom folders after the original game reports disappear.'
 }, {
   id: 'qol-chk-watchlist',
   key: 'watchlist',
   name: 'Watchlists',
-  icon: '◎',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></svg>',
   description: 'Saves and organizes players for quick access to profiles, hero data and tracking information.'
 }];
 const KINGDOM_MANAGEMENT_FEATURES = [{
+  id: 'qol-chk-kingdom-management',
+  key: 'kingdomManagement',
+  name: 'Kingdom Management',
+  icon: '♛',
+  description: 'Scans every kingdom ranking, saves statistics snapshots and compares kingdom development.'
+}, {
   id: 'qol-chk-oasis-scanner',
   key: 'oasisScanner',
   name: 'Oasis Scanner',
@@ -153,7 +171,7 @@ const COSMETIC_FEATURES = [{
   key: 'visualTribeSkins',
   name: 'Visual Tribe Skin',
   icon: '♜',
-  description: 'Changes village building artwork to the selected Roman, Teuton or Gaul style without affecting gameplay.'
+  description: 'Choose tribe artwork and toggle the night appearance on or off on any server.'
 }];
 const KEYBINDS = [{
   keys: ['W', 'A', 'S', 'D'],
@@ -244,10 +262,6 @@ const TOOLBAR_ITEMS = [{
   label: 'NPC Calculator',
   key: 'npcCalculator'
 }, {
-  id: 'qol-distance-calc-toggle-btn',
-  label: 'Distance & Arrival Calculator',
-  key: 'distanceCalculator'
-}, {
   id: 'qol-oasis-toggle-btn',
   label: 'Oasis Scanner',
   key: 'oasisScanner'
@@ -263,6 +277,10 @@ const TOOLBAR_ITEMS = [{
   id: 'qol-ss-scanner-toggle-btn',
   label: 'Secret Society Scanner',
   key: 'secretSocietyScanner'
+}, {
+  id: 'qol-kingdom-management-toggle-btn',
+  label: 'Kingdom Management',
+  key: 'kingdomManagement'
 }, {
   id: 'qol-tribe-skins-toggle-btn',
   label: 'Visual Tribe Skin',
@@ -283,7 +301,7 @@ function escapeHtml(value) {
 function featureCardHtml(feature) {
   return `
         <article class="qol-feature-card" data-feature-key="${escapeHtml(feature.key)}">
-            <span class="qol-feature-icon" aria-hidden="true">${escapeHtml(feature.icon)}</span>
+            <span class="qol-feature-icon" aria-hidden="true">${String(feature.icon).startsWith('<svg class="qol-feature-symbol"') ? feature.icon : escapeHtml(feature.icon)}</span>
             <div class="qol-feature-copy">
                 <h3 class="qol-feature-name">${escapeHtml(feature.name)}</h3>
                 <p class="qol-feature-desc">${escapeHtml(feature.description)}</p>
@@ -359,11 +377,11 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-checklist-toggle-btn,
         body.qol-toolbar-collapsed #qol-building-alarm-toggle-btn,
         body.qol-toolbar-collapsed #qol-npc-calc-toggle-btn,
-        body.qol-toolbar-collapsed #qol-distance-calc-toggle-btn,
         body.qol-toolbar-collapsed #qol-oasis-toggle-btn,
         body.qol-toolbar-collapsed #qol-report-archive-toggle,
         body.qol-toolbar-collapsed #qol-cp-toggle-btn,
         body.qol-toolbar-collapsed #qol-ss-scanner-toggle-btn,
+        body.qol-toolbar-collapsed #qol-kingdom-management-toggle-btn,
         body.qol-toolbar-collapsed #qol-tribe-skins-toggle-btn{visibility:hidden!important;opacity:0!important;pointer-events:none!important}
 
         #${QOL_TOOLBAR_DROPDOWN_ID}{position:fixed!important;display:none!important;flex-direction:column!important;min-width:220px!important;max-width:min(300px,88vw)!important;max-height:min(520px,80vh)!important;overflow-y:auto!important;padding:5px!important;border:2px solid var(--qol-border)!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 26px rgba(0,0,0,.38)!important;z-index:1000001!important;font-family:Arial,Helvetica,sans-serif!important;box-sizing:border-box!important}
@@ -379,7 +397,8 @@ function injectQolMenuStyles() {
         #qol-modal{display:flex!important;flex-direction:column!important;width:min(920px,94vw)!important;max-height:min(860px,92vh)!important;margin:0!important;padding:0!important;border:3px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 24px 64px rgba(0,0,0,.52)!important;overflow:hidden!important}
         #qol-modal .qol-modal-header{display:flex!important;align-items:center!important;justify-content:space-between!important;flex:0 0 auto!important;min-height:66px!important;padding:10px 12px 10px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#f8f0df!important}
         #qol-modal .qol-modal-title-group{display:flex!important;align-items:center!important;gap:11px!important;min-width:0!important}
-        #qol-modal .qol-brand-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:40px!important;height:40px!important;border:1px solid rgba(255,255,255,.2)!important;border-radius:8px!important;background:rgba(24,15,8,.24)!important;font-size:23px!important}
+        #qol-modal .qol-brand-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;flex-shrink:0!important;border:0!important;border-radius:0!important;overflow:visible!important;background:transparent!important;box-sizing:border-box!important}
+        #qol-modal .qol-brand-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}
         #qol-modal .qol-title-copy{display:flex!important;flex-direction:column!important;gap:2px!important;min-width:0!important}
         #qol-modal .qol-title-line{display:flex!important;align-items:center!important;gap:8px!important;flex-wrap:wrap!important}
         #qol-modal .qol-modal-title{color:#fffaf0!important;font-size:15px!important;font-weight:700!important}
@@ -455,6 +474,7 @@ function injectQolMenuStyles() {
         #qol-modal .qol-footer-action{display:inline-flex!important;align-items:center!important;justify-content:center!important;min-height:24px!important;padding:3px 9px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#5b472f!important;font-size:9px!important;font-weight:700!important;cursor:pointer!important;user-select:none!important}
         #qol-modal .qol-footer-action:hover,#qol-modal .qol-footer-action:focus-visible{border-color:#765b39!important;background:#eee4d4!important;outline:none!important}
         #qol-modal .qol-thank-you-btn{border-color:var(--qol-accent)!important;color:var(--qol-accent-ink)!important}
+        #qol-modal .qol-check-updates-link{text-decoration:none!important;white-space:nowrap!important}
 
         #qol-modal-overlay .qol-cache-dialog-layer{position:fixed!important;inset:0!important;display:none!important;align-items:center!important;justify-content:center!important;padding:24px!important;background:rgba(18,16,13,.62)!important;z-index:1000002!important}
         #qol-modal-overlay .qol-cache-dialog-layer.qol-open{display:flex!important}
@@ -473,7 +493,7 @@ function injectQolMenuStyles() {
         #qol-modal-overlay .qol-thank-dialog{display:flex!important;flex-direction:column!important;width:min(640px,92vw)!important;max-height:min(720px,84vh)!important;border:2px solid var(--qol-border)!important;border-radius:7px!important;background:#f7f5f0!important;color:#332719!important;box-shadow:0 22px 58px rgba(0,0,0,.52)!important;overflow:hidden!important}
         #qol-modal-overlay .qol-thank-dialog-header{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;flex:0 0 auto!important;min-height:54px!important;padding:9px 11px 9px 14px!important;border-bottom:1px solid var(--qol-accent-outline)!important;background:linear-gradient(to bottom,var(--qol-accent-mid),var(--qol-accent-deep))!important;color:#fffaf0!important}
         #qol-modal-overlay .qol-thank-dialog-title-group{display:flex!important;align-items:center!important;gap:10px!important;min-width:0!important}
-        #qol-modal-overlay .qol-thank-dialog-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:34px!important;height:34px!important;border:1px solid rgba(255,255,255,.22)!important;border-radius:50%!important;background:rgba(24,15,8,.22)!important;color:#fff6e7!important;font-size:20px!important;line-height:1!important}
+        #qol-modal-overlay .qol-thank-dialog-mark{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:40px!important;height:40px!important;flex-shrink:0!important;border:0!important;border-radius:0!important;background:transparent!important;overflow:visible!important}#qol-modal-overlay .qol-thank-dialog-mark img{display:block!important;width:100%!important;height:100%!important;object-fit:contain!important}
         #qol-modal-overlay .qol-thank-dialog-title{margin:0!important;color:#fffaf0!important;font-size:15px!important;font-weight:700!important;line-height:20px!important}
         #qol-modal-overlay .qol-thank-dialog-subtitle{display:block!important;margin-top:1px!important;color:#d9ccb5!important;font-size:9px!important;line-height:13px!important}
         #qol-modal-overlay .qol-thank-dialog-x{display:inline-flex!important;align-items:center!important;justify-content:center!important;width:29px!important;height:29px!important;border-radius:5px!important;background:rgba(0,0,0,.2)!important;color:#fff!important;font-size:22px!important;font-weight:bold!important;cursor:pointer!important;user-select:none!important}
@@ -843,7 +863,7 @@ function buildSettingsMarkup() {
         <div id="qol-modal" role="dialog" aria-modal="true" aria-labelledby="qol-menu-title">
             <div class="qol-modal-header">
                 <div class="qol-modal-title-group">
-                    <span class="qol-brand-mark" aria-hidden="true">🦧</span>
+                    <span class="qol-brand-mark" aria-hidden="true"><img src="${chrome.runtime.getURL('images/apege.png')}" alt=""></span>
                     <div class="qol-title-copy">
                         <div class="qol-title-line">
                             <span class="qol-modal-title" id="qol-menu-title">APES QoL Settings</span>
@@ -909,6 +929,7 @@ function buildSettingsMarkup() {
                     <div class="qol-footer-actions">
                         <div class="qol-footer-action qol-clear-cache-btn" role="button" tabindex="0">Manage Storage</div>
                         <div class="qol-footer-action qol-thank-you-btn" role="button" tabindex="0" aria-haspopup="dialog">♡ Thank You</div>
+                        <a class="qol-footer-action qol-check-updates-link" href="https://chromewebstore.google.com/detail/apes-qol-20-beta/fdlfjnpobgajblbcimfpcmajhodphifi" target="_blank" rel="noopener noreferrer" title="Open APES QoL on the Chrome Web Store in a new tab">Check for Updates</a>
                     </div>
                 </div>
                 <span class="qol-footer-hint">Press Esc or click outside to close</span>
@@ -937,7 +958,7 @@ function buildSettingsMarkup() {
             <div class="qol-thank-dialog" role="dialog" aria-modal="true" aria-labelledby="qol-thank-dialog-title">
                 <div class="qol-thank-dialog-header">
                     <div class="qol-thank-dialog-title-group">
-                        <span class="qol-thank-dialog-mark" aria-hidden="true">♡</span>
+                        <span class="qol-thank-dialog-mark" aria-hidden="true"><img src="${chrome.runtime.getURL('images/apepehappy.webp')}" alt=""></span>
                         <div>
                             <h2 class="qol-thank-dialog-title" id="qol-thank-dialog-title">Enjoying APES QoL?</h2>
                             <span class="qol-thank-dialog-subtitle">A message from Restos</span>
@@ -954,10 +975,10 @@ function buildSettingsMarkup() {
                     <h3 class="qol-thank-heading">Thanks</h3>
                     <p>A big thank-you to every Ape, marsupial, and monkey in APES. My time in this game has been far more enjoyable because you were part of it.</p>
                     <p>Special thanks to Requinte, Charito, Ruben, Dino, Siren, hypern0ir, and Cookix for keeping me (in)sane through all the crazy times I’ve gone through.</p>
-                    <p>Special thanks also go to Tjabz, SirPates, and knupa, who tested the extension, offered suggestions, and reported bugs throughout its developmen</p>
-                    <p class="qol-thank-quote">Above all, I owe my greatest thanks to my wife. When I kept going on and on about how I had a ton of ideas for improving this game, she finally said, “Just do it then. Jesus fucking Christ, shut up about it already. Holy shit. Do it, just fucking do it, leave me alone.” She is an actual saint for putting up with me.</p>
+                    <p>Special thanks also go to Tjabz, SirPates, knupa and Barbara, who tested the extension, offered suggestions, and reported bugs throughout its development.</p>
+                    <p class="qol-thank-quote">Above all, I owe my greatest thanks to my wife. When I kept going on and on about how I had a ton of ideas for improving this game, she finally said, “Just do it then. Jesus fucking Christ, shut up about it already. Holy shit. Do it, just fucking do it, leave me alone.”</p>
                     <p>A huge thank-you also goes to my son, who made sure I took some (forced) breaks while structuring, organizing, and building this extension.</p>
-                    <p>And a big thank-you to a very special someone I never had the chance to meet and whom I miss terribly. You've never made a sound, yet you kept me up every night for over a week. Your tiny weight is the heaviest burden I'll ever carry. I'm a humbler man because of you. Rest easy knowing I will carry you with me forever, in my heart and soul.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
+                    <p>And a big thank you to a very special someone I never had the chance to meet but whom I miss terribly. You've never made a sound, yet you still keep me up at night. Your tiny weight is the heaviest I'll ever carry. I'm a humbler man now. I will carry you with me forever.<span class="qol-thank-tree" role="img" aria-label="Tree">🌳</span></p>
 
                     <p class="qol-thank-contact">To all of you reading this: if you need anything—from just talking to asking me to be a temp king, from life to game related—you can always message me on Discord <span class="qol-thank-contact-handle">@restoss</span>.</p>
                 </div>
@@ -1187,3 +1208,4 @@ if (document.readyState === 'loading') {
 } else {
   initQolUI();
 }
+

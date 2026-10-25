@@ -5,26 +5,40 @@
   const TOOLBAR_BUTTON_ID = 'qol-tribe-skins-toggle-btn';
   const PANEL_ID = 'qol-tribe-skins-panel';
   const SELECTION_KEY = 'apes_visual_tribe_skin_selection_v1';
+  const ARTWORK_KEY = 'apes_visual_tribe_skin_artwork_v1';
+  const NIGHT_KEY = 'apes_visual_tribe_skin_night_v2';
+  const NIGHT_CLASS = 'qol-night-enabled';
+  const DAYLIGHT_KEY = 'apes_visual_tribe_skin_remove_night_v1';
+  const DAYLIGHT_CLASS = 'qol-daylight-enabled';
+  const ARTWORK = Object.freeze({
+    server: { name: 'Server default', mark: '↺' },
+    standard: { name: 'Standard', mark: '☀' },
+    halloween: { name: 'Halloween', mark: '🎃' }
+  });
   const SKINS = Object.freeze({
     roman: {
       name: 'Roman',
       prefix: 'r',
-      mark: 'R'
+      icon: 'tribe_roman_medium_illu'
     },
     teuton: {
       name: 'Teuton',
       prefix: 't',
-      mark: 'T'
+      icon: 'tribe_teuton_medium_illu'
     },
     gaul: {
       name: 'Gaul',
       prefix: 'g',
-      mark: 'G'
+      icon: 'tribe_gaul_medium_illu'
     }
   });
   let observer = null;
   let scheduled = false;
   let sessionSelection = readSelection();
+  let sessionArtwork = readArtwork();
+  let sessionNight = readNight();
+  const imageRequests = new WeakMap();
+  const imageCrossOrigins = new WeakMap();
   function enabled() {
     return typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE_KEY);
   }
@@ -39,13 +53,49 @@
   function getSelection() {
     return sessionSelection;
   }
+  function readArtwork() {
+    try {
+      const saved = localStorage.getItem(ARTWORK_KEY);
+      return Object.hasOwn(ARTWORK, saved) ? saved : 'server';
+    } catch (_) {
+      return 'server';
+    }
+  }
+  function readNight() {
+    try {
+      const saved = localStorage.getItem(NIGHT_KEY);
+      if (saved === 'true' || saved === 'false') return saved === 'true';
+      if (localStorage.getItem(DAYLIGHT_KEY) === 'true') return false;
+    } catch (_) {}
+    return false;
+  }
+  function applyNightOverlay() {
+    document.documentElement.classList.toggle(DAYLIGHT_CLASS, enabled() && !sessionNight);
+    document.documentElement.classList.toggle(NIGHT_CLASS, enabled() && sessionNight);
+  }
+  function saveNight(value) {
+    if (typeof value !== 'boolean') return;
+    sessionNight = value;
+    try { localStorage.setItem(NIGHT_KEY, String(value)); } catch (_) {}
+    applyNightOverlay();
+    refreshUi();
+  }
+  function saveArtwork(choice) {
+    if (!Object.hasOwn(ARTWORK, choice)) return;
+    sessionArtwork = choice;
+    try {
+      localStorage.setItem(ARTWORK_KEY, choice);
+    } catch (_) {}
+    applySelectedSkin(true);
+    refreshUi();
+  }
   function saveSelection(choice) {
     if (!Object.hasOwn(SKINS, choice)) return;
     sessionSelection = choice;
     try {
       localStorage.setItem(SELECTION_KEY, choice);
     } catch (_) {}
-    applySelectedSkin();
+    applySelectedSkin(true);
     refreshUi();
   }
   function cleanUrl(value) {
@@ -60,99 +110,160 @@
   }
   function buildingPath(value) {
     try {
-      return new URL(value, location.href).pathname.match(/\/g(\d+)_([a-z])(\d+)\.png$/i);
+      return new URL(value, location.href).pathname.match(/\/g(\d+)_([rgt])(\d+)\.png$/i);
     } catch (_) {
       return null;
     }
   }
-  function findBuildingLevel(image) {
-    const slotMatch = String(image.id || '').match(/buildingImage(\d+)/i);
-    const slotId = slotMatch?.[1];
-    const nearby = [image, image.parentElement, image.closest('[id*="location" i],[class*="location" i]'), slotId ? document.getElementById('buildingLevel' + slotId) : null, slotId ? document.getElementById('level' + slotId) : null].filter(Boolean);
-    const values = [];
-    nearby.forEach(element => {
-      values.push(element.getAttribute?.('data-level'), element.getAttribute?.('data-building-level'), element.getAttribute?.('aria-label'), element.getAttribute?.('title'));
-      element.querySelectorAll?.('[data-level],[data-building-level],[class*="level" i],[id*="level" i]').forEach(child => {
-        values.push(child.getAttribute('data-level'), child.getAttribute('data-building-level'), child.textContent);
-      });
-    });
-    for (const value of values) {
-      const match = String(value || '').match(/\b(?:level\s*)?([0-9]{1,2})\b/i);
-      if (match) return Number(match[1]);
-    }
-    return null;
-  }
   function originalFor(image) {
-    const current = image.currentSrc || image.src;
+    const current = image.src || image.currentSrc;
     const original = image.dataset.qolTribeSkinOriginal || '';
     const applied = image.dataset.qolTribeSkinApplied || '';
-    if (!original || cleanUrl(current) !== cleanUrl(original) && cleanUrl(current) !== cleanUrl(applied)) {
-      image.dataset.qolTribeSkinOriginal = current;
+    const native = nativeSource(image);
+    if (native && cleanUrl(native) !== cleanUrl(original) || !original ||
+        !native && cleanUrl(current) !== cleanUrl(original) && cleanUrl(current) !== cleanUrl(applied)) {
+      image.dataset.qolTribeSkinOriginal = native || current;
       delete image.dataset.qolTribeSkinApplied;
       delete image.dataset.qolTribeSkinFailed;
-      return current;
+      return native || current;
     }
     return original;
   }
-  function targetFor(image, choice) {
+  function nativeSource(image) {
+    const value = image.getAttribute('ng-src') || image.getAttribute('data-ng-src');
+    if (!value || /[{}]/.test(value)) return '';
+    try {
+      const url = new URL(value, location.href);
+      return /\/layout\/images\/(?:halloween\/)?building\/thumb\/g\d+[\w.-]*\.png$/i.test(url.pathname) ? url.href : '';
+    } catch (_) {
+      return '';
+    }
+  }
+  function targetsFor(image, choice) {
     const skin = SKINS[choice];
-    if (!skin) return '';
     const original = originalFor(image);
-    const match = buildingPath(original);
-    if (!match) return '';
-    const measuredLevel = findBuildingLevel(image);
-    const sourceTier = Number(match[3] || 0);
-    const level = Number.isInteger(measuredLevel) ? measuredLevel : sourceTier;
-    const tier = Math.max(0, Math.min(20, Math.floor(level / 10) * 10));
     const target = new URL(original, location.href);
-    target.pathname = target.pathname.replace(/_([a-z])\d+(\.png)$/i, '_' + skin.prefix + String(tier).padStart(2, '0') + '$2');
+    const path = target.pathname.match(/^(.*\/layout\/images\/)(halloween\/)?building\/thumb\/(g\d+[^/]*\.png)$/i);
+    if (!path) return [];
+    const match = buildingPath(original);
+    let filename = path[3];
+    if (match && skin) {
+      // The game has already selected the building's artwork tier. Change
+      // only its tribe; nearby labels need not describe that image's tier.
+      filename = filename.replace(/_([rgt])(\d+\.png)$/i, '_' + skin.prefix + '$2');
+    }
+    const halloween = sessionArtwork === 'halloween' || sessionArtwork === 'server' && Boolean(path[2]);
     target.search = '';
     target.hash = '';
-    return target.href;
+    target.pathname = path[1] + (halloween ? 'halloween/' : '') + 'building/thumb/' + filename;
+    const candidates = [target.href];
+    // Seasonal sets are partial: keep the requested tribe's regular artwork
+    // when that building has no Halloween variant, then retain the native image.
+    if (halloween) {
+      target.pathname = path[1] + 'building/thumb/' + filename;
+      candidates.push(target.href);
+    }
+    candidates.push(original);
+    return [...new Set(candidates)];
+  }
+  function prepareSkinImage(image) {
+    const value = image.getAttribute('crossorigin');
+    if (!imageCrossOrigins.has(image) || value !== null) imageCrossOrigins.set(image, value);
+    if (value === null) return false;
+    // An empty crossorigin attribute still requests CORS access. These CDN
+    // images need only be displayed, and may not send CORS permission headers.
+    image.removeAttribute('crossorigin');
+    return true;
+  }
+  function restoreCrossOrigin(image) {
+    if (!imageCrossOrigins.has(image)) return;
+    const value = imageCrossOrigins.get(image);
+    imageCrossOrigins.delete(image);
+    if (value === null) image.removeAttribute('crossorigin');
+    else image.setAttribute('crossorigin', value);
   }
   function restoreImage(image) {
-    const original = image.dataset.qolTribeSkinOriginal;
-    if (!original) return;
+    imageRequests.delete(image);
+    const original = nativeSource(image) || image.dataset.qolTribeSkinOriginal;
+    if (!original) {
+      restoreCrossOrigin(image);
+      return;
+    }
+    image.dataset.qolTribeSkinOriginal = original;
     delete image.dataset.qolTribeSkinApplied;
     delete image.dataset.qolTribeSkinFailed;
     if (cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
+    restoreCrossOrigin(image);
   }
   function restoreOriginalSkins() {
     document.querySelectorAll('img[data-qol-tribe-skin-original]').forEach(restoreImage);
   }
-  function applyToImage(image, choice) {
-    const target = targetFor(image, choice);
-    if (!target) return;
-    const failed = image.dataset.qolTribeSkinFailed;
-    if (failed && cleanUrl(failed) === cleanUrl(target)) return;
-    if (cleanUrl(image.src) === cleanUrl(target)) {
+  function applyToImage(image, choice, force) {
+    const candidates = targetsFor(image, choice);
+    if (!candidates.length) return;
+    const original = image.dataset.qolTribeSkinOriginal;
+    if (imageCrossOrigins.has(image) || candidates.some(target => cleanUrl(target) !== cleanUrl(original))) {
+      // Reapply if the game reinstated crossorigin on a previously loaded skin.
+      if (prepareSkinImage(image)) force = true;
+    }
+    const key = candidates.join('\n');
+    const previous = imageRequests.get(image);
+    if (!force && previous?.key === key && previous.original === original &&
+        cleanUrl(image.src) === cleanUrl(previous.target)) return;
+    const request = { key, original, index: 0 };
+    imageRequests.set(image, request);
+    const currentRequest = () => imageRequests.get(image) === request && enabled() && image.isConnected &&
+      (!nativeSource(image) || cleanUrl(nativeSource(image)) === cleanUrl(original));
+    const apply = () => {
+      if (!currentRequest()) return;
+      const target = candidates[request.index];
+      if (!target) return;
+      request.target = target;
       image.dataset.qolTribeSkinApplied = target;
+      if (cleanUrl(image.src) !== cleanUrl(target)) image.src = target;
+    };
+    request.retry = apply;
+    delete image.dataset.qolTribeSkinFailed;
+    // Load the actual village image immediately. A separate preload can hang
+    // or fail independently and must not block the user's selection.
+    apply();
+  }
+  // Missing seasonal artwork falls back to this tribe's standard image,
+  // then to the native image. Each candidate is attempted once per selection.
+  document.addEventListener('error', event => {
+    const image = event.target;
+    if (!(image instanceof HTMLImageElement)) return;
+    const request = imageRequests.get(image);
+    if (!request?.target || !enabled() || !image.isConnected || image.complete === false ||
+        cleanUrl(image.src) !== cleanUrl(request.target) ||
+        cleanUrl(request.target) === cleanUrl(request.original)) return;
+    const native = nativeSource(image);
+    if (native && cleanUrl(native) !== cleanUrl(request.original)) {
+      imageRequests.delete(image);
+      applySelectedSkin();
       return;
     }
-    const original = image.dataset.qolTribeSkinOriginal;
-    const fallback = () => {
-      image.dataset.qolTribeSkinFailed = target;
-      delete image.dataset.qolTribeSkinApplied;
-      if (original && cleanUrl(image.src) !== cleanUrl(original)) image.src = original;
-    };
-    image.addEventListener('error', fallback, {
-      once: true
-    });
-    image.dataset.qolTribeSkinApplied = target;
-    image.src = target;
-  }
-  function applySelectedSkin() {
+    if (imageCrossOrigins.has(image) && image.getAttribute('crossorigin') !== null) {
+      applyToImage(image, getSelection(), true);
+      return;
+    }
+    image.dataset.qolTribeSkinFailed = request.target;
+    request.index++;
+    request.retry();
+  }, true);
+  function applySelectedSkin(force = false) {
+    applyNightOverlay();
     if (!enabled()) {
       restoreOriginalSkins();
       return;
     }
     const choice = getSelection();
-    if (!choice) {
+    if (!choice && sessionArtwork === 'server') {
       restoreOriginalSkins();
       return;
     }
-    document.querySelectorAll('img.location[src*="/layout/images/building/thumb/"]').forEach(image => {
-      applyToImage(image, choice);
+    document.querySelectorAll('img.location[src*="/building/thumb/"]').forEach(image => {
+      applyToImage(image, choice, force);
     });
   }
   function refreshUi() {
@@ -164,15 +275,54 @@
       control.classList.toggle('qol-active', active);
       control.setAttribute('aria-pressed', String(active));
     });
+    const displayedArtwork = sessionArtwork === 'server'
+      ? (document.body?.classList?.contains('halloweenTheme') || document.querySelector?.('img.location[ng-src*="/halloween/"]') ? 'halloween' : 'standard')
+      : sessionArtwork;
+    panel.querySelectorAll('[data-artwork]').forEach(control => {
+      const active = control.dataset.artwork === displayedArtwork;
+      control.classList.toggle('qol-active', active);
+      control.setAttribute('aria-pressed', String(active));
+    });
+    const daylight = panel.querySelector('[data-night-appearance]');
+    if (daylight) {
+      daylight.setAttribute('aria-checked', String(sessionNight));
+      daylight.querySelector('[data-night-status]').textContent = sessionNight ? 'On' : 'Off';
+    }
     const current = panel.querySelector('.qol-tribe-skins-current');
     if (!current) return;
-    current.textContent = selected ? SKINS[selected].name + ' building skin is active.' : 'Choose a tribe to apply its building skin.';
+    const tribe = selected ? SKINS[selected].name : 'Your tribe';
+    current.textContent = tribe + ' · ' + ARTWORK[displayedArtwork].name + ' artwork. Buildings without a Halloween variant use regular artwork.';
   }
   function injectStyles() {
     if (document.getElementById('qol-tribe-skins-styles')) return;
     const style = document.createElement('style');
     style.id = 'qol-tribe-skins-styles';
     style.textContent = `
+            html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeDarkness,
+            html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeBuildingLights,
+            html.${DAYLIGHT_CLASS} .ingameContentContainer #map .mapRobberCampNight{display:none!important}
+            html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrast,
+            html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude,
+            html.${DAYLIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:none!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeDarkness{display:block!important;opacity:.55!important}
+
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeBuildingLights{display:block!important;opacity:1!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeBrightness{filter:brightness(.55) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrast{filter:contrast(1.3) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer .nightModeContrastExclude{filter:contrast(.7) blur(0)!important}
+            html.${NIGHT_CLASS} .ingameContentContainer #map .mapRobberCampNight{display:block!important}
+            #${PANEL_ID} .qol-tribe-skins-night{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:12px!important;padding:9px!important;border:1px solid #b8a487!important;border-radius:4px!important;background:#fffdf8!important;cursor:pointer!important;user-select:none!important}
+            #${PANEL_ID} .qol-tribe-skins-night:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
+            #${PANEL_ID} .qol-tribe-skins-night strong{display:block!important;font-size:10px!important;color:#5f513f!important}
+            #${PANEL_ID} .qol-tribe-skins-night small{display:block!important;font-size:9px!important;color:#89765d!important}
+            #${PANEL_ID} [data-night-status]{color:#5f513f!important;font-size:10px!important;min-width:20px!important;text-align:right!important}
+            #${PANEL_ID} .qol-night-toggle{display:flex!important;align-items:center!important;gap:8px!important}
+            #${PANEL_ID} .qol-night-track{display:block!important;position:relative!important;width:38px!important;height:22px!important;border-radius:999px!important;background:#a89d8d!important;flex-shrink:0!important;transition:background .15s!important}
+            #${PANEL_ID} .qol-night-thumb{position:absolute!important;left:3px!important;top:3px!important;width:16px!important;height:16px!important;border-radius:50%!important;background:#fff!important;box-shadow:0 1px 3px rgba(0,0,0,.25)!important;transition:transform .15s!important}
+            #${PANEL_ID} [aria-checked="true"] .qol-night-track{background:#5f941f!important}
+            #${PANEL_ID} [aria-checked="true"] .qol-night-thumb{transform:translateX(16px)!important}
+            @media(prefers-reduced-motion:reduce){#${PANEL_ID} .qol-night-track,#${PANEL_ID} .qol-night-thumb{transition:none!important}}
+
             #${TOOLBAR_BUTTON_ID}{position:fixed!important;display:none!important;align-items:center!important;justify-content:center!important;width:30px!important;height:30px!important;margin:0!important;padding:0!important;border:2px solid var(--qol-accent)!important;border-radius:50%!important;background:var(--qol-accent-soft)!important;color:var(--qol-accent-ink)!important;box-shadow:0 2px 4px rgba(0,0,0,.22)!important;cursor:pointer!important;user-select:none!important;box-sizing:border-box!important;z-index:9999!important;font:700 17px Arial,Helvetica,sans-serif!important;text-shadow:none!important}
             #${TOOLBAR_BUTTON_ID}:hover{transform:scale(1.08)!important;background:#f7f5f0!important}
             #${PANEL_ID},#${PANEL_ID} *{box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
@@ -185,10 +335,12 @@
             #${PANEL_ID} .qol-tribe-skins-copy{margin:0!important;color:#5f513f!important}
             #${PANEL_ID} .qol-tribe-skins-choice-label{margin:1px 0 -5px!important;color:#5f513f!important;font-size:10px!important;font-weight:700!important;text-transform:uppercase!important;letter-spacing:.4px!important}
             #${PANEL_ID} .qol-tribe-skins-choices{display:grid!important;grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:7px!important}
+            #${PANEL_ID} .qol-tribe-skins-artworks{grid-template-columns:repeat(2,minmax(0,1fr))!important}
             #${PANEL_ID} .qol-tribe-skins-choice{display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:center!important;gap:6px!important;min-width:0!important;min-height:82px!important;padding:9px 5px!important;border:1px solid #9c8668!important;border-radius:4px!important;background:linear-gradient(to bottom,#fff,#f0e7da)!important;color:var(--qol-text-accent)!important;cursor:pointer!important;user-select:none!important;font-size:10px!important;font-weight:700!important;text-align:center!important;box-shadow:0 1px 2px rgba(0,0,0,.12)!important}
             #${PANEL_ID} .qol-tribe-skins-choice:hover{border-color:#6e5435!important;background:#fff6e5!important;transform:translateY(-1px)!important}
             #${PANEL_ID} .qol-tribe-skins-choice:focus-visible{outline:2px solid #b9872d!important;outline-offset:2px!important}
             #${PANEL_ID} .qol-tribe-skins-mark{display:flex!important;align-items:center!important;justify-content:center!important;width:37px!important;height:37px!important;border:2px solid var(--qol-accent-hover)!important;border-radius:50%!important;background:#f8f1e5!important;color:var(--qol-accent-ink)!important;font:700 17px Georgia,serif!important}
+            #${PANEL_ID} .qol-tribe-skins-portrait{display:block!important;width:30px!important;height:30px!important;flex:0 0 30px!important;background-repeat:no-repeat!important}
             #${PANEL_ID} .qol-tribe-skins-choice.qol-active{border-color:#487315!important;background:linear-gradient(to bottom,#7db830,#5f941f)!important;color:#fff!important;box-shadow:0 0 0 1px rgba(72,115,21,.3),0 2px 5px rgba(0,0,0,.2)!important}
             #${PANEL_ID} .qol-tribe-skins-choice.qol-active .qol-tribe-skins-mark{border-color:#fff!important;background:#487315!important;color:#fff!important}
             #${PANEL_ID} .qol-tribe-skins-current{margin:0!important;padding:8px 9px!important;border:1px solid #d6cab8!important;border-radius:3px!important;background:#fff!important;color:#5f513f!important;font-size:9px!important;text-align:center!important}
@@ -235,23 +387,40 @@
                     <div class="qol-tribe-skins-close" data-close role="button" tabindex="0" aria-label="Close">×</div>
                 </div>
                 <div class="qol-tribe-skins-body">
-                    <p class="qol-tribe-skins-copy">Choose which tribe's building artwork you want to use in Village View.</p>
-                    <div class="qol-tribe-skins-choice-label">Building skin</div>
+                    <p class="qol-tribe-skins-copy">Choose your tribe and building artwork for Village View.</p>
+                    <div class="qol-tribe-skins-choice-label">Tribe</div>
                     <div class="qol-tribe-skins-choices">
                         ${Object.entries(SKINS).map(([key, skin]) => `
                             <div class="qol-tribe-skins-choice" data-skin="${key}" role="button" tabindex="0" aria-pressed="false">
-                                <span class="qol-tribe-skins-mark">${skin.mark}</span>
+                                <span class="qol-tribe-skins-mark" aria-hidden="true"><span class="qol-tribe-skins-portrait ${skin.icon}"></span></span>
                                 <span>${skin.name}</span>
                             </div>
                         `).join('')}
+                    </div>
+                    <div class="qol-tribe-skins-choice-label">Artwork</div>
+                    <div class="qol-tribe-skins-choices qol-tribe-skins-artworks">
+                        ${Object.entries(ARTWORK).filter(([key]) => key !== 'server').map(([key, artwork]) => `
+                            <div class="qol-tribe-skins-choice" data-artwork="${key}" role="button" tabindex="0" aria-pressed="false">
+                                <span class="qol-tribe-skins-mark">${artwork.mark}</span>
+                                <span>${artwork.name}</span>
+                            </div>
+                        `).join('')}
+                    </div>
+                    <div class="qol-tribe-skins-night" data-night-appearance role="switch" tabindex="0" aria-checked="false" aria-label="Night mode">
+                        <strong>Night mode</strong>
+                        <span class="qol-night-toggle"><span data-night-status>Off</span><span class="qol-night-track" aria-hidden="true"><span class="qol-night-thumb"></span></span></span>
                     </div>
                     <p class="qol-tribe-skins-current"></p>
                     <p class="qol-tribe-skins-note">Your choice is saved in this browser and applies automatically. No village scan is needed.</p>
                 </div>
             `;
+      activate(panel.querySelector('[data-night-appearance]'), () => saveNight(!sessionNight));
       activate(panel.querySelector('[data-close]'), () => panel.classList.remove('qol-tribe-skins-open'));
       panel.querySelectorAll('[data-skin]').forEach(control => {
         activate(control, () => saveSelection(control.dataset.skin));
+      });
+      panel.querySelectorAll('[data-artwork]').forEach(control => {
+        activate(control, () => saveArtwork(control.dataset.artwork));
       });
       document.body.appendChild(panel);
     }
@@ -282,7 +451,7 @@
       childList: true,
       subtree: true,
       attributes: true,
-      attributeFilter: ['src']
+      attributeFilter: ['src', 'ng-src', 'data-ng-src', 'crossorigin']
     });
   }
   document.addEventListener('keydown', event => {
@@ -297,11 +466,24 @@
       document.getElementById(PANEL_ID)?.classList.remove('qol-tribe-skins-open');
       document.getElementById(PANEL_ID)?.style.setProperty('display', 'none', 'important');
       restoreOriginalSkins();
+      applyNightOverlay();
     }
+  });
+  window.addEventListener('storage', event => {
+    if (event.key !== NIGHT_KEY && event.key !== DAYLIGHT_KEY && event.key !== null) return;
+    sessionNight = readNight();
+    applyNightOverlay();
+    refreshUi();
   });
   window.APES_TRIBE_SKINS = Object.freeze({
     get: getSelection,
     set: saveSelection,
+    getArtwork: () => sessionArtwork,
+    setArtwork: saveArtwork,
+    getNightAppearance: () => sessionNight,
+    setNightAppearance: saveNight,
+    getNightOverlayRemoved: () => !sessionNight,
+    setNightOverlayRemoved: value => { if (typeof value === 'boolean') saveNight(!value); },
     apply: applySelectedSkin,
     restore: restoreOriginalSkins
   });

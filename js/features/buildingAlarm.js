@@ -8,7 +8,8 @@ function initBuildingAlarm() {
   const LEGACY_TOOLBAR_BUTTON_ID = 'qol-building-alarm-toggle-btn';
   const STYLE_ID = 'qol-building-alarm-styles';
   const CLOCK_CLASS = 'qol-building-alarm-native-clock';
-  const WARNING_SECONDS = 5 * 60;
+  const FREE_FINISH_SECONDS = 5 * 60;
+  const WARNING_SECONDS = FREE_FINISH_SECONDS + 5;
   const REFRESH_MS = 500;
   let audioContext = null;
 
@@ -305,7 +306,9 @@ function initBuildingAlarm() {
       const transition = getLevelTransition(alarm);
       const time = ready
         ? `Ready<br>${escapeHtml(formatCountdown(Number(alarm.finishAt) - now))} left`
-        : `In ${escapeHtml(formatCountdown(Number(alarm.alarmAt) - now))}`;
+        : now >= Number(alarm.alarmAt)
+          ? `Free in ${escapeHtml(formatCountdown(Number(alarm.finishAt) - FREE_FINISH_SECONDS - now))}`
+          : `Alarm in ${escapeHtml(formatCountdown(Number(alarm.alarmAt) - now))}`;
       return `
         <div class="qol-building-alarm-hover-row${ready ? ' ready' : ''}" data-alarm-id="${escapeHtml(alarm.id)}">
           <span class="qol-building-alarm-hover-village" data-village-id="${escapeHtml(alarm.villageId)}" title="Open ${escapeHtml(alarm.villageName)}">${escapeHtml(alarm.villageName)}</span>
@@ -323,7 +326,7 @@ function initBuildingAlarm() {
     const alarms = readAlarms()
       .filter(alarm => now < Number(alarm.finishAt))
       .sort((a, b) => Number(a.alarmAt) - Number(b.alarmAt));
-    const readyAlarms = alarms.filter(alarm => alarm.triggered === true || now >= Number(alarm.alarmAt));
+    const readyAlarms = alarms.filter(alarm => now >= Number(alarm.finishAt) - FREE_FINISH_SECONDS);
     const upcomingAlarms = alarms.filter(alarm => !readyAlarms.includes(alarm));
     const text = root.querySelector('.qol-building-alarm-status-text');
     const summary = root.querySelector('.qol-building-alarm-popover-summary');
@@ -335,8 +338,9 @@ function initBuildingAlarm() {
       text.textContent = `${readyAlarms.length} Free Finish${readyAlarms.length === 1 ? '' : 'es'} Ready!`;
     } else if (upcomingAlarms.length) {
       root.classList.add('upcoming');
-      const nextSeconds = Number(upcomingAlarms[0].alarmAt) - now;
-      text.textContent = `1 Free Finish in ${formatHumanCountdown(nextSeconds)}!`;
+      const nextSeconds = Number(upcomingAlarms[0].finishAt) - FREE_FINISH_SECONDS - now;
+      const countdown = nextSeconds <= 5 ? formatCountdown(nextSeconds) : formatHumanCountdown(nextSeconds);
+      text.textContent = `1 Free Finish in ${countdown}!`;
     } else {
       root.classList.add('idle');
       text.textContent = 'No Free Finish Ready';
@@ -405,7 +409,7 @@ function initBuildingAlarm() {
       clock.setAttribute('aria-label', active ? `Remove alarm for ${construction.buildingName}` : `Set alarm for ${construction.buildingName}`);
       clock.title = active
         ? `Alarm set for ${construction.buildingName} — click to remove`
-        : `Set alarm for ${construction.buildingName} five minutes before completion`;
+        : `Set alarm for ${construction.buildingName} at 5 minutes and 5 seconds remaining`;
     });
   }
 
@@ -430,6 +434,11 @@ function initBuildingAlarm() {
         changed = true;
         return;
       }
+      const alarmAt = Number(alarm.finishAt) - WARNING_SECONDS;
+      if (Number.isFinite(alarmAt) && Number(alarm.alarmAt) !== alarmAt) {
+        alarm.alarmAt = alarmAt;
+        changed = true;
+      }
       if (now >= Number(alarm.alarmAt) && alarm.triggered !== true) {
         playDing();
         alarm.triggered = true;
@@ -452,7 +461,7 @@ function initBuildingAlarm() {
       const matches = String(alarm.villageId || '') === String(captured.villageId || '')
         && Number(alarm.finishAt) === Number(captured.finishAt);
       if (!matches) return true;
-      if (onlyIfReady && now < Number(alarm.alarmAt)) return true;
+      if (onlyIfReady && now < Number(alarm.finishAt) - FREE_FINISH_SECONDS) return true;
       return false;
     });
     if (remaining.length !== alarms.length) {

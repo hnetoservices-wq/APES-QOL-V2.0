@@ -14,7 +14,6 @@
   });
   const FALLBACK_KEY = `apes_resource_upgrade_village_states_v1_${location.hostname}`;
   const SYNC_INTERVAL_MS = 650;
-  const SCAN_WATCH_MS = 220;
   const MIN_WIDTH = 460;
   const MIN_HEIGHT = 320;
   const DEFAULT_WIDTH = 780;
@@ -30,8 +29,9 @@
   let appliedVillageId = '';
   let appliedHasSavedState = false;
   let restoreBusy = false;
-  let pendingScan = null;
-  let scanWatchTimer = null;
+  let restorePromise = null;
+  let preparationPromise = null;
+  let autoScanVillageId = '';
   let lastSavedFingerprint = '';
   let geometrySaveTimer = null;
   let resizeObserver = null;
@@ -213,14 +213,22 @@
     status.dataset.tone = 'neutral';
   }
   function ensureCurrentVillageResults() {
-    if (!panelIsOpen() || !appliedHasSavedState) return;
+    if (!panelIsOpen() || !appliedHasSavedState || restoreBusy || preparationPromise || plannerApi()?.isScanning?.() || !plannerApi()?.hasVillageState?.()) return;
     const results = panel()?.querySelector('[data-results]');
     if (results?.classList.contains('show')) return;
+    // A failed or invalid plan must not be recalculated on every DOM update.
+    // The user can correct the inputs and press Calculate again explicitly.
+    if (panel()?.querySelector('[data-error].show')) return;
     const keepRoadmap = roadmapWasActive();
     if (clickCalculate()) restoreRoadmapTab(keepRoadmap);
   }
-  async function restoreActiveVillage(force = false) {
-    if (restoreBusy) return;
+  function restoreActiveVillage(force = false) {
+    if (restorePromise) return restorePromise;
+    if (plannerApi()?.isScanning?.()) return Promise.resolve();
+    restorePromise = restoreVillage(force).finally(() => { restorePromise = null; });
+    return restorePromise;
+  }
+  async function restoreVillage(force) {
     const api = plannerApi();
     if (!api) return;
     const identity = currentVillageIdentity();
@@ -232,10 +240,11 @@
     restoreBusy = true;
     try {
       await loadStore();
+      if (currentVillageIdentity().villageId !== identity.villageId || api.isScanning?.()) return;
       const entry = villageStore.villages[villageKey(identity.villageId)] || null;
       const keepRoadmap = roadmapWasActive();
       if (entry?.state) {
-        await api.setState(clone(entry.state));
+        await api.setState(clone(entry.state), { villageId: identity.villageId });
         appliedHasSavedState = true;
         lastSavedFingerprint = JSON.stringify(entry.state);
         if (panel()) {
@@ -244,7 +253,7 @@
           updateLoadedStatus(entry, identity);
         }
       } else {
-        await api.setState(blankStateFrom(api.getState?.()));
+        await api.setState(blankStateFrom(api.getState?.()), { ready: false });
         appliedHasSavedState = false;
         lastSavedFingerprint = '';
         hideResultsForUnscannedVillage();
@@ -282,42 +291,27 @@
       }
     }));
   }
-  function stopScanWatch() {
-    if (scanWatchTimer !== null) window.clearInterval(scanWatchTimer);
-    scanWatchTimer = null;
+  function prepareActiveVillage(options = {}) {
+    if (preparationPromise) return preparationPromise;
+    preparationPromise = (async () => {
+      const api = plannerApi();
+      if (!api || api.isScanning?.()) return false;
+      await restoreActiveVillage(appliedHasSavedState && !api.hasVillageState?.());
+      const identity = currentVillageIdentity();
+      if (api.hasVillageState?.()) return true;
+      if (!panelIsOpen() || !identity.villageId || window.isQolEnabled(FEATURE_KEY) !== true) return false;
+      if (!options.retry && autoScanVillageId === identity.villageId) return false;
+      autoScanVillageId = identity.villageId;
+      return api.scan();
+    })().finally(() => { preparationPromise = null; });
+    return preparationPromise;
   }
-  function startScanWatch(identity) {
-    stopScanWatch();
-    pendingScan = {
-      villageId: identity.villageId,
-      villageName: identity.villageName,
-      startedAt: Date.now()
-    };
-    scanWatchTimer = window.setInterval(async () => {
-      if (!pendingScan) {
-        stopScanWatch();
-        return;
-      }
-      const status = panel()?.querySelector('[data-scan-status]');
-      const scanControl = panel()?.querySelector('[data-action="scan"]');
-      const busy = scanControl?.classList.contains('qol-disabled') || scanControl?.getAttribute('aria-disabled') === 'true';
-      const tone = String(status?.dataset?.tone || '');
-      const text = String(status?.textContent || '').trim();
-      if (tone === 'error' && !busy) {
-        pendingScan = null;
-        stopScanWatch();
-        return;
-      }
-      if (busy || tone !== 'success' || !/^Scanned\s+/i.test(text)) return;
-      const scanned = pendingScan;
-      pendingScan = null;
-      stopScanWatch();
-      const scannedState = plannerApi()?.getState?.();
-      if (scannedState) await saveVillageState(scanned, scannedState, Date.now());
-    }, SCAN_WATCH_MS);
-  }
+  window.addEventListener('apes_resource_upgrade_scan_completed', event => {
+    const detail = event.detail;
+    if (detail?.villageId && detail.state) void saveVillageState(detail, detail.state, detail.scannedAt);
+  });
   async function persistCurrentVillageEdits() {
-    if (restoreBusy || pendingScan) return;
+    if (restoreBusy || preparationPromise || plannerApi()?.isScanning?.() || !plannerApi()?.hasVillageState?.()) return;
     const identity = currentVillageIdentity();
     if (!identity.villageId || appliedVillageId !== identity.villageId || !appliedHasSavedState) return;
     const state = plannerApi()?.getState?.();
@@ -584,12 +578,6 @@
       resizeObserver.observe(win);
     }
   }
-  function handlePlannerClick(event) {
-    const scanControl = event.target.closest?.(`#${PANEL_ID} [data-action="scan"]`);
-    if (!scanControl) return;
-    const identity = currentVillageIdentity();
-    if (identity.villageId) startScanWatch(identity);
-  }
   function handlePlannerChange(event) {
     const target = event.target;
     if (!target || !panel()?.contains(target)) return;
@@ -600,10 +588,11 @@
   }
   function scheduleRestore(force = false) {
     window.setTimeout(() => {
-      void restoreActiveVillage(force);
+      void restoreActiveVillage(force).then(() => {
+        if (panelIsOpen()) void prepareActiveVillage();
+      });
     }, 0);
   }
-  document.addEventListener('click', handlePlannerClick, true);
   document.addEventListener('change', handlePlannerChange, true);
   window.addEventListener('hashchange', () => scheduleRestore(false));
   window.addEventListener('resize', () => {
@@ -616,26 +605,28 @@
   window.addEventListener('qol_setting_changed', event => {
     if (event.detail?.key === FEATURE_KEY && event.detail.enabled !== false) scheduleRestore(true);
   });
-  const observer = new MutationObserver(() => {
+  // Only watch for the panel's initial insertion. Observing every class and
+  // subtree mutation caused planner rendering (including errors) to schedule
+  // village restoration and calculations again, creating a feedback loop.
+  // Village changes are handled by hashchange and the existing 650ms sync.
+  const observer = new MutationObserver(records => {
+    if (!records.some(record => Array.from(record.addedNodes || []).some(
+      node => node.nodeType === Node.ELEMENT_NODE && node.id === PANEL_ID
+    ))) return;
     ensureFloatingWindow();
-    if (!panelIsOpen()) return;
-    scheduleRestore(false);
-    ensureCurrentVillageResults();
   });
-  observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class']
-  });
+  observer.observe(document.body, { childList: true });
   window.setInterval(() => {
     ensureFloatingWindow();
     const identity = currentVillageIdentity();
     if (!identity.villageId) return;
-    if (identity.villageId !== appliedVillageId) void restoreActiveVillage(false);else ensureCurrentVillageResults();
+    if (panelIsOpen()) void prepareActiveVillage();
+    else if (identity.villageId !== appliedVillageId) void restoreActiveVillage(false);
+    ensureCurrentVillageResults();
   }, SYNC_INTERVAL_MS);
   loadStore().then(() => scheduleRestore(true));
   window.APES_RESOURCE_UPGRADE_VILLAGE_STATES = Object.freeze({
+    prepare: prepareActiveVillage,
     get: async villageId => {
       await loadStore();
       const entry = villageStore.villages[villageKey(villageId)];
@@ -652,3 +643,4 @@
     }
   });
 })();
+

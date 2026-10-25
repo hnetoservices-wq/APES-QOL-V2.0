@@ -81,7 +81,7 @@
 
     if (maxLevel !== Number(current.maxLevel)) {
       try {
-        await api.setState({ ...current, maxLevel });
+        await api.setState({ ...current, maxLevel }, { ready: api.hasVillageState?.() === true, villageId });
       } catch (error) {
         console.warn('[APES Resource Planner] Could not apply detected village type.', error);
       }
@@ -100,11 +100,7 @@
     window.setTimeout(applyDetectedSettlementType, 0);
   }
 
-  document.addEventListener('click', event => {
-    const button = event.target?.closest?.(`#${PANEL_ID} [data-action="scan"]`);
-    if (!button) return;
-    beginScanDetection();
-  }, true);
+  window.addEventListener('apes_resource_upgrade_scan_started', beginScanDetection);
 
   // The scanner briefly navigates to the village building view before reading
   // the resource fields. Detect isTown during that window and update the
@@ -129,3 +125,4 @@
     lastDetected = null;
   }, 90);
 })();
+

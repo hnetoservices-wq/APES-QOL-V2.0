@@ -184,6 +184,23 @@
     font-weight:800 !important;
 }
 
+/* Feature symbols can inherit dark stroke=currentColor from game styles.
+   Apply the palette color to each SVG shape, not only the SVG root. */
+#apes-v2-command-overlay .apes-v2-radial-icon{
+    color:#fff3cf !important;
+}
+#apes-v2-command-overlay .apes-v2-radial-icon svg,
+#apes-v2-command-overlay .apes-v2-radial-icon svg :not(text):not(tspan){
+    color:#fff3cf !important;
+    stroke:#fff3cf !important;
+    fill:none !important;
+}
+#apes-v2-command-overlay .apes-v2-radial-icon svg text,
+#apes-v2-command-overlay .apes-v2-radial-icon svg tspan{
+    fill:#fff3cf !important;
+    stroke:none !important;
+}
+
 .apes-v2-radial-label{
     max-width:104px !important;
     margin-top:6px !important;

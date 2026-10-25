@@ -50,8 +50,7 @@
   overflow:auto!important;
 }
 #apes-v2-village-overlay .apes-aoc-tool-host:has(#qol-cp-manager-panel){position:relative!important}
-#qol-cp-planner-panel.apes-aoc-embedded-subtool,
-#qol-cp-trade-planner-panel.apes-aoc-embedded-subtool{
+#qol-cp-planner-panel.apes-aoc-embedded-subtool{
   width:100%!important;
   min-width:0!important;
   max-width:none!important;
@@ -66,8 +65,7 @@
   resize:none!important;
   overflow:hidden!important;
 }
-#qol-cp-planner-panel.apes-aoc-embedded-subtool>.qol-cp-planner-body,
-#qol-cp-trade-planner-panel.apes-aoc-embedded-subtool>.qol-cp-trade-body{
+#qol-cp-planner-panel.apes-aoc-embedded-subtool>.qol-cp-planner-body{
   flex:1 1 auto!important;
   min-height:0!important;
   overflow:auto!important;
@@ -118,3 +116,4 @@
 
 /* Keep standalone behavior untouched: these overrides only apply while the adapter
    has added the embedded classes above. */
+

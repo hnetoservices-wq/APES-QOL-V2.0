@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.139",
+  "version": "2.0.0.180",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -14,6 +14,10 @@
       ],
       "js": [
         "js/core/playerIdentityBridge.js",
+        "js/modules/igm/roomIdBridge.js",
+        "js/modules/resourceUpgradePlanner/worldSpeedBridge.js",
+        "js/modules/visualTribeSkins/nightOverlayBridge.js",
+        "js/features/cpVillageSource.js",
         "js/modules/villageDashboard/bridge.js",
         "js/modules/villageDashboard/researchBridge.js",
         "js/modules/oasisScanner/networkBridge.js"
@@ -42,15 +46,18 @@
         "js/features/oasisScanner.js",
         "js/modules/oasisScanner/csvInterop.js",
         "js/features/rallyPointEnhancer.js",
+        "js/modules/igm/conversationIdentity.js",
         "js/features/igmEnhancer.js",
         "js/modules/igm/autoSort.js",
         "js/modules/igm/messageCenter.js",
         "js/features/sendButtonsEnhancer.js",
         "js/features/chatSilencer.js",
+        "js/features/chatLinks.js",
         "js/features/incomingResources.js",
         "js/features/watchlist.js",
         "js/modules/watchlist/highlights.js",
         "js/features/reportArchive.js",
+        "js/features/farmListLootPercentage.js",
         "js/modules/reportArchive/layerPriority.js",
         "js/features/checklists.js",
         "js/modules/checklists/customOnly.js",
@@ -81,22 +88,24 @@
         "js/features/resourceUpgradePlanner.js",
         "js/modules/resourceUpgradePlanner/cityDetection.js",
         "js/modules/resourceUpgradePlanner/integration.js",
-        "js/features/distanceCalculator.js",
         "js/features/auctionHouseScanner.js",
+        "js/features/cpVillageNavigator.js",
         "js/features/cpManager.js",
         "js/features/expansionReadinessPlanner.js",
-        "js/features/tradeRouteOptimizer.js",
-        "js/features/tradeRouteTracker.js",
-        "js/modules/tradeRouteTracker/uiSafety.js",
-        "js/modules/tradeRouteTracker/toolbarIntegration.js",
         "js/features/resourceCapacityTimer.js",
         "js/features/visualTribeSkins.js",
+        "js/modules/visualTribeSkins/nightScenes.js",
         "js/features/secretSocietyScanner.js",
         "js/modules/secretSociety/history.js",
+        "js/modules/kingdomManagement/statistics.js",
+        "js/modules/kingdomManagement/history.js",
+        "js/features/kingdomManagement.js",
         "js/features/playerDossier.js",
         "js/features/rallyPointScanner.js",
         "js/modules/rallyPoint/history.js",
         "js/features/buildingAlarm.js",
+        "js/modules/dailyReminders/schedule.js",
+        "js/features/dailyReminders.js",
         "js/features/commandPalette.js",
         "js/modules/villageDashboard/expandedVillageSnapshotGuard.js",
         "js/ui/villagePalette.js",
@@ -108,14 +117,19 @@
         "js/modules/villageDashboard/armySmithyScanner.js",
         "js/modules/villageDashboard/resourceProduction.js",
         "js/modules/villageDashboard/expandedVillageRefinementsSafe.js",
+        "js/modules/villageDashboard/accountOverview.js",
         "js/content.js"
       ],
       "css": [
         "css/style.css",
         "css/features/oasisScanner.css",
+        "css/features/kingdomManagement.css",
+        "css/features/chatLinks.css",
+        "css/features/dailyReminders.css",
         "css/v2.css",
         "css/modules/igm/messageCenter.css",
         "css/modules/villageDashboard/dashboard.css",
+        "css/modules/villageDashboard/accountOverview.css",
         "css/modules/villageDashboard/nextEvents.css",
         "css/modules/villageDashboard/expandedVillageIntel.css",
         "css/modules/villageDashboard/expandedVillageIntelPolish.css",
@@ -135,6 +149,7 @@
         "css/modules/roadmaps/checkpointsAndDetection.css",
         "css/modules/roadmaps/tracking.css",
         "css/helpers/numberInputs.css",
+        "css/helpers/featureIcons.css",
         "css/modules/roadmaps/responsive.css",
         "css/modules/roadmaps/officialIntegration.css",
         "css/modules/roadmaps/officialGuides.css",
@@ -157,5 +172,16 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-beta.1"
+  "version_name": "2.0.0-beta.1",
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "images/apege.png",
+        "images/apepehappy.webp"
+      ],
+      "matches": [
+        "*://*.kingdoms.com/*"
+      ]
+    }
+  ]
 }

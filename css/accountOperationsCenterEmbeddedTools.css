@@ -154,8 +154,7 @@
   height:100%!important;
   overflow:auto!important;
 }
-#apes-v2-village-overlay #qol-cp-planner-panel.apes-aoc-embedded-subtool,
-#apes-v2-village-overlay #qol-cp-trade-planner-panel.apes-aoc-embedded-subtool{
+#apes-v2-village-overlay #qol-cp-planner-panel.apes-aoc-embedded-subtool{
   position:absolute!important;
   inset:0!important;
   left:0!important;
@@ -178,8 +177,7 @@
   overflow:hidden!important;
   z-index:6!important;
 }
-#apes-v2-village-overlay #qol-cp-planner-panel.apes-aoc-embedded-subtool>.qol-cp-planner-body,
-#apes-v2-village-overlay #qol-cp-trade-planner-panel.apes-aoc-embedded-subtool>.qol-cp-trade-body{
+#apes-v2-village-overlay #qol-cp-planner-panel.apes-aoc-embedded-subtool>.qol-cp-planner-body{
   flex:1 1 auto!important;
   min-width:0!important;
   min-height:0!important;
@@ -255,3 +253,4 @@
     grid-template-columns:170px minmax(0,1fr)!important;
   }
 }
+
