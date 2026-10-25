@@ -239,6 +239,7 @@
           ${roadmap.description ? `<p>${escapeHtml(roadmap.description)}</p>` : ''}
         </div>
         <div class="qol-rm-actions">
+          ${roadmap.sourceGuideId ? '<div class="qol-rm-action qol-secondary" data-roadmap-action="open-library" role="button" tabindex="0">View in APES Library</div>' : ''}
           <div class="qol-rm-action qol-secondary" data-roadmap-action="duplicate" role="button" tabindex="0">Duplicate</div>
           ${custom ? '<div class="qol-rm-action qol-secondary" data-roadmap-action="rename" role="button" tabindex="0">Rename</div><div class="qol-rm-action qol-danger" data-roadmap-action="delete" role="button" tabindex="0">Delete</div>' : ''}
         </div>
@@ -415,7 +416,11 @@
   }
 
   function handleAction(action) {
-    if (action === 'duplicate') duplicateSelected();
+    if (action === 'open-library') {
+      const source = getAllRoadmaps()[selectedId]?.sourceGuideId;
+      if (source) window.APES?.library?.select?.(source);
+    }
+    else if (action === 'duplicate') duplicateSelected();
     else if (action === 'rename') renameSelected();
     else if (action === 'delete') deleteSelected();
   }
