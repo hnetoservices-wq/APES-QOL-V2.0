@@ -3,7 +3,7 @@
 
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
   const HUB_ID = 'qol-roadmaps-container';
-  const OFFICIAL_IDS = new Set(['x1_speedsettle', 'x3_speedsettle', 'x1_support_500cp']);
+  const OFFICIAL_IDS = new Set(['x1_speedsettle', 'x2_speedsettle', 'x3_speedsettle', 'x5_speedsettle', 'x1_support_500cp']);
 
   let installed = false;
   let installTimer = null;
@@ -112,6 +112,105 @@
     route.push(checkpoint('x1-speedsettle-relocate', 'Relocate close to your intended settling direction.'));
     route.push(checkpoint('x1-speedsettle-send-settlers', 'Send the Settlers.'));
 
+    return route;
+  }
+
+  function addSpeedsettlingOpening(route, speed) {
+    // Common first ten objectives for x2 and x5, without changing x1/x3.
+    const prefix = speed + '-speedsettle';
+    route.push(instruction(prefix + '-tutorial', 'Finish the tutorial. Do not skip it.'));
+    route.push(checkpoint(prefix + '-queue-five-units', 'Queue 5 units.'));
+    route.push(instruction(prefix + '-first-hideouts', 'Attack the closest hideout repeatedly until it is empty and keep adventuring non-stop. Switch to the second hideout when the first is empty.'));
+
+    addBuildingThrough(route, prefix + '-warehouse', 'Warehouse', 10, 1, 3, { exact: true });
+    addBuildingThrough(route, prefix + '-granary', 'Granary', 11, 1, 3, { exact: true });
+    route.push(building(prefix + '-embassy-lv1', 'Embassy', 18, 1, { exact: true }));
+    route.push(checkpoint(prefix + '-annex-oasis', 'Annex an oasis if possible. Skip this checkpoint if no suitable oasis is available.'));
+    route.push(building(prefix + '-marketplace-lv1', 'Marketplace', 17, 1, { exact: true }));
+    route.push(building(prefix + '-cranny-lv1', 'Cranny', 23, 1, { exact: true, instance: 1 }));
+
+    addResourceThrough(route, prefix + '-crop', 'All Crop Fields', 1, 3);
+    route.push(checkpoint(prefix + '-optional-resource-fields', 'Optional: upgrade all resource fields to Level 2. Do not do this if you plan to demolish the spawn village; Skip this checkpoint instead.'));
+  }
+
+  function addSpeedsettlingSettlerPhase(route, speed, options) {
+    const prefix = speed + '-speedsettle';
+    route.push(instruction(prefix + '-free-quests', 'During the waiting time, complete free quests: change the village name, change hero production, heal the hero, and other available free quests.' +
+      (options.auctionBid ? ' Place an auction bid.' : '')));
+    route.push(instruction(prefix + '-card-games', 'Play card games at this point for an extra adventure point and golden resource/crop chests.'));
+    route.push(checkpoint(prefix + '-residence-five-reward', 'When Residence Level 5 is done, collect the quest reward for Level 10.'));
+    route.push(checkpoint(prefix + '-settler-one', 'Queue the first Settler.'));
+    route.push(checkpoint(prefix + '-settler-two', 'Queue the second Settler using resources from clearing the first two hideouts completely, selling stolen goods (SGs), and completing the 7th adventure.'));
+    route.push(checkpoint(prefix + '-catch-animals', 'Catch animals in a nearby oasis after the 7th adventure for its quest reward. If you have not annexed an oasis, try to annex this one for the additional quest reward.'));
+    route.push(instruction(prefix + '-wait-hideouts-three-four', options.hideoutWait));
+    route.push(checkpoint(prefix + '-clear-hideouts-three-four', 'Use one Settler to empty the third and fourth hideouts. Make sure the Settler does not die in the hideout.'));
+    route.push(checkpoint(prefix + '-settler-three', 'Queue the third Settler. Use a resource or crop chest if necessary.'));
+  }
+
+  function addSpeedsettlingFinalBuildings(route, speed, granaryFrom, granaryThrough) {
+    const prefix = speed + '-speedsettle';
+    addBuildingThrough(route, prefix + '-barracks', 'Barracks', 19, 1, 3, { exact: true });
+    addBuildingThrough(route, prefix + '-academy', 'Academy', 22, 1, 10, { exact: true });
+    route.push(building(prefix + '-town-hall-lv1', 'Town Hall', 24, 1, { exact: true }));
+    route.push(building(prefix + '-workshop-lv1', 'Workshop', 21, 1, { exact: true }));
+    addBuildingThrough(route, prefix + '-granary', 'Granary', 11, granaryFrom, granaryThrough, { exact: true });
+    route.push(checkpoint(prefix + '-remaining-chests', 'Use a resource or crop chest now if you have not already.'));
+    route.push(checkpoint(prefix + '-demolish-workshop', 'Demolish the Workshop. Demolish the Academy or other buildings too if you are short on resources.'));
+    route.push(checkpoint(prefix + '-small-party', 'Start a Small Party.'));
+    route.push(checkpoint(prefix + '-relocate', 'Relocate close to your intended settling direction.'));
+    route.push(checkpoint(prefix + '-send-settlers', 'Send the Settlers.'));
+  }
+
+  function buildX2SpeedsettleRoute() {
+    const route = [];
+    const prefix = 'x2-speedsettle';
+    addSpeedsettlingOpening(route, 'x2');
+
+    // x2 uniquely requires Main Building 7 before the Residence.
+    addBuildingThrough(route, prefix + '-main-building', 'Main Building', 15, 1, 7, { exact: true });
+    route.push(building(prefix + '-residence-lv1', 'Residence', 25, 1, { exact: true }));
+    route.push(checkpoint(prefix + '-gold-bonuses', 'Buy gold and activate Travian Plus, Resource Boost, and Crop Boost.'));
+
+    // x2 needs both Warehouse and Granary Level 5 before Residence Level 5.
+    addBuildingThrough(route, prefix + '-warehouse', 'Warehouse', 10, 4, 5, { exact: true });
+    addBuildingThrough(route, prefix + '-granary', 'Granary', 11, 4, 5, { exact: true });
+    addBuildingThrough(route, prefix + '-residence', 'Residence', 25, 2, 5, { exact: true });
+    addSpeedsettlingSettlerPhase(route, 'x2', {
+      auctionBid: true,
+      hideoutWait: 'Wait for the third and fourth hideouts to spawn, 1h40m after clearing the first and second respectively. Keep adventuring for the possibility of another resource adventure.'
+    });
+
+    addBuildingThrough(route, prefix + '-main-building', 'Main Building', 15, 8, 10, { exact: true });
+    route.push(checkpoint(prefix + '-demolish-residence', 'Demolish the Residence, but only after all Settlers have finished training. Residence demolition takes 2h10min on x2.'));
+
+    addSpeedsettlingFinalBuildings(route, 'x2', 6, 7);
+    return route;
+  }
+
+  function buildX5SpeedsettleRoute() {
+    const route = [];
+    const prefix = 'x5-speedsettle';
+    addSpeedsettlingOpening(route, 'x5');
+
+    // x5 Main Building reaches Level 5 first; warehouse upgrade to Level 5
+    // is intentionally postponed until AFTER Residence demolition.
+    addBuildingThrough(route, prefix + '-main-building', 'Main Building', 15, 1, 5, { exact: true });
+    route.push(building(prefix + '-residence-lv1', 'Residence', 25, 1, { exact: true }));
+    route.push(checkpoint(prefix + '-gold-bonuses', 'Buy gold and activate Travian Plus, Resource Boost, and Crop Boost.'));
+    addBuildingThrough(route, prefix + '-residence', 'Residence', 25, 2, 5, { exact: true });
+    addSpeedsettlingSettlerPhase(route, 'x5', {
+      auctionBid: false,
+      hideoutWait: 'Wait for the third and fourth hideouts to spawn. This takes 1h15m on x5. Keep adventuring for the possibility of another resource adventure.'
+    });
+
+    addBuildingThrough(route, prefix + '-main-building', 'Main Building', 15, 6, 10, { exact: true });
+    route.push(checkpoint(prefix + '-demolish-residence', 'Demolish the Residence, but only after all Settlers have finished training. Residence demolition takes 51 minutes on x5.'));
+
+    // Level 4 fits the rubble; Level 5 unlocks additional quest resources.
+    addBuildingThrough(route, prefix + '-warehouse', 'Warehouse', 10, 4, 5, { exact: true });
+    route.push(checkpoint(prefix + '-warehouse-quest-reward', 'Warehouse Level 4 is sufficient for Residence rubble, but Level 5 fully accommodates it and unlocks an extra quest reward. Collect that reward.'));
+
+    addSpeedsettlingFinalBuildings(route, 'x5', 4, 5);
     return route;
   }
 
@@ -237,6 +336,36 @@
         goal: 'Follow the 36-step x1 Speedsettling guide to send settlers.'
       },
       steps: buildX1SpeedsettleRoute()
+    },
+    x2_speedsettle: {
+      name: 'x2 Speedsettling',
+      description: 'A chronological APES x2 speedsettling route, including 1h40m hideout respawns, a 2h10min Residence demolition and a Small Party before settling.',
+      meta: {
+        official: true,
+        version: '1.0',
+        speed: 'x2',
+        villageType: 'Spawn village',
+        author: 'APES QoL',
+        maintainedBy: 'APES QoL',
+        contributors: [],
+        goal: 'Follow the x2 Speedsettling guide to send three settlers.'
+      },
+      steps: buildX2SpeedsettleRoute()
+    },
+    x5_speedsettle: {
+      name: 'x5 Speedsettling',
+      description: 'A chronological APES x5 speedsettling route, including 1h15m hideout respawns, a 51-minute Residence demolition and Warehouse Level 5 after demolition.',
+      meta: {
+        official: true,
+        version: '1.0',
+        speed: 'x5',
+        villageType: 'Spawn village',
+        author: 'APES QoL',
+        maintainedBy: 'APES QoL',
+        contributors: [],
+        goal: 'Follow the x5 Speedsettling guide to send three settlers.'
+      },
+      steps: buildX5SpeedsettleRoute()
     },
     x3_speedsettle: {
       name: 'x3 Speed Settle',
