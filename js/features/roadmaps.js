@@ -151,6 +151,7 @@
         building: name,
         buildingId: Number.isFinite(Number(step.buildingId)) ? Number(step.buildingId) : null,
         level,
+        ...(step.exact === true ? { exact: true } : {}),
         ...(Number.isInteger(Number(step.instance)) && Number(step.instance) > 0 ? { instance: Number(step.instance) } : {}),
         ...(step.tribeWall === true ? { tribeWall: true } : {})
       };
