@@ -191,7 +191,8 @@
         "images/guides/natar-x3-wonder-of-the-world.png",
         "images/guides/natar-x5-anti-infantry.png",
         "images/guides/natar-x5-anti-cavalry.png",
-        "images/guides/natar-x5-wonder-of-the-world.png"
+        "images/guides/natar-x5-wonder-of-the-world.png",
+        "images/guides/robber-camps-cycle.svg"
       ],
       "matches": [
         "*://*.kingdoms.com/*"
