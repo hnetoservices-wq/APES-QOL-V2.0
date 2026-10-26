@@ -25,12 +25,34 @@
       {id:'support_x1',name:'x1 Support Village — 500 CP/day',roadmapId:'x1_support_500cp'},
       {id:'tk_tools_account',name:'Link TK-Tools Account',referenceId:'tk_tools_account'},
       {id:'travel_time',name:'Calculating Troops Travel Time',referenceId:'travel_time'},
+      {id:'gold_refund',name:'Refunding Gold',referenceId:'gold_refund'},
       {id:'misc_x',name:'x — Coming soon'},
       {id:'misc_y',name:'y — Coming soon'},
       {id:'misc_z',name:'z — Coming soon'}
     ]}
   ]);
   const REFERENCE_GUIDES=Object.freeze({
+    gold_refund:{
+      kind:'gold_refund',
+      title:'Refunding Gold',
+      credit:'Credit to D-T for the original post and for sharing the refund information and support reply.',
+      eligibility:'Travian Games publishes a 14-day withdrawal policy, measured from the day the contract is concluded. D-T reports that you can request a refund for a Gold purchase within 14 days provided your account still holds at least the amount of Gold purchased, because refunded Gold is deducted from your balance. This is practical player guidance, not a guarantee of eligibility or approval.',
+      caution:'Check the current terms for your purchase and act promptly. Whether a purchase is refundable can depend on the purchase channel, applicable law, digital-content exceptions, and whether the Gold was used. The 14-day statement should not be treated as a universal guarantee of a refund.',
+      instructions:[
+        'Verify the purchase date, package, order code, and how the Gold was purchased (browser, Apple App Store, or Google Play).',
+        'If the purchase was made in a browser, open a ticket with Travian Kingdoms support and state that you wish to withdraw from the sale contract.',
+        'Fill in the template below with your own details. Include your payment confirmation or transaction screenshot, with unrelated banking details redacted.',
+        'Keep at least as much Gold on the account as the amount you are requesting back, if you are following the process described by D-T. Support may need to remove that Gold before refunding the payment.',
+        'For mobile app purchases, follow the store-specific requirements in the section below rather than assuming the browser procedure applies.'
+      ],
+      template:'Dear Sir/Madam,\n\nI hereby give notice that I withdraw from our contract of sale of the following goods: [name of Gold pack].\n\nOrdered on: [YYYY-MM-DD, HH:MM:SS]\nName of consumer: [your full name]\nAddress of consumer: [your full address]\nDate: [current date]\nIn-game nickname: [your nickname on the game world where you purchased the Gold]\nServer: [game world where the purchase was made]\nOrder code: [order code from your order history]\nPurchased through the internet browser: [browser used to buy the Gold]\n\nPlease find proof of payment attached.\n\nKind regards,\n[your full name]',
+      platformInfo:[
+        {platform:'Browser purchases',detail:'Travian Kingdoms support asked for a picture of the transaction. Attach the receipt, confirmation, or payment screenshot to your ticket.'},
+        {platform:'Apple App Store (iOS)',detail:'The support reply explains that Travian cannot access App Store payment details and directs buyers to Apple’s “Report a Problem” service in their App Store purchase details to request a refund.'},
+        {platform:'Google Play (Android)',detail:'The support reply requests an invoice showing the Google Play order number, typically beginning with GPA. Find it in the Google Play payment or order details and include it with your ticket.'}
+      ],
+      finalNote:'Do not publish receipts, names, addresses, or transaction details in public chats. Submit them only through the official support or app-store refund process.'
+    },
     travel_time:{
       kind:'travel_time',
       title:'Calculating Troops Travel Time',
@@ -338,7 +360,43 @@
         paragraph(reference.summary)+'</div>'+
     '</div>';
   }
+  function refundGoldArticleHtml(reference){
+    const section=(title,body)=>'<section class="apes-lib-gold-refund-section"><h3>'+escapeHtml(title)+'</h3>'+body+'</section>';
+    const para=text=>'<p>'+escapeHtml(text)+'</p>';
+    const screenshot=(asset,title,alt,width,height)=>
+      '<figure class="apes-lib-gold-refund-evidence">'+
+        '<div class="apes-lib-gold-refund-image-scroll"><img src="'+escapeHtml(assetUrl(asset))+
+        '" alt="'+escapeHtml(alt)+'" width="'+width+'" height="'+height+
+        '" loading="lazy" decoding="async" draggable="false"></div>'+
+        '<figcaption>'+escapeHtml(title)+'</figcaption></figure>';
+    return '<div class="apes-lib-reference-article apes-lib-gold-refund">'+
+      '<p class="apes-lib-gold-refund-credit">'+escapeHtml(reference.credit)+'</p>'+
+      section('14-Day Withdrawal Policy',
+        para(reference.eligibility)+
+        '<div class="apes-lib-reference-warning" role="note"><strong>Important — refund eligibility is not automatic</strong>'+para(reference.caution)+'</div>'+
+        screenshot('images/guides/gold-refund-withdrawal-excerpt.svg','Travian Games withdrawal-policy excerpt — reproduced from the supplied screenshot','Withdrawal policy states a 14-day right to withdraw without giving a reason',666,173)+
+        '<a class="apes-lib-gold-refund-link" href="https://agb.traviangames.com/right-of-withdrawal-en.pdf" target="_blank" rel="noopener noreferrer">Read the published withdrawal policy ↗</a>'
+      )+
+      section('How to Request a Refund',
+        '<ol class="apes-lib-gold-refund-steps">'+reference.instructions.map(item=>
+          '<li>'+escapeHtml(item)+'</li>').join('')+'</ol>'+
+        '<a class="apes-lib-gold-refund-link" href="https://support.kingdoms.com/" target="_blank" rel="noopener noreferrer">Open Travian Kingdoms Support ↗</a>'
+      )+
+      section('Refund Request Template',
+        '<p>Replace every item in square brackets with the details of your own purchase. The following is a template, not a completed request.</p>'+
+        '<pre class="apes-lib-gold-refund-template">'+escapeHtml(reference.template)+'</pre>'
+      )+
+      section('Browser, Apple App Store &amp; Google Play',
+        '<div class="apes-lib-gold-refund-channels">'+reference.platformInfo.map(item=>
+          '<div class="apes-lib-gold-refund-channel"><strong>'+escapeHtml(item.platform)+'</strong>'+
+          para(item.detail)+'</div>').join('')+'</div>'+
+        screenshot('images/guides/gold-refund-support-reply.svg','Travian Kingdoms support reply — reproduced from the supplied screenshot','Support requests a browser transaction image; Apple buyers should use Report a Problem; Google Play buyers need a GPA order invoice',741,306)
+      )+
+      '<div class="apes-lib-gold-refund-privacy" role="note">'+escapeHtml(reference.finalNote)+'</div>'+
+    '</div>';
+  }
   function referenceArticleHtml(reference){
+    if(reference.kind==='gold_refund')return refundGoldArticleHtml(reference);
     if(reference.kind==='travel_time')return travelTimeArticleHtml(reference);
     if(reference.kind==='tk_tools_account')return tkToolsAccountHtml(reference);
     if(reference.kind==='robber_camps')return robberCampArticleHtml(reference);
