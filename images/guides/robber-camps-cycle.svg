@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1120" height="280" viewBox="0 0 1120 280" role="img" aria-labelledby="title desc">
+<title id="title">Robber camp lifecycle</title>
+<desc id="desc">Wilderness tile, preparation fire, active robber camp, and regrowing landscape; cycle repeats.</desc>
+<defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b1daa3"/><stop offset="1" stop-color="#689e5a"/></linearGradient>
+  <linearGradient id="darkTile" x2="0" y2="1"><stop stop-color="#77746c"/><stop offset="1" stop-color="#343734"/></linearGradient>
+  <linearGradient id="water" x2="0" y2="1"><stop stop-color="#75d4e9"/><stop offset="1" stop-color="#2f719c"/></linearGradient>
+  <linearGradient id="fire" x2="0" y2="1"><stop stop-color="#dc4627"/><stop offset=".55" stop-color="#ffad24"/><stop offset="1" stop-color="#fff272"/></linearGradient>
+  <symbol id="tree" viewBox="0 0 28 40"><path d="M11 21h6v18h-6z" fill="#584e36"/><path d="M14 0 2 25h24z" fill="#2c6943"/><path d="M14 5 5 29h18z" fill="#3b8950"/></symbol>
+  <symbol id="seedling" viewBox="0 0 40 40"><path d="M20 40V18" stroke="#3b7b3b" stroke-width="3" fill="none"/><path d="M20 24C4 24 4 9 4 9c15 0 16 15 16 15ZM20 20C36 20 36 5 36 5c-15 0-16 15-16 15Z" fill="#7acb65"/></symbol>
+  <symbol id="tile" viewBox="0 0 240 160"><rect x="0" y="0" width="240" height="160" rx="6" fill="url(#sky)"/><path d="M120 10 233 80 120 151 7 80Z" fill="#c3dba6" stroke="#e1ecd0" stroke-width="3"/></symbol>
+  <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse"><path d="M1 1 9 5 1 9" fill="none" stroke="#dac88f" stroke-width="1.7"/></marker>
+</defs>
+<rect width="1120" height="280" rx="8" fill="#1d271e"/>
+<g transform="translate(10 12)">
+  <use href="#tile" width="240" height="160"/>
+  <path d="M20 62C32 40 60 48 71 57c24 13 29-23 63-16 31 7 43 21 37 45-6 26-35 38-55 32-17-6-37-2-55-11C37 96 12 89 20 62Z" fill="url(#water)" stroke="#aee4ec" stroke-width="3"/>
+  <use href="#tree" x="183" y="11" width="28" height="40"/>
+  <use href="#tree" x="196" y="102" width="30" height="43"/>
+  <use href="#tree" x="69" y="117" width="23" height="34"/>
+  <use href="#tree" x="54" y="13" width="20" height="30"/>
+  <text x="120" y="184" text-anchor="middle" fill="#f2e6be" font-family="Arial" font-size="15" font-weight="bold">Default tile</text>
+</g>
+<g transform="translate(296 12)">
+  <use href="#tile" width="240" height="160"/>
+  <path d="M120 10 233 80 120 151 7 80Z" fill="url(#darkTile)" stroke="#a5ab8f" stroke-width="2"/>
+  <path d="M40 37 56 25M176 36 194 28M27 104 42 113M196 113 211 122" stroke="#2e302d" stroke-width="6"/>
+  <path d="M120 134Q96 119 93 105c-3-18 16-34 8-60q22 13 19 32 18-28 8-47 48 42 25 78-6 13-33 26Z" fill="url(#fire)" stroke="#f58f27" stroke-width="2"/>
+  <path d="M121 122q-14-20 3-49 12 18 10 29 11-7 12-18 10 33-25 38" fill="#ffe464"/>
+  <text x="120" y="184" text-anchor="middle" fill="#f2e6be" font-family="Arial" font-size="15" font-weight="bold">Ramp up: burning</text>
+</g>
+<g transform="translate(582 12)">
+  <use href="#tile" width="240" height="160"/>
+  <path d="M120 10 233 80 120 151 7 80Z" fill="url(#darkTile)" stroke="#a5ab8f" stroke-width="2"/>
+  <path d="M66 119 104 64 139 119Z" fill="#96744a" stroke="#1e1c22" stroke-width="4"/><path d="M93 119 110 91 125 119" fill="#251e22"/>
+  <path d="M142 98 174 55 208 98Z" fill="#aa7a56" stroke="#261f24" stroke-width="4"/>
+  <path d="M161 97V70" stroke="#eed7a3" stroke-width="3"/><path d="M161 70l25 11-25 4" fill="#9c384b"/>
+  <path d="M88 64V44m80 6V35" stroke="#41382c" stroke-width="5"/>
+  <path d="M95 63c-12-10-9-20 0-31-2 12 16 17 0 31" fill="#d7a359"/>
+  <text x="120" y="184" text-anchor="middle" fill="#f2e6be" font-family="Arial" font-size="15" font-weight="bold">Camp spawned</text>
+</g>
+<g transform="translate(868 12)">
+  <use href="#tile" width="240" height="160"/>
+  <path d="M120 10 233 80 120 151 7 80Z" fill="#55584f" stroke="#a5ab8f" stroke-width="2"/>
+  <use href="#seedling" x="59" y="54" width="34" height="34"/>
+  <use href="#seedling" x="119" y="35" width="36" height="36"/>
+  <use href="#seedling" x="170" y="89" width="34" height="34"/>
+  <use href="#seedling" x="103" y="103" width="24" height="24"/>
+  <use href="#tree" x="193" y="10" width="24" height="36"/>
+  <text x="120" y="184" text-anchor="middle" fill="#f2e6be" font-family="Arial" font-size="15" font-weight="bold">Ramp down: regrow</text>
+</g>
+<g fill="none" stroke="#d5b974" stroke-width="3" marker-end="url(#arrow)"><path d="M252 91H288"/><path d="M538 91H574"/><path d="M824 91H860"/><path d="M991 223Q991 252 552 252T130 223"/></g>
+</svg>
