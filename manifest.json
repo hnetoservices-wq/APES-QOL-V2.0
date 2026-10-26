@@ -184,7 +184,8 @@
         "images/guides/natar-x1-anti-cavalry.png",
         "images/guides/natar-x1-wonder-of-the-world.png",
         "images/guides/natar-x2-anti-infantry.png",
-        "images/guides/natar-x2-anti-cavalry.png"
+        "images/guides/natar-x2-anti-cavalry.png",
+        "images/guides/natar-x2-wonder-of-the-world.png"
       ],
       "matches": [
         "*://*.kingdoms.com/*"
