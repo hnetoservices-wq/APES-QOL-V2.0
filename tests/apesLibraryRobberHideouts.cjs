@@ -52,7 +52,7 @@ assert.equal((article.match(/<table /g)||[]).length,3,'Render all three spawn re
 assert.match(article,/<th scope="col">/,'Accessible table headings are present');
 assert.match(article,/class="apes-lib-robber-priority"/,'Kingdom stolen-goods advice is prominent');
 lib.select('robber_camps');lib.renderArticle();
-assert.match(article,/Guide not published yet/,'Robber Camps remains unpublished');
+assert.match(article,/Most Efficient Troops — After 2026 Rebalance/,'Robber Camps is now a published reference');
 lib.select('speed_x3');lib.renderArticle();
 assert.match(article,/data-library-export/,'Speedsettling Roadmap export remains functional');
 lib.select('natar_x3');lib.renderArticle();
