@@ -13,7 +13,9 @@
     ]},
     {id:'natar',title:'Natar Defenses',symbol:'◇',guides:[
       {id:'natar_x1',name:'x1 Natar Defenses',referenceId:'natar_x1'},
-      {id:'natar_x2',name:'x2 Natar Defenses',referenceId:'natar_x2'}
+      {id:'natar_x2',name:'x2 Natar Defenses',referenceId:'natar_x2'},
+      {id:'natar_x3',name:'x3 Natar Defenses',referenceId:'natar_x3'},
+      {id:'natar_x5',name:'x5 Natar Defenses',referenceId:'natar_x5'}
     ]},
     {id:'robber',title:'Robber',symbol:'⚔',guides:[
       {id:'robber_camps',name:'Robber Camps'},
@@ -46,6 +48,26 @@
         {title:'Anti-Cavalry Natar Village',path:'images/guides/natar-x2-anti-cavalry.png',width:1000,height:312},
         {title:'Wonder of the World',path:'images/guides/natar-x2-wonder-of-the-world.png',width:1344,height:298,
          note:'Ruben couldn\'t find an actual report from an x2 server, so he was only able to retrieve a screenshot of a discussion of the amount of troops from Klopp 🤮. If anyone has an actual report, I would love to have it and remove this dirty ass name from the extension.'}
+      ])
+    },
+    natar_x3:{
+      villageTypes:'There are two types of Natar villages: anti-infantry and anti-cavalry. You must scout them to identify the type. On x1, approximately 50 scouts should suffice for successful scouting; this is an x1 reference, not a verified x3 scout requirement. Natar villages have a Level 10 wall and a Level 20 Residence.',
+      wonders:'Natar Wonders of the World (WWs) have no separate anti-infantry or anti-cavalry categories. They have a Level 20 wall and no Residence, so catapults are not needed to conquer a WW from the Natars.',
+      warning:'Natar village and Natar WW defenses are not constant. Defenses can be slightly higher or lower than in these reports. Check the Combat Simulator and allow enough margin to clear stronger defenses.',
+      reports:Object.freeze([
+        {title:'x3 Anti-Infantry Natar Village',path:'images/guides/natar-x3-anti-infantry.png',width:800,height:245},
+        {title:'x3 Anti-Cavalry Natar Village',path:'images/guides/natar-x3-anti-cavalry.png',width:796,height:246},
+        {title:'x3 Wonder of the World',path:'images/guides/natar-x3-wonder-of-the-world.png',width:968,height:329}
+      ])
+    },
+    natar_x5:{
+      villageTypes:'There are two types of Natar villages: anti-infantry and anti-cavalry. You must scout them to identify the type. On x5, approximately 150 scouts should suffice for successful scouting. Natar villages have a Level 10 wall and a Level 20 Residence.',
+      wonders:'Natar Wonders of the World (WWs) have no separate anti-infantry or anti-cavalry categories. They have a Level 20 wall and no Residence, so catapults are not needed to conquer a WW from the Natars.',
+      warning:'Natar village and Natar WW defenses are not constant. Defenses can be slightly higher or lower than in these reports. Check the Combat Simulator and allow enough margin to clear stronger defenses.',
+      reports:Object.freeze([
+        {title:'x5 Anti-Infantry Natar Village',path:'images/guides/natar-x5-anti-infantry.png',width:866,height:291},
+        {title:'x5 Anti-Cavalry Natar Village',path:'images/guides/natar-x5-anti-cavalry.png',width:948,height:340},
+        {title:'x5 Wonder of the World',path:'images/guides/natar-x5-wonder-of-the-world.png',width:777,height:264}
       ])
     }
   });
