@@ -19,7 +19,7 @@
     ]},
     {id:'robber',title:'Robber',symbol:'⚔',guides:[
       {id:'robber_camps',name:'Robber Camps'},
-      {id:'robber_hideouts',name:'Robber Hideouts'}
+      {id:'robber_hideouts',name:'Robber Hideouts',referenceId:'robber_hideouts'}
     ]},
     {id:'misc',title:'Miscellaneous',symbol:'▤',guides:[
       {id:'support_x1',name:'x1 Support Village — 500 CP/day',roadmapId:'x1_support_500cp'},
@@ -29,6 +29,50 @@
     ]}
   ]);
   const REFERENCE_GUIDES=Object.freeze({
+    robber_hideouts:{
+      kind:'robber_hideouts',
+      mechanism:[
+        'Robber hideouts appear on wilderness tiles around your capital. They are PvE events visible only to the individual player.',
+        'Each player has two hideouts, each running its own spawn timer.',
+        'Hideouts hold resources and stolen goods that can be collected through successful raids, attacks, or sieges.',
+        'The robber troops shown in a hideout defend against your army. Send enough offensive strength to win.',
+        'For every robber troop defeated, you receive hero experience equal to half of that troop’s original offensive points. If your hero joins the battle, they receive the full corresponding hero XP, including applicable bonuses from fealty and XP boots.',
+        'After every resource has been removed, the hideout disappears and its timer starts for the next spawn.'
+      ],
+      guidelines:[
+        'Clear hideouts as quickly as you can. Their rewards help your personal progression, and stolen goods contribute to the kingdom’s treasures and victory points.',
+        'Do not hoard stolen goods. Sell them to the kingdom: they are needed to increase the kingdom’s victory points and help win the server.',
+        'Some hideouts are considerably stronger against infantry than cavalry, or the other way around. Use the Combat Simulator to minimise losses.',
+        'When possible, siege with more than 1,000 troops of decent offensive strength and at least one ram. The siege combat bonus can reduce casualties; defensive players can also benefit.',
+        'Consider buying a Natar Horn at auction for an additional combat bonus against robbers, Natars, and nature units.',
+        'Early in the game, your hero can be a major asset. Use a Book of Wisdom to shift skill points toward fighting strength when needed.',
+        'Use bandages strategically to recover expensive troops. For example, if a cavalry-only siege minimises losses, equip bandages to save some of those costly horses.'
+      ],
+      spawnOverview:'The first 12 hideouts spawn more frequently than later ones. You begin the game with two hideouts already on the map. Your third and fourth hideouts spawn a fixed time after you fully clear the first and second respectively; each hideout has its own timer.',
+      fixedSpawn:[
+        {speed:'x1',time:'2h'},
+        {speed:'x2',time:'1h 40m'},
+        {speed:'x3',time:'1h 27m'},
+        {speed:'x5',time:'1h 15m'}
+      ],
+      variableOverview:'Hideouts 5–12 use a growing spawn-time interval rather than a fixed delay. Earlier spawns fall near the lower end; the 12th hideout can take up to the higher end.',
+      variableSpawn:[
+        {speed:'x1',time:'4–15h',note:'Around 4–5h for the 5th and 6th; up to 15h for the 12th'},
+        {speed:'x2',time:'3.2–12.2h'},
+        {speed:'x3',time:'2.9–10.8h'},
+        {speed:'x5',time:'2.5–9.3h'}
+      ],
+      laterOverview:'After the first 12, the timer gradually grows with server age. Assuming each hideout is cleared immediately, the estimated average number of spawns per day on x3 is:',
+      x3Daily:[
+        {age:'Days 1–14',rate:'3.3/day'},
+        {age:'Days 15–49',rate:'2.1/day'},
+        {age:'Day 50 onward',rate:'1.4/day'}
+      ],
+      x1Daily:'For x1, the reported averages are 2.4, 1.5, and 1.0 hideouts per day across three successive phases. The exact server-day boundaries for these phases are unconfirmed because the original knowledge-base information is no longer available.',
+      strength:'Hideout strength appears to depend on the combined offensive power of your troops and possibly your population.',
+      rewards:'Resource rewards appear to depend on your resource production and possibly your population. Based on player experience, crop production does not seem to count, while wood, clay, and iron production in the capital may carry greater weight.',
+      uncertainty:'The exact strength and reward formulas are unknown. Population effects, crop exclusion, and capital-production weighting are observations, not verified mechanics.'
+    },
     natar_x1:{
       villageTypes:'There are two types of Natar villages: anti-infantry and anti-cavalry. Scout the village to identify its type. On x1, approximately 50 scouts should suffice for successful scouting. Natar villages have a Level 10 wall and a Level 20 Residence.',
       wonders:'Natar Wonders of the World (WWs) do not have anti-infantry or anti-cavalry categories. Natar WWs have a Level 20 wall and no Residence, so catapults are not needed to conquer a WW from the Natars.',
@@ -97,7 +141,40 @@
   function assetUrl(path){
     try{return chrome.runtime.getURL(path);}catch(_){return '';}
   }
+  function robberHideoutArticleHtml(reference){
+    const bulletList=(items,emphasize)=>'<ul class="apes-lib-robber-list">'+items.map((item,index)=>
+      '<li'+(index===emphasize?' class="apes-lib-robber-priority"':'')+'>'+
+      (index===emphasize?'<strong>'+escapeHtml(item)+'</strong>':escapeHtml(item))+'</li>'
+    ).join('')+'</ul>';
+    const table=(headers,rows)=>'<div class="apes-lib-robber-table-scroll"><table class="apes-lib-robber-table">'+
+      '<thead><tr>'+headers.map(h=>'<th scope="col">'+escapeHtml(h)+'</th>').join('')+'</tr></thead>'+
+      '<tbody>'+rows.map(row=>'<tr>'+row.map((cell,i)=>
+        (i===0?'<th scope="row">':'<td>')+escapeHtml(cell)+(i===0?'</th>':'</td>')).join('')+'</tr>').join('')+
+      '</tbody></table></div>';
+    return '<div class="apes-lib-reference-article apes-lib-robber-reference">'+
+      '<section class="apes-lib-robber-section"><h3>Mechanism</h3>'+bulletList(reference.mechanism,-1)+'</section>'+
+      '<section class="apes-lib-robber-section"><h3>Guidelines</h3>'+bulletList(reference.guidelines,1)+'</section>'+
+      '<section class="apes-lib-robber-section"><h3>Spawn Rate</h3>'+
+        '<p>'+escapeHtml(reference.spawnOverview)+'</p>'+
+        '<h4>Hideouts 3 &amp; 4 — fixed delay</h4>'+
+        table(['Server speed','Time after clearing'],reference.fixedSpawn.map(r=>[r.speed,r.time]))+
+        '<h4>Hideouts 5–12 — increasing interval</h4>'+
+        '<p>'+escapeHtml(reference.variableOverview)+'</p>'+
+        table(['Server speed','Spawn interval','Additional detail'],reference.variableSpawn.map(r=>[r.speed,r.time,r.note||'—']))+
+        '<h4>After the first 12 — average spawns</h4>'+
+        '<p>'+escapeHtml(reference.laterOverview)+'</p>'+
+        table(['x3 server age','Average hideouts'],reference.x3Daily.map(r=>[r.age,r.rate]))+
+        '<p class="apes-lib-robber-footnote">'+escapeHtml(reference.x1Daily)+'</p>'+
+      '</section>'+
+      '<section class="apes-lib-robber-section"><h3>Hideout Strength &amp; Rewards</h3>'+
+        '<p><strong>Strength:</strong> '+escapeHtml(reference.strength)+'</p>'+
+        '<p><strong>Rewards:</strong> '+escapeHtml(reference.rewards)+'</p>'+
+        '<div class="apes-lib-reference-warning" role="note"><strong>Estimates — formulas not confirmed</strong>'+
+          '<p>'+escapeHtml(reference.uncertainty)+'</p></div>'+
+      '</section></div>';
+  }
   function referenceArticleHtml(reference){
+    if(reference.kind==='robber_hideouts')return robberHideoutArticleHtml(reference);
     const reportCards=reference.reports.map(report=>{
       const src=report.path?assetUrl(report.path):'';
       return '<figure class="apes-lib-report-card">'+
