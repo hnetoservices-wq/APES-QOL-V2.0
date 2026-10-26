@@ -148,3 +148,23 @@
 #apes-library-panel .apes-lib-camp-reference table.apes-lib-robber-table th:not(:first-child),
 #apes-library-panel .apes-lib-camp-reference table.apes-lib-robber-table td:nth-child(n+3){font-variant-numeric:tabular-nums!important}
 #apes-library-panel .apes-lib-camp-reference .apes-lib-robber-table-scroll{overflow-x:auto!important;max-width:100%!important}
+
+
+/* TK-Tools account linking guide — scoped against Travian's global list styles. */
+#apes-library-panel .apes-lib-tk-tools-article{gap:13px!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-heading{margin:0!important;color:#e8d5ac!important;font-size:13px!important;line-height:1.5!important;font-weight:700!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-intro{margin:0!important;color:#d1d1bf!important;font-size:12px!important;line-height:1.7!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-link{display:inline-flex!important;align-items:center!important;justify-content:center!important;align-self:flex-start!important;width:auto!important;min-height:34px!important;margin:1px 0!important;padding:7px 13px!important;border:1px solid #9a8758!important;border-radius:4px!important;background:#384932!important;background-image:none!important;color:#f2e2b5!important;font-size:12px!important;font-weight:700!important;text-decoration:none!important;text-shadow:none!important;line-height:1.4!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-link:hover,
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-link:focus-visible{background:#50643e!important;color:#fff0cd!important;outline:2px solid #b4a06c!important;outline-offset:2px!important}
+#apes-library-panel .apes-lib-tk-tools-article ol.apes-lib-tk-tools-steps{display:flex!important;flex-direction:column!important;gap:9px!important;width:100%!important;margin:0!important;padding:0!important;list-style:none!important;counter-reset:none!important;background:transparent!important}
+#apes-library-panel .apes-lib-tk-tools-article li.apes-lib-tk-tools-step{display:flex!important;align-items:flex-start!important;gap:12px!important;min-width:0!important;margin:0!important;padding:12px!important;border:1px solid #536043!important;border-radius:6px!important;background:#242e24!important;background-image:none!important;list-style:none!important;color:#e2ddca!important;text-shadow:none!important}
+#apes-library-panel .apes-lib-tk-tools-article li.apes-lib-tk-tools-step:nth-child(even){background:#2b3729!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-number{display:flex!important;align-items:center!important;justify-content:center!important;flex:0 0 30px!important;width:30px!important;height:30px!important;border:1px solid #a18c5c!important;border-radius:50%!important;background:#3e4c34!important;color:#f2d89c!important;font-size:14px!important;line-height:1!important;font-weight:700!important;text-shadow:none!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-step-body{display:flex!important;flex-direction:column!important;gap:4px!important;min-width:0!important;flex:1 1 auto!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-step-body strong{display:block!important;color:#ead8ab!important;font-size:12px!important;font-weight:700!important;line-height:1.5!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-step-body p{margin:0!important;padding:0!important;color:#d8d6c5!important;font-size:11px!important;line-height:1.7!important;overflow-wrap:anywhere!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-note{padding:11px 13px!important;border:1px solid #9f8356!important;border-left:3px solid #c39a61!important;border-radius:5px!important;background:rgba(130,91,47,.13)!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-note strong{display:block!important;margin-bottom:4px!important;color:#efd1a0!important;font-size:11px!important}
+#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-note p{margin:0!important;color:#d8ceb8!important;font-size:11px!important;line-height:1.65!important}
+@media (max-width:490px){#apes-library-panel .apes-lib-tk-tools-article li.apes-lib-tk-tools-step{padding:10px!important;gap:9px!important}#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-number{flex-basis:27px!important;width:27px!important;height:27px!important}}
