@@ -116,3 +116,20 @@
 #apes-library-panel .apes-lib-robber-section .apes-lib-robber-footnote{padding:10px 12px!important;border-left:2px solid #8e8259!important;background:rgba(108,103,72,.12)!important;color:#c7c4ae!important}
 #apes-library-panel .apes-lib-robber-section .apes-lib-reference-warning{margin-top:3px!important}
 @media (max-width:720px){#apes-library-panel .apes-lib-robber-section{padding:10px!important}#apes-library-panel .apes-lib-robber-table th,#apes-library-panel .apes-lib-robber-table td{padding:7px!important}}
+
+/* Explicit cell backgrounds are required: Travian's global table theme paints
+   white table cells on top of the APES Library's dark table headers/rows. */
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table{background:#20291f!important;background-image:none!important;color:#e4dfcf!important}
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table thead,
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table thead tr,
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table thead th{background:#394a32!important;background-color:#394a32!important;background-image:none!important;color:#f4e6be!important}
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody,
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody tr,
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody td,
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody th{background:#242e25!important;background-color:#242e25!important;background-image:none!important;color:#e5dfcf!important;box-shadow:none!important}
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody tr:nth-child(even),
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody tr:nth-child(even) td,
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody tr:nth-child(even) th{background:#2d392b!important;background-color:#2d392b!important}
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody th{color:#d6e2bc!important;font-weight:700!important}
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table th,
+#apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table td{border-color:#526148!important;text-shadow:none!important}
