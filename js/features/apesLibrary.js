@@ -24,12 +24,28 @@
     {id:'misc',title:'Miscellaneous',symbol:'▤',guides:[
       {id:'support_x1',name:'x1 Support Village — 500 CP/day',roadmapId:'x1_support_500cp'},
       {id:'tk_tools_account',name:'Link TK-Tools Account',referenceId:'tk_tools_account'},
+      {id:'travel_time',name:'Calculating Troop Travel Time',referenceId:'travel_time'},
       {id:'misc_x',name:'x — Coming soon'},
       {id:'misc_y',name:'y — Coming soon'},
       {id:'misc_z',name:'z — Coming soon'}
     ]}
   ]);
   const REFERENCE_GUIDES=Object.freeze({
+    travel_time:{
+      kind:'travel_time',
+      title:'Calculating Troop Travel Time',
+      intro:'Calculate exact attack, raid, or reinforcement travel times using Kirilloid or the manual Pythagorean method. Exact distances and whole-second rounding matter when timing a return hit.',
+      kirilloidIntro:'The easiest option is the distance calculator on Kirilloid. Choose the correct server speed and troop configuration for your game world.',
+      kirilloidWarning:'Kirilloid’s x5 setting uses the same travel speed as x3. For x5, select T5 and set the Speed Artifact to 3 for normal attacks or raids, or 1.5 for sieges.',
+      kirilloidAlternative:'Alternatively, use Kirilloid’s manual speed setting on the left. This is also useful for servers with adjusted troop travel speeds, including worlds using the 2026 troop rebalance.',
+      manualIntro:'If the calculator cannot handle your server settings, you can calculate the travel time manually. Use the exact coordinate distance and round the final number of seconds down.',
+      distance:'Distance between two villages is calculated with Pythagoras. If the villages differ by 2 tiles east and 2 tiles north, their distance is √(2² + 2²) = √8 ≈ 2.828427125 fields. The game displays 2.83, but the travel-time calculation still uses √8. For a 3×3 offset, the displayed distance is 4.24, but the exact distance is √18 ≈ 4.242640687.',
+      distanceWarning:'Never use the two-decimal distance shown in the attack or reinforcement window for an exact timing calculation; use the full Pythagorean distance.',
+      travelTime:'The guide’s timing rule is that Travian Kingdoms travel times are rounded DOWN to whole seconds, not to the nearest second. For example, 12 minutes and 7.8 seconds becomes 12 minutes and 7 seconds; 7.1 and 7.9 both become 7.',
+      example:'An enemy launches from a village 2 tiles east and 2 tiles north of yours with Clubswingers, Teutonic Knights, and rams, travelling at 4 fields per hour. The attack lands at 12:00:00. To hit the returning army at its home village on the same second using your Equites Imperatoris (EI), calculate the attacker’s return duration:',
+      exampleResult:'Distance = √(2² + 2²) = √8 fields. Travel time = (√8 ÷ 4) hours = 0.7071067812 hours = 42 minutes 25.58 seconds. Rounding down gives 42 minutes 25 seconds. Assuming the attacker returns immediately and the same speed applies on the return leg, your EI must land at 12:42:25.',
+      summary:'Keep full coordinate precision (do not round distance to two decimals), then round the final travel time DOWN to whole seconds. Account for the correct world speed and any relevant speed modifiers.'
+    },
     tk_tools_account:{
       kind:'tk_tools_account',
       title:'Associating your TK-Tools account with your TK account',
@@ -290,7 +306,40 @@
       '<div class="apes-lib-tk-tools-note" role="note"><strong>Security reminder</strong><p>'+escapeHtml(reference.note)+'</p></div>'+
     '</div>';
   }
+  function travelTimeArticleHtml(reference){
+    const paragraph=text=>'<p>'+escapeHtml(text)+'</p>';
+    const formula=text=>'<div class="apes-lib-travel-formula">'+escapeHtml(text)+'</div>';
+    return '<div class="apes-lib-reference-article apes-lib-travel-reference">'+
+      '<p class="apes-lib-travel-intro">'+escapeHtml(reference.intro)+'</p>'+
+      '<section class="apes-lib-travel-section"><h3>Kirilloid</h3>'+
+        paragraph(reference.kirilloidIntro)+
+        '<a class="apes-lib-travel-external" href="http://travian.kirilloid.ru" target="_blank" rel="noopener noreferrer">Open Kirilloid distance calculator ↗</a>'+
+        '<div class="apes-lib-reference-warning" role="note"><strong>Important — x5 server speed workaround</strong>'+
+          paragraph(reference.kirilloidWarning)+'</div>'+
+        paragraph(reference.kirilloidAlternative)+
+      '</section>'+
+      '<section class="apes-lib-travel-section"><h3>Manual Calculation</h3>'+
+        paragraph(reference.manualIntro)+
+        '<h4>Distance</h4>'+
+        formula('Distance (fields) = √(Δx² + Δy²)')+
+        paragraph(reference.distance)+
+        '<div class="apes-lib-travel-important" role="note">'+escapeHtml(reference.distanceWarning)+'</div>'+
+        '<h4>Travel Time</h4>'+
+        formula('Travel time (seconds) = floor((distance ÷ speed in fields/hour) × 3600)')+
+        paragraph(reference.travelTime)+
+      '</section>'+
+      '<section class="apes-lib-travel-section"><h3>Full Example</h3>'+
+        paragraph(reference.example)+
+        formula('√8 ÷ 4 × 3600 = 2545.5844… seconds → floor = 2545 seconds = 42:25')+
+        paragraph(reference.exampleResult)+
+        '<div class="apes-lib-travel-result"><span>Return hit arrival</span><strong>12:42:25</strong></div>'+
+      '</section>'+
+      '<div class="apes-lib-travel-summary" role="note"><strong>TL;DR</strong>'+
+        paragraph(reference.summary)+'</div>'+
+    '</div>';
+  }
   function referenceArticleHtml(reference){
+    if(reference.kind==='travel_time')return travelTimeArticleHtml(reference);
     if(reference.kind==='tk_tools_account')return tkToolsAccountHtml(reference);
     if(reference.kind==='robber_camps')return robberCampArticleHtml(reference);
     if(reference.kind==='robber_hideouts')return robberHideoutArticleHtml(reference);
