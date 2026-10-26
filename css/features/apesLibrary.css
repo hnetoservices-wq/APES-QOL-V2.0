@@ -92,3 +92,27 @@
 /* Source note beneath the x2 Wonder of the World reference. */
 #apes-library-panel .apes-lib-report-note{margin:0!important;padding:7px 9px!important;border-left:2px solid #958154!important;border-radius:2px!important;background:rgba(122,109,75,.11)!important;color:#bbb9a8!important;font-size:10px!important;font-style:italic!important;line-height:1.65!important;overflow-wrap:anywhere!important}
 #apes-library-panel .apes-lib-report-image-pending{padding:15px 11px!important;border:1px dashed #6c6550!important;border-radius:4px!important;background:rgba(24,29,22,.55)!important;color:#a5aa9a!important;font-size:11px!important;line-height:1.6!important;text-align:center!important}
+
+
+/* Robber Hideouts — APES Library read-only field guide. */
+#apes-library-panel .apes-lib-robber-reference{gap:15px!important}
+#apes-library-panel .apes-lib-robber-section{display:flex!important;flex-direction:column!important;gap:11px!important;min-width:0!important;padding:13px!important;border:1px solid #4d583d!important;border-radius:6px!important;background:rgba(14,21,15,.32)!important}
+#apes-library-panel .apes-lib-robber-section h3{margin:0!important;padding-bottom:9px!important;border-bottom:1px solid #4e583e!important;color:#e7d5aa!important;font-size:14px!important;font-weight:700!important}
+#apes-library-panel .apes-lib-robber-section h4{margin:9px 0 0!important;color:#cbd5b6!important;font-size:12px!important;font-weight:700!important}
+#apes-library-panel .apes-lib-robber-section p{margin:0!important;color:#d2d1c0!important;font-size:11px!important;line-height:1.7!important}
+#apes-library-panel .apes-lib-robber-section p strong{color:#e4d5b0!important}
+#apes-library-panel .apes-lib-robber-list{display:flex!important;flex-direction:column!important;gap:8px!important;list-style:disc outside!important;margin:0!important;padding:0 0 0 20px!important}
+#apes-library-panel .apes-lib-robber-list li{padding:0 4px 0 1px!important;color:#d2d1c0!important;font-size:11px!important;line-height:1.65!important}
+#apes-library-panel .apes-lib-robber-list li::marker{color:#aead70!important}
+#apes-library-panel .apes-lib-robber-list .apes-lib-robber-priority{list-style:none!important;margin:3px 0 3px -18px!important;padding:10px 12px!important;border:1px solid #9e8151!important;border-left:3px solid #d5b26e!important;border-radius:4px!important;background:rgba(146,103,50,.16)!important;color:#f1dfb7!important}
+#apes-library-panel .apes-lib-robber-list .apes-lib-robber-priority strong{font-weight:700!important;color:#f0d8a5!important}
+#apes-library-panel .apes-lib-robber-table-scroll{max-width:100%!important;overflow-x:auto!important;scrollbar-width:thin!important;scrollbar-color:#81704b #20261b!important}
+#apes-library-panel .apes-lib-robber-table{width:100%!important;border-collapse:collapse!important;border:1px solid #586044!important;font-size:11px!important;text-align:left!important}
+#apes-library-panel .apes-lib-robber-table thead{background:#37422e!important}
+#apes-library-panel .apes-lib-robber-table th,#apes-library-panel .apes-lib-robber-table td{padding:9px 11px!important;border-bottom:1px solid #46503d!important;color:#d9d5bd!important;line-height:1.5!important;vertical-align:top!important}
+#apes-library-panel .apes-lib-robber-table thead th{color:#f1deb1!important;font-weight:700!important;white-space:nowrap!important}
+#apes-library-panel .apes-lib-robber-table tbody th{color:#c8d3ad!important;font-weight:700!important;white-space:nowrap!important}
+#apes-library-panel .apes-lib-robber-table tbody tr:nth-child(even){background:rgba(124,142,87,.07)!important}
+#apes-library-panel .apes-lib-robber-section .apes-lib-robber-footnote{padding:10px 12px!important;border-left:2px solid #8e8259!important;background:rgba(108,103,72,.12)!important;color:#c7c4ae!important}
+#apes-library-panel .apes-lib-robber-section .apes-lib-reference-warning{margin-top:3px!important}
+@media (max-width:720px){#apes-library-panel .apes-lib-robber-section{padding:10px!important}#apes-library-panel .apes-lib-robber-table th,#apes-library-panel .apes-lib-robber-table td{padding:7px!important}}
