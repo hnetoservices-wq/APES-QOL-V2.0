@@ -133,3 +133,18 @@
 #apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table tbody th{color:#d6e2bc!important;font-weight:700!important}
 #apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table th,
 #apes-library-panel .apes-lib-robber-section table.apes-lib-robber-table td{border-color:#526148!important;text-shadow:none!important}
+
+/* Robber Camps reference: visual cycle and compact, accessible comparison tables. */
+#apes-library-panel .apes-lib-camp-reference .apes-lib-robber-list li:last-child:not(.apes-lib-robber-priority){color:#d2d1c0!important}
+#apes-library-panel .apes-lib-camp-reference .apes-lib-camp-cycle{display:flex!important;flex-direction:column!important;gap:7px!important;max-width:100%!important;margin:3px 0 6px!important;padding:9px!important;border:1px solid #586146!important;border-radius:6px!important;background:#1a251b!important}
+#apes-library-panel .apes-lib-camp-reference .apes-lib-camp-cycle img{display:block!important;width:100%!important;height:auto!important;max-width:100%!important;min-width:0!important;object-fit:contain!important;border:0!important;background:#1d271e!important}
+#apes-library-panel .apes-lib-camp-reference .apes-lib-camp-cycle figcaption{color:#bfc2ad!important;font-size:10px!important;line-height:1.55!important}
+#apes-library-panel .apes-lib-camp-reference .apes-lib-camp-unit-group{display:flex!important;flex-direction:column!important;gap:7px!important;min-width:0!important}
+#apes-library-panel .apes-lib-camp-reference .apes-lib-camp-unit-group h4{display:flex!important;gap:8px!important;align-items:baseline!important;padding:6px 0!important;margin:4px 0 0!important;border-bottom:1px solid #4a5540!important;color:#e9d8ac!important}
+#apes-library-panel .apes-lib-camp-reference .apes-lib-camp-unit-group h4 span{font-size:10px!important;font-weight:400!important;color:#b2bca6!important}
+#apes-library-panel .apes-lib-camp-reference table.apes-lib-robber-table{table-layout:auto!important;min-width:435px!important;width:100%!important}
+#apes-library-panel .apes-lib-camp-reference table.apes-lib-robber-table th,
+#apes-library-panel .apes-lib-camp-reference table.apes-lib-robber-table td{padding:8px 9px!important;white-space:normal!important;text-align:left!important;font-size:11px!important}
+#apes-library-panel .apes-lib-camp-reference table.apes-lib-robber-table th:not(:first-child),
+#apes-library-panel .apes-lib-camp-reference table.apes-lib-robber-table td:nth-child(n+3){font-variant-numeric:tabular-nums!important}
+#apes-library-panel .apes-lib-camp-reference .apes-lib-robber-table-scroll{overflow-x:auto!important;max-width:100%!important}
