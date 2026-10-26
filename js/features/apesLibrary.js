@@ -24,7 +24,7 @@
     {id:'misc',title:'Miscellaneous',symbol:'▤',guides:[
       {id:'support_x1',name:'x1 Support Village — 500 CP/day',roadmapId:'x1_support_500cp'},
       {id:'tk_tools_account',name:'Link TK-Tools Account',referenceId:'tk_tools_account'},
-      {id:'travel_time',name:'Calculating Troop Travel Time',referenceId:'travel_time'},
+      {id:'travel_time',name:'Calculating Troops Travel Time',referenceId:'travel_time'},
       {id:'misc_x',name:'x — Coming soon'},
       {id:'misc_y',name:'y — Coming soon'},
       {id:'misc_z',name:'z — Coming soon'}
@@ -33,7 +33,7 @@
   const REFERENCE_GUIDES=Object.freeze({
     travel_time:{
       kind:'travel_time',
-      title:'Calculating Troop Travel Time',
+      title:'Calculating Troops Travel Time',
       intro:'Calculate exact attack, raid, or reinforcement travel times using Kirilloid or the manual Pythagorean method. Exact distances and whole-second rounding matter when timing a return hit.',
       kirilloidIntro:'The easiest option is the distance calculator on Kirilloid. Choose the correct server speed and troop configuration for your game world.',
       kirilloidWarning:'Kirilloid’s x5 setting uses the same travel speed as x3. For x5, select T5 and set the Speed Artifact to 3 for normal attacks or raids, or 1.5 for sieges.',
