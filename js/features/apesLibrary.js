@@ -13,7 +13,7 @@
     ]},
     {id:'natar',title:'Natar Defenses',symbol:'◇',guides:[
       {id:'natar_x1',name:'x1 Natar Defenses',referenceId:'natar_x1'},
-      {id:'natar_x2',name:'x2 Natar Defenses'}
+      {id:'natar_x2',name:'x2 Natar Defenses',referenceId:'natar_x2'}
     ]},
     {id:'robber',title:'Robber',symbol:'⚔',guides:[
       {id:'robber_camps',name:'Robber Camps'},
@@ -35,6 +35,18 @@
         {title:'Anti-Infantry Natar Village',path:'images/guides/natar-x1-anti-infantry.png',width:547,height:186},
         {title:'Anti-Cavalry Natar Village',path:'images/guides/natar-x1-anti-cavalry.png',width:580,height:182},
         {title:'Wonder of the World',path:'images/guides/natar-x1-wonder-of-the-world.png',width:582,height:198}
+      ])
+    },
+    natar_x2:{
+      villageTypes:'There are two types of Natar villages: anti-infantry and anti-cavalry. Scout the village to identify which type you are attacking. Approximately 50 scouts should suffice on x1; the required scout count on x2 has not been verified. Natar villages have a Level 10 wall and a Level 20 Residence.',
+      wonders:'Natar Wonders of the World (WWs) do not have separate anti-infantry or anti-cavalry categories. Natar WWs have a Level 20 wall and no Residence, so catapults are not needed to conquer a WW from the Natars.',
+      warning:'Defenses at Natar villages and Wonders of the World are not constant. Troop numbers can be slightly higher or lower than the examples shown. Use the Combat Simulator with sufficient margin to account for stronger defenses. The WW troop information is a discussion reference, not a verified x2 combat report.',
+      reports:Object.freeze([
+        {title:'Anti-Infantry Natar Village',path:'images/guides/natar-x2-anti-infantry.png',width:732,height:233},
+        {title:'Anti-Cavalry Natar Village',path:'images/guides/natar-x2-anti-cavalry.png',width:1000,height:312},
+        {title:'Wonder of the World',
+         note:'Ruben couldn\'t find an actual report from an x2 server, so he was only able to retrieve a screenshot of a discussion of the amount of troops from Klopp 🤮. If anyone has an actual report, I would love to have it and remove this dirty ass name from the extension.',
+         imagePending:true}
       ])
     }
   });
@@ -69,11 +81,14 @@
       const src=assetUrl(report.path);
       return '<figure class="apes-lib-report-card">'+
         '<figcaption>'+escapeHtml(report.title)+'</figcaption>'+
-        '<div class="apes-lib-report-image-scroll">'+
-        (src?'<img src="'+escapeHtml(src)+'" alt="'+escapeHtml(report.title)+
-          ' — Travian Kingdoms combat report" loading="lazy" decoding="async" draggable="false" width="'+report.width+'" height="'+report.height+'">':
-          '<p>Image unavailable. Reload the APES QoL extension.</p>')+
-        '</div></figure>';
+        (report.path?
+          '<div class="apes-lib-report-image-scroll">'+
+          (src?'<img src="'+escapeHtml(src)+'" alt="'+escapeHtml(report.title)+
+            ' — Travian Kingdoms Natar defense report" loading="lazy" decoding="async" draggable="false" width="'+report.width+'" height="'+report.height+'">':
+            '<p>Image unavailable. Reload the APES QoL extension.</p>')+'</div>':
+          '<div class="apes-lib-report-image-pending">Wonder of the World reference image pending attachment.</div>')+
+        (report.note?'<p class="apes-lib-report-note">'+escapeHtml(report.note)+'</p>':'')+
+        '</figure>';
     }).join('');
     return '<div class="apes-lib-reference-article">'+
       '<div class="apes-lib-reference-notes"><h3>Natar Villages</h3><p>'+escapeHtml(reference.villageTypes)+'</p>'+
