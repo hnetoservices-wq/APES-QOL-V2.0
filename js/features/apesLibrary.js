@@ -57,11 +57,11 @@
         {level:3,other:'270–1,350',wolf:'540–2,700',rewards:'~62.5k of each resource',sg:100},
         {level:4,other:'489–2,448',wolf:'979–4,896',rewards:'~83k of each resource',sg:110},
         {level:5,other:'771–3,859',wolf:'1,543–7,718',rewards:'~104k of each resource',sg:120},
-        {level:6,other:'1,116–5,582',wolf:'2,233–11,165',rewards:'~125k of each resource',sg:130},
-        {level:7,other:'1,523–7,618',wolf:'3,047–15,237',rewards:'~146k of each resource',sg:140},
-        {level:8,other:'1,993–9,967',wolf:'3,986–19,934',rewards:'~167k of each resource',sg:150},
-        {level:9,other:'Unknown–12,628',wolf:'Unknown–25,256',rewards:'~188k of each resource',sg:160},
-        {level:10,other:'3,120–15,601',wolf:'6,240–31,203',rewards:'~208k of each resource',sg:170}
+        {level:6,other:'1,116–5,582',wolf:'2,233–11,165',rewards:'~125k resources',sg:130},
+        {level:7,other:'1,523–7,618',wolf:'3,047–15,237',rewards:'~146k resources',sg:140},
+        {level:8,other:'1,993–9,967',wolf:'3,986–19,934',rewards:'~167k resources',sg:150},
+        {level:9,other:'Unknown–12,628',wolf:'Unknown–25,256',rewards:'~188k resources',sg:160},
+        {level:10,other:'3,120–15,601',wolf:'6,240–31,203',rewards:'~208k resources',sg:170}
       ],
       beforeCredit:'Original creator unknown. Please get in touch to receive proper credit. These values predate the Summer Mayhem and HaHu 2026 troop rebalance and exclude smithy, Natar Horn, Brewery, and other bonuses.',
       afterCredit:'Credit: ShinyPink. Updated for the troop rebalance announced during Summer Mayhem and HaHu 2026. Smithy, Natar Horn, Brewery, and other bonuses are not included.',
@@ -221,8 +221,8 @@
       '</section></div>';
   }
   function robberCampArticleHtml(reference){
-    const list=items=>'<ul class="apes-lib-robber-list">'+items.map((item,index)=>
-      '<li'+(index===items.length-1?' class="apes-lib-robber-priority"':'')+'>'+
+    const list=(items,highlightLast)=>'<ul class="apes-lib-robber-list">'+items.map((item,index)=>
+      '<li'+(highlightLast&&index===items.length-1?' class="apes-lib-robber-priority"':'')+'>'+
       escapeHtml(item)+'</li>').join('')+'</ul>';
     const table=(headers,rows)=>'<div class="apes-lib-robber-table-scroll"><table class="apes-lib-robber-table">'+
       '<thead><tr>'+headers.map(h=>'<th scope="col">'+escapeHtml(h)+'</th>').join('')+'</tr></thead>'+
@@ -238,8 +238,8 @@
       '<img src="'+escapeHtml(cycleSrc)+'" width="1120" height="280" alt="Robber camp map lifecycle: default tile, burning preparation, active camp, regrowth, and return to default tile" loading="lazy" decoding="async" draggable="false">'+
       '<figcaption>Camp lifecycle: default tile → burning ramp-up → spawned camp → regrowth → default tile.</figcaption></figure>';
     return '<div class="apes-lib-reference-article apes-lib-robber-reference apes-lib-camp-reference">'+
-      '<section class="apes-lib-robber-section"><h3>Mechanism</h3>'+list(reference.mechanism)+'</section>'+
-      '<section class="apes-lib-robber-section"><h3>Guidelines</h3>'+list(reference.guidelines)+'</section>'+
+      '<section class="apes-lib-robber-section"><h3>Mechanism</h3>'+list(reference.mechanism,false)+'</section>'+
+      '<section class="apes-lib-robber-section"><h3>Guidelines</h3>'+list(reference.guidelines,true)+'</section>'+
       '<section class="apes-lib-robber-section"><h3>Spawn Rate</h3><p>'+escapeHtml(reference.spawn)+'</p></section>'+
       '<section class="apes-lib-robber-section"><h3>Camp Strengths &amp; Rewards</h3>'+
         '<p>'+escapeHtml(reference.strengthOverview)+'</p>'+cycle+
