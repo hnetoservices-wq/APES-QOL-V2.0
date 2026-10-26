@@ -36,7 +36,7 @@
         'Each player has two hideouts, each running its own spawn timer.',
         'Hideouts hold resources and stolen goods that can be collected through successful raids, attacks, or sieges.',
         'The robber troops shown in a hideout defend against your army. Send enough offensive strength to win.',
-        'For every robber troop defeated, you receive hero experience equal to half of that troop’s original offensive points. If your hero joins the battle, they receive the full corresponding hero XP, including applicable bonuses from fealty and XP boots.',
+        'Every robber troop defeated rewards you with half its original offensive points. If your hero participates in the battle, your hero receives the full corresponding XP for the defeated troops, including bonuses from fealty and XP boots.',
         'After every resource has been removed, the hideout disappears and its timer starts for the next spawn.'
       ],
       guidelines:[
