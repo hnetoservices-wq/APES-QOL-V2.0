@@ -12,7 +12,7 @@
       {id:'speed_x5',name:'x5 Guide',roadmapId:'x5_speedsettle'}
     ]},
     {id:'natar',title:'Natar Defenses',symbol:'◇',guides:[
-      {id:'natar_x1',name:'x1 Natar Defenses'},
+      {id:'natar_x1',name:'x1 Natar Defenses',referenceId:'natar_x1'},
       {id:'natar_x2',name:'x2 Natar Defenses'}
     ]},
     {id:'robber',title:'Robber',symbol:'⚔',guides:[
@@ -26,6 +26,18 @@
       {id:'misc_z',name:'z — Coming soon'}
     ]}
   ]);
+  const REFERENCE_GUIDES=Object.freeze({
+    natar_x1:{
+      villageTypes:'There are two types of Natar villages: anti-infantry and anti-cavalry. Scout the village to identify its type. On x1, approximately 50 scouts should suffice for successful scouting. Natar villages have a Level 10 wall and a Level 20 Residence.',
+      wonders:'Natar Wonders of the World (WWs) do not have anti-infantry or anti-cavalry categories. Natar WWs have a Level 20 wall and no Residence, so catapults are not needed to conquer a WW from the Natars.',
+      warning:'Natar village and Natar WW defenses are not constant. Actual defenses may be slightly higher or lower than in these reports. Use the combat simulator and leave enough margin for stronger defenses.',
+      reports:Object.freeze([
+        {title:'Anti-Infantry Natar Village',path:'images/guides/natar-x1-anti-infantry.png',width:547,height:186},
+        {title:'Anti-Cavalry Natar Village',path:'images/guides/natar-x1-anti-cavalry.png',width:580,height:182},
+        {title:'Wonder of the World',path:'images/guides/natar-x1-wonder-of-the-world.png',width:582,height:198}
+      ])
+    }
+  });
   let panel=null;
   let selectedId='speed_x3';
   let libraryExpanded=true;
@@ -40,6 +52,7 @@
     }
     return null;
   };
+  const referenceData=guide=>guide?.referenceId?REFERENCE_GUIDES[guide.referenceId]||null:null;
   const guideData=guide=>guide?.roadmapId
     ? window.APES?.roadmaps?.getAllRoadmaps?.()?.[guide.roadmapId]||null : null;
   const isEnabled=()=>typeof window.isQolEnabled!=='function'||window.isQolEnabled(FEATURE_KEY);
@@ -47,6 +60,29 @@
     if(step.type==='building')return String(step.building||'Building')+
       (step.instance?' #'+step.instance:'')+' → Level '+String(step.level);
     return String(step.text||'');
+  }
+  function assetUrl(path){
+    try{return chrome.runtime.getURL(path);}catch(_){return '';}
+  }
+  function referenceArticleHtml(reference){
+    const reportCards=reference.reports.map(report=>{
+      const src=assetUrl(report.path);
+      return '<figure class="apes-lib-report-card">'+
+        '<figcaption>'+escapeHtml(report.title)+'</figcaption>'+
+        '<div class="apes-lib-report-image-scroll">'+
+        (src?'<img src="'+escapeHtml(src)+'" alt="'+escapeHtml(report.title)+
+          ' — Travian Kingdoms combat report" loading="lazy" decoding="async" draggable="false" width="'+report.width+'" height="'+report.height+'">':
+          '<p>Image unavailable. Reload the APES QoL extension.</p>')+
+        '</div></figure>';
+    }).join('');
+    return '<div class="apes-lib-reference-article">'+
+      '<div class="apes-lib-reference-notes"><h3>Natar Villages</h3><p>'+escapeHtml(reference.villageTypes)+'</p>'+
+      '<h3>Natar Wonders of the World</h3><p>'+escapeHtml(reference.wonders)+'</p></div>'+
+      '<div class="apes-lib-reference-warning" role="note"><strong>Important — verify with Combat Simulator</strong>'+
+        '<p>'+escapeHtml(reference.warning)+'</p></div>'+
+      '<div class="apes-lib-section-head"><span>Reference Reports</span><span>'+reference.reports.length+' examples</span></div>'+
+      '<div class="apes-lib-report-grid">'+reportCards+'</div>'+
+      '</div>';
   }
   function renderSidebar(){
     const aside=panel?.querySelector('.apes-lib-sidebar-content');
@@ -57,7 +93,7 @@
           '<span class="apes-lib-category-label"><span class="apes-lib-category-symbol">'+escapeHtml(category.symbol)+'</span>'+escapeHtml(category.title)+'</span>'+
           '<span>'+category.guides.length+' &nbsp; '+(openedCategories.has(category.id)?'▾':'▸')+'</span></div>'+
         (openedCategories.has(category.id)?'<div class="apes-lib-guide-list">'+category.guides.map(guide=>{
-          const ready=Boolean(guideData(guide)?.steps?.length);
+          const ready=Boolean(guideData(guide)?.steps?.length || referenceData(guide));
           return '<div class="apes-lib-guide '+(selectedId===guide.id?'is-selected':'')+
             '" data-library-guide="'+guide.id+'" aria-current="'+(selectedId===guide.id?'page':'false')+'" role="button" tabindex="0">'+
               '<span>▤ &nbsp; '+escapeHtml(guide.name)+'</span>'+
@@ -69,18 +105,21 @@
     if(!content)return;
     const guide=findGuide(selectedId);
     const data=guideData(guide);
+    const reference=referenceData(guide);
     if(!guide){content.innerHTML='<p>No guide selected.</p>';return;}
-    const ready=Array.isArray(data?.steps)&&data.steps.length>0;
+    const roadmapReady=Array.isArray(data?.steps)&&data.steps.length>0;
+    const ready=roadmapReady||Boolean(reference);
     const title='<div class="apes-lib-article-head"><div><small>APES LIBRARY / '+escapeHtml(guide.category)+'</small>'+
       '<h2>'+escapeHtml(guide.name)+'</h2></div>'+
-      '<div class="apes-lib-head-actions"><span class="apes-lib-pill">'+(ready?'Guide':'Coming soon')+'</span>'+
-      (ready?'<div class="apes-lib-primary apes-lib-head-export" data-library-export role="button" tabindex="0">Export to Roadmaps</div>':'')+
+      '<div class="apes-lib-head-actions"><span class="apes-lib-pill">'+(reference?'Reference':roadmapReady?'Guide':'Coming soon')+'</span>'+
+      (roadmapReady?'<div class="apes-lib-primary apes-lib-head-export" data-library-export role="button" tabindex="0">Export to Roadmaps</div>':'')+
       '</div></div>';
     if(!ready){
       content.innerHTML=title+'<div class="apes-lib-coming-soon"><span class="apes-lib-book-icon">▤</span>'+
         '<h3>Guide not published yet</h3><p>This category is ready for content. We will add the actual guide here rather than populate it with unverified instructions.</p></div>';
       return;
     }
+    if(reference){content.innerHTML=title+referenceArticleHtml(reference);return;}
     const steps=data.steps;
     content.innerHTML=title+
       (data.description?'<p class="apes-lib-description">'+escapeHtml(data.description)+'</p>':'')+
