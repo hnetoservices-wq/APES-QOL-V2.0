@@ -88,3 +88,7 @@
   #apes-library-panel .apes-lib-report-card{padding:9px!important}
   #apes-library-panel .apes-lib-report-image-scroll img{width:580px!important;max-width:none!important}
 }
+
+/* Source note beneath the x2 Wonder of the World reference. */
+#apes-library-panel .apes-lib-report-note{margin:0!important;padding:7px 9px!important;border-left:2px solid #958154!important;border-radius:2px!important;background:rgba(122,109,75,.11)!important;color:#bbb9a8!important;font-size:10px!important;font-style:italic!important;line-height:1.65!important;overflow-wrap:anywhere!important}
+#apes-library-panel .apes-lib-report-image-pending{padding:15px 11px!important;border:1px dashed #6c6550!important;border-radius:4px!important;background:rgba(24,29,22,.55)!important;color:#a5aa9a!important;font-size:11px!important;line-height:1.6!important;text-align:center!important}
