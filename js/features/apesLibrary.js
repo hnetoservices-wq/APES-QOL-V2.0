@@ -44,9 +44,8 @@
       reports:Object.freeze([
         {title:'Anti-Infantry Natar Village',path:'images/guides/natar-x2-anti-infantry.png',width:732,height:233},
         {title:'Anti-Cavalry Natar Village',path:'images/guides/natar-x2-anti-cavalry.png',width:1000,height:312},
-        {title:'Wonder of the World',
-         note:'Ruben couldn\'t find an actual report from an x2 server, so he was only able to retrieve a screenshot of a discussion of the amount of troops from Klopp 🤮. If anyone has an actual report, I would love to have it and remove this dirty ass name from the extension.',
-         imagePending:true}
+        {title:'Wonder of the World',path:'images/guides/natar-x2-wonder-of-the-world.png',width:1344,height:298,
+         note:'Ruben couldn\'t find an actual report from an x2 server, so he was only able to retrieve a screenshot of a discussion of the amount of troops from Klopp 🤮. If anyone has an actual report, I would love to have it and remove this dirty ass name from the extension.'}
       ])
     }
   });
