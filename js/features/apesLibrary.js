@@ -78,7 +78,7 @@
   }
   function referenceArticleHtml(reference){
     const reportCards=reference.reports.map(report=>{
-      const src=assetUrl(report.path);
+      const src=report.path?assetUrl(report.path):'';
       return '<figure class="apes-lib-report-card">'+
         '<figcaption>'+escapeHtml(report.title)+'</figcaption>'+
         (report.path?
