@@ -168,3 +168,26 @@
 #apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-note strong{display:block!important;margin-bottom:4px!important;color:#efd1a0!important;font-size:11px!important}
 #apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-note p{margin:0!important;color:#d8ceb8!important;font-size:11px!important;line-height:1.65!important}
 @media (max-width:490px){#apes-library-panel .apes-lib-tk-tools-article li.apes-lib-tk-tools-step{padding:10px!important;gap:9px!important}#apes-library-panel .apes-lib-tk-tools-article .apes-lib-tk-tools-number{flex-basis:27px!important;width:27px!important;height:27px!important}}
+
+
+/* Troop travel-time reference: scoped math, examples, and links. */
+#apes-library-panel .apes-lib-travel-reference{gap:15px!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-intro{margin:0!important;padding:3px 2px!important;color:#d5d3c0!important;font-size:12px!important;line-height:1.75!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-section{display:flex!important;flex-direction:column!important;gap:12px!important;min-width:0!important;padding:13px!important;border:1px solid #4d583d!important;border-radius:6px!important;background:rgba(14,21,15,.32)!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-section h3{margin:0!important;padding:0 0 9px!important;border-bottom:1px solid #4e583e!important;font-size:14px!important;font-weight:700!important;color:#e7d5aa!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-section h4{margin:7px 0 0!important;color:#e5d3aa!important;font-size:12px!important;font-weight:700!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-section p{margin:0!important;color:#d2d1c0!important;font-size:12px!important;line-height:1.75!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-external{display:inline-flex!important;align-self:flex-start!important;max-width:100%!important;min-height:34px!important;padding:8px 13px!important;border:1px solid #9a8758!important;border-radius:4px!important;background:#384932!important;background-image:none!important;color:#f2e2b5!important;font-size:11px!important;font-weight:700!important;line-height:1.5!important;text-decoration:none!important;text-shadow:none!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-external:hover,
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-external:focus-visible{background:#50643e!important;color:#fff0cd!important;outline:2px solid #b4a06c!important;outline-offset:2px!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-formula{padding:11px 13px!important;margin:0!important;border:1px solid #607051!important;border-radius:5px!important;background:#1c291f!important;background-image:none!important;color:#f0e3bf!important;font-family:Consolas,'Courier New',monospace!important;font-size:12px!important;font-weight:600!important;line-height:1.7!important;overflow-x:auto!important;overflow-wrap:anywhere!important;white-space:normal!important;text-shadow:none!important;font-variant-numeric:tabular-nums!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-reference-warning{margin:1px 0!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-section .apes-lib-reference-warning strong{color:#f2d3a3!important;font-size:12px!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-important{padding:10px 12px!important;border-left:3px solid #c49d62!important;border-radius:4px!important;background:rgba(113,84,50,.20)!important;color:#f0dabb!important;font-size:11px!important;line-height:1.7!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-result{display:flex!important;justify-content:space-between!important;align-items:center!important;gap:12px!important;padding:13px 15px!important;border:1px solid #829568!important;border-radius:5px!important;background:#31432f!important;color:#e2dec4!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-result span{font-size:11px!important;font-weight:600!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-result strong{color:#fae7af!important;font-size:19px!important;font-weight:700!important;font-variant-numeric:tabular-nums!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-summary{padding:12px 15px!important;border:1px solid #9a8758!important;border-left:3px solid #c5ad70!important;border-radius:5px!important;background:#2f3a2b!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-summary strong{display:block!important;margin-bottom:6px!important;font-size:12px!important;color:#efdaa8!important}
+#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-summary p{margin:0!important;color:#dfdbc5!important;font-size:12px!important;line-height:1.7!important}
+@media (max-width:490px){#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-section{padding:10px!important}#apes-library-panel .apes-lib-travel-reference .apes-lib-travel-result{flex-wrap:wrap!important}}
