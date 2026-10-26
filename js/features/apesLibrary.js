@@ -18,7 +18,7 @@
       {id:'natar_x5',name:'x5 Natar Defenses',referenceId:'natar_x5'}
     ]},
     {id:'robber',title:'Robber',symbol:'⚔',guides:[
-      {id:'robber_camps',name:'Robber Camps'},
+      {id:'robber_camps',name:'Robber Camps',referenceId:'robber_camps'},
       {id:'robber_hideouts',name:'Robber Hideouts',referenceId:'robber_hideouts'}
     ]},
     {id:'misc',title:'Miscellaneous',symbol:'▤',guides:[
@@ -29,6 +29,53 @@
     ]}
   ]);
   const REFERENCE_GUIDES=Object.freeze({
+    robber_camps:{
+      kind:'robber_camps',
+      mechanism:[
+        'Robber camps appear on wilderness tiles around treasuries. They are PvE events shared by the kingdom.',
+        'Camps reward participating players with resources and stolen goods.',
+        'Camps are announced visually on the map two hours before they activate.',
+        'On x3 servers, players have 40 minutes after activation to fill the camps. See the Guidelines section for how to clear a camp.',
+        'If not all camps are cleared, Last Chance Mode begins, giving the kingdom another 40 minutes to clear the remaining camps.',
+        'Participating in robber camps does not cost troops or grant hero XP.'
+      ],
+      guidelines:[
+        'Use your brain. Robber camps are a team effort and require common sense, which can at times be a big ask for a TK player.',
+        'Every camp needs at least five participants to run. Prioritise bringing camps to five participants before sending extra troops to already-filled camps.',
+        'A camp needs 100% on its strength bar to grant its full rewards, but only five participants to run. Rewards scale with the completed strength percentage and do not increase meaningfully above 100%. A 20% strength camp with five participants awards approximately one fifth of the shown rewards; a camp at 200% does not award double.',
+        'If the kingdom cannot fully fill every camp in the first round, it can be better to leave some for Last Chance Mode. Allowing a camp to run at 20% in the first round loses stolen goods that could otherwise be earned.',
+        'If few players are online, avoid sending alone to an empty camp. Join one that is likely to run, coordinate through kingdom chat, and check back after sending so you can relocate if fewer than five players join.',
+        'Hero strength, the relevant hero bonus, hero weapon, Natar Horn, Brewery (Wolf camps only), and smithy upgrades affect your contribution to camp strength and therefore your rewards. The Roman Horse Drinking Trough does not reduce crop costs for camps: Equites Legati count as 2 crop, Equites Imperatoris as 3, and Equites Caesaris as 4.',
+        'See the troop-efficiency comparisons below for what to send to each camp. Their base figures exclude smithy, Natar Horn, Brewery, and other bonuses.',
+        'Do not hoard stolen goods. Sell them to the kingdom: the kingdom needs them to grow its victory points and win the server.'
+      ],
+      spawn:'The reported spawn interval is approximately 48–96 hours on x1 and 34–69 hours on x3. These are player-observed estimates, not confirmed game mechanics.',
+      strengthOverview:'Camp level, strength, and rewards depend on game-world age and kingdom strength. The following x3 figures show the reported minimum and maximum number of troops per camp and approximate total rewards.',
+      levels:[
+        {level:1,other:'18–90',wolf:'36–181',rewards:'~20k of each resource',sg:80},
+        {level:2,other:'112–564',wolf:'224–1,128',rewards:'~41k of each resource',sg:90},
+        {level:3,other:'270–1,350',wolf:'540–2,700',rewards:'~62.5k of each resource',sg:100},
+        {level:4,other:'489–2,448',wolf:'979–4,896',rewards:'~83k of each resource',sg:110},
+        {level:5,other:'771–3,859',wolf:'1,543–7,718',rewards:'~104k of each resource',sg:120},
+        {level:6,other:'1,116–5,582',wolf:'2,233–11,165',rewards:'~125k of each resource',sg:130},
+        {level:7,other:'1,523–7,618',wolf:'3,047–15,237',rewards:'~146k of each resource',sg:140},
+        {level:8,other:'1,993–9,967',wolf:'3,986–19,934',rewards:'~167k of each resource',sg:150},
+        {level:9,other:'Unknown–12,628',wolf:'Unknown–25,256',rewards:'~188k of each resource',sg:160},
+        {level:10,other:'3,120–15,601',wolf:'6,240–31,203',rewards:'~208k of each resource',sg:170}
+      ],
+      beforeCredit:'Original creator unknown. Please get in touch to receive proper credit. These values predate the Summer Mayhem and HaHu 2026 troop rebalance and exclude smithy, Natar Horn, Brewery, and other bonuses.',
+      afterCredit:'Credit: ShinyPink. Updated for the troop rebalance announced during Summer Mayhem and HaHu 2026. Smithy, Natar Horn, Brewery, and other bonuses are not included.',
+      before:[
+        {camp:'Wolf',focus:'Attack',units:[['Roman','Imperians',70,1,70],['Gaul','Swordsmen',65,1,65],['Teuton','Axemen',60,1,60],['Teuton','Teutonic Knights',150,3,50]]},
+        {camp:'Snake',focus:'Infantry defence',units:[['Roman','Praetorians',65,1,65],['Gaul','Druidriders',115,2,57.5],['Teuton','Paladins',100,2,50],['Gaul','Phalanxes',40,1,40]]},
+        {camp:'Bear',focus:'Cavalry defence',units:[['Teuton','Spearmen',60,1,60],['Gaul','Haeduans',165,3,55],['Gaul','Phalanxes',50,1,50],['Roman','Legionnaires',50,1,50]]}
+      ],
+      after:[
+        {camp:'Wolf',focus:'Attack',units:[['Roman','Imperians',75,1,75],['Gaul','Swordsmen',65,1,65],['Teuton','Axemen',60,1,60],['Teuton','Teutonic Knights',180,3,60]]},
+        {camp:'Snake',focus:'Attack',units:[['Roman','Praetorians',70,1,70],['Gaul','Druidriders',120,2,60],['Teuton','Paladins',105,2,52.5],['Gaul','Phalanxes',40,1,40]]},
+        {camp:'Bear',focus:'Attack',units:[['Roman','Legionnaires',65,1,65],['Teuton','Spearmen',60,1,60],['Gaul','Haeduans',180,3,60],['Gaul','Phalanxes',50,1,50]]}
+      ]
+    },
     robber_hideouts:{
       kind:'robber_hideouts',
       mechanism:[
@@ -173,7 +220,42 @@
           '<p>'+escapeHtml(reference.uncertainty)+'</p></div>'+
       '</section></div>';
   }
+  function robberCampArticleHtml(reference){
+    const list=items=>'<ul class="apes-lib-robber-list">'+items.map((item,index)=>
+      '<li'+(index===items.length-1?' class="apes-lib-robber-priority"':'')+'>'+
+      escapeHtml(item)+'</li>').join('')+'</ul>';
+    const table=(headers,rows)=>'<div class="apes-lib-robber-table-scroll"><table class="apes-lib-robber-table">'+
+      '<thead><tr>'+headers.map(h=>'<th scope="col">'+escapeHtml(h)+'</th>').join('')+'</tr></thead>'+
+      '<tbody>'+rows.map(row=>'<tr>'+row.map((cell,i)=>
+        (i===0?'<th scope="row">':'<td>')+escapeHtml(cell)+(i===0?'</th>':'</td>')).join('')+'</tr>').join('')+
+      '</tbody></table></div>';
+    const comparison=groups=>groups.map(group=>
+      '<div class="apes-lib-camp-unit-group"><h4>'+escapeHtml(group.camp)+' <span>· '+escapeHtml(group.focus)+'</span></h4>'+
+      table(['Tribe','Unit','Strength','Crop','Strength / crop'],group.units)+'</div>'
+    ).join('');
+    const cycleSrc=assetUrl('images/guides/robber-camps-cycle.svg');
+    const cycle='<figure class="apes-lib-camp-cycle">'+
+      '<img src="'+escapeHtml(cycleSrc)+'" width="1120" height="280" alt="Robber camp map lifecycle: default tile, burning preparation, active camp, regrowth, and return to default tile" loading="lazy" decoding="async" draggable="false">'+
+      '<figcaption>Camp lifecycle: default tile → burning ramp-up → spawned camp → regrowth → default tile.</figcaption></figure>';
+    return '<div class="apes-lib-reference-article apes-lib-robber-reference apes-lib-camp-reference">'+
+      '<section class="apes-lib-robber-section"><h3>Mechanism</h3>'+list(reference.mechanism)+'</section>'+
+      '<section class="apes-lib-robber-section"><h3>Guidelines</h3>'+list(reference.guidelines)+'</section>'+
+      '<section class="apes-lib-robber-section"><h3>Spawn Rate</h3><p>'+escapeHtml(reference.spawn)+'</p></section>'+
+      '<section class="apes-lib-robber-section"><h3>Camp Strengths &amp; Rewards</h3>'+
+        '<p>'+escapeHtml(reference.strengthOverview)+'</p>'+cycle+
+        '<h4>Camp strengths and rewards per level — x3</h4>'+
+        table(['Level','Bear / Snake troops','Wolf troops','Resource rewards','Stolen goods'],
+          reference.levels.map(row=>[row.level,row.other,row.wolf,row.rewards,row.sg+' SG']))+
+        '<p class="apes-lib-robber-footnote">Level 9 minimum troop counts are not available; figures and rewards are approximate.</p>'+
+      '</section>'+
+      '<section class="apes-lib-robber-section"><h3>Most Efficient Troops — Before 2026 Rebalance</h3>'+
+        '<p class="apes-lib-robber-footnote">'+escapeHtml(reference.beforeCredit)+'</p>'+comparison(reference.before)+'</section>'+
+      '<section class="apes-lib-robber-section"><h3>Most Efficient Troops — After 2026 Rebalance</h3>'+
+        '<p class="apes-lib-robber-footnote">'+escapeHtml(reference.afterCredit)+'</p>'+comparison(reference.after)+'</section>'+
+      '</div>';
+  }
   function referenceArticleHtml(reference){
+    if(reference.kind==='robber_camps')return robberCampArticleHtml(reference);
     if(reference.kind==='robber_hideouts')return robberHideoutArticleHtml(reference);
     const reportCards=reference.reports.map(report=>{
       const src=report.path?assetUrl(report.path):'';
