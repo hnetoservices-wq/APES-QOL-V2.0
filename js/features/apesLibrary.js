@@ -282,6 +282,7 @@
       '</li>'
     ).join('');
     return '<div class="apes-lib-reference-article apes-lib-tk-tools-article">'+
+      '<h3 class="apes-lib-tk-tools-heading">'+escapeHtml(reference.title)+'</h3>'+
       '<p class="apes-lib-tk-tools-intro">'+escapeHtml(reference.intro)+'</p>'+
       '<a class="apes-lib-tk-tools-link" href="https://tk-tools.fr/" target="_blank" rel="noopener noreferrer">Open TK-Tools ↗</a>'+
       '<div class="apes-lib-section-head"><span>Account linking</span><span>'+reference.steps.length+' steps (0–7)</span></div>'+
