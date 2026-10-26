@@ -1,6 +1,6 @@
 // Run with: node tests/apesLibraryNatarX2.cjs
-// Natar x2 guide is a read-only reference and currently contains two report
-// screenshots; a third WW screenshot is pending attachment, not silently replaced.
+// Natar x2 guide includes all three real user-provided report screenshots,
+// including the WW reference with its attribution note.
 const assert=require('node:assert/strict');
 const fs=require('node:fs');
 const path=require('node:path');
@@ -12,7 +12,8 @@ assert.doesNotThrow(()=>new Function(source));
 assert.doesNotMatch(source,/<\/?button\b/i);
 const images=[
   {path:'images/guides/natar-x2-anti-infantry.png',width:732,height:233},
-  {path:'images/guides/natar-x2-anti-cavalry.png',width:1000,height:312}
+  {path:'images/guides/natar-x2-anti-cavalry.png',width:1000,height:312},
+  {path:'images/guides/natar-x2-wonder-of-the-world.png',width:1344,height:298}
 ];
 const assets=manifest.web_accessible_resources.find(r=>r.matches.includes('*://*.kingdoms.com/*'))?.resources||[];
 for(const item of images){
@@ -50,11 +51,12 @@ assert.ok(body.includes('Level 10 wall')&&body.includes('Level 20 Residence'));
 assert.ok(body.includes('Level 20 wall and no Residence'));
 assert.ok(body.includes('catapults are not needed'));
 assert.ok(body.includes('Combat Simulator')&&body.includes('slightly higher or lower'));
-assert.equal((body.match(/<img /g)||[]).length,2,'Only provided reports are included');
+assert.equal((body.match(/<img /g)||[]).length,3,'All three user-provided images must appear');
 for(const item of images)assert.ok(body.includes('chrome-extension://test/'+item.path));
 assert.ok(body.indexOf('Anti-Infantry Natar Village')<body.indexOf('Anti-Cavalry Natar Village'));
 assert.ok(body.indexOf('Anti-Cavalry Natar Village')<body.indexOf('Wonder of the World'));
-assert.ok(body.includes('Wonder of the World reference image pending attachment'));
+assert.ok(!body.includes('Wonder of the World reference image pending attachment'));
+assert.ok(body.includes('chrome-extension://test/images/guides/natar-x2-wonder-of-the-world.png'));
 assert.ok(body.includes('Ruben couldn&#039;t find an actual report from an x2 server'));
 assert.ok(body.includes('Klopp 🤮')&&body.includes('dirty ass name'));
 assert.match(style,/\.apes-lib-report-note\{/);
@@ -64,4 +66,4 @@ assert.equal((body.match(/<img /g)||[]).length,3,'Existing x1 references remain 
 lib.select('speed_x3');lib.renderArticle();
 assert.ok(body.includes('data-library-export'),'Existing Roadmap exports still work');
 assert.equal(manifest.version,'2.0.0.180');
-console.log('Natar x2: two packaged reports, WW note and pending image, no Roadmap export, x1 preserved.');
+console.log('Natar x2: three packaged reports including WW, attribution note, no Roadmap export, x1 preserved.');
