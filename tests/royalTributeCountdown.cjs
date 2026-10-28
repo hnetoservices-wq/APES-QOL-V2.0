@@ -13,14 +13,24 @@ assert.equal((css.match(/{/g)||[]).length,(css.match(/}/g)||[]).length);
 for(const name of ['.qol-royal-tribute-village-count','.qol-royal-tribute-production-total',
  '.qol-royal-tribute-eta-head','.qol-royal-tribute-eta-cell','.qol-royal-tribute-eta[data-tone="ready"]'])
  assert.ok(css.includes(name),'Missing styling: '+name);
-// Guards against the live layout regression: the native Collect text must
-// remain horizontally centered and the two summary badges must not overlap
-// their existing game icons.
-assert.match(css,/th:first-child\s*\{[\s\S]*?text-align:center!important/);
-assert.match(css,/\.qol-royal-tribute-village-count\s*\{[\s\S]*?position:static!important/);
-assert.match(css,/th:first-child\s*>\s*i\.village_village_small_flat_black\s*\{/);
-assert.match(css,/\.qol-royal-tribute-production-total\s*\{[\s\S]*?left:50%!important/);
-assert.match(css,/th:nth-child\(2\)\s*>\s*i\.movement_tribute_small_flat_black\s*\{/);
+// Keep the native Collect button alignment and make both header metrics
+// look like unframed text immediately followed by the game's existing icons.
+const inlineHeaders=css.slice(
+  css.indexOf('/* Plain native-looking inline header metrics'),
+  css.indexOf('/* A fixed two-track layout')
+);
+assert.ok(inlineHeaders.length>100);
+assert.match(inlineHeaders,/\.qol-royal-tribute-village-count,/);
+assert.match(inlineHeaders,/\.qol-royal-tribute-production-total\s*\{/);
+for(const declaration of [
+  'position:static!important;', 'display:inline-block!important;',
+  'border:none!important;', 'background:none!important;',
+  'background-color:transparent!important;', 'transform:none!important;',
+  'margin:0 5px 0 0!important;', 'vertical-align:middle!important;'
+]) assert.ok(inlineHeaders.includes(declaration),'Inline header style missing '+declaration);
+assert.match(inlineHeaders,/th:first-child\s*>\s*i\.village_village_small_flat_black/);
+assert.match(inlineHeaders,/th:nth-child\(2\)\s*>\s*i\.movement_tribute_small_flat_black/);
+assert.doesNotMatch(inlineHeaders,/top:18px!important|top:43px!important|left:50%!important/);
 assert.match(css,/\.collectTributesContainer\s*\{[\s\S]*?display:grid!important/);
 assert.match(css,/\.collectTributesContainer\s*>\s*button\s*>\s*\.content\s*\{[\s\S]*?justify-content:center!important/);
 assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText\s*\{[\s\S]*?text-align:center!important/);
