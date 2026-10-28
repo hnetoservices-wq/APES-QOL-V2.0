@@ -154,6 +154,12 @@ const KINGDOM_MANAGEMENT_FEATURES = [{
   icon: '♛',
   description: 'Scans every kingdom ranking, saves statistics snapshots and compares kingdom development.'
 }, {
+  id: 'qol-chk-royal-tribute-countdown',
+  key: 'royalTributeCountdown',
+  name: 'Royal Tribute Countdown',
+  icon: '⌛',
+  description: 'Shows the game-predicted time until each governor’s tributes can be collected, without needing to hover.'
+}, {
   id: 'qol-chk-oasis-scanner',
   key: 'oasisScanner',
   name: 'Oasis Scanner',
