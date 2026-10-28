@@ -35,6 +35,7 @@ class Node {
  remove(){if(!this.parent)return;this.parent.children=this.parent.children.filter(x=>x!==this);this.parent.firstChild=this.parent.children[0]||null;this.parent=null}
  setAttribute(){}
  matches(sel) {
+   if(sel===this.tagName)return true;
    if(sel.startsWith('.'))return this.classList.contains(sel.slice(1));
    const m=sel.match(/^(th|td)\.([a-zA-Z0-9_-]+)$/);
    if(m)return this.tagName===m[1]&&this.classList.contains(m[2]);
