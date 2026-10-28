@@ -144,3 +144,154 @@
   background:#e9e5da!important;
   border-color:#b3ada1!important;
 }
+
+
+/* Alignment refinements from the live Tributes page, 2026-10-28.
+   Keep the native house/tribute icons instead of inserting emoji or
+   repainting the original buttons. */
+
+/* "5 [house]" acts as one centered visual group, not an isolated left badge. */
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:first-child {
+  text-align:center!important;
+  vertical-align:middle!important;
+  white-space:nowrap!important;
+}
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-village-count {
+  position:static!important;
+  display:inline-block!important;
+  transform:none!important;
+  left:auto!important;
+  top:auto!important;
+  max-width:none!important;
+  margin:0 5px 0 0!important;
+  vertical-align:middle!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:first-child > i.village_village_small_flat_black {
+  position:static!important;
+  display:inline-block!important;
+  float:none!important;
+  margin:0!important;
+  vertical-align:middle!important;
+}
+
+/* Reserve two separate lines in the production header: resources/hour up
+   top and the game's tribute icon underneath. No collision with the title. */
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th {
+  height:57px!important;
+  min-height:57px!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) {
+  padding:0 34px 0 4px!important;
+  vertical-align:middle!important;
+}
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-production-total {
+  position:absolute!important;
+  display:inline-block!important;
+  left:50%!important;
+  top:12px!important;
+  transform:translateX(-50%)!important;
+  margin:0!important;
+  width:max-content!important;
+  max-width:calc(100% - 43px)!important;
+  text-align:center!important;
+  line-height:17px!important;
+  z-index:2!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) > i.movement_tribute_small_flat_black {
+  position:absolute!important;
+  display:block!important;
+  top:36px!important;
+  left:50%!important;
+  right:auto!important;
+  bottom:auto!important;
+  margin:0!important;
+  transform:translateX(-50%)!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) .symbol_i_tiny_wrapper {
+  position:absolute!important;
+  top:50%!important;
+  right:4px!important;
+  transform:translateY(-50%)!important;
+}
+
+/* A fixed two-track layout puts the native bar and button on the same
+   baseline. The button's innerText must not keep Travian's original width
+   after its outer box has been made narrower for the new ETA column. */
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer {
+  display:grid!important;
+  grid-template-columns:minmax(0,1fr) minmax(114px,132px)!important;
+  grid-template-rows:30px!important;
+  align-content:center!important;
+  align-items:center!important;
+  justify-content:stretch!important;
+  column-gap:5px!important;
+  row-gap:0!important;
+  height:30px!important;
+  min-height:30px!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar {
+  grid-column:1!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  min-height:0!important;
+  margin:0!important;
+  align-self:center!important;
+  justify-self:stretch!important;
+  box-sizing:border-box!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button {
+  grid-column:2!important;
+  position:relative!important;
+  inset:auto!important;
+  top:0!important;
+  left:0!important;
+  bottom:auto!important;
+  right:auto!important;
+  transform:none!important;
+  align-self:center!important;
+  justify-self:stretch!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  height:28px!important;
+  min-height:28px!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+  text-align:center!important;
+  vertical-align:middle!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button > .content {
+  display:flex!important;
+  align-items:center!important;
+  justify-content:center!important;
+  width:100%!important;
+  height:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:0!important;
+  box-sizing:border-box!important;
+  text-align:center!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button .innerText {
+  display:block!important;
+  position:relative!important;
+  width:100%!important;
+  min-width:0!important;
+  max-width:100%!important;
+  margin:0!important;
+  padding:0 2px!important;
+  box-sizing:border-box!important;
+  overflow:hidden!important;
+  text-align:center!important;
+  line-height:18px!important;
+  white-space:nowrap!important;
+  font-size:11px!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button .innerText span {
+  font-size:11px!important;
+  line-height:18px!important;
+  white-space:nowrap!important;
+}
