@@ -133,6 +133,7 @@ assert.equal(timerB.querySelector('.qol-royal-tribute-eta').textContent,'Denied'
 dataPending.allowTributeCollection=1;
 dataPending.timeUntilTributeFetch=Date.now()/1000-10;runner();
 assert.equal(timerB.querySelector('.qol-royal-tribute-eta').textContent,'Pending');
+b.native.querySelector('button').classList.add('disabled');
 delete cache['Village:536559663'];runner();
 assert.equal(head1.querySelector('.qol-royal-tribute-village-count').textContent,'2');
 assert.equal(head2.querySelector('.qol-royal-tribute-production-total').textContent,'≥ 262 res/h','Unknown rate is not silently counted as zero');
