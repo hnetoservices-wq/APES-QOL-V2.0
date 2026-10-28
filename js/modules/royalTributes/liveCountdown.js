@@ -12,6 +12,8 @@
   const PRODUCTION_CLASS = 'qol-royal-tribute-production-total';
   const ACTIVE_CLASS = 'qol-royal-tributes-active';
   const BUTTON_LABEL_CLASS = 'qol-royal-collect-label';
+  const TRANSIT_CLASS = 'qol-royal-tribute-in-transit';
+  const TRANSIT_PANEL_CLASS = 'qol-royal-tribute-transit-panel';
   if (window[FLAG]) return;
   window[FLAG] = true;
 
@@ -37,19 +39,42 @@
       !!cell.querySelector('.collectTributesContainer');
   }
 
+  function regularCollectButton(container) {
+    // Travian switches to a DIFFERENT premium Gold button after collection.
+    // Only the standard fetchTribute() action may receive the short label.
+    return container?.querySelector('button[clickable^="fetchTribute("]') || null;
+  }
+
   function isNativeReady(row) {
-    // Some governor records are loaded lazily. In that case, the game's
-    // already-enabled Collect button still provides authoritative readiness.
+    // The premium instant-collection action must never count as Ready.
     const container = row.querySelector('td.collect')?.querySelector('.collectTributesContainer');
-    const button = container?.querySelector('button');
+    const button = regularCollectButton(container);
     return !!button && button.disabled !== true && !button.classList.contains('disabled');
   }
 
-  function ensureCollectLabel(row) {
-    // Decorate the *actual* native button: keep Travian's event listeners,
-    // disabled state, Angular binding and click behavior untouched.
+  function syncTransitLayout(row) {
     const container = row.querySelector('td.collect')?.querySelector('.collectTributesContainer');
-    const button = container?.querySelector('button');
+    if (!container) return;
+    const onWay = container.querySelector('.tributeOnTheWay');
+    const panel = onWay?.parentElement;
+    container.classList.toggle(TRANSIT_CLASS, !!onWay && !!panel && panel.parentElement === container);
+    for (const oldPanel of container.querySelectorAll('.' + TRANSIT_PANEL_CLASS)) {
+      if (oldPanel !== panel) oldPanel.classList.remove(TRANSIT_PANEL_CLASS);
+    }
+    if (onWay && panel?.parentElement === container) {
+      panel.classList.add(TRANSIT_PANEL_CLASS);
+    }
+    // Remove any label accidentally added to a premium button by a previous
+    // experimental version. Its original price and wording must stay visible.
+    container.querySelectorAll('button[premium-feature] .' + BUTTON_LABEL_CLASS)
+      .forEach(label => label.remove());
+  }
+
+  function ensureCollectLabel(row) {
+    // Decorate only the regular native button. Do not modify the premium
+    // Collect now action or its displayed price, including during updates.
+    const container = row.querySelector('td.collect')?.querySelector('.collectTributesContainer');
+    const button = regularCollectButton(container);
     if (!button) return;
     let label = button.querySelector('.' + BUTTON_LABEL_CLASS);
     if (!label) {
@@ -159,6 +184,10 @@
     table.querySelectorAll('.' + COUNT_CLASS + ', .' + PRODUCTION_CLASS +
       ', th.' + HEAD_CLASS + ', td.' + CELL_CLASS +
       ', td.collect .' + LABEL_CLASS + ', .' + BUTTON_LABEL_CLASS).forEach(element => element.remove());
+    table.querySelectorAll('.collectTributesContainer.' + TRANSIT_CLASS)
+      .forEach(element => element.classList.remove(TRANSIT_CLASS));
+    table.querySelectorAll('.' + TRANSIT_PANEL_CLASS)
+      .forEach(element => element.classList.remove(TRANSIT_PANEL_CLASS));
   }
 
   function tick() {
@@ -178,8 +207,13 @@
       if (!id || !isConnected(row)) {
         oldCell?.remove();
         row.querySelectorAll('.' + BUTTON_LABEL_CLASS).forEach(element => element.remove());
+        row.querySelectorAll('.' + TRANSIT_PANEL_CLASS)
+          .forEach(element => element.classList.remove(TRANSIT_PANEL_CLASS));
+        row.querySelectorAll('.' + TRANSIT_CLASS)
+          .forEach(element => element.classList.remove(TRANSIT_CLASS));
         continue;
       }
+      syncTransitLayout(row);
       ensureCollectLabel(row);
       const data = villageDataFor(id);
       setTimer(createTimerCell(row), data, id, nowSeconds, isNativeReady(row));
