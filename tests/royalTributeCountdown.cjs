@@ -34,6 +34,13 @@ assert.doesNotMatch(inlineHeaders,/top:18px!important|top:43px!important|left:50
 assert.match(css,/\.collectTributesContainer\s*\{[\s\S]*?display:grid!important/);
 assert.match(css,/\.collectTributesContainer\s*>\s*button\s*>\s*\.content\s*\{[\s\S]*?justify-content:center!important/);
 assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText\s*\{[\s\S]*?text-align:center!important/);
+// Native button retains its original events and enabled/disabled state.
+// Only the rendered caption becomes "Collect" while the APES feature is on.
+assert.match(css,/grid-template-columns:minmax\(0,1fr\) 82px!important/);
+assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText::after\s*\{/);
+assert.match(css,/content:"Collect"!important/);
+assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText span\s*\{/);
+assert.doesNotMatch(src,/innerText\.textContent\s*=|\.click\(\)/);
 assert.match(menu,/key: 'royalTributeCountdown'/);
 assert.deepEqual(manifest.content_scripts.find(x=>x.world==='MAIN').js.slice(-2),
  ['js/modules/royalTributes/etaCalculator.js','js/modules/royalTributes/liveCountdown.js']);
