@@ -120,6 +120,7 @@
         "js/modules/villageDashboard/resourceProduction.js",
         "js/modules/villageDashboard/expandedVillageRefinementsSafe.js",
         "js/modules/villageDashboard/accountOverview.js",
+        "js/modules/villageDashboard/dashboardScanIntegration.js",
         "js/content.js"
       ],
       "css": [
