@@ -5,6 +5,7 @@
   const CUSTOM_STORAGE_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_STORAGE_KEY = 'qol_roadmap_selected_v1';
   const WINDOW_STORAGE_KEY = 'qol_roadmap_window_state_v1';
+  const GUIDES_OPEN_STORAGE_KEY = 'qol_roadmap_guides_expanded_v1';
   const BUTTON_ID = 'qol-roadmaps-toggle-btn';
   const PANEL_ID = 'qol-roadmaps-container';
   const DIALOG_ID = 'qol-roadmaps-dialog-layer';
@@ -71,41 +72,6 @@
         instruction('Start a Small Celebration, relocate and send the Settlers.'),
         instruction('Thank Ruben from Triangles for the guide.')
       ]
-    },
-    x1_support_500cp: {
-      name: 'x1 Support Village — 500 CP/day',
-      description: 'A structured version of the APES x1 support-village build. This is still a profile preview in Stage 1; the exact one-step-at-a-time build route will be authored in the Roadmap Editor later.',
-      steps: [
-        building('Main Building', 15, 5),
-        building('Warehouse', 10, 12),
-        building('Granary', 11, 12),
-        instruction('Upgrade every resource field to level 10.'),
-        building('Sawmill', 5, 5),
-        building('Brickyard', 6, 5),
-        building('Iron Foundry', 7, 5),
-        building('Grain Mill', 8, 5),
-        building('Bakery', 9, 5),
-        building('Residence', 25, 10),
-        building('Marketplace', 17, 20),
-        building('Barracks', 19, 3),
-        building('Academy', 22, 5),
-        building('Smithy', 12, 3),
-        building('Stable', 20, 10),
-        building('Trade Office', 28, 5),
-        building('Main Building', 15, 10),
-        building('Academy', 22, 10),
-        building('Town Hall', 24, 1),
-        building('Main Building', 15, 20),
-        building('Academy', 22, 17),
-        building('Smithy', 12, 6),
-        building('Embassy', 18, 3),
-        building('Rally Point', 16, 7),
-        building('Tribe Wall', null, 15, { tribeWall: true }),
-        building('Cranny', 23, 10, { instance: 1 }),
-        building('Cranny', 23, 10, { instance: 2 }),
-        instruction('Verify the final village target: 500 passive CP/day on x1 with one normal building slot left free.'),
-        instruction('Go thank Barrbara from DT, Ruben from Triangles and Requinte from APES for this guide.')
-      ]
     }
   });
 
@@ -113,6 +79,7 @@
   let launcher = null;
   let selectedId = '';
   let launcherSyncQueued = false;
+  let apesGuidesExpanded = readJson(GUIDES_OPEN_STORAGE_KEY, false) === true;
 
   function cleanText(value) {
     return String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -230,11 +197,16 @@
         <div class="qol-rm-nav-row"><strong>${escapeHtml(roadmap.name)}</strong><span>${roadmap.steps.length}</span></div>
         <small>${roadmap.steps.length} steps</small>
       </div>`;
-    const builtins = Object.entries(BUILTIN_ROADMAPS).map(([id, roadmap]) => item(id, roadmap)).join('');
+    const builtins = Object.entries(BUILTIN_ROADMAPS)
+      .sort(([, a], [, b]) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
+      .map(([id, roadmap]) => item(id, roadmap)).join('');
     const customs = Object.entries(custom).map(([id, roadmap]) => item(id, roadmap)).join('');
     library.innerHTML = `
-      <div class="qol-rm-group-title">APES Guides</div>
-      ${builtins || '<div class="qol-rm-empty-small">No APES roadmaps available.</div>'}
+      <div class="qol-rm-guides-toggle" data-apes-guides-toggle role="button" tabindex="0"
+           aria-label="Toggle APES Guides" aria-expanded="${apesGuidesExpanded}" aria-controls="qol-rm-guides-list">
+        <span>APES Guides</span><span class="qol-rm-guides-caret" aria-hidden="true">${apesGuidesExpanded ? '▾' : '▸'}</span>
+      </div>
+      <div class="qol-rm-guides-list" id="qol-rm-guides-list">${apesGuidesExpanded ? builtins : ''}</div>
       <div class="qol-rm-group-title">My Roadmaps</div>
       ${customs || '<div class="qol-rm-empty-small">Duplicate an APES roadmap to create your first editable profile.</div>'}`;
   }
@@ -257,7 +229,6 @@
           ${roadmap.description ? `<p>${escapeHtml(roadmap.description)}</p>` : ''}
         </div>
         <div class="qol-rm-actions">
-          ${roadmap.sourceGuideId ? '<div class="qol-rm-action qol-secondary" data-roadmap-action="open-library" role="button" tabindex="0">View in APES Library</div>' : ''}
           <div class="qol-rm-action qol-secondary" data-roadmap-action="duplicate" role="button" tabindex="0">Duplicate</div>
           ${custom ? '<div class="qol-rm-action qol-secondary" data-roadmap-action="rename" role="button" tabindex="0">Rename</div><div class="qol-rm-action qol-danger" data-roadmap-action="delete" role="button" tabindex="0">Delete</div>' : ''}
         </div>
@@ -363,47 +334,6 @@
     });
   }
 
-  // Library exports are independent copies: a future APES guide update
-  // must never overwrite a player's tasks or completion state.
-  function importFromLibrary({ sourceGuideId, name, description, steps } = {}) {
-    const origin = cleanText(sourceGuideId);
-    const title = cleanText(name);
-    if (!/^[a-z0-9_-]{1,80}$/i.test(origin) || !title) {
-      throw new Error('Invalid APES Library guide.');
-    }
-    if (!Array.isArray(steps) || !steps.length || steps.length > 1000) {
-      throw new Error('Choose between 1 and 1,000 roadmap steps.');
-    }
-    if (typeof window.isQolEnabled === 'function' && window.isQolEnabled(FEATURE_KEY) !== true) {
-      throw new Error('Enable Roadmaps in APES Settings before exporting.');
-    }
-    const parsed = steps.map(normalizeStep);
-    if (parsed.some(step => !step)) throw new Error('The guide contains an invalid step.');
-    const custom = getCustomRoadmaps();
-    const matching = Object.entries(custom).find(([, value]) =>
-      value.sourceGuideId === origin && JSON.stringify(value.steps) === JSON.stringify(parsed)
-    );
-    if (matching) {
-      saveSelected(matching[0]);
-      open();
-      return { created: false, id: matching[0], name: matching[1].name };
-    }
-    const names = new Set(Object.values(getAllRoadmaps()).map(v => normalizedText(v.name)));
-    let finalName = title, suffix = 2;
-    while (names.has(normalizedText(finalName))) finalName = `${title} (${suffix++})`;
-    const id = `custom_library_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
-    custom[id] = normalizeRoadmap({
-      name: finalName,
-      description: cleanText(description),
-      steps: parsed,
-      sourceGuideId: origin
-    });
-    if (!saveCustomRoadmaps(custom)) throw new Error('Could not save the new Roadmap.');
-    saveSelected(id);
-    open();
-    return { created: true, id, name: finalName };
-  }
-
   function renameSelected() {
     const custom = getCustomRoadmaps();
     const source = custom[selectedId];
@@ -434,11 +364,7 @@
   }
 
   function handleAction(action) {
-    if (action === 'open-library') {
-      const source = getAllRoadmaps()[selectedId]?.sourceGuideId;
-      if (source) window.APES?.library?.select?.(source);
-    }
-    else if (action === 'duplicate') duplicateSelected();
+    if (action === 'duplicate') duplicateSelected();
     else if (action === 'rename') renameSelected();
     else if (action === 'delete') deleteSelected();
   }
@@ -549,6 +475,13 @@
     makeResizable();
     panel.querySelector('.qol-rm-close').addEventListener('click', close);
     panel.addEventListener('click', event => {
+      if (event.target.closest('[data-apes-guides-toggle]')) {
+        apesGuidesExpanded = !apesGuidesExpanded;
+        writeJson(GUIDES_OPEN_STORAGE_KEY, apesGuidesExpanded);
+        renderSidebar();
+        panel.querySelector('[data-apes-guides-toggle]')?.focus();
+        return;
+      }
       const select = event.target.closest('[data-roadmap-select]');
       if (select) {
         saveSelected(select.dataset.roadmapSelect);
@@ -667,7 +600,7 @@
       }
     }, true);
     window.APES = window.APES || {};
-    window.APES.roadmaps = Object.freeze({ open, close, toggle, getAllRoadmaps, importFromLibrary });
+    window.APES.roadmaps = Object.freeze({ open, close, toggle, getAllRoadmaps });
     setTimeout(scheduleLauncherPosition, 200);
     setTimeout(scheduleLauncherPosition, 900);
   }
