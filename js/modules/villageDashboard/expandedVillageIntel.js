@@ -137,6 +137,58 @@
     return parsed;
   }
 
+  function validateOwnTroopsTable(table, parsed) {
+    const columns = Array.from(table.querySelectorAll('thead.troopsIconRow th i[unit-icon][data]'))
+      .map(icon => String(icon.getAttribute('data') || '').trim());
+    // The game's own overview includes the ten tribal unit types and,
+    // optionally, a separate Hero column that Unit Counter excludes.
+    if (columns.length < 10 || columns.slice(0, 10).some(id => !/^\d+$/.test(id)) ||
+        new Set(columns).size !== columns.length) {
+      throw new Error('Incomplete troop type headers; counts not saved');
+    }
+    const tableRows = Array.from(table.querySelectorAll('tbody tr'));
+    if (parsed.length !== tableRows.length || parsed.some(row => !row.name)) {
+      throw new Error('Incomplete troop overview rows; counts not saved');
+    }
+    if (tableRows.some(row => {
+      const cells = Array.from(row.querySelectorAll(':scope > td')).slice(1);
+      return cells.length !== columns.length || cells.some(td =>
+        !/^\d[\d\s.,]*$/.test(td.textContent.trim()));
+    })) {
+      throw new Error('Incomplete troop counts; counts not saved');
+    }
+
+    // A one-row render during Angular navigation can look valid; reject it
+    // before replacing history. A matching village ID or normalized name
+    // must exist for every currently known owned village.
+    const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
+    for (const village of villages) {
+      const id = String(village?.villageId || '');
+      const name = norm(village?.name);
+      if (!parsed.some(row => (id && row.villageId === id) || (name && norm(row.name) === name))) {
+        throw new Error('Missing own village in troop overview; counts not saved');
+      }
+    }
+
+    // Verify parsed row sums against Travian's native Total footer so the
+    // Account Overview cannot silently store a partially rendered table.
+    const totalCells = Array.from(table.querySelectorAll('tfoot tr td')).slice(1);
+    if (totalCells.length === columns.length) {
+      for (let index = 0; index < columns.length; index += 1) {
+        const text = totalCells[index].textContent.trim();
+        if (!/^\d[\d\s.,]*$/.test(text)) {
+          throw new Error('Incomplete troop totals; counts not saved');
+        }
+        const expected = Number(text.replace(/[^\d]/g, ''));
+        const actual = parsed.reduce((sum, row) => sum + Number(row.units[columns[index]] || 0), 0);
+        if (actual !== expected) {
+          throw new Error('Troop overview totals mismatch; counts not saved');
+        }
+      }
+    }
+    return true;
+  }
+
   function absoluteUnitId(tribeId, localIndex) {
     const tribe = Number(tribeId);
     if (tribe >= 1 && tribe <= 3) return (tribe - 1) * 10 + localIndex;
@@ -323,10 +375,11 @@
       const previousHash = location.hash;
       try {
         location.hash = overviewRoute();
-        const table = await waitFor('.tabTroops .tabContentOwnTroops .ownTroops table.villagesTable, .ownTroops table.villagesTable', 5500);
+        const table = await waitFor('.tabOwnTroops.activeTab.currentTab .ownTroops table.villagesTable', 5500);
         if (!table) throw new Error('Troop Overview table not found');
         const parsed = parseOwnTroopsTable(table);
         if (!parsed.length) throw new Error('No village troop rows found');
+        validateOwnTroopsTable(table, parsed);
 
         troopRows.clear();
         parsed.forEach(row => {
