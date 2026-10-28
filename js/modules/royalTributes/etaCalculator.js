@@ -61,5 +61,58 @@
     return `${secs}s`;
   }
 
-  return Object.freeze({ estimate, formatCountdown, THRESHOLD_PERCENT });
+
+  function isTrue(value) {
+    return value === true || value === 1 || value === '1';
+  }
+
+  // The live TK cache exposes timeUntilTributeFetch as a Unix timestamp in
+  // seconds. This value is preferred over any independent production estimate.
+  function readVillageStatus(data, nowSeconds = Date.now() / 1000) {
+    if (!data || typeof data !== 'object' || !NUMERIC(nowSeconds)) {
+      return { state: 'unknown', seconds: null };
+    }
+    if (data.allowTributeCollection === false || data.allowTributeCollection === 0) {
+      return { state: 'denied', seconds: null };
+    }
+    if (isTrue(data.tributesOnTheirWay)) {
+      return { state: 'on_way', seconds: null };
+    }
+    if (isTrue(data.canFetchTributes)) {
+      return { state: 'ready', seconds: 0 };
+    }
+    let timestamp = Number(data.timeUntilTributeFetch);
+    // Future-proof against game worlds reporting milliseconds.
+    if (Number.isFinite(timestamp) && timestamp > 1e12) timestamp /= 1000;
+    if (Number.isFinite(timestamp) && timestamp >= 946684800 && timestamp <= 4102444800) {
+      if (timestamp <= nowSeconds) {
+        // The client's collection flag has not yet been refreshed.
+        return { state: 'pending', seconds: null, at: timestamp };
+      }
+      return {
+        state: 'game_eta',
+        seconds: Math.ceil(timestamp - nowSeconds),
+        at: timestamp
+      };
+    }
+
+    // Fallback only when the game does not provide a valid timestamp:
+    // derive from *tribute* fields, never ordinary village storage/production.
+    const current = Number(data.tributeSum);
+    const needed = Number(data.tributesRequiredToFetch);
+    const perHour = Number(data.tributeProduction);
+    if (!NUMERIC(current) || !NUMERIC(needed) || !NUMERIC(perHour) ||
+        current < 0 || needed <= 0 || perHour < 0) {
+      return { state: 'unknown', seconds: null };
+    }
+    if (current >= needed) return { state: 'pending', seconds: null };
+    if (perHour === 0) return { state: 'stalled', seconds: null };
+    const seconds = Math.ceil((needed - current) / perHour * 3600);
+    if (!Number.isSafeInteger(seconds) || seconds < 0) {
+      return { state: 'unknown', seconds: null };
+    }
+    return { state: 'estimated', seconds, at: nowSeconds + seconds };
+  }
+
+  return Object.freeze({ estimate, formatCountdown, readVillageStatus, THRESHOLD_PERCENT });
 });
