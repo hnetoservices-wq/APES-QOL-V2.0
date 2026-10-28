@@ -6,6 +6,17 @@ const root = path.resolve(__dirname, '..');
 const intel = fs.readFileSync(path.join(root,'js/modules/villageDashboard/expandedVillageIntel.js'),'utf8');
 const integration = fs.readFileSync(path.join(root,'js/modules/villageDashboard/dashboardScanIntegration.js'),'utf8');
 const overview = fs.readFileSync(path.join(root,'js/modules/villageDashboard/accountOverview.js'),'utf8');
+const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
+const isolated = manifest.content_scripts.find(group =>
+  group.world !== 'MAIN' && group.js?.includes('js/modules/villageDashboard/accountOverview.js'));
+assert.ok(isolated, 'Account Overview must load as an isolated-world module');
+const integrationPath = 'js/modules/villageDashboard/dashboardScanIntegration.js';
+assert.ok(isolated.js.includes(integrationPath),
+  'Combined Scan Now integration must actually load from the extension manifest');
+assert.ok(isolated.js.indexOf(integrationPath) > isolated.js.indexOf('js/modules/villageDashboard/expandedVillageIntel.js'),
+  'Combined Scan Now must load after the troop scanner');
+assert.ok(isolated.js.indexOf(integrationPath) > isolated.js.indexOf('js/ui/villagePalette.js'),
+  'Combined Scan Now must load after the village dashboard UI');
 
 // The native Own troops view supplies per-village troop columns, including a
 // separate hero. Reproduce the supplied screenshot: 204 + 9 Clubswingers.
@@ -101,6 +112,14 @@ assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
   window.APES.villageSmithyLevels.scan=async()=>{events.push('smithy');throw Error('Smithy temporarily unavailable')};
   await window.APES.villageDashboardCombinedScan.run();
   assert.deepEqual(events,['villages','smithy','troops','refresh'],'Troops still refresh if Smithy fails');
-  assert.equal(button.textContent,'Scan Now','Scan button restored');
-  console.log('Dashboard Scan Now refreshes authoritative Troops overview; fixture 213 Clubswingers / 225 non-hero troops; partial totals rejected.');
+  assert.equal(button.textContent,'Scan Now','Scan button restored on successful scan');
+  events.length=0;
+  window.APES.villageSmithyLevels.scan=async()=>events.push('smithy');
+  window.APES.villageDashboardIntel.refreshTroops=async()=>{
+    events.push('troops'); return false;
+  };
+  await window.APES.villageDashboardCombinedScan.run();
+  assert.deepEqual(events,['villages','smithy','troops','refresh']);
+  assert.match(button.textContent,/Troop scan failed/,'Failure is shown rather than silently claiming success');
+  console.log('Dashboard Scan Now is loaded in manifest; scans Troops overview; 213 Clubswingers / 225 non-hero troops; partial totals and failed scans detected.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
