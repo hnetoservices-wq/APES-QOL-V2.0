@@ -24,6 +24,7 @@
     if (!palette?.scan) return;
 
     running = true;
+    let troopFailed = false;
     try {
       // Preserve the dashboard's existing scan first: construction/building
       // locations and the resource-production collector all depend on its
@@ -53,10 +54,15 @@
         setPhase('Scanning Troops…');
         const refreshed = await troops.refreshTroops();
         if (!refreshed) {
+          troopFailed = true;
           console.warn('[APES Village Dashboard] Troop overview scan did not complete; saved Unit Counter history was retained.');
         }
+      } else {
+        troopFailed = true;
+        console.warn('[APES Village Dashboard] Troop scanner is not loaded; Unit Counter was not refreshed.');
       }
     } catch (error) {
+      troopFailed = true;
       console.warn('[APES Village Dashboard] Combined dashboard scan failed.', error);
     } finally {
       running = false;
@@ -64,7 +70,10 @@
       if (button) {
         button.classList.remove('scanning');
         button.setAttribute('aria-disabled', 'false');
-        button.textContent = 'Scan Now';
+        button.textContent = troopFailed ? 'Troop scan failed — Retry' : 'Scan Now';
+        button.title = troopFailed
+          ? 'Unit Counter was not refreshed. Retry, or check the DevTools console for the troop scan error.'
+          : 'Scan all villages and refresh troop counts';
       }
       window.APES_VILLAGE_PALETTE?.refresh?.();
       window.dispatchEvent(new CustomEvent('apes_vd_dashboard_scan_complete'));
