@@ -13,6 +13,17 @@ assert.equal((css.match(/{/g)||[]).length,(css.match(/}/g)||[]).length);
 for(const name of ['.qol-royal-tribute-village-count','.qol-royal-tribute-production-total',
  '.qol-royal-tribute-eta-head','.qol-royal-tribute-eta-cell','.qol-royal-tribute-eta[data-tone="ready"]'])
  assert.ok(css.includes(name),'Missing styling: '+name);
+// Guards against the live layout regression: the native Collect text must
+// remain horizontally centered and the two summary badges must not overlap
+// their existing game icons.
+assert.match(css,/th:first-child\s*\{[\s\S]*?text-align:center!important/);
+assert.match(css,/\.qol-royal-tribute-village-count\s*\{[\s\S]*?position:static!important/);
+assert.match(css,/th:first-child\s*>\s*i\.village_village_small_flat_black\s*\{/);
+assert.match(css,/\.qol-royal-tribute-production-total\s*\{[\s\S]*?left:50%!important/);
+assert.match(css,/th:nth-child\(2\)\s*>\s*i\.movement_tribute_small_flat_black\s*\{/);
+assert.match(css,/\.collectTributesContainer\s*\{[\s\S]*?display:grid!important/);
+assert.match(css,/\.collectTributesContainer\s*>\s*button\s*>\s*\.content\s*\{[\s\S]*?justify-content:center!important/);
+assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText\s*\{[\s\S]*?text-align:center!important/);
 assert.match(menu,/key: 'royalTributeCountdown'/);
 assert.deepEqual(manifest.content_scripts.find(x=>x.world==='MAIN').js.slice(-2),
  ['js/modules/royalTributes/etaCalculator.js','js/modules/royalTributes/liveCountdown.js']);
