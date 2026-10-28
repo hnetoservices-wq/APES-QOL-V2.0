@@ -33,11 +33,6 @@
       description: 'APES x2 speedsettling guide, from finishing the tutorial through sending settlers.',
       steps: []
     },
-    x5_speedsettle: {
-      name: 'x5 Speedsettling',
-      description: 'APES x5 speedsettling guide, from finishing the tutorial through sending settlers.',
-      steps: []
-    },
     x3_speedsettle: {
       name: 'x3 Speed Settle',
       description: 'The existing APES x3 settlement guide, represented in the new Roadmap format. These steps remain manual instructions for now.',
@@ -72,6 +67,11 @@
         instruction('Start a Small Celebration, relocate and send the Settlers.'),
         instruction('Thank Ruben from Triangles for the guide.')
       ]
+    },
+    x5_speedsettle: {
+      name: 'x5 Speedsettling',
+      description: 'APES x5 speedsettling guide, from finishing the tutorial through sending settlers.',
+      steps: []
     }
   });
 
