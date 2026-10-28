@@ -101,7 +101,7 @@ function rowFor(id) {
   if(sel==='td.collect')return collect;
   return Node.prototype.querySelector.call(row,sel);
  };
- collect.querySelector=sel=>sel==='.collectTributesContainer'?native:Node.prototype.querySelector.call(collect,sel);
+ collect.querySelector=sel=>Node.prototype.querySelector.call(collect,sel);
  return {row,collect,native};
 }
 const wrapper=new Node('div','tributeVillages'), table=new Node('table','gradient');
