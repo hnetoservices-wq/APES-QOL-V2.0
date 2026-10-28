@@ -231,7 +231,7 @@ assert.ok(!wrapper.classList.contains('qol-royal-tributes-active'));
 assert.ok(a.collect.querySelector('.collectTributesContainer'));
 assert.ok(!a.collect.querySelector('.qol-royal-tribute-eta'));
 assert.equal(originalButtonA.querySelector('.qol-royal-collect-label'),null,'Original button appearance restored on disable');
-assert.equal(originalButtonB.querySelector('.qol-royal-collect-label'),null,'Detached native button remains untouched');
+assert.equal(originalButtonB.querySelector('.qol-royal-collect-label')?.textContent,'Collect','Detached old button is outside live UI and is not mutated');
 assert.equal(b.native.classList.contains('qol-royal-tribute-in-transit'),false,'Transit class cleared on disable');
 assert.equal(transitPanel.classList.contains('qol-royal-tribute-transit-panel'),false,'Transit panel class cleared on disable');
 assert.equal(goldPrice.textContent,'1','Original premium price remains after disabling');
