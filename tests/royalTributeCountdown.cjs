@@ -52,6 +52,7 @@ function rowFor(id) {
  const a=new Node('a');a.getAttribute=k=>k==='villageid'?id:'';player.appendChild(a);
  const collect=new Node('td','collect');row.appendChild(collect);
  const native=new Node('div','collectTributesContainer');collect.appendChild(native);
+ const nativeButton=new Node('button');native.appendChild(nativeButton);
  row.querySelector=(sel)=>{
   if(sel==='td.playerColumn [villageid]')return a;
   if(sel==='td.collect')return collect;
@@ -144,6 +145,8 @@ assert.ok(a.collect.querySelector('.collectTributesContainer'));
 assert.ok(!a.collect.querySelector('.qol-royal-tribute-eta'));
 enabled=true;runner();
 assert.equal(headRow.querySelectorAll('th').length,3,'Can re-enable without duplicates');
+delete cache['Village:536592428'];runner();
+assert.equal(a.row.querySelector('td.qol-royal-tribute-eta-cell').querySelector('.qol-royal-tribute-eta').textContent,'Ready','Native enabled button confirms readiness when cache is missing');
 assert.ok(!src.includes('fetch(') && !src.includes('XMLHttpRequest'));
 assert.ok(!src.includes('.click()') && !src.includes('.dispatchEvent('));
 console.log('Royal Tributes: connected village count, summed hourly tribute production, third-column concise ETA, ready state, no duplicates, disable/restore passed.');
