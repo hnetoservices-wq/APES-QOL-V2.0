@@ -3,7 +3,7 @@
 
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
   const HUB_ID = 'qol-roadmaps-container';
-  const OFFICIAL_IDS = new Set(['x1_speedsettle', 'x2_speedsettle', 'x3_speedsettle', 'x5_speedsettle', 'x1_support_500cp']);
+  const OFFICIAL_IDS = new Set(['x1_speedsettle', 'x2_speedsettle', 'x3_speedsettle', 'x5_speedsettle']);
 
   let installed = false;
   let installTimer = null;
@@ -264,63 +264,6 @@
     return route;
   }
 
-  function buildX1SupportRoute() {
-    const route = [];
-
-    addBuildingThrough(route, 'x1-main-building', 'Main Building', 15, 1, 5);
-    addBuildingThrough(route, 'x1-warehouse', 'Warehouse', 10, 1, 3);
-    addBuildingThrough(route, 'x1-granary', 'Granary', 11, 1, 3);
-    addResourceThrough(route, 'x1-all-fields', 'All Resource Fields', 1, 3);
-
-    addBuildingThrough(route, 'x1-warehouse', 'Warehouse', 10, 4, 6);
-    addBuildingThrough(route, 'x1-granary', 'Granary', 11, 4, 6);
-    addResourceThrough(route, 'x1-all-fields', 'All Resource Fields', 4, 6);
-
-    route.push(building('x1-marketplace-lv1', 'Marketplace', 17, 1));
-    route.push(building('x1-residence-lv1', 'Residence', 25, 1));
-
-    addBuildingThrough(route, 'x1-warehouse', 'Warehouse', 10, 7, 9);
-    addBuildingThrough(route, 'x1-granary', 'Granary', 11, 7, 9);
-    addResourceThrough(route, 'x1-all-fields', 'All Resource Fields', 7, 8);
-
-    addBuildingThrough(route, 'x1-warehouse', 'Warehouse', 10, 10, 12);
-    addBuildingThrough(route, 'x1-granary', 'Granary', 11, 10, 12);
-    addResourceThrough(route, 'x1-all-fields', 'All Resource Fields', 9, 10);
-
-    addBuildingThrough(route, 'x1-sawmill', 'Sawmill', 5, 1, 5);
-    addBuildingThrough(route, 'x1-brickyard', 'Brickyard', 6, 1, 5);
-    addBuildingThrough(route, 'x1-iron-foundry', 'Iron Foundry', 7, 1, 5);
-    addBuildingThrough(route, 'x1-grain-mill', 'Grain Mill', 8, 1, 5);
-    addBuildingThrough(route, 'x1-bakery', 'Bakery', 9, 1, 5);
-
-    addBuildingThrough(route, 'x1-residence', 'Residence', 25, 2, 10);
-    addBuildingThrough(route, 'x1-marketplace', 'Marketplace', 17, 2, 20);
-
-    addBuildingThrough(route, 'x1-barracks', 'Barracks', 19, 1, 3);
-    addBuildingThrough(route, 'x1-academy', 'Academy', 22, 1, 5);
-    addBuildingThrough(route, 'x1-smithy', 'Smithy', 12, 1, 3);
-    addBuildingThrough(route, 'x1-stable', 'Stable', 20, 1, 10);
-    addBuildingThrough(route, 'x1-trade-office', 'Trade Office', 28, 1, 5);
-
-    addBuildingThrough(route, 'x1-main-building', 'Main Building', 15, 6, 10);
-    addBuildingThrough(route, 'x1-academy', 'Academy', 22, 6, 10);
-    route.push(building('x1-town-hall-lv1', 'Town Hall', 24, 1));
-
-    addBuildingThrough(route, 'x1-main-building', 'Main Building', 15, 11, 20);
-    addBuildingThrough(route, 'x1-academy', 'Academy', 22, 11, 17);
-    addBuildingThrough(route, 'x1-smithy', 'Smithy', 12, 4, 6);
-    addBuildingThrough(route, 'x1-embassy', 'Embassy', 18, 1, 3);
-    addBuildingThrough(route, 'x1-rally-point', 'Rally Point', 16, 1, 7);
-    addBuildingThrough(route, 'x1-tribe-wall', 'Tribe Wall', null, 1, 15, { tribeWall: true });
-    addBuildingThrough(route, 'x1-cranny1', 'Cranny', 23, 1, 10, { instance: 1 });
-    addBuildingThrough(route, 'x1-cranny2', 'Cranny', 23, 1, 10, { instance: 2 });
-
-    route.push(checkpoint('x1-final-target', 'Verify the final village target: 500 passive CP/day on x1 with one normal building slot left free.'));
-    route.push(instruction('x1-thanks', 'Go thank Barrbara from DT, Ruben from Triangles and Requinte from APES for this guide.'));
-
-    return route;
-  }
-
   const DEFINITIONS = Object.freeze({
     x1_speedsettle: {
       name: 'x1 Speedsettling',
@@ -381,21 +324,6 @@
         goal: 'Settle as quickly as possible using the established APES x3 route.'
       },
       steps: buildX3Route()
-    },
-    x1_support_500cp: {
-      name: 'x1 Support Village — 500 CP/day',
-      description: 'A chronological build route for a normal non-city support village on x1. It stages storage, resource fields, production buildings and CP-efficient infrastructure toward the established 500 passive CP/day target while preserving one normal building slot.',
-      meta: {
-        official: true,
-        version: '1.0',
-        speed: 'x1',
-        villageType: 'Normal support village',
-        author: 'APES QoL',
-        maintainedBy: 'APES QoL',
-        contributors: ['Barrbara · DT', 'Ruben · Triangles', 'Requinte · APES'],
-        goal: '500 passive CP/day with one normal building slot left free.'
-      },
-      steps: buildX1SupportRoute()
     }
   });
 
