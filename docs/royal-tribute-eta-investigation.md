@@ -1,54 +1,64 @@
-# Royal Tribute ETA — investigation (2026-10-28)
+# Royal Tribute Countdown — verified model and implementation (2026-10-28)
 
 ## Branch safety
 
-- Immutable checkpoint: `checkpoint/pre-royal-tools-2026-10-28`
+- Checkpoint: `checkpoint/pre-royal-tools-2026-10-28` at `b1989ae248139d76dfa43fb44579ed364204ce24`
 - Development: `feature/royal-tribute-countdown`
-- Starting commit for both: `b1989ae248139d76dfa43fb44579ed364204ce24`
-- Do not deploy to `main` until real game-model values have been verified.
+- Production `main` remains unchanged until this feature is tested in-game.
 
-## Evidence from supplied HTML/screenshots
+## Discovery: hovering is not required
 
-The saved page shows Kingdom → Tributes, with six `tr[ng-repeat*="village in tributeVillages"]` rows.
+The HTML attachment's table has `tr[ng-repeat*="village in tributeVillages"]` rows with governor village links containing a numeric `villageid`. The game uses AngularJS, but direct scope inspection was unavailable in the browser. Accessing the **MAIN** world cache works instead:
 
-- Every row has a `village="village"` AngularJS model binding.
-- Each collectible fund bar has `tooltip-class="tributesProductionTooltip"` and lazy template `tpl/society/partials/kingdom/tributes/tributesProductionTooltip.html`.
-- The progressbar has `perc` and `marker`, e.g. `perc="15" marker="21"` for Cookix / Rage.
-- The button uses `ng-class="{disabled: !village.data.canFetchTributes, ...}"`.
-- The tooltip is NOT embedded in the saved HTML (the rendered tooltip's production fields cannot be recovered from this static file).
-- Screenshot shows Cookix / Rage tooltip: stored 1,739 / 11,813, production 64 wood/h, 65 clay/h, 64 iron/h. This correctly explains the ~15% displayed progress (1739 / 11813 ≈ 14.72%). The source of those numbers in the live JavaScript model has **not** been verified.
+`window.Cache.c['Village:<villageid>'].data`
 
-## Verified game mechanic
+The user verified these exact fields (names and example values):
 
-The Travian Kingdoms support articles "Tributes" and "How to Collect Tributes and Treasures" say tribute collection becomes possible after the tribute fund is at least 20% full, provided the village is eligible. The current game's readiness flag remains authoritative. Approximate ETA:
+| Game cache property | Value | Meaning |
+| --- | --- | --- |
+| `tributes` | `{1:35,2:31,3:31}` | Stored tribute amounts from last materialized data |
+| `calculatedTributes` | `{1:43,2:38,3:38}` | Updated tribute amounts, total 119 |
+| `tributeSum` | `119` | Total updated tribute amount |
+| `tributesRequiredToFetch` | `1890` | Required amount for regular collection |
+| `tributesCapacity` | `9450` | Tribute fund capacity; 20% × 9450 = 1890 |
+| `tributeProduction` | `262` | Total hourly tribute production |
+| `tributeProductionDetail` | `{1:94,2:84,3:84}` | Per-resource hourly tribute production |
+| `canFetchTributes` | `false` | Game's authoritative collection-ready flag |
+| `allowTributeCollection` | `1` | This governor permits collection |
+| `tributesOnTheirWay` | `false` | No collection currently travelling |
+| `timeUntilTributeFetch` | `1793207817.1852214` | Game-calculated **Unix timestamp in seconds** when tributes should become available |
+| `timeUntilTributeFull` | `1793311695.0478168` | Separate full-fund timestamp, **not** the collection threshold |
+| `lastTributeCalculation` | `1793183504922` | Last tribute calculation Unix timestamp in milliseconds |
 
-`ceil((0.20 × totalFundCapacity − currentStoredTribute) / (woodTributePerHour + clayTributePerHour + ironTributePerHour) × 3600)` seconds.
+At the last calculation, the game-provided ETA is approximately **6h 45m 13s**. A production-only calculation `(1890−119)/262 × 3600` is close but not identical. The tool therefore **uses the game's own timestamp first** and only falls back to a clearly labelled estimate if it is absent.
 
-This is an estimate, not a guaranteed timer: attacks, production changes, permission changes, cap changes and game-side timing may alter the outcome. Also avoid using the rounded on-screen `marker` as the exact internal threshold without validation.
+Do not confuse ordinary `storage`/`production` with tribute-specific fields.
 
-## How to obtain production *without hovering*
+## Implementation
 
-Travian uses AngularJS. In the live **MAIN** world, `angular.element(tributeRow).scope()?.village` is likely available because the row uses `ng-repeat` with `village`. The game's cache may expose `Cache.c['Village:<id>']`. This should be read only: do not issue game API requests or simulate mouse events.
+- `js/modules/royalTributes/etaCalculator.js`: pure, tested math and status interpretation. Prefers `timeUntilTributeFetch`. Distinguishes `ready`, `on_way`, `denied`, `pending`, `game_eta`, `estimated`, `stalled` and `unknown`.
+- `js/modules/royalTributes/liveCountdown.js`: read-only script in **MAIN world**. Every second, identifies each connected governor's village ID from the existing `tributeVillages` table, reads that village from `Cache.c`, and inserts a short status **beneath** the native collection widget. The timestamp is subtracted from `Date.now()` each update, so inactive background tabs don't make it drift.
+- `css/features/royalTributeCountdown.css`: compact APES-style labels, with different colors for ready, countdown, and unavailable.
+- `js/ui/menu.js`: **Kingdom Management → Royal Tribute Countdown** toggle, backed by existing `qol_royalTributeCountdown` preference.
+- `manifest.json`: includes scripts/styles on the development branch.
+- `tests/royalTributeEta.cjs` and `tests/royalTributeCountdown.cjs`: unit and DOM-stub regression tests, included in `tests/package.json`.
 
-Existing APES source already uses MAIN-world read-only data bridges (e.g. `js/core/playerIdentityBridge.js`, `js/modules/villageDashboard/bridge.js`) to access game models safely and publish only minimal data back to isolated scripts.
+### Safety and accuracy
 
-**Important:** This static saved HTML does not contain the AngularJS in-memory model. We therefore cannot confirm the exact object keys for the current fund, maximum and hourly rate yet, nor that those keys exist without hover. Avoid guessing or displaying an apparently exact timer based only on bar percentages.
+- No game endpoint requests, hovering, mouse movement, clicks, resource transfers, persistent village data, or new extension permissions.
+- Never mark `Ready to collect` on a mere elapsed timer; only `canFetchTributes` can confirm it.
+- When `timeUntilTributeFetch` has passed but `canFetchTributes` remains false, show **Awaiting game update**.
+- If no valid game timestamp exists, estimate from `tributesRequiredToFetch`, `tributeSum` and `tributeProduction` and label it `Est.`.
+- Denied collection, tributes in flight and stopped production have distinct statuses.
+- Values can change with production bonuses, capacity, raiding, fealty or game-side effects; live game cache is refreshed by Travian.
 
-## Next live validation
+## Remaining acceptance testing
 
-On a live royal account open Kingdom → Tributes. In the devtools Console, verify the `village` model contains the three values needed:
+The code passes mocked DOM and calculation tests, but has **not been visually or functionally tested on a real Royal account**. Install the development branch and open Kingdom → Tributes. Verify:
+1. Governor rows show statuses below the existing button/bar with no tooltip hover.
+2. Different villages show different timers, and `Big Ping Pong` reads `Ready to collect` when the native Collect button is active.
+3. Timers decrease, and refresh correctly after Travian updates the game's cache.
+4. Disabling `Royal Tribute Countdown` in settings removes the labels.
+5. Collection in progress or no collection permission is not falsely marked Ready.
 
-```js
-const row = document.querySelector('tr[ng-repeat*="village in tributeVillages"]');
-const scope = window.angular?.element(row)?.scope();
-const village = scope?.village;
-console.log('Village data keys relevant to tribute:', Object.keys(village?.data || {}).filter(k => /tribut|production|resource|capacity/i.test(k)));
-```
-
-Only share **field names**, not the entire account model. Once confirmed, implement an exact field mapping and a MAIN-world bridge that publishes only the numeric `villageId`, `current`, `capacity`, `productionPerHour`, `canFetchTributes` and `collectionAllowed`, with no network activity or persistent logging. The isolated UI can then display `Ready`, `~HH:MM until collectible`, or `Unavailable` beneath each governor row. Recompute from current model values and recheck actual game readiness rather than free-running an uncorrected timer.
-
-## Development status
-
-Implemented and unit-tested: pure conservative ETA arithmetic in `js/modules/royalTributes/etaCalculator.js`.
-
-Not implemented: live Angular field bridge, in-game rows, or automatic runtime loading. These are intentionally deferred until the model's actual properties have been verified. No current-user data is transmitted or stored.
+Once that works, merge the development branch into main. Do **not** change the checkpoint branch.
