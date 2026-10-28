@@ -286,6 +286,32 @@ assert.equal(headRow.querySelectorAll('th').length,3,'Can re-enable without dupl
 assert.equal(originalButtonA.querySelectorAll('.qol-royal-collect-label').length,1,'Re-enabled label created once');
 delete cache['Village:536592428'];runner();
 assert.equal(a.row.querySelector('td.qol-royal-tribute-eta-cell').querySelector('.qol-royal-tribute-eta').textContent,'Ready','Native enabled button confirms readiness when cache is missing');
+// Foreign governors must also retain their premium Gold action after
+// dispatching a shipment; the same transit layout applies to both tables.
+foreignNativeButton.remove();
+const foreignTransitPanel=new Node('div');
+foreign.native.appendChild(foreignTransitPanel);
+foreignTransitPanel.appendChild(new Node('div','tributeOnTheWay'));
+const foreignPremium=new Node('button','animate premium clickable');
+foreignPremium.premiumFeature='tributeFetchInstantly';
+foreignPremium.clickable='showCollectNowAnimation()';
+foreignTransitPanel.appendChild(foreignPremium);
+const foreignPremiumContent=new Node('div','content');
+foreignPremium.appendChild(foreignPremiumContent);
+const foreignPremiumText=new Node('span','innerText');foreignPremiumText.textContent='Collect now';
+foreignPremiumContent.appendChild(foreignPremiumText);
+const foreignPrice=new Node('span','price gold');foreignPrice.textContent='1';
+foreignPremiumContent.appendChild(foreignPrice);
+runner();
+assert.ok(foreign.native.classList.contains('qol-royal-tribute-in-transit'),'Foreign transit wrapper marked');
+assert.ok(foreignTransitPanel.classList.contains('qol-royal-tribute-transit-panel'),'Foreign premium layout spans both progress/action tracks');
+assert.equal(foreignPremium.querySelector('.qol-royal-collect-label'),null,'Foreign premium is never relabelled as normal Collect');
+assert.equal(foreignPremiumText.textContent,'Collect now','Premium button caption preserved');
+assert.equal(foreignPrice.textContent,'1','Foreign Gold price preserved');
+assert.equal(foreignPremium.clickable,'showCollectNowAnimation()','Foreign premium action untouched');
+enabled=false;runner();
+assert.equal(foreignTransitPanel.classList.contains('qol-royal-tribute-transit-panel'),false,'Foreign transit cleanup restores native layout');
+assert.equal(foreignPrice.textContent,'1','Disabling retains foreign premium Gold price');
 assert.ok(!src.includes('fetch(') && !src.includes('XMLHttpRequest'));
 assert.ok(!src.includes('.click()') && !src.includes('.dispatchEvent('));
 console.log('Royal Tributes: normal collection, premium in-transit Gold cost, dedicated layout, no relabelling, ETA and disable/restore passed.');
