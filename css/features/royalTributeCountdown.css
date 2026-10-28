@@ -193,7 +193,7 @@
    after its outer box has been made narrower for the new ETA column. */
 .tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer {
   display:grid!important;
-  grid-template-columns:minmax(0,1fr) minmax(114px,132px)!important;
+  grid-template-columns:minmax(0,1fr) 82px!important;
   grid-template-rows:30px!important;
   align-content:center!important;
   align-items:center!important;
@@ -268,4 +268,25 @@
   font-size:11px!important;
   line-height:18px!important;
   white-space:nowrap!important;
+}
+
+/* Compact the native individual governor Collect button.
+   Only replace its displayed caption: the game owns the real button,
+   its ng-click handler, disabled state, and accessible original text.
+   The extra bar space prevents the button/bar overlap. */
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button .innerText,
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button .innerText span {
+  font-size:0!important;
+  line-height:18px!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button .innerText::after {
+  content:"Collect"!important;
+  display:block!important;
+  width:100%!important;
+  box-sizing:border-box!important;
+  color:inherit!important;
+  font:700 11px/18px Arial,Helvetica,sans-serif!important;
+  text-align:center!important;
+  white-space:nowrap!important;
+  pointer-events:none!important;
 }
