@@ -86,8 +86,8 @@ const window = {
   },
   APES_VILLAGE_PALETTE:{scan:async()=>{events.push('villages')},refresh:()=>events.push('refresh')}
 };
-new Function('window','document','CustomEvent',integration)(
-  window,document,function(type){this.type=type}
+new Function('window','document','CustomEvent','console',integration)(
+  window,document,function(type){this.type=type},console
 );
 assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
 
