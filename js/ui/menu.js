@@ -68,12 +68,6 @@ const BASIC_FEATURES = [{
   icon: '✓',
   description: 'Provides built-in and custom checklists for daily tasks, reminders and personal game goals.'
 }, {
-  id: 'qol-chk-apes-library',
-  key: 'apesLibrary',
-  name: 'APES Library',
-  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 5.5A3.5 3.5 0 0 1 6.5 2H11v18H6.5A3.5 3.5 0 0 0 3 22zM21 5.5A3.5 3.5 0 0 0 17.5 2H13v18h4.5A3.5 3.5 0 0 1 21 22z"/></svg>',
-  description: 'Browse APES strategy guides and references, and export selected steps to Roadmaps.'
-}, {
   id: 'qol-chk-building-alarm',
   key: 'buildingAlarm',
   name: 'Building Alarm',
@@ -259,10 +253,6 @@ const TOOLBAR_ITEMS = [{
   id: 'qol-checklist-toggle-btn',
   label: 'Checklists',
   key: 'checklists'
-}, {
-  id: 'qol-apes-library-toggle-btn',
-  label: 'APES Library',
-  key: 'apesLibrary'
 }, {
   id: 'qol-building-alarm-toggle-btn',
   label: 'Building Alarms',
