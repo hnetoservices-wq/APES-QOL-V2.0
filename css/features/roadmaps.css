@@ -66,3 +66,11 @@
 .qol-rm-toast.error{border-color:#7f3027!important;background:#a44539!important}
 .qol-rm-toast.info{border-color:var(--qol-action-border)!important;background:var(--qol-accent)!important}
 @media(max-width:720px){#qol-roadmaps-container{min-width:calc(100vw - 16px)!important}#qol-roadmaps-container .qol-rm-workspace{grid-template-columns:180px minmax(0,1fr)!important}#qol-roadmaps-container .qol-rm-summary{grid-template-columns:repeat(2,minmax(0,1fr))!important}#qol-roadmaps-container .qol-rm-main-head{flex-direction:column!important}#qol-roadmaps-container .qol-rm-actions{justify-content:flex-start!important}#qol-roadmaps-container .qol-rm-step{grid-template-columns:25px 64px minmax(0,1fr)!important}}
+
+/* Collapsible APES Guides group in the Roadmaps sidebar. */
+#qol-roadmaps-container .qol-rm-guides-toggle{display:flex!important;align-items:center!important;justify-content:space-between!important;gap:8px!important;min-height:31px!important;margin:1px 0 6px!important;padding:8px 9px!important;border:1px solid #c7b394!important;border-radius:4px!important;background:#e6d9c5!important;color:#765a38!important;cursor:pointer!important;outline:none!important;user-select:none!important;font-size:9px!important;font-weight:700!important;letter-spacing:.4px!important;text-transform:uppercase!important}
+#qol-roadmaps-container .qol-rm-guides-toggle:hover{border-color:var(--qol-accent)!important;background:#f7ebd6!important}
+#qol-roadmaps-container .qol-rm-guides-toggle:focus-visible{outline:2px solid var(--qol-accent)!important;outline-offset:2px!important}
+#qol-roadmaps-container .qol-rm-guides-toggle .qol-rm-guides-caret{color:#765532!important;font-size:13px!important;font-weight:700!important;line-height:1!important}
+#qol-roadmaps-container .qol-rm-guides-list{margin:0!important;padding:0!important}
+#qol-roadmaps-container .qol-rm-guides-list:empty{display:none!important}
