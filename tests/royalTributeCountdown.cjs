@@ -17,9 +17,10 @@ for(const name of ['.qol-royal-tribute-village-count','.qol-royal-tribute-produc
 // look like unframed text immediately followed by the game's existing icons.
 const inlineHeaders=css.slice(
   css.indexOf('/* Plain native-looking inline header metrics'),
-  css.indexOf('/* A fixed two-track layout')
+  css.indexOf('/* Keep the *original* Travian button')
 );
 assert.ok(inlineHeaders.length>100);
+assert.match(css,/:is\(\.tributeVillages,\.foreignVillages\)\.qol-royal-tributes-active/);
 assert.match(inlineHeaders,/\.qol-royal-tribute-village-count,/);
 assert.match(inlineHeaders,/\.qol-royal-tribute-production-total\s*\{/);
 for(const declaration of [
@@ -123,7 +124,13 @@ const dataPending={allowTributeCollection:1,canFetchTributes:false,tributeProduc
  timeUntilTributeFetch:Date.now()/1000+4*3600+59*60};
 const cache={
  'Village:536592428':{data:dataReady},'Village:536559663':{data:dataPending},
- 'Village:536526891':{data:{tributeProduction:800}}
+ 'Village:536526891':{data:{tributeProduction:800}},
+ 'Village:536526892':{data:{
+   tributeProduction:128,
+   allowTributeCollection:1,
+   canFetchTributes:false,
+   timeUntilTributeFetch:Date.now()/1000+2*3600+19*60
+ }}
 };
 table.querySelector=sel=>{
  if(sel==='thead tr')return headRow;
@@ -133,9 +140,31 @@ table.querySelectorAll=sel=>{
  if(sel.startsWith('tbody tr['))return [a.row,b.row,c.row];
  return Node.prototype.querySelectorAll.call(table,sel);
 };
+// Foreign governors use a separate controller/table/row binding but the same
+// official Cache.c Village model. A protected/connected row is eligible;
+ // an unprotected row with no native collection widget must stay unchanged.
+const foreignWrapper=new Node('div','foreignVillages');
+const foreignTable=new Node('table','gradient');
+foreignWrapper.appendChild(foreignTable);
+const foreignThead=new Node('thead'); foreignTable.appendChild(foreignThead);
+const foreignHeader=new Node('tr'); foreignThead.appendChild(foreignHeader);
+const foreignHouse=new Node('th'),foreignTribute=new Node('th');
+foreignHeader.appendChild(foreignHouse);foreignHeader.appendChild(foreignTribute);
+foreignHouse.appendChild(new Node('i'));foreignTribute.appendChild(new Node('i'));
+const foreignBody=new Node('tbody');foreignTable.appendChild(foreignBody);
+const foreign=rowFor('536526892'),foreignUnprotected=rowFor('536526893');
+foreignBody.appendChild(foreign.row);foreignBody.appendChild(foreignUnprotected.row);
+foreignUnprotected.native.remove();
+foreignTable.querySelector=sel=>sel==='thead tr'
+  ?foreignHeader:Node.prototype.querySelector.call(foreignTable,sel);
+foreignTable.querySelectorAll=sel=>sel.startsWith('tbody tr[')
+  ?[foreign.row,foreignUnprotected.row]:Node.prototype.querySelectorAll.call(foreignTable,sel);
+const foreignNativeButton=foreign.native.querySelector('button');
+
 const document={
  readyState:'loading',
- querySelector:sel=>sel==='.tributeVillages table.gradient'?table:null,
+ querySelector:sel=>sel==='.tributeVillages table.gradient'?table:
+   sel==='.foreignVillages table.gradient'?foreignTable:null,
  createElement:tag=>new Node(tag),
  addEventListener(){}
 };
@@ -150,6 +179,14 @@ new Function('window','document',src)(window,document);
 assert.equal(typeof runner,'function');
 runner();
 assert.ok(wrapper.classList.contains('qol-royal-tributes-active'));
+assert.ok(foreignWrapper.classList.contains('qol-royal-tributes-active'));
+assert.equal(foreignHeader.querySelectorAll('th').length,3,'Foreign governors have ETA header');
+assert.equal(foreignHouse.querySelector('.qol-royal-tribute-village-count').textContent,'1','Count foreign villages independently');
+assert.equal(foreignTribute.querySelector('.qol-royal-tribute-production-total').textContent,'128 res/h','Foreign hourly production comes from cache');
+assert.match(foreign.row.querySelector('.qol-royal-tribute-eta').textContent,/^0[12]h\d{2}m$/,'Foreign ETA uses game timestamp');
+assert.equal(foreignNativeButton.querySelector('.qol-royal-collect-label').textContent,'Collect','Foreign native button is compact');
+assert.equal(foreignUnprotected.row.querySelector('td.qol-royal-tribute-eta-cell'),null,'Unprotected foreign villages are untouched');
+assert.equal(foreignUnprotected.row.children.length,2,'Unprotected foreign row keeps original columns');
 assert.equal(a.native.querySelector('button'), originalButtonA, 'Keeps native button node');
 assert.equal(b.native.querySelector('button'), originalButtonB, 'Keeps native disabled button node');
 assert.equal(originalButtonB.disabled, true, 'Native disabled state remains unchanged');
@@ -169,6 +206,8 @@ assert.doesNotMatch(timerB.querySelector('.qol-royal-tribute-eta').textContent,/
 assert.ok(!a.collect.querySelector('.qol-royal-tribute-eta'),'No ETA under button');
 runner();
 assert.equal(headRow.querySelectorAll('th').length,3,'No repeated header injection');
+assert.equal(foreignHeader.querySelectorAll('th').length,3,'No duplicate Foreign ETA header');
+assert.equal(foreign.row.querySelectorAll('td.qol-royal-tribute-eta-cell').length,1,'No duplicate foreign timer cells');
 assert.equal(a.row.querySelectorAll('td.qol-royal-tribute-eta-cell').length,1,'No repeated cells');
 assert.equal(a.row.children.length,3);
 assert.equal(originalButtonA.querySelectorAll('.qol-royal-collect-label').length,1,'No duplicate button labels');
@@ -225,6 +264,10 @@ assert.equal(premiumButton.classList.contains('premium'),true,'Premium marker re
 runner();
 assert.equal(transitPanel.querySelectorAll('.qol-royal-collect-label').length,0,'No accidental premium relabelling on next tick');
 enabled=false;runner();
+assert.equal(foreignHeader.querySelectorAll('th').length,2,'Restores foreign native headers');
+assert.equal(foreign.row.children.length,2,'Restores foreign native rows');
+assert.ok(!foreignWrapper.classList.contains('qol-royal-tributes-active'),'Removes foreign styling');
+assert.equal(foreignNativeButton.querySelector('.qol-royal-collect-label'),null,'Restores foreign native button');
 assert.equal(headRow.querySelectorAll('th').length,2,'Restores native headers');
 assert.equal(a.row.children.length,2,'Restores native row');
 assert.ok(!wrapper.classList.contains('qol-royal-tributes-active'));
@@ -237,6 +280,8 @@ assert.equal(transitPanel.classList.contains('qol-royal-tribute-transit-panel'),
 assert.equal(goldPrice.textContent,'1','Original premium price remains after disabling');
 assert.equal(originalButtonB.disabled,true,'Cleanup does not change native disabled state');
 enabled=true;runner();
+assert.equal(foreignHeader.querySelectorAll('th').length,3,'Foreign table re-enabled');
+assert.equal(foreignNativeButton.querySelectorAll('.qol-royal-collect-label').length,1,'Foreign button does not duplicate its label');
 assert.equal(headRow.querySelectorAll('th').length,3,'Can re-enable without duplicates');
 assert.equal(originalButtonA.querySelectorAll('.qol-royal-collect-label').length,1,'Re-enabled label created once');
 delete cache['Village:536592428'];runner();
