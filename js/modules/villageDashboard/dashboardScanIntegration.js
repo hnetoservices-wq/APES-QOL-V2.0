@@ -20,6 +20,7 @@
     if (running) return;
     const palette = window.APES_VILLAGE_PALETTE;
     const smithy = window.APES?.villageSmithyLevels;
+    const troops = window.APES?.villageDashboardIntel;
     if (!palette?.scan) return;
 
     running = true;
@@ -34,7 +35,26 @@
       // Research data where available and only opens a Smithy when needed.
       if (smithy?.scan) {
         setPhase('Scanning Smithies…');
-        await smithy.scan();
+        try {
+          await smithy.scan();
+        } catch (error) {
+          // A Smithy failure should not prevent a fresh troop snapshot.
+          console.warn('[APES Village Dashboard] Smithy pass failed.', error);
+        }
+      }
+
+      // Account Overview's Unit Counter reads saved army-history snapshots.
+      // A normal village-by-village Scan Now previously never refreshed them,
+      // leaving correct-looking coverage (2/2) but stale totals for hours.
+      // The existing troop scanner opens the game's own Troops overview,
+      // reads its per-village figures, records the history and restores
+      // the original hash. This does NOT read only stationary village troops.
+      if (troops?.refreshTroops) {
+        setPhase('Scanning Troops…');
+        const refreshed = await troops.refreshTroops();
+        if (!refreshed) {
+          console.warn('[APES Village Dashboard] Troop overview scan did not complete; saved Unit Counter history was retained.');
+        }
       }
     } catch (error) {
       console.warn('[APES Village Dashboard] Combined dashboard scan failed.', error);
