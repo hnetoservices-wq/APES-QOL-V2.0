@@ -51,9 +51,12 @@
       footer.querySelector('.' + cls + ' .resourceValue')?.textContent
     );
     const cost = (key, cls) => {
-      const source = gameUnit?.costs?.[key];
-      const number = resourceNumber(source);
-      return number === null ? readDom(cls) : number;
+      // The rendered game cost wins over the static troop configuration:
+      // live worlds can apply revised or special costs.
+      const visible = readDom(cls);
+      return visible === null
+        ? resourceNumber(gameUnit?.costs?.[key])
+        : visible;
     };
     const wood = cost('1', 'woodValue');
     const clay = cost('2', 'clayValue');
