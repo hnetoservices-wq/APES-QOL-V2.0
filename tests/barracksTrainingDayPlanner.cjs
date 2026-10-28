@@ -122,7 +122,8 @@ runner();
 assert.equal(cell.querySelectorAll('.qol-training24-plan').length,1,'Never inject duplicates');
 assert.equal(cell.querySelector('.qol-training24-plan'),plan,'Do not recreate unchanged summary');
 
-unitId='12';time='00:05:00';runner();
+unitId='12';time='00:05:00';
+fallback.wood='125';fallback.clay='50';fallback.iron='65';runner();
 plan=cell.querySelector('.qol-training24-plan');
 assert.match(plan.textContent,/288 units \/ 24h/);
 assert.match(plan.textContent,/36,000/);
@@ -135,6 +136,12 @@ time='00:02:09';runner();
 plan=cell.querySelector('.qol-training24-plan');
 assert.match(plan.textContent,/669 units \/ 24h/);
 assert.match(plan.textContent,/queue one extra/,'Partial trailing unit mentioned when duration does not divide 24h');
+
+// In-game displayed unit costs take precedence over static troopConfig.
+time='00:02:08';fallback.wood='130';runner();
+plan=cell.querySelector('.qol-training24-plan');
+assert.match(plan.textContent,/87,750/,'Current displayed wood cost of 130 must override the static 125');
+assert.match(plan.textContent,/165,375 resources/,'Total reflects currently displayed costs');
 
 on=false;runner();
 assert.equal(cell.querySelector('.qol-training24-plan'),null,'Disabling removes replacement');
