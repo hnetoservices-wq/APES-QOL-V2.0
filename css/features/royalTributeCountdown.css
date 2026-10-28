@@ -1,47 +1,145 @@
-/* Experimental Royal Tribute Countdown: small read-only inline label. */
-.tributeVillages td.collect .qol-royal-tribute-eta {
+/* APES Royal Tributes — three real table columns, retaining Travian controls. */
+.tributeVillages.qol-royal-tributes-active table.gradient {
+  width:100%!important;
+  table-layout:fixed!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th {
+  position:relative!important;
   box-sizing:border-box!important;
-  display:block!important;
-  clear:both!important;
-  width:max-content!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:first-child,
+.tributeVillages.qol-royal-tributes-active table.gradient > tbody > tr > td.playerColumn {
+  width:31%!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2),
+.tributeVillages.qol-royal-tributes-active table.gradient > tbody > tr > td.collect {
+  min-width:0!important;
+  width:auto!important;
+}
+.tributeVillages.qol-royal-tributes-active table.gradient th.qol-royal-tribute-eta-head,
+.tributeVillages.qol-royal-tributes-active table.gradient td.qol-royal-tribute-eta-cell {
+  box-sizing:border-box!important;
+  width:74px!important;
+  min-width:74px!important;
+  max-width:74px!important;
+  padding:2px 3px!important;
+  text-align:center!important;
+  vertical-align:middle!important;
+  white-space:nowrap!important;
+  overflow:visible!important;
+}
+.tributeVillages.qol-royal-tributes-active th.qol-royal-tribute-eta-head {
+  color:#685437!important;
+  font:700 10px Arial,Helvetica,sans-serif!important;
+  letter-spacing:.1px!important;
+}
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-village-count,
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-production-total {
+  box-sizing:border-box!important;
+  display:inline-block!important;
+  position:absolute!important;
+  left:8px!important;
+  top:50%!important;
+  transform:translateY(-50%)!important;
+  max-width:calc(100% - 35px)!important;
+  margin:0!important;
+  padding:2px 7px!important;
+  border:1px solid #c3ae85!important;
+  border-radius:3px!important;
+  background:#f6edd9!important;
+  color:#654927!important;
+  font:700 10px/17px Arial,Helvetica,sans-serif!important;
+  text-align:left!important;
+  white-space:nowrap!important;
+  overflow:hidden!important;
+  text-overflow:ellipsis!important;
+  text-shadow:none!important;
+  pointer-events:auto!important;
+  z-index:1!important;
+}
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-production-total {
+  left:7px!important;
+  color:#526736!important;
+  background:#f0f2df!important;
+  border-color:#9aa77b!important;
+}
+
+/* Make room for the new ETA column by proportionally shrinking the native
+   tribute progress bar and Collect button. Do not intercept their clicks. */
+.tributeVillages.qol-royal-tributes-active td.collect {
+  padding-left:5px!important;
+  padding-right:5px!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer {
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:nowrap!important;
+  align-items:center!important;
+  gap:5px!important;
+  width:100%!important;
+  min-width:0!important;
   max-width:100%!important;
-  min-height:17px!important;
-  margin:4px auto 3px!important;
-  padding:3px 7px!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar {
+  flex:1 1 55%!important;
+  width:auto!important;
+  min-width:60px!important;
+  max-width:none!important;
+  float:none!important;
+  margin:0!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar .progressbar {
+  width:100%!important;
+  max-width:100%!important;
+}
+.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button {
+  flex:0 1 137px!important;
+  width:137px!important;
+  min-width:110px!important;
+  max-width:137px!important;
+  box-sizing:border-box!important;
+  float:none!important;
+  margin:0!important;
+}
+.tributeVillages.qol-royal-tributes-active td.qol-royal-tribute-eta-cell .qol-royal-tribute-eta {
+  box-sizing:border-box!important;
+  display:inline-block!important;
+  width:auto!important;
+  max-width:100%!important;
+  min-height:20px!important;
+  margin:0!important;
+  padding:2px 5px!important;
   border:1px solid #b8a17a!important;
   border-radius:4px!important;
   background:#f4eddc!important;
   color:#715639!important;
-  font-family:Arial,Helvetica,sans-serif!important;
-  font-size:10px!important;
-  font-weight:700!important;
-  line-height:14px!important;
+  font:700 10px/14px Arial,Helvetica,sans-serif!important;
   letter-spacing:0!important;
   text-align:center!important;
   text-shadow:none!important;
-  white-space:normal!important;
-  overflow-wrap:anywhere!important;
-  pointer-events:none!important;
-  user-select:none!important;
+  vertical-align:middle!important;
+  white-space:nowrap!important;
+  pointer-events:auto!important;
+  cursor:help!important;
 }
-.tributeVillages td.collect .qol-royal-tribute-eta[data-tone="countdown"] {
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="countdown"] {
   color:#5a4b24!important;
   background:#f5eed4!important;
   border-color:#b7a265!important;
 }
-.tributeVillages td.collect .qol-royal-tribute-eta[data-tone="ready"] {
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="ready"] {
   color:#376422!important;
   background:#e8f1d9!important;
   border-color:#8eac64!important;
 }
-.tributeVillages td.collect .qol-royal-tribute-eta[data-tone="estimated"] {
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="estimated"] {
   color:#69502a!important;
   background:#efe3c7!important;
   border-style:dashed!important;
 }
-.tributeVillages td.collect .qol-royal-tribute-eta[data-tone="unavailable"],
-.tributeVillages td.collect .qol-royal-tribute-eta[data-tone="pending"],
-.tributeVillages td.collect .qol-royal-tribute-eta[data-tone="in-progress"] {
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="unavailable"],
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="pending"],
+.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="in-progress"] {
   color:#6a645a!important;
   background:#e9e5da!important;
   border-color:#b3ada1!important;
