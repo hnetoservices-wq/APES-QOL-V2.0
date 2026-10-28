@@ -36,6 +36,14 @@
       !!cell.querySelector('.collectTributesContainer');
   }
 
+  function isNativeReady(row) {
+    // Some governor records are loaded lazily. In that case, the game's
+    // already-enabled Collect button still provides authoritative readiness.
+    const container = row.querySelector('td.collect')?.querySelector('.collectTributesContainer');
+    const button = container?.querySelector('button');
+    return !!button && button.disabled !== true && !button.classList.contains('disabled');
+  }
+
   function formatShortTime(seconds) {
     // Round up: never claim 00h00m while tribute collection is still pending.
     const minutes = Math.max(1, Math.ceil(seconds / 60));
@@ -80,7 +88,7 @@
     return cell;
   }
 
-  function setTimer(cell, data, id, nowSeconds) {
+  function setTimer(cell, data, id, nowSeconds, nativeReady) {
     let label = cell.querySelector('.' + LABEL_CLASS);
     if (!label) {
       label = document.createElement('span');
@@ -88,7 +96,9 @@
       label.setAttribute('aria-live', 'off');
       cell.appendChild(label);
     }
-    const state = describe(data, nowSeconds);
+    const state = !data && nativeReady
+      ? { text: 'Ready', tone: 'ready', title: 'The native Collect button is enabled.' }
+      : describe(data, nowSeconds);
     if (label.textContent !== state.text) label.textContent = state.text;
     if (label.dataset.tone !== state.tone) label.dataset.tone = state.tone;
     if (label.title !== state.title) label.title = state.title;
@@ -154,7 +164,7 @@
         continue;
       }
       const data = villageDataFor(id);
-      setTimer(createTimerCell(row), data, id, nowSeconds);
+      setTimer(createTimerCell(row), data, id, nowSeconds, isNativeReady(row));
       if (seen.has(id)) continue;
       seen.add(id);
       count++;
