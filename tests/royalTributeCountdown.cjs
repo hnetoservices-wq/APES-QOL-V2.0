@@ -41,6 +41,13 @@ assert.match(css,/\.collectTributesContainer\s*>\s*button:disabled/);
 assert.doesNotMatch(css,/\.innerText::after|content:"Collect"!important/);
 assert.match(src,/button\.appendChild\(label\)/);
 assert.doesNotMatch(src,/button\.click\(|dispatchEvent\(|innerText\.textContent\s*=/);
+// A dispatched tribute uses a completely different PREMIUM action:
+ // it has a Gold cost and must NEVER be relabelled as an ordinary Collect.
+assert.match(src,/button\[clickable\^="fetchTribute\("\]/);
+assert.match(src,/\.tributeOnTheWay/);
+assert.match(css,/\.qol-royal-tribute-transit-panel/);
+assert.match(css,/button\[premium-feature="tributeFetchInstantly"\]/);
+assert.match(css,/\.price\.gold/);
 assert.match(menu,/key: 'royalTributeCountdown'/);
 assert.deepEqual(manifest.content_scripts.find(x=>x.world==='MAIN').js.slice(-2),
  ['js/modules/royalTributes/etaCalculator.js','js/modules/royalTributes/liveCountdown.js']);
@@ -54,16 +61,21 @@ class Node {
   this.classList={
    add:cls=>{this.classes.add(cls);this.className=[...this.classes].join(' ')},
    remove:cls=>{this.classes.delete(cls);this.className=[...this.classes].join(' ')},
-   contains:cls=>(this.className||'').split(/\s+/).includes(cls)
+   contains:cls=>(this.className||'').split(/\s+/).includes(cls),
+   toggle:(cls,on)=>{if(on===undefined)on=!this.classList.contains(cls);
+      if(on)this.classList.add(cls);else this.classList.remove(cls);
+      return on;}
   };
   all.push(this);
  }
- appendChild(node){this.children.push(node);node.parent=this;this.firstChild=this.children[0];return node}
- insertBefore(node,before){const idx=this.children.indexOf(before);this.children.splice(idx<0?0:idx,0,node);node.parent=this;this.firstChild=this.children[0];return node}
- remove(){if(!this.parent)return;this.parent.children=this.parent.children.filter(x=>x!==this);this.parent.firstChild=this.parent.children[0]||null;this.parent=null}
+ appendChild(node){this.children.push(node);node.parent=this;node.parentElement=this;this.firstChild=this.children[0];return node}
+ insertBefore(node,before){const idx=this.children.indexOf(before);this.children.splice(idx<0?0:idx,0,node);node.parent=this;node.parentElement=this;this.firstChild=this.children[0];return node}
+ remove(){if(!this.parent)return;this.parent.children=this.parent.children.filter(x=>x!==this);this.parent.firstChild=this.parent.children[0]||null;this.parent=null;this.parentElement=null}
  setAttribute(){}
  matches(sel) {
    if(sel===this.tagName)return true;
+   if(sel==='button[clickable^="fetchTribute("]')return this.tagName==='button'&&String(this.clickable||'').startsWith('fetchTribute(');
+   if(sel==='button[premium-feature]')return this.tagName==='button'&&!!this.premiumFeature;
    if(sel.startsWith('.'))return this.classList.contains(sel.slice(1));
    const m=sel.match(/^(th|td)\.([a-zA-Z0-9_-]+)$/);
    if(m)return this.tagName===m[1]&&this.classList.contains(m[2]);
@@ -80,7 +92,7 @@ function rowFor(id) {
  const a=new Node('a');a.getAttribute=k=>k==='villageid'?id:'';player.appendChild(a);
  const collect=new Node('td','collect');row.appendChild(collect);
  const native=new Node('div','collectTributesContainer');collect.appendChild(native);
- const nativeButton=new Node('button');native.appendChild(nativeButton);
+ const nativeButton=new Node('button');nativeButton.clickable='fetchTribute(village.data.villageId);';native.appendChild(nativeButton);
  row.querySelector=(sel)=>{
   if(sel==='td.playerColumn [villageid]')return a;
   if(sel==='td.collect')return collect;
@@ -177,6 +189,39 @@ delete cache['Village:536559663'];runner();
 assert.equal(head1.querySelector('.qol-royal-tribute-village-count').textContent,'2');
 assert.equal(head2.querySelector('.qol-royal-tribute-production-total').textContent,'≥ 262 res/h','Unknown rate is not silently counted as zero');
 assert.equal(timerB.querySelector('.qol-royal-tribute-eta').textContent,'—','Missing data is clearly unavailable');
+
+// Travian switches to the in-transit template after collection. Its
+// "Collect now" button is PREMIUM, costs Gold and has a different handler.
+originalButtonB.remove();
+const transitPanel=new Node('div');
+b.native.appendChild(transitPanel);
+const transitInfo=new Node('div','tributeOnTheWay');
+transitPanel.appendChild(transitInfo);
+const premiumButton=new Node('button','animate premium clickable');
+premiumButton.premiumFeature='tributeFetchInstantly';
+premiumButton.clickable='showCollectNowAnimation()';
+transitPanel.appendChild(premiumButton);
+const premiumContent=new Node('div','content');
+premiumButton.appendChild(premiumContent);
+const premiumText=new Node('span','innerText');premiumText.textContent='Collect now';
+premiumContent.appendChild(premiumText);
+const goldPrice=new Node('span','price gold');goldPrice.textContent='1';
+premiumContent.appendChild(goldPrice);
+// Simulate the incorrect label inserted by the previous experimental build.
+const staleLabel=new Node('span','qol-royal-collect-label');
+premiumButton.appendChild(staleLabel);
+runner();
+assert.ok(b.native.classList.contains('qol-royal-tribute-in-transit'),'Shipment container marked');
+assert.ok(transitPanel.classList.contains('qol-royal-tribute-transit-panel'),'Full-width transit panel marked');
+assert.equal(premiumButton.querySelector('.qol-royal-collect-label'),null,'Stale false Collect label removed');
+assert.equal(premiumButton.querySelector('.price.gold'),goldPrice,'Gold price element untouched');
+assert.equal(goldPrice.textContent,'1','Gold price still shown');
+assert.equal(premiumText.textContent,'Collect now','Premium wording unchanged');
+assert.equal(premiumButton.clickable,'showCollectNowAnimation()','Premium action remains original');
+assert.equal(b.native.querySelector('button[clickable^="fetchTribute("]'),null,'No ordinary collect button remains');
+assert.equal(premiumButton.classList.contains('premium'),true,'Premium marker retained');
+runner();
+assert.equal(transitPanel.querySelectorAll('.qol-royal-collect-label').length,0,'No accidental premium relabelling on next tick');
 enabled=false;runner();
 assert.equal(headRow.querySelectorAll('th').length,2,'Restores native headers');
 assert.equal(a.row.children.length,2,'Restores native row');
@@ -184,7 +229,10 @@ assert.ok(!wrapper.classList.contains('qol-royal-tributes-active'));
 assert.ok(a.collect.querySelector('.collectTributesContainer'));
 assert.ok(!a.collect.querySelector('.qol-royal-tribute-eta'));
 assert.equal(originalButtonA.querySelector('.qol-royal-collect-label'),null,'Original button appearance restored on disable');
-assert.equal(originalButtonB.querySelector('.qol-royal-collect-label'),null,'Disabled original button also restored');
+assert.equal(originalButtonB.querySelector('.qol-royal-collect-label'),null,'Detached native button remains untouched');
+assert.equal(b.native.classList.contains('qol-royal-tribute-in-transit'),false,'Transit class cleared on disable');
+assert.equal(transitPanel.classList.contains('qol-royal-tribute-transit-panel'),false,'Transit panel class cleared on disable');
+assert.equal(goldPrice.textContent,'1','Original premium price remains after disabling');
 assert.equal(originalButtonB.disabled,true,'Cleanup does not change native disabled state');
 enabled=true;runner();
 assert.equal(headRow.querySelectorAll('th').length,3,'Can re-enable without duplicates');
@@ -193,4 +241,4 @@ delete cache['Village:536592428'];runner();
 assert.equal(a.row.querySelector('td.qol-royal-tribute-eta-cell').querySelector('.qol-royal-tribute-eta').textContent,'Ready','Native enabled button confirms readiness when cache is missing');
 assert.ok(!src.includes('fetch(') && !src.includes('XMLHttpRequest'));
 assert.ok(!src.includes('.click()') && !src.includes('.dispatchEvent('));
-console.log('Royal Tributes: connected village count, summed hourly tribute production, third-column concise ETA, ready state, no duplicates, disable/restore passed.');
+console.log('Royal Tributes: normal collection, premium in-transit Gold cost, dedicated layout, no relabelling, ETA and disable/restore passed.');
