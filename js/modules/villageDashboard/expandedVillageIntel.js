@@ -173,7 +173,10 @@
     // Verify parsed row sums against Travian's native Total footer so the
     // Account Overview cannot silently store a partially rendered table.
     const totalCells = Array.from(table.querySelectorAll('tfoot tr td')).slice(1);
-    if (totalCells.length === columns.length) {
+    if (totalCells.length !== columns.length) {
+      throw new Error('Native troop totals have not finished rendering; counts not saved');
+    }
+    {
       for (let index = 0; index < columns.length; index += 1) {
         const text = totalCells[index].textContent.trim();
         if (!/^\d[\d\s.,]*$/.test(text)) {
