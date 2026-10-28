@@ -57,6 +57,9 @@ assert.equal(total.slice(0,10).reduce((a,b)=>a+b,0),225,'Hero is excluded from U
 footer[1] = {textContent:'26'};
 assert.throws(()=>methods.validateOwnTroopsTable(table,parsed),/totals mismatch/);
 footer[1] = {textContent:'213'};
+const removedFooter = footer.pop();
+assert.throws(()=>methods.validateOwnTroopsTable(table,parsed),/totals have not finished rendering/);
+footer.push(removedFooter);
 rows.pop();
 const incomplete = methods.parseOwnTroopsTable(table);
 assert.throws(()=>methods.validateOwnTroopsTable(table,incomplete),/Missing own village/);
