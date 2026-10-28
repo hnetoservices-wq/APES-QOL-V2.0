@@ -19,6 +19,11 @@ assert.ok(isolated.css.includes('css/features/barracksTrainingDayPlanner.css'));
 assert.doesNotMatch(src, /\bfetch\s*\(|XMLHttpRequest|\.click\s*\(|dispatchEvent\s*\(/);
 
 class Node {
+  set className(value) {
+    this._className = String(value);
+    this.classes = new Set(this._className.split(/\s+/).filter(Boolean));
+  }
+  get className() { return this._className; }
   constructor(tag) {
     this.tagName = tag;
     this._text = '';
@@ -69,10 +74,10 @@ cell.appendChild(description);
 const icon = { getAttribute: name => name === 'data' ? unitId : null };
 const info = {querySelector: sel => sel === '.description' ? description :
   sel === '.unitHeader .unitIcon[data]' ? icon : null };
-let time = '00:02:08', unitId = '11';
+let time = '00:02:08', unitId = '11', fallbackTime = '128';
 const fallback = { wood: '85', clay: '65', iron: '30' };
 const footer = {
-  getAttribute: name => name === 'time' ? '128' : null,
+  getAttribute: name => name === 'time' ? fallbackTime : null,
   querySelector(sel) {
     if (sel === '.timeValue') return {textContent:time};
     const type = sel.match(/^\.(wood|clay|iron)Value \.resourceValue$/)?.[1];
@@ -134,7 +139,7 @@ assert.match(plan.textContent,/queue one extra/,'Partial trailing unit mentioned
 on=false;runner();
 assert.equal(cell.querySelector('.qol-training24-plan'),null,'Disabling removes replacement');
 assert.ok(!description.classList.contains('qol-training24-original'),'Disabling restores translated description');
-on=true;time='bad';runner();
+on=true;time='bad';fallbackTime='bad';runner();
 assert.equal(cell.querySelector('.qol-training24-plan'),null,'Do not create summary when timing cannot be trusted');
 time='00:02:08';runner();
 assert.equal(cell.querySelectorAll('.qol-training24-plan').length,1,'Re-enable cleanly');
