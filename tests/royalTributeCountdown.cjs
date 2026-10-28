@@ -32,15 +32,15 @@ assert.match(inlineHeaders,/th:first-child\s*>\s*i\.village_village_small_flat_b
 assert.match(inlineHeaders,/th:nth-child\(2\)\s*>\s*i\.movement_tribute_small_flat_black/);
 assert.doesNotMatch(inlineHeaders,/top:18px!important|top:43px!important|left:50%!important/);
 assert.match(css,/\.collectTributesContainer\s*\{[\s\S]*?display:grid!important/);
-assert.match(css,/\.collectTributesContainer\s*>\s*button\s*>\s*\.content\s*\{[\s\S]*?justify-content:center!important/);
-assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText\s*\{[\s\S]*?text-align:center!important/);
-// Native button retains its original events and enabled/disabled state.
-// Only the rendered caption becomes "Collect" while the APES feature is on.
+// The game's original button remains the click target. We hide its sprite
+// internals and insert a real text span (not a clipped ::after pseudo-label).
 assert.match(css,/grid-template-columns:minmax\(0,1fr\) 82px!important/);
-assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText::after\s*\{/);
-assert.match(css,/content:"Collect"!important/);
-assert.match(css,/\.collectTributesContainer\s*>\s*button\s*\.innerText span\s*\{/);
-assert.doesNotMatch(src,/innerText\.textContent\s*=|\.click\(\)/);
+assert.match(css,/\.collectTributesContainer\s*>\s*button\s*>\s*:not\(\.qol-royal-collect-label\)/);
+assert.match(css,/\.collectTributesContainer\s*>\s*button\s*>\s*\.qol-royal-collect-label/);
+assert.match(css,/\.collectTributesContainer\s*>\s*button:disabled/);
+assert.doesNotMatch(css,/\.innerText::after|content:"Collect"!important/);
+assert.match(src,/button\.appendChild\(label\)/);
+assert.doesNotMatch(src,/button\.click\(|dispatchEvent\(|innerText\.textContent\s*=/);
 assert.match(menu,/key: 'royalTributeCountdown'/);
 assert.deepEqual(manifest.content_scripts.find(x=>x.world==='MAIN').js.slice(-2),
  ['js/modules/royalTributes/etaCalculator.js','js/modules/royalTributes/liveCountdown.js']);
@@ -98,6 +98,9 @@ headRow.appendChild(head1);headRow.appendChild(head2);
 head1.appendChild(new Node('i'));head2.appendChild(new Node('i'));
 const tbody=new Node('tbody');table.appendChild(tbody);
 const a=rowFor('536592428'),b=rowFor('536559663'),c=rowFor('536526891');
+const originalButtonA=a.native.querySelector('button');
+const originalButtonB=b.native.querySelector('button');
+originalButtonB.disabled=true;
 tbody.appendChild(a.row);tbody.appendChild(b.row);tbody.appendChild(c.row);
 c.collect.classList.add('notConnected');
 const dataReady={allowTributeCollection:1,canFetchTributes:true,tributeProduction:262,
@@ -133,6 +136,12 @@ new Function('window','document',src)(window,document);
 assert.equal(typeof runner,'function');
 runner();
 assert.ok(wrapper.classList.contains('qol-royal-tributes-active'));
+assert.equal(a.native.querySelector('button'), originalButtonA, 'Keeps native button node');
+assert.equal(b.native.querySelector('button'), originalButtonB, 'Keeps native disabled button node');
+assert.equal(originalButtonB.disabled, true, 'Native disabled state remains unchanged');
+assert.equal(originalButtonA.querySelector('.qol-royal-collect-label').textContent,'Collect');
+assert.equal(originalButtonB.querySelector('.qol-royal-collect-label').textContent,'Collect');
+assert.equal(c.native.querySelector('.qol-royal-collect-label'),null,'Disconnected row unmodified');
 assert.equal(headRow.querySelectorAll('th').length,3,'Dedicated ETA header');
 assert.equal(head1.querySelector('.qol-royal-tribute-village-count').textContent,'2','Connected village count');
 assert.equal(head2.querySelector('.qol-royal-tribute-production-total').textContent,'455 res/h','Total from existing tribe cache');
@@ -148,6 +157,8 @@ runner();
 assert.equal(headRow.querySelectorAll('th').length,3,'No repeated header injection');
 assert.equal(a.row.querySelectorAll('td.qol-royal-tribute-eta-cell').length,1,'No repeated cells');
 assert.equal(a.row.children.length,3);
+assert.equal(originalButtonA.querySelectorAll('.qol-royal-collect-label').length,1,'No duplicate button labels');
+assert.equal(originalButtonB.disabled,true,'Button remains disabled through updates');
 assert.ok(a.collect.querySelector('.collectTributesContainer'),'Original collection widget retained');
 dataPending.canFetchTributes=true;
 runner();
@@ -172,8 +183,12 @@ assert.equal(a.row.children.length,2,'Restores native row');
 assert.ok(!wrapper.classList.contains('qol-royal-tributes-active'));
 assert.ok(a.collect.querySelector('.collectTributesContainer'));
 assert.ok(!a.collect.querySelector('.qol-royal-tribute-eta'));
+assert.equal(originalButtonA.querySelector('.qol-royal-collect-label'),null,'Original button appearance restored on disable');
+assert.equal(originalButtonB.querySelector('.qol-royal-collect-label'),null,'Disabled original button also restored');
+assert.equal(originalButtonB.disabled,true,'Cleanup does not change native disabled state');
 enabled=true;runner();
 assert.equal(headRow.querySelectorAll('th').length,3,'Can re-enable without duplicates');
+assert.equal(originalButtonA.querySelectorAll('.qol-royal-collect-label').length,1,'Re-enabled label created once');
 delete cache['Village:536592428'];runner();
 assert.equal(a.row.querySelector('td.qol-royal-tribute-eta-cell').querySelector('.qol-royal-tribute-eta').textContent,'Ready','Native enabled button confirms readiness when cache is missing');
 assert.ok(!src.includes('fetch(') && !src.includes('XMLHttpRequest'));
