@@ -20,7 +20,9 @@
         "js/features/cpVillageSource.js",
         "js/modules/villageDashboard/bridge.js",
         "js/modules/villageDashboard/researchBridge.js",
-        "js/modules/oasisScanner/networkBridge.js"
+        "js/modules/oasisScanner/networkBridge.js",
+        "js/modules/royalTributes/etaCalculator.js",
+        "js/modules/royalTributes/liveCountdown.js"
       ],
       "run_at": "document_start",
       "world": "MAIN"
@@ -153,7 +155,8 @@
         "css/modules/roadmaps/responsive.css",
         "css/modules/roadmaps/officialIntegration.css",
         "css/modules/roadmaps/officialGuides.css",
-        "css/modules/roadmaps/uxEnhancements.css"
+        "css/modules/roadmaps/uxEnhancements.css",
+        "css/features/royalTributeCountdown.css"
       ],
       "run_at": "document_idle"
     }
