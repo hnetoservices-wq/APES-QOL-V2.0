@@ -177,8 +177,8 @@
 /* Reserve two separate lines in the production header: resources/hour up
    top and the game's tribute icon underneath. No collision with the title. */
 .tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th {
-  height:57px!important;
-  min-height:57px!important;
+  height:64px!important;
+  min-height:64px!important;
 }
 .tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) {
   padding:0 34px 0 4px!important;
@@ -188,7 +188,7 @@
   position:absolute!important;
   display:inline-block!important;
   left:50%!important;
-  top:12px!important;
+  top:18px!important;
   transform:translateX(-50%)!important;
   margin:0!important;
   width:max-content!important;
@@ -200,7 +200,7 @@
 .tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) > i.movement_tribute_small_flat_black {
   position:absolute!important;
   display:block!important;
-  top:36px!important;
+  top:43px!important;
   left:50%!important;
   right:auto!important;
   bottom:auto!important;
