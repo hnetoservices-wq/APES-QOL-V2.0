@@ -82,7 +82,6 @@
         "js/modules/roadmaps/checkpointsAndDetection.js",
         "js/modules/roadmaps/inputGuard.js",
         "js/modules/roadmaps/officialIntegration.js",
-        "js/features/apesLibrary.js",
         "js/modules/roadmaps/uxEnhancements.js",
         "js/features/npcCalculator.js",
         "js/modules/resourceUpgradePlanner/preference.js",
@@ -140,7 +139,6 @@
         "css/modules/villageDashboard/smithyLevels.css",
         "css/modules/villageDashboard/expandedVillageRefinements.css",
         "css/features/roadmaps.css",
-        "css/features/apesLibrary.css",
         "css/modules/roadmaps/editor.css",
         "css/modules/roadmaps/buildingSteps.css",
         "css/modules/roadmaps/sharing.css",
@@ -179,22 +177,7 @@
     {
       "resources": [
         "images/apege.png",
-        "images/apepehappy.webp",
-        "images/guides/natar-x1-anti-infantry.png",
-        "images/guides/natar-x1-anti-cavalry.png",
-        "images/guides/natar-x1-wonder-of-the-world.png",
-        "images/guides/natar-x2-anti-infantry.png",
-        "images/guides/natar-x2-anti-cavalry.png",
-        "images/guides/natar-x2-wonder-of-the-world.png",
-        "images/guides/natar-x3-anti-infantry.png",
-        "images/guides/natar-x3-anti-cavalry.png",
-        "images/guides/natar-x3-wonder-of-the-world.png",
-        "images/guides/natar-x5-anti-infantry.png",
-        "images/guides/natar-x5-anti-cavalry.png",
-        "images/guides/natar-x5-wonder-of-the-world.png",
-        "images/guides/robber-camps-cycle.svg",
-        "images/guides/gold-refund-withdrawal-excerpt.svg",
-        "images/guides/gold-refund-support-reply.svg"
+        "images/apepehappy.webp"
       ],
       "matches": [
         "*://*.kingdoms.com/*"
