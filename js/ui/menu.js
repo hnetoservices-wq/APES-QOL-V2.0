@@ -56,6 +56,12 @@ const QOL_BUTTON_SIZE = 30;
 const QOL_BUTTON_GAP = 6;
 const QOL_MAX_EXPANDED_TOOLBAR_ITEMS = 5;
 const BASIC_FEATURES = [{
+  id: 'qol-chk-barracks-24h-planner',
+  key: 'barracks24hPlanner',
+  name: 'Barracks 24h Planner',
+  icon: '⌛',
+  description: 'Replaces the Barracks unit description with the number of troops trainable in 24 hours and their wood, clay and iron costs.'
+}, {
   id: 'qol-chk-auction-house-scanner',
   key: 'auctionHouseScanner',
   name: 'Auction House Scanner',
