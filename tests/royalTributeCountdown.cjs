@@ -26,7 +26,7 @@ class Node {
   this.classList={
    add:cls=>{this.classes.add(cls);this.className=[...this.classes].join(' ')},
    remove:cls=>{this.classes.delete(cls);this.className=[...this.classes].join(' ')},
-   contains:cls=>this.classes.has(cls)
+   contains:cls=>(this.className||'').split(/\s+/).includes(cls)
   };
   all.push(this);
  }
