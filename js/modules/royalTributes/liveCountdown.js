@@ -3,8 +3,14 @@
   // MAIN-world read-only integration: no requests, hovering, or game actions.
   const FLAG = '__APES_QOL_ROYAL_TRIBUTE_COUNTDOWN__';
   const STORAGE_KEY = 'qol_royalTributeCountdown';
-  const TABLE_SELECTOR = '.tributeVillages table.gradient';
-  const ROW_SELECTOR = 'tbody tr[ng-repeat*="village in tributeVillages"]';
+  const TABLES = Object.freeze([
+    { selector: '.tributeVillages table.gradient',
+      rows: 'tbody tr[ng-repeat*="village in tributeVillages"]',
+      kind: 'own', container: '.tributeVillages' },
+    { selector: '.foreignVillages table.gradient',
+      rows: 'tbody tr[ng-repeat*="village in foreignVillages"]',
+      kind: 'foreign', container: '.foreignVillages' }
+  ]);
   const LABEL_CLASS = 'qol-royal-tribute-eta';
   const CELL_CLASS = 'qol-royal-tribute-eta-cell';
   const HEAD_CLASS = 'qol-royal-tribute-eta-head';
@@ -157,16 +163,17 @@
     return badge;
   }
 
-  function renderHeader(table, count, hourlyTotal, missingRates) {
+  function renderHeader(table, count, hourlyTotal, missingRates, kind) {
     const row = table.querySelector('thead tr');
     if (!row) return;
     const heads = row.querySelectorAll('th');
     if (heads.length < 2) return;
+    const relation = kind === 'foreign' ? 'foreign-governor' : 'own-governor';
     const countBadge = headerBadge(heads[0], COUNT_CLASS,
-      'Connected own-governor villages under your influence.');
+      'Connected ' + relation + ' villages under your influence.');
     if (countBadge.textContent !== String(count)) countBadge.textContent = String(count);
     const productionBadge = headerBadge(heads[1], PRODUCTION_CLASS,
-      'Total hourly tribute resources from connected own-governor villages.' +
+      'Total hourly tribute resources from connected ' + relation + ' villages.' +
       (missingRates ? ' Some production rates are unavailable.' : ''));
     const production = (missingRates ? '≥ ' : '') + hourlyTotal.toLocaleString() + ' res/h';
     if (productionBadge.textContent !== production) productionBadge.textContent = production;
@@ -179,8 +186,8 @@
     }
   }
 
-  function cleanup(table) {
-    table.closest('.tributeVillages')?.classList.remove(ACTIVE_CLASS);
+  function cleanup(table, config) {
+    table.closest(config.container)?.classList.remove(ACTIVE_CLASS);
     table.querySelectorAll('.' + COUNT_CLASS + ', .' + PRODUCTION_CLASS +
       ', th.' + HEAD_CLASS + ', td.' + CELL_CLASS +
       ', td.collect .' + LABEL_CLASS + ', .' + BUTTON_LABEL_CLASS).forEach(element => element.remove());
@@ -190,18 +197,11 @@
       .forEach(element => element.classList.remove(TRANSIT_PANEL_CLASS));
   }
 
-  function tick() {
-    const table = document.querySelector(TABLE_SELECTOR);
-    if (!table) return;
-    if (!isEnabled()) {
-      cleanup(table);
-      return;
-    }
-    table.closest('.tributeVillages')?.classList.add(ACTIVE_CLASS);
-    const nowSeconds = Date.now() / 1000;
+  function renderTable(table, config, nowSeconds) {
+    table.closest(config.container)?.classList.add(ACTIVE_CLASS);
     const seen = new Set();
     let count = 0, hourlyTotal = 0, missingRates = false;
-    for (const row of table.querySelectorAll(ROW_SELECTOR)) {
+    for (const row of table.querySelectorAll(config.rows)) {
       const id = villageIdFor(row);
       const oldCell = row.querySelector('td.' + CELL_CLASS);
       if (!id || !isConnected(row)) {
@@ -225,9 +225,20 @@
         hourlyTotal += hourly;
       else missingRates = true;
     }
-    renderHeader(table, count, hourlyTotal, missingRates);
-    // Remove original below-button labels, including old experimental builds.
+    renderHeader(table, count, hourlyTotal, missingRates, config.kind);
+    // Remove legacy below-button labels in both tables.
     table.querySelectorAll('td.collect .' + LABEL_CLASS).forEach(element => element.remove());
+  }
+
+  function tick() {
+    const enabled = isEnabled();
+    const nowSeconds = Date.now() / 1000;
+    for (const config of TABLES) {
+      const table = document.querySelector(config.selector);
+      if (!table) continue;
+      if (!enabled) cleanup(table, config);
+      else renderTable(table, config, nowSeconds);
+    }
   }
 
   window.setInterval(tick, 1000);
