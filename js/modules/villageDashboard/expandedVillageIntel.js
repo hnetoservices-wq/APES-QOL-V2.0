@@ -162,6 +162,9 @@
     // before replacing history. A matching village ID or normalized name
     // must exist for every currently known owned village.
     const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
+    if (!villages.length) {
+      throw new Error('Village snapshot has not loaded; troop counts not saved');
+    }
     for (const village of villages) {
       const id = String(village?.villageId || '');
       const name = norm(village?.name);
@@ -363,8 +366,11 @@
       saved += 1;
     });
 
-    if (saved) writeHistoryStore(store);
-    return saved;
+    // Do not publish partial troop histories if one village cannot be matched
+    // to its official overview row. The chart must never claim 2/2 coverage
+    // based on an unchanged, old entry.
+    if (saved !== villages.length) return 0;
+    return writeHistoryStore(store) ? saved : 0;
   }
 
   async function refreshOverviewTroops(force = false) {
@@ -391,7 +397,10 @@
         });
         troopRowsUpdatedAt = Date.now();
         const saved = recordTroopHistory();
-        scanState = saved ? 'saved' : 'ready';
+        if (saved !== snapshot.villages.length || saved === 0) {
+          throw new Error('Troop counts could not be saved for every owned village');
+        }
+        scanState = 'saved';
         window.dispatchEvent(new CustomEvent('apes_vd_army_history_updated', { detail: { villages: saved } }));
         return true;
       } catch (error) {
