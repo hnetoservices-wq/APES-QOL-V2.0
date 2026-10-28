@@ -1,23 +1,23 @@
 /* APES Royal Tributes — three real table columns, retaining Travian controls. */
-.tributeVillages.qol-royal-tributes-active table.gradient {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient {
   width:100%!important;
   table-layout:fixed!important;
 }
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th {
   position:relative!important;
   box-sizing:border-box!important;
 }
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:first-child,
-.tributeVillages.qol-royal-tributes-active table.gradient > tbody > tr > td.playerColumn {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:first-child,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > tbody > tr > td.playerColumn {
   width:31%!important;
 }
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2),
-.tributeVillages.qol-royal-tributes-active table.gradient > tbody > tr > td.collect {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2),
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > tbody > tr > td.collect {
   min-width:0!important;
   width:auto!important;
 }
-.tributeVillages.qol-royal-tributes-active table.gradient th.qol-royal-tribute-eta-head,
-.tributeVillages.qol-royal-tributes-active table.gradient td.qol-royal-tribute-eta-cell {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient th.qol-royal-tribute-eta-head,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient td.qol-royal-tribute-eta-cell {
   box-sizing:border-box!important;
   width:74px!important;
   min-width:74px!important;
@@ -28,18 +28,18 @@
   white-space:nowrap!important;
   overflow:visible!important;
 }
-.tributeVillages.qol-royal-tributes-active th.qol-royal-tribute-eta-head {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active th.qol-royal-tribute-eta-head {
   color:#685437!important;
   font:700 10px Arial,Helvetica,sans-serif!important;
   letter-spacing:.1px!important;
 }
 /* Make room for the new ETA column by proportionally shrinking the native
    tribute progress bar and Collect button. Do not intercept their clicks. */
-.tributeVillages.qol-royal-tributes-active td.collect {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect {
   padding-left:5px!important;
   padding-right:5px!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer {
   display:flex!important;
   flex-direction:row!important;
   flex-wrap:nowrap!important;
@@ -49,7 +49,7 @@
   min-width:0!important;
   max-width:100%!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar {
   flex:1 1 55%!important;
   width:auto!important;
   min-width:60px!important;
@@ -57,11 +57,11 @@
   float:none!important;
   margin:0!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar .progressbar {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar .progressbar {
   width:100%!important;
   max-width:100%!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button {
   flex:0 1 137px!important;
   width:137px!important;
   min-width:110px!important;
@@ -70,7 +70,7 @@
   float:none!important;
   margin:0!important;
 }
-.tributeVillages.qol-royal-tributes-active td.qol-royal-tribute-eta-cell .qol-royal-tribute-eta {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.qol-royal-tribute-eta-cell .qol-royal-tribute-eta {
   box-sizing:border-box!important;
   display:inline-block!important;
   width:auto!important;
@@ -91,24 +91,24 @@
   pointer-events:auto!important;
   cursor:help!important;
 }
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="countdown"] {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="countdown"] {
   color:#5a4b24!important;
   background:#f5eed4!important;
   border-color:#b7a265!important;
 }
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="ready"] {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="ready"] {
   color:#376422!important;
   background:#e8f1d9!important;
   border-color:#8eac64!important;
 }
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="estimated"] {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="estimated"] {
   color:#69502a!important;
   background:#efe3c7!important;
   border-style:dashed!important;
 }
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="unavailable"],
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="pending"],
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="in-progress"] {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="unavailable"],
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="pending"],
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-eta[data-tone="in-progress"] {
   color:#6a645a!important;
   background:#e9e5da!important;
   border-color:#b3ada1!important;
@@ -117,7 +117,7 @@
 
 /* Plain native-looking inline header metrics: 5 [house] / 991 res/h [tributes].
    Keep the game's original icons; no colored counter badges or stacked labels. */
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th {
   height:48px!important;
   min-height:48px!important;
   padding:12px 5px 2px!important;
@@ -125,12 +125,12 @@
   text-align:center!important;
   white-space:nowrap!important;
 }
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:first-child,
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:first-child,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) {
   text-align:center!important;
 }
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-village-count,
-.tributeVillages.qol-royal-tributes-active .qol-royal-tribute-production-total {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-village-count,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-production-total {
   position:static!important;
   display:inline-block!important;
   float:none!important;
@@ -162,8 +162,8 @@
   text-overflow:clip!important;
   z-index:auto!important;
 }
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:first-child > i.village_village_small_flat_black,
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) > i.movement_tribute_small_flat_black {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:first-child > i.village_village_small_flat_black,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) > i.movement_tribute_small_flat_black {
   position:static!important;
   display:inline-block!important;
   float:none!important;
@@ -177,14 +177,14 @@
   padding:0!important;
   vertical-align:middle!important;
 }
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) .symbol_i_tiny_wrapper {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) .symbol_i_tiny_wrapper {
   position:absolute!important;
   top:50%!important;
   right:4px!important;
   transform:translateY(-50%)!important;
 }
 /* Preserve the narrow right-hand ETA header while sizing the two metrics. */
-.tributeVillages.qol-royal-tributes-active table.gradient > thead > tr > th.qol-royal-tribute-eta-head {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th.qol-royal-tribute-eta-head {
   padding:12px 3px 2px!important;
 }
 
@@ -193,7 +193,7 @@
    but replace its fragile sprite-based face with a compact APES-styled face.
    The game-rendered content remains in the DOM and reappears when disabled
    from the APES settings. No synthetic clicks or event proxy buttons. */
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer {
   display:grid!important;
   grid-template-columns:minmax(0,1fr) 82px!important;
   grid-template-rows:30px!important;
@@ -208,7 +208,7 @@
   height:30px!important;
   min-height:30px!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > .tributeBar {
   grid-column:1!important;
   justify-self:stretch!important;
   align-self:center!important;
@@ -219,7 +219,7 @@
   margin:0!important;
   box-sizing:border-box!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button {
   grid-column:2!important;
   display:flex!important;
   align-items:center!important;
@@ -258,15 +258,15 @@
   appearance:none!important;
 }
 /* Hide only the game's visual internals; preserve its actual clickable button. */
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button > :not(.qol-royal-collect-label) {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button > :not(.qol-royal-collect-label) {
   display:none!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button::before,
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button::after {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button::before,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button::after {
   content:none!important;
   display:none!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button > .qol-royal-collect-label {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button > .qol-royal-collect-label {
   display:block!important;
   position:static!important;
   flex:0 0 auto!important;
@@ -286,13 +286,13 @@
   text-shadow:none!important;
   pointer-events:none!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button:hover:not(:disabled):not(.disabled) {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button:hover:not(:disabled):not(.disabled) {
   background:#abd44e!important;
   background-image:linear-gradient(to bottom,#bde46b,#86b52c)!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button:disabled,
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button.disabled,
-.tributeVillages.qol-royal-tributes-active td.collect .collectTributesContainer > button[aria-disabled="true"] {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button:disabled,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button.disabled,
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect .collectTributesContainer > button[aria-disabled="true"] {
   border-color:#b6b8a6!important;
   background:#dfdfd4!important;
   background-image:linear-gradient(to bottom,#e8e8df,#d2d5c9)!important;
@@ -308,11 +308,11 @@
    a real countdown, and a PREMIUM Gold-priced "Collect now" action.
    This wrapper must span BOTH grid tracks; never disguise it as a free
    "Collect" button or hide its price. */
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .collectTributesContainer.qol-royal-tribute-in-transit > .tributeBar {
   display:none!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .collectTributesContainer > .qol-royal-tribute-transit-panel {
   grid-column:1 / -1!important;
   grid-row:1!important;
@@ -331,7 +331,7 @@
   box-sizing:border-box!important;
   overflow:visible!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > .tributeOnTheWay {
   grid-column:1!important;
   display:flex!important;
@@ -352,7 +352,7 @@
   font-size:11px!important;
   white-space:nowrap!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > .tributeOnTheWay > .timer {
   position:static!important;
   display:inline-flex!important;
@@ -369,7 +369,7 @@
   transform:none!important;
   white-space:nowrap!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"] {
   grid-column:2!important;
   display:flex!important;
@@ -401,7 +401,7 @@
   overflow:visible!important;
   cursor:pointer!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"] > .content {
   position:static!important;
   display:flex!important;
@@ -417,7 +417,7 @@
   padding:0!important;
   box-sizing:border-box!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"] .innerText {
   position:static!important;
   display:inline-block!important;
@@ -434,13 +434,13 @@
   text-align:center!important;
   white-space:nowrap!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"] .innerText span {
   font-size:10px!important;
   line-height:18px!important;
   color:inherit!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"] .price.gold {
   position:static!important;
   display:inline-flex!important;
@@ -456,7 +456,7 @@
   color:#6d4111!important;
   white-space:nowrap!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"] .price.gold > i {
   display:inline-block!important;
   position:static!important;
@@ -466,16 +466,16 @@
   margin:0!important;
   transform:none!important;
 }
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"]:disabled,
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel > button[premium-feature="tributeFetchInstantly"].disabled {
   opacity:.65!important;
   cursor:default!important;
 }
 /* The premium action's cost stays visible; the ordinary Collect face applies
    only to the actual fetchTribute button, never to a premium action. */
-.tributeVillages.qol-royal-tributes-active td.collect
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active td.collect
 .qol-royal-tribute-transit-panel .qol-royal-collect-label {
   display:none!important;
 }
