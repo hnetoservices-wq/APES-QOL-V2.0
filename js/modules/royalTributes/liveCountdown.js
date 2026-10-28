@@ -11,6 +11,7 @@
   const COUNT_CLASS = 'qol-royal-tribute-village-count';
   const PRODUCTION_CLASS = 'qol-royal-tribute-production-total';
   const ACTIVE_CLASS = 'qol-royal-tributes-active';
+  const BUTTON_LABEL_CLASS = 'qol-royal-collect-label';
   if (window[FLAG]) return;
   window[FLAG] = true;
 
@@ -42,6 +43,21 @@
     const container = row.querySelector('td.collect')?.querySelector('.collectTributesContainer');
     const button = container?.querySelector('button');
     return !!button && button.disabled !== true && !button.classList.contains('disabled');
+  }
+
+  function ensureCollectLabel(row) {
+    // Decorate the *actual* native button: keep Travian's event listeners,
+    // disabled state, Angular binding and click behavior untouched.
+    const container = row.querySelector('td.collect')?.querySelector('.collectTributesContainer');
+    const button = container?.querySelector('button');
+    if (!button) return;
+    let label = button.querySelector('.' + BUTTON_LABEL_CLASS);
+    if (!label) {
+      label = document.createElement('span');
+      label.className = BUTTON_LABEL_CLASS;
+      label.textContent = 'Collect';
+      button.appendChild(label);
+    }
   }
 
   function formatShortTime(seconds) {
@@ -142,7 +158,7 @@
     table.closest('.tributeVillages')?.classList.remove(ACTIVE_CLASS);
     table.querySelectorAll('.' + COUNT_CLASS + ', .' + PRODUCTION_CLASS +
       ', th.' + HEAD_CLASS + ', td.' + CELL_CLASS +
-      ', td.collect .' + LABEL_CLASS).forEach(element => element.remove());
+      ', td.collect .' + LABEL_CLASS + ', .' + BUTTON_LABEL_CLASS).forEach(element => element.remove());
   }
 
   function tick() {
@@ -161,8 +177,10 @@
       const oldCell = row.querySelector('td.' + CELL_CLASS);
       if (!id || !isConnected(row)) {
         oldCell?.remove();
+        row.querySelectorAll('.' + BUTTON_LABEL_CLASS).forEach(element => element.remove());
         continue;
       }
+      ensureCollectLabel(row);
       const data = villageDataFor(id);
       setTimer(createTimerCell(row), data, id, nowSeconds, isNativeReady(row));
       if (seen.has(id)) continue;
