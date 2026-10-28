@@ -37,8 +37,8 @@ Do not confuse ordinary `storage`/`production` with tribute-specific fields.
 ## Implementation
 
 - `js/modules/royalTributes/etaCalculator.js`: pure, tested math and status interpretation. Prefers `timeUntilTributeFetch`. Distinguishes `ready`, `on_way`, `denied`, `pending`, `game_eta`, `estimated`, `stalled` and `unknown`.
-- `js/modules/royalTributes/liveCountdown.js`: read-only script in **MAIN world**. Every second, identifies each connected governor's village ID from the existing `tributeVillages` table, reads that village from `Cache.c`, and inserts a short status **beneath** the native collection widget. The timestamp is subtracted from `Date.now()` each update, so inactive background tabs don't make it drift.
-- `css/features/royalTributeCountdown.css`: compact APES-style labels, with different colors for ready, countdown, and unavailable.
+- `js/modules/royalTributes/liveCountdown.js`: read-only script in **MAIN world**. Every second, identifies each connected governor's village ID from the existing `tributeVillages` table, reads that village from `Cache.c`, and inserts a short status in a **dedicated third table column** to the right of the native collection widget. It also adds the number of connected own-governor villages in header column 1 and their combined hourly **tribute** production in header column 2. The timestamp is subtracted from `Date.now()` each update, so inactive background tabs don't make it drift.
+- `css/features/royalTributeCountdown.css`: compact APES-style labels, with different colors for ready, countdown, and unavailable. The timer uses two-digit hours and minutes such as `04h59m`, and shows `Ready` when collectible.
 - `js/ui/menu.js`: **Kingdom Management → Royal Tribute Countdown** toggle, backed by existing `qol_royalTributeCountdown` preference.
 - `manifest.json`: includes scripts/styles on the development branch.
 - `tests/royalTributeEta.cjs` and `tests/royalTributeCountdown.cjs`: unit and DOM-stub regression tests, included in `tests/package.json`.
@@ -55,10 +55,14 @@ Do not confuse ordinary `storage`/`production` with tribute-specific fields.
 ## Remaining acceptance testing
 
 The code passes mocked DOM and calculation tests, but has **not been visually or functionally tested on a real Royal account**. Install the development branch and open Kingdom → Tributes. Verify:
-1. Governor rows show statuses below the existing button/bar with no tooltip hover.
-2. Different villages show different timers, and `Big Ping Pong` reads `Ready to collect` when the native Collect button is active.
+1. Governor rows show compact `XXhYYm` or `Ready` statuses in the new third column, without tooltip hovering or obscuring native Collect buttons.
+2. Different villages show different timers, and `Big Ping Pong` reads `Ready` when collection is enabled. The native button is used as a fallback if a village's game-cache entry hasn't loaded yet.
 3. Timers decrease, and refresh correctly after Travian updates the game's cache.
-4. Disabling `Royal Tribute Countdown` in settings removes the labels.
+4. Disabling `Royal Tribute Countdown` in settings removes the added third column, header badges and labels, restoring the original two-column table.
 5. Collection in progress or no collection permission is not falsely marked Ready.
 
 Once that works, merge the development branch into main. Do **not** change the checkpoint branch.
+
+## Three-column UI refinement
+
+The header of **Own governors** now shows connected own-governor village count (first column), sum of known `tributeProduction` values as `N res/h` (second column; `≥ N res/h` if a village's rate is missing), and `ETA` (third column). Each connected governor row has a compact third-column timer (`XXhYYm`) or `Ready`. Other conditions show `On way`, `Denied`, `Pending`, `Stopped`, or `—`. The original progress bar and Collect button remain interactive. The feature does not alter foreign governors or deny-tributes tables. Unit/DOM-stub tests passed; the live layout still needs visual inspection.
