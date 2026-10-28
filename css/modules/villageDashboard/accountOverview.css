@@ -384,7 +384,7 @@
   font-weight: 700 !important;
 }
 #apes-v2-village-overlay .apes-ao-resource-legend em {
-  margin-left: auto !important;
+  margin-left: 0 !important;
   color: #d9e6c3 !important;
   font-size: 10px !important;
   font-style: normal !important;
