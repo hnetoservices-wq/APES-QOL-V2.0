@@ -1,0 +1,90 @@
+/* APES QoL — compact 24-hour Barracks planner replacing the selected unit's
+   description, without removing translated text or native training controls. */
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.description.qol-training24-original { display:none!important; }
+
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-plan {
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:flex-start!important;
+  gap:4px!important;
+  width:100%!important;
+  max-width:100%!important;
+  min-width:0!important;
+  margin:4px 0 5px!important;
+  padding:7px 8px!important;
+  border:1px solid #d0b98e!important;
+  border-radius:3px!important;
+  box-sizing:border-box!important;
+  background:linear-gradient(180deg,#fff8eb,#f2e6d1)!important;
+  color:#503d26!important;
+  font:11px/1.3 Arial,Helvetica,sans-serif!important;
+  text-shadow:none!important;
+}
+
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-heading {
+  font:700 10px/1.3 Arial,Helvetica,sans-serif!important;
+  color:#72512b!important;
+  text-transform:uppercase!important;
+  letter-spacing:.35px!important;
+}
+
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-units {
+  font:11px/1.4 Arial,Helvetica,sans-serif!important;
+  color:#4b3927!important;
+  white-space:normal!important;
+}
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-units > strong {
+  font-size:16px!important;
+  color:#3c2e1b!important;
+  font-weight:700!important;
+}
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-time { font-size:10px!important; color:#806c51!important; }
+
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-resources {
+  display:flex!important;
+  flex-direction:row!important;
+  flex-wrap:wrap!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:5px 9px!important;
+  width:100%!important;
+  min-width:0!important;
+  margin:2px 0!important;
+}
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-resource {
+  display:inline-flex!important;
+  flex-direction:row!important;
+  align-items:center!important;
+  justify-content:flex-start!important;
+  gap:3px!important;
+  min-width:0!important;
+  color:#493821!important;
+  font:700 11px/16px Arial,Helvetica,sans-serif!important;
+  white-space:nowrap!important;
+}
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-resource i { display:inline-block!important; flex:none!important; }
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-resource strong { font:700 11px/16px Arial,Helvetica,sans-serif!important; }
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-total {
+  border-top:1px solid #d7c5a4!important;
+  padding-top:4px!important;
+  width:100%!important;
+  color:#58422b!important;
+  font:700 11px/15px Arial,Helvetica,sans-serif!important;
+}
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-note {
+  color:#7f6a4b!important;
+  font:10px/1.25 Arial,Helvetica,sans-serif!important;
+  white-space:normal!important;
+}
