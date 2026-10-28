@@ -76,7 +76,9 @@ class Node {
    if(sel===this.tagName)return true;
    if(sel==='button[clickable^="fetchTribute("]')return this.tagName==='button'&&String(this.clickable||'').startsWith('fetchTribute(');
    if(sel==='button[premium-feature]')return this.tagName==='button'&&!!this.premiumFeature;
-   if(sel.startsWith('.'))return this.classList.contains(sel.slice(1));
+   if(sel==='button[premium-feature] .qol-royal-collect-label')
+     return this.classList.contains('qol-royal-collect-label')&&!!this.closest('button[premium-feature]');
+   if(sel.startsWith('.'))return sel.slice(1).split('.').every(cls=>this.classList.contains(cls));
    const m=sel.match(/^(th|td)\.([a-zA-Z0-9_-]+)$/);
    if(m)return this.tagName===m[1]&&this.classList.contains(m[2]);
    return false;
