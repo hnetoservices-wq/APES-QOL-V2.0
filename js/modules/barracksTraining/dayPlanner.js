@@ -1,4 +1,4 @@
-/* APES QoL — Barracks 24-hour training cost summary.
+/* APES QoL — Barracks & Stable 24-hour training cost summary.
  * Read-only: uses Travian's displayed per-unit duration and unit costs.
  * Does not train, queue, purchase, or transmit anything.
  */
@@ -6,7 +6,8 @@
   'use strict';
   const FLAG = '__APES_QOL_BARRACKS_DAY_PLANNER__';
   const STORAGE_KEY = 'qol_barracks24hPlanner';
-  const BUILDING_SELECTOR = '.building.buildingType19 .buildingDetails.trainTroops .contentBox.unitList';
+  const BUILDING_SELECTOR = '.building.buildingType19 .buildingDetails.trainTroops .contentBox.unitList, ' +
+    '.building.buildingType20 .buildingDetails.trainTroops .contentBox.unitList';
   const ORIGINAL_CLASS = 'qol-training24-original';
   const PLAN_CLASS = 'qol-training24-plan';
   if (window[FLAG]) return;
@@ -83,12 +84,12 @@
     return chip;
   }
 
-  function makePlan(seconds, costs) {
+  function makePlan(seconds, costs, buildingName) {
     const completed = Math.floor(86400 / seconds);
     const partial = 86400 % seconds !== 0;
     const plan = element('div', PLAN_CLASS);
     plan.setAttribute('role', 'note');
-    plan.appendChild(element('div', 'qol-training24-heading', '24h Barracks run'));
+    plan.appendChild(element('div', 'qol-training24-heading', '24h ' + buildingName + ' run'));
 
     const output = element('div', 'qol-training24-units');
     output.appendChild(element('strong', '', format(completed)));
@@ -135,13 +136,14 @@
       const seconds = durationFor(footer);
       const costs = unitCosts(info, footer);
       if (!seconds || !costs) { restore(root); continue; }
-      const key = [costs.unitId, seconds, costs.wood, costs.clay, costs.iron].join('|');
+      const buildingName = root.closest('.building.buildingType20') ? 'Stable' : 'Barracks';
+      const key = [buildingName, costs.unitId, seconds, costs.wood, costs.clay, costs.iron].join('|');
       let plan = description.parentElement?.querySelector('.' + PLAN_CLASS);
       // Handle Angular replacing the selected unit's info panel without leaking
       // a previous plan or displaying the prior unit's resource requirements.
       if (!plan || plan.previousElementSibling !== description || plan.dataset.source !== key) {
         plan?.remove();
-        plan = makePlan(seconds, costs);
+        plan = makePlan(seconds, costs, buildingName);
         plan.dataset.source = key;
         description.insertAdjacentElement('afterend', plan);
       }
