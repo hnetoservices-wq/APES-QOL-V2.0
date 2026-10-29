@@ -106,8 +106,13 @@
     resources.appendChild(resourceChip('iron', completed * costs.iron));
     plan.appendChild(resources);
 
-    plan.appendChild(element('div', 'qol-training24-total',
-      'Total: ' + format(completed * (costs.wood + costs.clay + costs.iron)) + ' resources'));
+    const totalResources = completed * (costs.wood + costs.clay + costs.iron);
+    const total = element('div', 'qol-training24-total');
+    total.appendChild(element('span', '', 'Total: ' + format(totalResources) + ' Resources'));
+    total.appendChild(element('em', 'qol-training24-hourly',
+      ' | ' + (totalResources / 24).toLocaleString('en-US', { maximumFractionDigits: 2 }) +
+      ' Resources/hour'));
+    plan.appendChild(total);
     if (partial) plan.appendChild(element('div', 'qol-training24-note',
       'Full units completed; queue one extra to cover the remaining time.'));
     return plan;
