@@ -11,7 +11,9 @@ assert.doesNotThrow(() => new Function(src));
 assert.equal((css.match(/{/g) || []).length, (css.match(/}/g) || []).length);
 assert.match(css, /description.qol-training24-original/);
 assert.match(css, /qol-training24-plan/);
+assert.match(css, /\.building:is\(\.buildingType19,\.buildingType20\)/, 'Shared style covers both buildings');
 assert.match(menu, /key: 'barracks24hPlanner'/);
+assert.match(menu, /Barracks & Stables 24h Planner/, 'Both buildings share the existing toggle');
 const main = manifest.content_scripts.find(part => part.world === 'MAIN');
 const isolated = manifest.content_scripts.find(part => part.world !== 'MAIN');
 assert.ok(main.js.includes('js/modules/barracksTraining/dayPlanner.js'));
@@ -85,15 +87,45 @@ const footer = {
   }
 };
 const unitRoot = {
+  closest: () => null,
   querySelector: sel => sel === 'table.unitInfo' ? info :
     sel === 'display-resources.costsFooter' ? footer : null,
   querySelectorAll: sel => sel === '.qol-training24-plan' ||
     sel === '.qol-training24-original' ? cell.querySelectorAll(sel) : []
 };
+
+// Mirrors the attached Travian buildingType20 Stable HTML: Paladin (unit 15),
+// 00:08:45 effective duration, and 330/170/200 displayed costs.
+const stableCell = new Node('td'), stableDescription = new Node('div');
+stableDescription.classList.add('description');
+stableDescription.textContent = 'Paladin original description';
+stableCell.appendChild(stableDescription);
+let stableUnitId = '15', stableTime = '00:08:45';
+const stableCost = {wood:'330',clay:'170',iron:'200'};
+const stableInfo = { querySelector: sel => sel === '.description' ? stableDescription :
+  sel === '.unitHeader .unitIcon[data]' ? {
+    getAttribute: name => name === 'data' ? stableUnitId : null
+  } : null };
+const stableFooter = {
+  getAttribute: name => name === 'time' ? '525' : null,
+  querySelector(sel) {
+    if (sel === '.timeValue') return {textContent: stableTime};
+    const type = sel.match(/^\.(wood|clay|iron)Value \.resourceValue$/)?.[1];
+    return type ? {textContent: stableCost[type]} : null;
+  }
+};
+const stableRoot = {
+  closest: sel => sel === '.building.buildingType20' ? {} : null,
+  querySelector: sel => sel === 'table.unitInfo' ? stableInfo :
+    sel === 'display-resources.costsFooter' ? stableFooter : null,
+  querySelectorAll: sel => sel === '.qol-training24-plan' ||
+    sel === '.qol-training24-original' ? stableCell.querySelectorAll(sel) : []
+};
 const document = {
   readyState:'loading',
   createElement:tag => new Node(tag),
-  querySelectorAll:sel => sel.includes('buildingType19') ? [unitRoot] : [],
+  querySelectorAll:sel => sel.includes('buildingType19') && sel.includes('buildingType20')
+    ? [unitRoot, stableRoot] : [],
   addEventListener(){}
 };
 let on=true, runner=null;
@@ -110,6 +142,19 @@ assert.equal(typeof runner,'function');
 runner();
 let plan=cell.querySelector('.qol-training24-plan');
 assert.ok(plan,'24h plan inserted');
+assert.match(plan.textContent,/24h Barracks run/,'Barracks heading preserved');
+
+let stablePlan = stableCell.querySelector('.qol-training24-plan');
+assert.ok(stablePlan,'24h plan inserted in Stable');
+assert.ok(stableDescription.classList.contains('qol-training24-original'),'Stable description hidden');
+assert.match(stablePlan.textContent,/24h Stable run/);
+assert.match(stablePlan.textContent,/164 units \/ 24h/);
+assert.match(stablePlan.textContent,/00:08:45 each/);
+assert.match(stablePlan.textContent,/54,120/,'Paladin wood 330 * 164');
+assert.match(stablePlan.textContent,/27,880/,'Paladin clay 170 * 164');
+assert.match(stablePlan.textContent,/32,800/,'Paladin iron 200 * 164');
+assert.match(stablePlan.textContent,/Total: 114,800 Resources \| 4,783\.33 Resources\/hour/);
+assert.equal(stablePlan.children[3].children[1].tagName,'em','Stable hourly value is italic');
 assert.ok(description.classList.contains('qol-training24-original'),'Original description hidden, not destroyed');
 assert.match(plan.textContent,/675 units \/ 24h/);
 assert.match(plan.textContent,/00:02:08 each/);
@@ -124,6 +169,17 @@ assert.equal(plan.children[2].children.length,3,'Three individually itemized res
 runner();
 assert.equal(cell.querySelectorAll('.qol-training24-plan').length,1,'Never inject duplicates');
 assert.equal(cell.querySelector('.qol-training24-plan'),plan,'Do not recreate unchanged summary');
+assert.equal(stableCell.querySelector('.qol-training24-plan'),stablePlan,'Stable summary not duplicated');
+
+stableUnitId='16'; stableTime='00:10:00';
+stableCost.wood='280';stableCost.clay='320';stableCost.iron='260';runner();
+stablePlan=stableCell.querySelector('.qol-training24-plan');
+assert.match(stablePlan.textContent,/144 units \/ 24h/);
+assert.match(stablePlan.textContent,/40,320/);
+assert.match(stablePlan.textContent,/46,080/);
+assert.match(stablePlan.textContent,/37,440/);
+assert.match(stablePlan.textContent,/Total: 123,840 Resources \| 5,160 Resources\/hour/);
+assert.doesNotMatch(stablePlan.textContent,/114,800/,'Stable updates on selected unit change');
 
 unitId='12';time='00:05:00';
 fallback.wood='125';fallback.clay='50';fallback.iron='65';runner();
@@ -149,10 +205,14 @@ assert.match(plan.textContent,/Total: 165,375 Resources \| 6,890\.63 Resources\/
 on=false;runner();
 assert.equal(cell.querySelector('.qol-training24-plan'),null,'Disabling removes replacement');
 assert.ok(!description.classList.contains('qol-training24-original'),'Disabling restores translated description');
+assert.equal(stableCell.querySelector('.qol-training24-plan'),null,'Disabling removes Stable summary');
+assert.ok(!stableDescription.classList.contains('qol-training24-original'),'Disabling restores Stable description');
 on=true;time='bad';fallbackTime='bad';runner();
 assert.equal(cell.querySelector('.qol-training24-plan'),null,'Do not create summary when timing cannot be trusted');
 time='00:02:08';runner();
 assert.equal(cell.querySelectorAll('.qol-training24-plan').length,1,'Re-enable cleanly');
 assert.ok(description.classList.contains('qol-training24-original'));
+assert.ok(stableCell.querySelector('.qol-training24-plan'),'Stable re-enables with Barracks');
+assert.ok(stableDescription.classList.contains('qol-training24-original'));
 
-console.log('Barracks 24h Planner: example costs, selected unit switch, incomplete cycles, deduplication, fail-open and toggle passed.');
+console.log('Barracks & Stables 24h Planner: Paladin fixture, per-building totals and hourly costs, switching, deduplication, failure and shared toggle passed.');
