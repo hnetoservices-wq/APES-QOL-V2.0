@@ -83,6 +83,12 @@
   font:700 11px/15px Arial,Helvetica,sans-serif!important;
 }
 .building.buildingType19 .buildingDetails.trainTroops .unitInfo
+.qol-training24-hourly {
+  color:#806c51!important;
+  font:italic 11px/15px Arial,Helvetica,sans-serif!important;
+  white-space:normal!important;
+}
+.building.buildingType19 .buildingDetails.trainTroops .unitInfo
 .qol-training24-note {
   color:#7f6a4b!important;
   font:10px/1.25 Arial,Helvetica,sans-serif!important;
