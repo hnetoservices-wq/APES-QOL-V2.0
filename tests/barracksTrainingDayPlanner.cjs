@@ -116,7 +116,10 @@ assert.match(plan.textContent,/00:02:08 each/);
 assert.match(plan.textContent,/57,375/);
 assert.match(plan.textContent,/43,875/);
 assert.match(plan.textContent,/20,250/);
-assert.match(plan.textContent,/121,500 resources/);
+assert.match(plan.textContent,/Total: 121,500 Resources \| 5,062\.5 Resources\/hour/);
+assert.equal(plan.children[3].children[1].tagName, 'em', 'Hourly figure is italicized');
+assert.ok(plan.children[3].children[1].classList.contains('qol-training24-hourly'));
+assert.match(css, /qol-training24-hourly/);
 assert.equal(plan.children[2].children.length,3,'Three individually itemized resources');
 runner();
 assert.equal(cell.querySelectorAll('.qol-training24-plan').length,1,'Never inject duplicates');
@@ -129,7 +132,7 @@ assert.match(plan.textContent,/288 units \/ 24h/);
 assert.match(plan.textContent,/36,000/);
 assert.match(plan.textContent,/14,400/);
 assert.match(plan.textContent,/18,720/);
-assert.match(plan.textContent,/69,120 resources/);
+assert.match(plan.textContent,/Total: 69,120 Resources \| 2,880 Resources\/hour/);
 assert.doesNotMatch(plan.textContent,/57,375/);
 
 time='00:02:09';runner();
@@ -141,7 +144,7 @@ assert.match(plan.textContent,/queue one extra/,'Partial trailing unit mentioned
 time='00:02:08';fallback.wood='130';runner();
 plan=cell.querySelector('.qol-training24-plan');
 assert.match(plan.textContent,/87,750/,'Current displayed wood cost of 130 must override the static 125');
-assert.match(plan.textContent,/165,375 resources/,'Total reflects currently displayed costs');
+assert.match(plan.textContent,/Total: 165,375 Resources \| 6,890\.63 Resources\/hour/,'Hourly average updates with displayed costs');
 
 on=false;runner();
 assert.equal(cell.querySelector('.qol-training24-plan'),null,'Disabling removes replacement');
