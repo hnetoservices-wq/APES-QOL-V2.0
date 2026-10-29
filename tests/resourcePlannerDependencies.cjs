@@ -118,6 +118,16 @@ assert.deepEqual(names(output.custom_resources_saved),[
 ]);
 assert.ok(storage.get(storeKey).includes('added_mill_4'),'Repair saved back to the real Roadmap storage key');
 assert.equal(exposed.prepareCustomRoadmaps().custom_resources_saved.steps.length,6,'Second load is idempotent');
+// A later editor move that pushes Mill 5 past Bakery must also be repaired.
+const reordered = output.custom_resources_saved;
+const mill5Index = reordered.steps.findIndex(step=>step.buildingId===8&&step.level===5);
+const movedMill5 = reordered.steps.splice(mill5Index,1)[0];
+reordered.steps.push(movedMill5);
+assert.equal(deps.inspect('custom_resources_saved',reordered).valid,false);
+assert.equal(exposed.repairRoadmapWithDependencies('custom_resources_saved',reordered),true);
+assert.deepEqual(names(reordered),[
+  'Grain Mill 3','Grain Mill 4','Grain Mill 5','Bakery 1','Bakery 2','Bakery 3'
+]);
 const bare={steps:[mill(3),mill(4),mill(5)]};
 exposed.repairRoadmapSequences(bare);
 assert.deepEqual(bare.steps.map(step=>step.level),[3,4,5],
