@@ -67,6 +67,7 @@
         "js/features/roadmaps.js",
         "js/modules/roadmaps/progressIsolation.js",
         "js/modules/roadmaps/refreshBridge.js",
+        "js/modules/roadmaps/resourcePlannerDependencies.js",
         "js/modules/roadmaps/editor.js",
         "js/modules/roadmaps/catalog.js",
         "js/modules/roadmaps/buildingSteps.js",
