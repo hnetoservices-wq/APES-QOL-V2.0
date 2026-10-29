@@ -467,8 +467,15 @@
       roadmaps[roadmapId] = {
         name: roadmapName,
         description: `Imported from APES Resource Upgrade Planner for ${villageName}. ${imported.length} calculated upgrades plus a starting checkpoint. Resource-field objectives are count based, so any matching field can satisfy each step.`,
+        resourcePlannerStartBuildings: { mill: Number(plan.startState?.buildings?.mill ?? NaN) },
         steps: [checkpointStep(villageName), ...imported]
       };
+
+      const dependency = window.APES?.resourcePlannerDependencies?.inspect?.(roadmapId, roadmaps[roadmapId]);
+      if (dependency && !dependency.valid) {
+        showImportToast(dependency.reason || 'The imported Roadmap has an unmet building prerequisite.', 'error');
+        return;
+      }
 
       if (!writeJson(CUSTOM_KEY, roadmaps)) {
         showImportToast('Could not save the imported Roadmap.', 'error');
