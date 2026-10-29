@@ -157,7 +157,10 @@
       // Legacy target-style steps are preserved. Any exact step appended after them
       // continues from the highest earlier target rather than rewriting the legacy route.
       if (step.exact === true) {
-        const expected = Math.min(building.max, lastLevel + 1);
+        // The first exact step of an imported route may start at Level 3
+        // because the village already has Level 2. Do not rewrite it to 1:
+        // that destroys the baseline needed for Grain Mill/Bakery safety.
+        const expected = Math.min(building.max, lastLevel > 0 ? lastLevel + 1 : firstLevel);
         if (step.level !== expected) changed = true;
         step.level = expected;
         lastLevelByIdentity.set(key, expected);
