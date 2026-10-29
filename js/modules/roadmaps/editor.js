@@ -169,11 +169,21 @@
     return changed;
   }
 
+  function repairRoadmapWithDependencies(id, roadmap) {
+    const sequencesChanged = repairRoadmapSequences(roadmap);
+    // Older imported optimizer routes might contain Bakery before Grain Mill 5.
+    // Repair when opening them, and after every subsequent edit/reorder.
+    const result = window.APES?.resourcePlannerDependencies?.repair?.(id, roadmap);
+    const dependencyChanged = result?.changed === true;
+    const normalizedAgain = dependencyChanged ? repairRoadmapSequences(roadmap) : false;
+    return sequencesChanged || dependencyChanged || normalizedAgain;
+  }
+
   function prepareCustomRoadmaps() {
     const custom = readCustomRoadmaps();
     let changed = false;
-    Object.values(custom).forEach(roadmap => {
-      if (repairRoadmapSequences(roadmap)) changed = true;
+    Object.entries(custom).forEach(([id, roadmap]) => {
+      if (repairRoadmapWithDependencies(id, roadmap)) changed = true;
     });
     if (changed) writeCustomRoadmaps(custom);
     return custom;
@@ -453,7 +463,7 @@
       if (editing) roadmap.steps[stepIndex] = exactStep;
       else roadmap.steps.push(exactStep);
 
-      repairRoadmapSequences(roadmap);
+      repairRoadmapWithDependencies(state.id, roadmap);
       writeCustomRoadmaps(custom);
       closeDialog();
       refreshHub();
@@ -493,7 +503,7 @@
       const step = { type: 'instruction', text };
       if (editing) roadmap.steps[stepIndex] = step;
       else roadmap.steps.push(step);
-      repairRoadmapSequences(roadmap);
+      repairRoadmapWithDependencies(state.id, roadmap);
       writeCustomRoadmaps(custom);
       closeDialog();
       refreshHub();
@@ -550,7 +560,7 @@
       return;
     }
 
-    repairRoadmapSequences(roadmap);
+    repairRoadmapWithDependencies(state.id, roadmap);
     writeCustomRoadmaps(state.custom);
     refreshHub();
     if (action === 'duplicate') showToast('Step duplicated.');
