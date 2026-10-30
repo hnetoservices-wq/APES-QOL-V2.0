@@ -299,6 +299,10 @@
   function renderScanSummary() {
     const node = document.querySelector('#' + PANEL_ID + ' [data-poop-results]');
     if (!node) return;
+    // Reserve a readable three-row attack table only when there are attacks.
+    // The empty and not-yet-scanned states keep their original compact size.
+    const hasAttacks = Boolean(lastScan?.results?.some(row => row.status === 'attacked'));
+    node.classList.toggle('has-attacks', hasAttacks);
     if (!lastScan) {
       node.innerHTML = '<div class="apes-poop-scan-empty">Run Scan Villages to check for incoming attacks.</div>';
       return;
