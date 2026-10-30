@@ -51,6 +51,7 @@ function environment() {
   };
   const window = { location: { hostname: 'trickandtreat.kingdoms.com', hash: '#/page:village/villId:123' },
     APES: { context: { getVillageName: () => 'Fixture village', getVillageId: () => '123' } },
+    APES_VILLAGE_PALETTE: { getVillages: () => [{ villageId:'123', isMainVillage:false }] },
     addEventListener(name, callback) { listeners.set(name, callback); },
     dispatchEvent() {}, setTimeout(callback, ms) { now += ms; callback(); } };
   const context = { window, document, location: window.location, console, performance: { now: () => now },
