@@ -454,11 +454,54 @@
     Object.values(PRODUCTION_BUILDING_MAP).forEach(key => {
       if (!Object.hasOwn(buildings, key)) buildings[key] = 0;
     });
+    const villageView = root.closest('[ng-controller="villageViewCtrl"]') ||
+      root.closest('.village.viewBackground') ||
+      document.querySelector('[ng-controller="villageViewCtrl"].village.viewBackground');
     return {
       buildings,
-      embassyLocation
+      embassyLocation,
+      isCity: villageView?.classList?.contains('village-water') === true
     };
   }
+  // Main-world Village cache exposes isMainVillage even when the village is
+  // still a Level-10 cropper. Do not guess capital status from crop layout,
+  // a Stonemason building, or the highest level already built.
+  async function readCapitalStatus(villageId, timeout = 1200) {
+    const id = String(villageId || '');
+    if (!/^\d+$/.test(id)) return null;
+    const cached = window.APES_VILLAGE_PALETTE?.getVillages?.();
+    const known = Array.isArray(cached) ? cached.find(village =>
+      String(village?.villageId) === id && typeof village.isMainVillage === 'boolean') : null;
+    if (known) return known.isMainVillage;
+    return new Promise(resolve => {
+      const source = 'APES_QOL_VILLAGE_DASHBOARD_BRIDGE';
+      let finished = false;
+      let timer;
+      const finish = value => {
+        if (finished) return;
+        finished = true;
+        window.removeEventListener('message', onMessage);
+        window.clearTimeout(timer);
+        resolve(value);
+      };
+      const onMessage = event => {
+        if (event.source !== window || event.origin !== location.origin ||
+          event.data?.source !== source || event.data?.type !== 'VILLAGE_SNAPSHOT') return;
+        const villages = event.data?.payload?.villages;
+        if (!Array.isArray(villages)) return;
+        const village = villages.find(row => String(row?.villageId) === id);
+        if (village && typeof village.isMainVillage === 'boolean')
+          finish(village.isMainVillage);
+      };
+      window.addEventListener('message', onMessage);
+      timer = window.setTimeout(() => finish(null), timeout);
+      window.postMessage({
+        source: 'APES_QOL_VILLAGE_DASHBOARD_UI',
+        type: 'REQUEST_SNAPSHOT'
+      }, location.origin);
+    });
+  }
+
   function oasisPresetFor(bonuses) {
     return Object.entries(OASIS_PRESETS).find(([key, preset]) => key !== 'custom' && preset.values?.every((value, index) => value === bonuses[index]))?.[0] || 'custom';
   }
@@ -575,6 +618,7 @@
       navigateTo(villageRoute('village', identity.villageId));
       const village = await waitForStableRead(readVillageBuildings, value => Boolean(value), token);
       if (!village) throw new Error('The village building view did not finish loading.');
+      const capitalStatus = await readCapitalStatus(identity.villageId);
       if (village.embassyLocation && village.buildings.embassy > 0) {
         setScanStatus('Checking Embassy oasis assignments…');
         navigateTo(villageRoute('village', identity.villageId, [`location:${village.embassyLocation}`, 'window:building', 'tab:Oases']));
@@ -600,7 +644,17 @@
       state.buildings = { ...state.buildings, ...village.buildings };
       state.oases = scannedOases;
       const highestLevel = Math.max(...RESOURCE_KEYS.flatMap(resource => resourceResult.fields[resource]));
-      if (highestLevel > 12) state.maxLevel = 20;else if (highestLevel > 10 && state.maxLevel < 12) state.maxLevel = 12;
+      if (capitalStatus === true || highestLevel > 12) {
+        state.maxLevel = 20;
+      } else if (capitalStatus === false) {
+        state.maxLevel = village.isCity ? 12 : 10;
+      } else if (village.isCity || highestLevel > 10) {
+        // No trustworthy capital flag was returned. City evidence still
+        // permits Level 12, but cannot prove Level 20 is legal.
+        state.maxLevel = state.maxLevel === 20 ? 20 : 12;
+      }
+      // An unknown capital status must not silently override a user's
+      // previously selected Capital setting for this same village.
       state.layout = resourceResult.layout;
       state.fields = resourceResult.fields;
       stateVillageId = identity.villageId;
@@ -613,9 +667,13 @@
       calculateAndRender();
       setInputSectionsCollapsed(true);
       const annexed = state.oases.filter(oasis => oasis.state === 'annexed').length;
+      if (capitalStatus === null && state.maxLevel === 10 && highestLevel >= 10)
+        warnings.push('Capital not verified; select Capital under Planner settings if applicable');
       const suffix = warnings.length ? ` (${warnings.join('; ')}.)` : '';
+      const settlementText = capitalStatus === true ? ' Capital detected · fields to 20.' :
+        capitalStatus === false ? ` ${village.isCity ? 'City' : 'Village'} detected · fields to ${state.maxLevel}.` : '';
       const speedText = speedInfo.detected ? `x${state.speed} world detected from ${speedInfo.source}` : `x${state.speed} world`;
-      setScanStatus(`Scanned ${identity.villageName}: ${state.layout}, 18 fields, ${annexed} assigned oasis${annexed === 1 ? '' : 'es'}, ${speedText}.${suffix}`, warnings.length ? 'warning' : 'success');
+      setScanStatus(`Scanned ${identity.villageName}: ${state.layout}, 18 fields, ${annexed} assigned oasis${annexed === 1 ? '' : 'es'}, ${speedText}.${settlementText}${suffix}`, warnings.length ? 'warning' : 'success');
       window.dispatchEvent(new CustomEvent('apes_resource_upgrade_scan_completed', {
         detail: { ...identity, state: clone(state), scannedAt: Date.now() }
       }));
