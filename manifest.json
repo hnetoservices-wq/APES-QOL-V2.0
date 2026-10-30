@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "APES QoL 2.0 Beta",
-  "version": "2.0.0.180",
+  "version": "2.0.0.181",
   "description": "APES QoL 2.0 public beta for Travian Kingdoms.",
   "permissions": [
     "storage",
@@ -181,7 +181,7 @@
       "128": "icons/icon128.png"
     }
   },
-  "version_name": "2.0.0-beta.1",
+  "version_name": "2.0.181",
   "web_accessible_resources": [
     {
       "resources": [
