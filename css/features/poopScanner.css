@@ -58,3 +58,61 @@ window.mapCellDetails .apes-poop-action.is-saved {
   background:#efe5d5!important;color:#663c29!important;border:1px solid #c9b39b!important;border-radius:3px!important
 }
 #apes-poop-panel .apes-poop-remove:hover {background:#f6dad2!important}
+
+
+/* POOP incoming-attack scanner */
+#apes-poop-panel .apes-poop-scanbar {
+  display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:wrap!important;
+  margin:2px 0 12px!important;
+}
+#apes-poop-panel .apes-poop-scan-button {
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  min-width:130px!important;min-height:28px!important;padding:6px 12px!important;
+  border:1px solid var(--qol-action-border,#7f6546)!important;border-radius:4px!important;
+  background:linear-gradient(var(--qol-accent,#a58a62),var(--qol-accent-dark,#735330))!important;
+  color:#fff!important;font-size:11px!important;font-weight:700!important;
+  cursor:pointer!important;user-select:none!important;
+}
+#apes-poop-panel .apes-poop-scan-button:hover {filter:brightness(1.08)!important}
+#apes-poop-panel [data-poop-scan-status] {color:#7b674b!important;font-size:10px!important}
+#apes-poop-panel .apes-poop-results {
+  display:block!important;max-height:210px!important;overflow:auto!important;
+  margin:0 0 12px!important;padding:10px!important;
+  border:1px solid #d9cab6!important;border-radius:4px!important;background:#fff!important
+}
+#apes-poop-panel .apes-poop-scan-metrics {
+  margin:0 0 8px!important;color:#513f2c!important;font-size:11px!important;font-weight:700!important
+}
+#apes-poop-panel .apes-poop-scan-metrics strong {color:#a12c26!important;font-size:15px!important}
+#apes-poop-panel .apes-poop-scan-empty {color:#78634c!important;font-size:11px!important;padding:6px 0!important}
+#apes-poop-panel .apes-poop-scan-table {overflow:auto!important;max-height:160px!important}
+#apes-poop-panel .apes-poop-eta {
+  color:#a12c26!important;font-weight:700!important;font-variant-numeric:tabular-nums!important;
+  font-family:Consolas,monospace!important
+}
+#apes-poop-panel .apes-poop-scan-failures {
+  margin-top:8px!important;padding:6px 8px!important;border-radius:3px!important;
+  background:#fff0d8!important;color:#87592a!important;font-size:10px!important
+}
+#apes-poop-scan-lock {
+  position:fixed!important;inset:0!important;z-index:2147483646!important;
+  display:flex!important;align-items:center!important;justify-content:center!important;
+  background:rgba(17,16,14,.77)!important;cursor:wait!important
+}
+#apes-poop-scan-lock,#apes-poop-scan-lock * {box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
+#apes-poop-scan-lock .apes-poop-lock-card {
+  display:flex!important;flex-direction:column!important;align-items:center!important;
+  gap:14px!important;width:min(380px,90vw)!important;padding:24px!important;
+  border:2px solid var(--qol-border,#866b45)!important;border-radius:6px!important;
+  background:#f7f5f0!important;color:#4c3927!important;box-shadow:0 18px 42px #0008!important;
+  text-align:center!important;cursor:default!important
+}
+#apes-poop-scan-lock strong {font-size:15px!important}
+#apes-poop-scan-lock [data-poop-progress] {font-size:11px!important;line-height:1.5!important}
+#apes-poop-scan-lock .apes-poop-lock-stop {
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  padding:7px 16px!important;border-radius:3px!important;
+  border:1px solid #967452!important;background:#e6d8c1!important;
+  color:#563e2e!important;font-size:11px!important;font-weight:700!important;
+  cursor:pointer!important
+}
