@@ -58,6 +58,10 @@
     label: 'Secret Society Scanner',
     key: 'secretSocietyScanner'
   }, {
+    id: 'apes-poop-launcher',
+    label: 'Protection Of Outside Peasants',
+    key: 'poopScanner'
+  }, {
     id: 'qol-kingdom-management-toggle-btn',
     label: 'Kingdom Management',
     key: 'kingdomManagement'
