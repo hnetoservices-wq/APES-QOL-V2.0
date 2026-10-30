@@ -28,7 +28,9 @@ function environment(saved = null, preference = true) {
   const villages = new Map([
     ['123', { level: 7, mill: 2, city: true }],
     ['456', { level: 9, mill: 5, city: false }],
-    ['789', { level: 0, mill: 0, city: false }]
+    ['789', { level: 0, mill: 0, city: false }],
+    ['321', { level: 10, mill: 5, city: false, capital: true, layout: '1-1-1-15' }],
+    ['654', { level: 10, mill: 5, city: false, capital: false, layout: '1-1-1-15' }]
   ]);
   if (saved) storage.set('villageScanStates', plain(saved));
   const scans = [];
@@ -51,7 +53,8 @@ function environment(saved = null, preference = true) {
     if (!village || village.fail) return;
     if (w.location.hash.includes('page:resources')) {
       let slot = 1;
-      game.innerHTML = `<div id="villageViewRes">${[[1,4], [2,4], [3,4], [4,6]].map(([type,count]) =>
+      const counts = village.layout === '1-1-1-15' ? [[1,1], [2,1], [3,1], [4,15]] : [[1,4], [2,4], [3,4], [4,6]];
+      game.innerHTML = `<div id="villageViewRes">${counts.map(([type,count]) =>
         Array.from({ length: count }, () => locationHtml(type, village.level, slot++)).join('')).join('')}</div>`;
     } else if (w.location.hash.includes('tab:Oases')) {
       game.innerHTML = '<div class="contentBox oasisInRange"><table><tbody></tbody></table></div>';
@@ -62,6 +65,19 @@ function environment(saved = null, preference = true) {
     }
   }
   w.addEventListener('hashchange', render);
+  // Simulate the native MAIN-world Village cache bridge. isMainVillage is
+  // authoritative even when all the capital's fields remain at Level 10.
+  w.addEventListener('message', event => {
+    if (event.data?.source !== 'APES_QOL_VILLAGE_DASHBOARD_UI' ||
+        event.data?.type !== 'REQUEST_SNAPSHOT') return;
+    const payload = { villages: [...villages.entries()].map(([villageId, village]) => ({
+      villageId, isMainVillage: village.capital === true, isTown: village.city === true
+    })) };
+    w.dispatchEvent(new w.MessageEvent('message', {
+      data: { source: 'APES_QOL_VILLAGE_DASHBOARD_BRIDGE', type: 'VILLAGE_SNAPSHOT', payload },
+      origin: w.location.origin, source: w
+    }));
+  });
   w.addEventListener('apes_resource_upgrade_scan_started', event => scans.push(event.detail.villageId));
   render();
   w.eval(read('js/features/resourceUpgradePlanner.js'));
@@ -203,6 +219,36 @@ async function failedPlanDoesNotRetriggerCalculation() {
   }
 }
 
+async function capitalLevelTenChecks() {
+  const e = environment();
+  try {
+    // All eighteen Level-10 fields: a capital must still unlock Level 11.
+    e.w.location.hash = '#/page:village/villId:321';
+    await e.api.open();
+    equal(e.api.getState().layout, '1-1-1-15');
+    equal(e.api.getState().fields.crop, Array(15).fill(10));
+    equal(e.api.getState().maxLevel, 20);
+    const capitalPlan = e.api.calculate();
+    assert.ok(capitalPlan.results.length > 0, 'Capital with Level-10 fields must have a roadmap'); checks++;
+    assert.ok(capitalPlan.results.some(step => step.kind === 'field' && step.toLevel === 11),
+      'Capital roadmap must include Level 11 upgrades'); checks++;
+    assert.match(e.panel().querySelector('[data-scan-status]').textContent,
+      /Capital detected · fields to 20/); checks++;
+    // A different 15-cropper is NOT automatically a capital.
+    e.w.location.hash = '#/page:village/villId:654';
+    await until(() => e.api.hasVillageState() && !e.api.isScanning() &&
+      e.api.getState().layout === '1-1-1-15' && e.api.getState().maxLevel === 10);
+    equal(e.api.getState().maxLevel, 10);
+    // City status outranks ordinary village, but not capital status.
+    e.w.location.hash = '#/page:village/villId:123';
+    await until(() => e.api.hasVillageState() && e.api.getState().maxLevel === 12);
+    equal(e.api.getState().maxLevel, 12);
+    // Switching back should preserve the original capital's profile.
+    e.w.location.hash = '#/page:village/villId:321';
+    await until(() => e.api.hasVillageState() && e.api.getState().maxLevel === 20);
+    equal(e.api.getState().maxLevel, 20);
+  } finally { e.dom.window.close(); }
+}
 async function nativeVillageChecks() {
   const e = environment();
   try {
@@ -227,9 +273,10 @@ async function nativeVillageChecks() {
   } finally { e.dom.window.close(); }
 }
 (async () => {
+  await capitalLevelTenChecks();
   await nativeVillageChecks();
   await failedPlanDoesNotRetriggerCalculation();
   const saved = await lifecycleChecks();
   await cachedAndFallbackChecks(saved);
-  console.log(`Passed ${checks} planner village-scan, cache, failure and city-detection checks.`);
+  console.log(`Passed ${checks} planner village-scan, capital beyond Level 10, cache, failure and city-detection checks.`);
 })().catch(error => { console.error(error); process.exitCode = 1; });
