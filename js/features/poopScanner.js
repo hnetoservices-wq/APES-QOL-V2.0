@@ -97,7 +97,7 @@
     if (!match) return null;
     return {
       owner, playerId, villageName: title, x, y, cellId,
-      url: location.origin + '#/page:map/cellId:' + cellId + '/window:mapCellDetails',
+      url: location.origin + '/#/page:map/cellId:' + cellId + '/window:mapCellDetails',
       societyId: match.societyId, societyName: match.societyName,
       populationRow, table
     };
@@ -114,7 +114,7 @@
       !Number.isInteger(safe.x) || !Number.isInteger(safe.y) ||
       !societyMember(safe.playerId, safe.owner)) return false;
     // Build the URL ourselves. Don't trust an arbitrary user-supplied link.
-    safe.url = location.origin + '#/page:map/cellId:' + safe.cellId + '/window:mapCellDetails';
+    safe.url = location.origin + '/#/page:map/cellId:' + safe.cellId + '/window:mapCellDetails';
     const list = entries();
     const previous = list.findIndex(item => item.cellId === safe.cellId);
     if (previous >= 0) {
