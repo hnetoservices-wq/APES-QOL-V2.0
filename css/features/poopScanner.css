@@ -1,0 +1,60 @@
+/* APES POOP — scoped, Travian-compatible controls */
+#apes-poop-launcher {
+  position:fixed!important;z-index:9999!important;display:flex;align-items:center;justify-content:center;
+  width:30px!important;height:30px!important;box-sizing:border-box!important;border-radius:50%!important;
+  border:2px solid var(--qol-accent,#9c8462)!important;background:var(--qol-accent-soft,#eee1c8)!important;
+  color:var(--qol-accent,#695032)!important;box-shadow:0 2px 4px #0003!important;
+  font:bold 14px Arial,sans-serif!important;cursor:pointer!important;user-select:none!important
+}
+#apes-poop-launcher:hover {filter:brightness(1.08)}
+window.mapCellDetails tr.apes-poop-add-row > td {
+  padding:6px 10px!important;text-align:center!important;border-top:1px solid #d0c1ab!important
+}
+window.mapCellDetails .apes-poop-action {
+  display:block!important;width:100%!important;box-sizing:border-box!important;
+  padding:6px 10px!important;margin:0!important;border-radius:3px!important;
+  border:1px solid var(--qol-action-border,#826138)!important;
+  background:linear-gradient(to bottom,var(--qol-accent,#a78c4e),var(--qol-accent-dark,#77562d))!important;
+  color:#fff!important;text-shadow:none!important;text-align:center!important;
+  font:bold 12px Arial,sans-serif!important;cursor:pointer!important;user-select:none!important;
+}
+window.mapCellDetails .apes-poop-action:hover {filter:brightness(1.1)}
+window.mapCellDetails .apes-poop-action.is-saved {
+  color:#49642d!important;border-color:#9caf7f!important;background:#e8f1de!important
+}
+#apes-poop-panel,#apes-poop-panel * {box-sizing:border-box!important;font-family:Arial,Helvetica,sans-serif!important;text-shadow:none!important}
+#apes-poop-panel {
+  display:none;position:fixed!important;top:75px!important;right:20px!important;z-index:1000002!important;
+  width:min(780px,calc(100vw - 40px))!important;min-height:230px!important;
+  max-height:calc(100vh - 100px)!important;overflow:hidden!important;
+  border:3px solid var(--qol-border,#776044)!important;border-radius:6px!important;
+  background:#f7f5f0!important;color:#423424!important;box-shadow:0 14px 35px #0007!important
+}
+#apes-poop-panel.is-open {display:flex!important;flex-direction:column!important}
+#apes-poop-panel .apes-poop-head {
+  display:flex!important;justify-content:space-between!important;align-items:center!important;
+  min-height:40px!important;padding:8px 12px!important;
+  background:linear-gradient(var(--qol-accent-mid,#997d54),var(--qol-accent-deep,#665031))!important;
+  color:#fffaf0!important;font-size:14px!important
+}
+#apes-poop-panel .apes-poop-close {
+  display:flex;align-items:center;justify-content:center;width:24px;height:24px;
+  background:#0002;border:1px solid #fff6;border-radius:4px;cursor:pointer;font-size:20px
+}
+#apes-poop-panel .apes-poop-body {min-height:0!important;padding:12px!important;overflow:auto!important}
+#apes-poop-panel p {margin:0 0 10px!important;color:#68553e!important;font-size:11px!important}
+#apes-poop-panel .apes-poop-count {margin:0 0 9px!important;font-weight:bold!important;font-size:12px!important}
+#apes-poop-panel .apes-poop-scroll {max-height:min(440px,60vh)!important;overflow:auto!important}
+#apes-poop-panel table {width:100%!important;border-collapse:collapse!important;background:#fff!important}
+#apes-poop-panel th,#apes-poop-panel td {
+  padding:8px!important;background:#fff!important;border-bottom:1px solid #ddd3c4!important;
+  color:#493b2b!important;font-size:11px!important;text-align:left!important;white-space:nowrap!important
+}
+#apes-poop-panel th {background:#e8dfcf!important;font-weight:bold!important}
+#apes-poop-panel a {color:#587e23!important;text-decoration:underline!important}
+#apes-poop-panel .apes-poop-empty {text-align:center!important;white-space:normal!important;padding:24px 12px!important}
+#apes-poop-panel .apes-poop-remove {
+  display:inline-block!important;cursor:pointer!important;padding:5px 8px!important;
+  background:#efe5d5!important;color:#663c29!important;border:1px solid #c9b39b!important;border-radius:3px!important
+}
+#apes-poop-panel .apes-poop-remove:hover {background:#f6dad2!important}
