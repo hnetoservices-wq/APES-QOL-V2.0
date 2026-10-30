@@ -80,7 +80,8 @@
     const owner = clean(player?.getAttribute('playername') || player?.textContent);
     const playerId = clean(player?.getAttribute('playerid'));
     const coord = header.querySelector('.coordinateWrapper[x][y]');
-    const x = Number(coord?.getAttribute('x')), y = Number(coord?.getAttribute('y'));
+    const x = coord ? Number(coord.getAttribute('x')) : NaN;
+    const y = coord ? Number(coord.getAttribute('y')) : NaN;
     const title = clean(root.querySelector('.contentHeader h2 span')?.textContent ||
       root.querySelector('.contentHeader h2')?.textContent);
     // The URL contains cellId when opened from the map. Travian sometimes
@@ -164,8 +165,9 @@
         cell.appendChild(control);
         row.appendChild(cell);
       }
-      row.querySelector('.apes-poop-action').textContent =
-        saved ? 'Saved to POOP' : 'Add Player to POOP';
+      const label = saved ? 'Saved to POOP' : 'Add Player to POOP';
+      const control = row.querySelector('.apes-poop-action');
+      if (control.textContent !== label) control.textContent = label;
       row.querySelector('.apes-poop-action').classList.toggle('is-saved', saved);
       // Keep this directly below Population, regardless of other fields.
       if (row.previousElementSibling !== info.populationRow) {
@@ -254,10 +256,11 @@
     if (!document.getElementById(LAUNCH_ID)) {
       const launch = document.createElement('div');
       launch.id = LAUNCH_ID;
-      launch.className = 'qol-toolbar-feature-button';
+      launch.className = 'apes-poop-launch-action';
       launch.setAttribute('role','button');
       launch.setAttribute('tabindex','0');
       launch.title = 'Protection Of Outside Peasants';
+      launch.setAttribute('aria-label', 'Open Protection Of Outside Peasants');
       launch.textContent = 'P';
       launch.addEventListener('click', open);
       launch.addEventListener('keydown', event => {
@@ -285,7 +288,7 @@
     id: 'kingdom.poop', label: 'Protection Of Outside Peasants',
     description: 'View saved villages from Secret Society members outside your kingdom borders.',
     group: 'Kingdom Management', keywords: ['poop','secret society','outside','villages'],
-    execute: open
+    enabled, run: open
   });
   window.addEventListener('storage', event => {
     if (event.key === SS_STORAGE || event.key === STORAGE) {
