@@ -25,11 +25,18 @@
 
     running = true;
     let troopFailed = false;
+    let villagesFailed = false;
     try {
       // Preserve the dashboard's existing scan first: construction/building
       // locations and the resource-production collector all depend on its
       // normal village-by-village navigation.
-      await palette.scan();
+      setPhase('Loading villages…');
+      const villagesScanned = await palette.scan();
+      if (villagesScanned === false) {
+        villagesFailed = true;
+        console.warn('[APES Village Dashboard] Scan Now did not start: village list is unavailable.');
+        return;
+      }
 
       // The Research models are not guaranteed to load simply by visiting a
       // village. Run the Smithy pass immediately afterwards; it reuses cached
@@ -70,10 +77,14 @@
       if (button) {
         button.classList.remove('scanning');
         button.setAttribute('aria-disabled', 'false');
-        button.textContent = troopFailed ? 'Troop scan failed — Retry' : 'Scan Now';
-        button.title = troopFailed
-          ? 'Unit Counter was not refreshed. Retry, or check the DevTools console for the troop scan error.'
-          : 'Scan all villages and refresh troop counts';
+        button.textContent = villagesFailed
+          ? 'Villages unavailable — Retry'
+          : troopFailed ? 'Troop scan failed — Retry' : 'Scan Now';
+        button.title = villagesFailed
+          ? 'Village data did not load. Retry to scan once the game has loaded.'
+          : troopFailed
+            ? 'Unit Counter was not refreshed. Retry, or check the DevTools console for the troop scan error.'
+            : 'Scan all villages and refresh troop counts';
       }
       window.APES_VILLAGE_PALETTE?.refresh?.();
       window.dispatchEvent(new CustomEvent('apes_vd_dashboard_scan_complete'));
