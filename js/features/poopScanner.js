@@ -447,6 +447,62 @@
       '<tr><td colspan="5" class="apes-poop-empty">No villages saved. Select a village belonging to a scanned Secret Society member and use Add Player to POOP.</td></tr>';
   }
 
+  function makePanelDraggable(panel) {
+    const header = panel.querySelector('.apes-poop-head');
+    let drag = null;
+
+    function clampPosition() {
+      if (!panel.classList.contains('is-open') || !panel.style.left) return;
+      const box = panel.getBoundingClientRect();
+      const left = Math.max(0, Math.min(box.left, window.innerWidth - box.width));
+      const top = Math.max(0, Math.min(box.top, window.innerHeight - box.height));
+      panel.style.left = left + 'px';
+      panel.style.top = top + 'px';
+    }
+
+    // Convert the initial right-anchored position into left/top positioning.
+    // This makes native CSS resize:both grow from the bottom-right corner.
+    function positionForMovement() {
+      if (panel.style.left) return;
+      const box = panel.getBoundingClientRect();
+      panel.style.left = box.left + 'px';
+      panel.style.top = box.top + 'px';
+      panel.style.right = 'auto';
+      panel.style.bottom = 'auto';
+      clampPosition();
+    }
+
+    header.addEventListener('pointerdown', event => {
+      if (event.button !== 0 || scanInProgress ||
+          event.target.closest('.apes-poop-close, [role="button"], a, button, input')) return;
+      positionForMovement();
+      const box = panel.getBoundingClientRect();
+      drag = {
+        pointerId: event.pointerId,
+        x: event.clientX, y: event.clientY,
+        left: box.left, top: box.top
+      };
+      event.preventDefault();
+    });
+    window.addEventListener('pointermove', event => {
+      if (!drag || event.pointerId !== drag.pointerId) return;
+      const left = Math.max(0, Math.min(
+        drag.left + event.clientX - drag.x, window.innerWidth - panel.offsetWidth));
+      const top = Math.max(0, Math.min(
+        drag.top + event.clientY - drag.y, window.innerHeight - panel.offsetHeight));
+      panel.style.left = left + 'px';
+      panel.style.top = top + 'px';
+      event.preventDefault();
+    });
+    for (const type of ['pointerup', 'pointercancel', 'blur'])
+      window.addEventListener(type, () => { drag = null; });
+
+    window.addEventListener('resize', clampPosition);
+    if (typeof ResizeObserver === 'function')
+      new ResizeObserver(clampPosition).observe(panel);
+    return { positionForMovement, clampPosition };
+  }
+
   function close() {
     if (scanInProgress) return;
     document.getElementById(PANEL_ID)?.classList.remove('is-open');
@@ -459,6 +515,8 @@
     renderPanel();
     window.APES?.ui?.closeOtherTools?.(FEATURE);
     panel.classList.add('is-open');
+    panel.__apesPoopDrag?.positionForMovement();
+    panel.__apesPoopDrag?.clampPosition();
   }
 
   function start() {
@@ -491,6 +549,7 @@
         if (!event.repeat) clickable.click();
       });
       document.body.appendChild(panel);
+      panel.__apesPoopDrag = makePanelDraggable(panel);
     }
     if (!document.getElementById(LAUNCH_ID)) {
       const launch = document.createElement('div');
