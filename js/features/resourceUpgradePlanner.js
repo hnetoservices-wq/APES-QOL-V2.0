@@ -454,8 +454,8 @@
     Object.values(PRODUCTION_BUILDING_MAP).forEach(key => {
       if (!Object.hasOwn(buildings, key)) buildings[key] = 0;
     });
-    const villageView = root.closest('[ng-controller="villageViewCtrl"]') ||
-      root.closest('.village.viewBackground') ||
+    const villageView = root.closest?.('[ng-controller="villageViewCtrl"]') ||
+      root.closest?.('.village.viewBackground') ||
       document.querySelector('[ng-controller="villageViewCtrl"].village.viewBackground');
     return {
       buildings,
