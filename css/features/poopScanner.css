@@ -90,6 +90,24 @@ window.mapCellDetails .apes-poop-action.is-saved {
   overflow:auto!important;margin:0 0 8px!important;padding:7px!important;
   border:1px solid #d9cab6!important;border-radius:4px!important;background:#fff!important
 }
+/* The attack summary must show its heading, column headers, and three
+   compact data rows without requiring vertical scrolling. Keep the empty
+   state small, and allow the inner table to scroll for longer attack lists. */
+#apes-poop-panel .apes-poop-results.has-attacks {
+  display:flex!important;flex-direction:column!important;
+  flex:0 0 auto!important;min-height:145px!important;
+  max-height:60%!important;overflow:hidden!important;
+}
+#apes-poop-panel .apes-poop-results.has-attacks .apes-poop-scan-metrics {
+  flex:0 0 auto!important;
+}
+#apes-poop-panel .apes-poop-results.has-attacks .apes-poop-scan-table {
+  flex:1 1 auto!important;min-height:92px!important;
+  max-height:none!important;overflow:auto!important;
+}
+#apes-poop-panel:has(.apes-poop-results.has-attacks) {
+  min-height:min(355px,calc(100vh - 24px))!important;
+}
 #apes-poop-panel .apes-poop-scan-metrics {
   margin:0 0 8px!important;color:#513f2c!important;font-size:11px!important;font-weight:700!important
 }
