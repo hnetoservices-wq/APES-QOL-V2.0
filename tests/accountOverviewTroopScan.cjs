@@ -98,7 +98,7 @@ const window = {
     villageSmithyLevels:{scan:async()=>{events.push('smithy')}},
     villageDashboardIntel:{refreshTroops:async()=>{events.push('troops');return true}}
   },
-  APES_VILLAGE_PALETTE:{scan:async()=>{events.push('villages')},refresh:()=>events.push('refresh')}
+  APES_VILLAGE_PALETTE:{scan:async()=>{events.push('villages');return true},refresh:()=>events.push('refresh')}
 };
 new Function('window','document','CustomEvent','console',integration)(
   window,document,function(type){this.type=type},console
@@ -121,5 +121,29 @@ assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
   await window.APES.villageDashboardCombinedScan.run();
   assert.deepEqual(events,['villages','smithy','troops','refresh']);
   assert.match(button.textContent,/Troop scan failed/,'Failure is shown rather than silently claiming success');
+
+  // First click with no village snapshot must remain a visible failure. It
+  // must not run the Smithy and Troops passes on stale history.
+  events.length=0;
+  window.APES_VILLAGE_PALETTE.scan=async()=>{events.push('villages');return false};
+  await window.APES.villageDashboardCombinedScan.run();
+  assert.deepEqual(events,['villages','refresh'],'A failed village pass stops subsequent scans');
+  assert.match(button.textContent,/Villages unavailable — Retry/,'Show failed start on the button');
+
+  // A subsequent successful first click must start the entire chain once.
+  events.length=0;
+  window.APES_VILLAGE_PALETTE.scan=async()=>{events.push('villages');return true};
+  window.APES.villageDashboardIntel.refreshTroops=async()=>{events.push('troops');return true};
+  const clickEvent={
+    target:{closest:selector=>selector==='.apes-vd-scan-btn'?button:null},
+    preventDefault(){},stopPropagation(){},stopImmediatePropagation(){}
+  };
+  listeners.click(clickEvent);
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  await Promise.resolve();
+  assert.deepEqual(events,['villages','smithy','troops','refresh'],'Single click triggers full scan');
+  assert.equal(button.textContent,'Scan Now','Single-click success restores label');
   console.log('Dashboard Scan Now is loaded in manifest; scans Troops overview; 213 Clubswingers / 225 non-hero troops; partial totals and failed scans detected.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
