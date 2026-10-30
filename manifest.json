@@ -101,6 +101,7 @@
         "js/modules/visualTribeSkins/nightScenes.js",
         "js/features/secretSocietyScanner.js",
         "js/modules/secretSociety/history.js",
+        "js/features/poopScanner.js",
         "js/modules/kingdomManagement/statistics.js",
         "js/modules/kingdomManagement/history.js",
         "js/features/kingdomManagement.js",
@@ -160,7 +161,8 @@
         "css/modules/roadmaps/officialGuides.css",
         "css/modules/roadmaps/uxEnhancements.css",
         "css/features/royalTributeCountdown.css",
-        "css/features/barracksTrainingDayPlanner.css"
+        "css/features/barracksTrainingDayPlanner.css",
+        "css/features/poopScanner.css"
       ],
       "run_at": "document_idle"
     }
