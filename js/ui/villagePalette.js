@@ -941,9 +941,11 @@
         if (scanInProgress) {
             button.classList.add('scanning');
             button.setAttribute('aria-disabled', 'true');
-            button.textContent = scanProgress.returning
-                ? 'Returning…'
-                : `Scanning ${scanProgress.current}/${scanProgress.total}`;
+            button.textContent = scanProgress.total === 0
+                ? 'Loading villages…'
+                : scanProgress.returning
+                    ? 'Returning…'
+                    : `Scanning ${scanProgress.current}/${scanProgress.total}`;
         } else {
             button.classList.remove('scanning');
             button.setAttribute('aria-disabled', 'false');
@@ -1140,16 +1142,49 @@
         return false;
     }
 
-    async function scanAllVillages() {
-        if (scanInProgress) return;
-
-        const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
-        const ids = [...new Set(
-            villages
+    function scanVillageIds() {
+        return [...new Set(
+            (Array.isArray(snapshot?.villages) ? snapshot.villages : [])
                 .map(village => String(village?.villageId || ''))
                 .filter(id => /^\d+$/.test(id))
         )];
-        if (!ids.length) return;
+    }
+
+    async function waitForScanVillages(timeout = 6000) {
+        let ids = scanVillageIds();
+        if (ids.length) return ids;
+        // First opening Account Overview may precede the bridge's response.
+        // The old Scan Now silently returned here, requiring multiple clicks.
+        requestSnapshot();
+        const deadline = Date.now() + timeout;
+        let nextRequest = Date.now() + 800;
+        while (Date.now() < deadline) {
+            await sleep(100);
+            ids = scanVillageIds();
+            if (ids.length) return ids;
+            if (Date.now() >= nextRequest) {
+                requestSnapshot();
+                nextRequest = Date.now() + 800;
+            }
+        }
+        return [];
+    }
+
+    async function scanAllVillages() {
+        if (scanInProgress) return false;
+        // Acquire the busy guard before awaiting the first snapshot so rapid
+        // clicks never start competing navigation passes.
+        scanInProgress = true;
+        scanProgress = { current: 0, total: 0, returning: false };
+        updateScanButton();
+        const ids = await waitForScanVillages();
+        if (!ids.length) {
+            scanInProgress = false;
+            scanProgress = { current: 0, total: 0, returning: false };
+            updateScanButton();
+            console.warn('[APES Village Dashboard] Scan Now could not load the village list.');
+            return false;
+        }
 
         const startVillageId = currentVillageIdFromUrl() || String(snapshot?.activeVillageId || '') || ids[0];
         const orderedIds = ids.includes(startVillageId)
@@ -1157,7 +1192,6 @@
             : ids;
 
         const resourceCaptures = {};
-        scanInProgress = true;
         scanProgress = { current: 0, total: orderedIds.length, returning: false };
         updateScanButton();
 
@@ -1215,6 +1249,7 @@
             updateScanButton();
             if (isOpen()) renderDashboard();
         }
+        return true;
     }
 
     function switchDashboardMode(nextMode) {
