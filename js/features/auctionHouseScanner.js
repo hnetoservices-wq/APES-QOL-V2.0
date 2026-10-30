@@ -34,7 +34,7 @@
     leftHand: {
       label: 'Left-hand items',
       filterSelector: '.item_category_leftHand_small_flat_black',
-      items: ['Small Map', 'Map', 'Large Map', 'Small Pennant', 'Pennant', 'Great Pennant', 'Small Standard', 'Standard', 'Great Standard', 'Small Spy-glass', 'Spy-glass', 'Great Spy-glass', 'Pouch of the Thief', 'Bag of the Thief', 'Sack of the Thief', 'Small Shield', 'Shield', 'Large Shield', 'Small Horn of the Natarian', 'Horn of the Natarian', 'Huge Horn of the Natarian']
+      items: ['Small Map', 'Map', 'Large Map', 'Small Pennant', 'Pennant', 'Great Pennant', 'Small Standard', 'Standard', 'Great Standard', 'Small Spy-glass', 'Spy-glass', 'Great Spy-glass', 'Pouch of the Thief', 'Bag of the Thief', 'Sack of the Thief', 'Small Shield', 'Shield', 'Large Shield', 'Small Horn of the Natars', 'Horn of the Natars', 'Huge Horn of the Natars']
     },
     rightHand: {
       label: 'Right-hand weapons',
