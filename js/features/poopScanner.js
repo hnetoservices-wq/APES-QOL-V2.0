@@ -13,6 +13,12 @@
   const ACTION_CLASS = 'apes-poop-add-row';
   let observer = null;
   let refreshQueued = false;
+  let scanInProgress = false;
+  let scanCancelled = false;
+  let scanPromise = null;
+  let lastScan = null;
+  const SCAN_TIMEOUT = 9000;
+  const LOCK_ID = 'apes-poop-scan-lock';
 
   const enabled = () => typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE) === true;
   const clean = value => String(value ?? '').replace(/\s+/g, ' ').trim();
@@ -195,6 +201,233 @@
     return true;
   }
 
+
+  const sleep = ms => new Promise(resolve => window.setTimeout(resolve, ms));
+  const scanRoute = cellId => '#/page:map/cellId:' + cellId + '/window:mapCellDetails';
+
+  function attackTimers(root, now = Date.now()) {
+    // Only the village popup's actual incoming-attack group qualifies.
+    // Unrelated own-village outgoing troop movements must never be counted.
+    const rows = Array.from(root.querySelectorAll('.attackContainer.infoMovements li.incoming_attacks'));
+    const arrivals = [];
+    let total = 0;
+    let unreadable = 0;
+    for (const row of rows) {
+      const clock = row.querySelector('.countdown[countdown]');
+      const unix = Number(clock?.getAttribute('countdown'));
+      const count = Number(row.querySelector('.count')?.textContent?.trim());
+      if (!clock || !Number.isFinite(unix) || unix <= 0) {
+        unreadable++;
+        continue;
+      }
+      if (unix * 1000 <= now) continue;
+      const quantity = Number.isInteger(count) && count > 0 ? count : 1;
+      total += quantity;
+      arrivals.push({ arrivalAt: unix * 1000, count: quantity });
+    }
+    arrivals.sort((a, b) => a.arrivalAt - b.arrivalAt);
+    return { arrivals, total, unreadable };
+  }
+
+  function matchingPopup(entry) {
+    const popup = villageWindows().find(root => {
+      const header = root.querySelector('.villageDetails.contentBoxHeader');
+      if (!header) return false;
+      const coords = header.querySelector('.coordinateWrapper[x][y]');
+      if (!coords || Number(coords.getAttribute('x')) !== Number(entry.x) ||
+        Number(coords.getAttribute('y')) !== Number(entry.y)) return false;
+      const action = coords.querySelector('[clickable*="centerId"]')?.getAttribute('clickable') || '';
+      const identifier = action.match(/centerId['"]?\s*,\s*['"](\d+)(?:_\d+)?['"]/i)?.[1];
+      // Never read another village's timer while Angular is changing popups.
+      if (identifier && identifier !== String(entry.cellId)) return false;
+      const owner = root.querySelector('.villageDetails.contentBoxHeader + table a.playerLink[playerid]');
+      const id = owner?.getAttribute('playerid');
+      if (entry.playerId && id && String(entry.playerId) !== String(id)) return false;
+      return Boolean(root.querySelector('.mapContainer') &&
+        root.querySelector('.villageDetails.contentBoxHeader + table'));
+    });
+    return popup || null;
+  }
+
+  function checkScanCancelled() {
+    if (scanCancelled || !enabled()) throw new Error('POOP scan cancelled.');
+  }
+
+  async function waitForVillage(entry) {
+    const start = Date.now();
+    let stableRoot = null, stable = 0;
+    while (Date.now() - start < SCAN_TIMEOUT) {
+      checkScanCancelled();
+      const root = matchingPopup(entry);
+      if (root && root === stableRoot) stable++;
+      else { stableRoot = root; stable = root ? 1 : 0; }
+      if (stable >= 3) return root;
+      await sleep(120);
+    }
+    throw new Error('Village details did not finish loading.');
+  }
+
+  async function navigateForScan(entry) {
+    checkScanCancelled();
+    const destination = scanRoute(entry.cellId);
+    // Close any other map-cell popup first; Travian can retain the old popup
+    // while the route changes from one cellId to another.
+    if (location.hash !== destination) {
+      if (/\/window:mapCellDetails(?:\/|$)/i.test(location.hash)) {
+        location.hash = '#/page:map';
+        await sleep(160);
+      }
+      checkScanCancelled();
+      location.hash = destination;
+    }
+    return waitForVillage(entry);
+  }
+
+  function formatRemaining(arrivalAt, now = Date.now()) {
+    const left = Math.max(0, Math.ceil((arrivalAt - now) / 1000));
+    const h = Math.floor(left / 3600), m = Math.floor(left % 3600 / 60), sec = left % 60;
+    return [h, m, sec].map(part => String(part).padStart(2, '0')).join(':');
+  }
+
+  function scanStatus(message) {
+    const status = document.querySelector('#' + PANEL_ID + ' [data-poop-scan-status]');
+    if (status) status.textContent = message;
+    const progress = document.querySelector('#' + LOCK_ID + ' [data-poop-progress]');
+    if (progress) progress.textContent = message;
+  }
+
+  function renderScanSummary() {
+    const node = document.querySelector('#' + PANEL_ID + ' [data-poop-results]');
+    if (!node) return;
+    if (!lastScan) {
+      node.innerHTML = '<div class="apes-poop-scan-empty">Run Scan Villages to check for incoming attacks.</div>';
+      return;
+    }
+    const rows = lastScan.results;
+    const attacked = rows.filter(row => row.status === 'attacked');
+    const unavailable = rows.filter(row => row.status === 'unavailable');
+    const checked = rows.length - unavailable.length;
+    const heading = '<div class="apes-poop-scan-metrics"><strong>' + attacked.length +
+      '</strong> villages under attack · ' + checked + '/' + lastScan.total +
+      ' checked' + (unavailable.length ? ' · ' + unavailable.length + ' unavailable' : '') + '</div>';
+    if (!attacked.length) {
+      node.innerHTML = heading + '<div class="apes-poop-scan-empty">' +
+        (unavailable.length ? 'No attacks detected in successfully checked villages. Some villages could not be checked.' :
+          (lastScan.complete ? 'No active incoming attacks detected.' : 'No attacks detected so far.')) +
+        '</div>' + (unavailable.length ?
+        '<div class="apes-poop-scan-failures">Unable to check: ' +
+          unavailable.map(row => esc(row.villageName)).join(', ') + '</div>' : '');
+      return;
+    }
+    const lines = attacked.sort((a, b) => a.arrivalAt - b.arrivalAt).map(row =>
+      '<tr><td>' + esc(row.owner) + '</td><td>' + esc(row.villageName) + '</td>' +
+      '<td>(' + esc(row.x) + ' | ' + esc(row.y) + ')</td>' +
+      '<td><strong>' + row.total + '</strong></td>' +
+      '<td class="apes-poop-eta" data-poop-eta="' + row.arrivalAt + '">' + formatRemaining(row.arrivalAt) + '</td>' +
+      '<td><a href="' + esc(row.url) + '">Open map</a></td></tr>').join('');
+    node.innerHTML = heading +
+      '<div class="apes-poop-scan-table"><table><thead><tr><th>Owner</th><th>Village</th>' +
+      '<th>Coordinates</th><th>Attacks</th><th>Next arrival</th><th></th></tr></thead><tbody>' +
+      lines + '</tbody></table></div>' +
+      (unavailable.length ? '<div class="apes-poop-scan-failures">Unable to check: ' +
+        unavailable.map(row => esc(row.villageName)).join(', ') + '</div>' : '');
+  }
+
+  function tickScanTimers() {
+    const now = Date.now();
+    for (const clock of document.querySelectorAll('#' + PANEL_ID + ' [data-poop-eta]')) {
+      const arrivalAt = Number(clock.getAttribute('data-poop-eta'));
+      if (Number.isFinite(arrivalAt)) clock.textContent = formatRemaining(arrivalAt, now);
+    }
+  }
+
+  function lockScan() {
+    const overlay = document.createElement('div');
+    overlay.id = LOCK_ID;
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML = '<div class="apes-poop-lock-card"><strong>Scanning POOP villages</strong>' +
+      '<div data-poop-progress>Preparing saved villages…</div>' +
+      '<div class="apes-poop-lock-stop" role="button" tabindex="0">Cancel scan</div></div>';
+    overlay.querySelector('.apes-poop-lock-stop').addEventListener('click', () => { scanCancelled = true; });
+    overlay.querySelector('.apes-poop-lock-stop').addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        if (!event.repeat) scanCancelled = true;
+      }
+    });
+    overlay.addEventListener('wheel', event => event.preventDefault(), { passive: false });
+    document.body.appendChild(overlay);
+    overlay.querySelector('.apes-poop-lock-stop').focus();
+  }
+
+  function scan() {
+    if (scanPromise) return scanPromise;
+    scanPromise = performScan().finally(() => { scanPromise = null; });
+    return scanPromise;
+  }
+
+  async function performScan() {
+    if (!enabled()) return false;
+    const villages = entries().slice();
+    if (!villages.length) {
+      scanStatus('Add villages to POOP before scanning.');
+      return false;
+    }
+    const originalHash = location.hash;
+    const originalFocus = document.activeElement;
+    scanCancelled = false;
+    scanInProgress = true;
+    lastScan = { startedAt: Date.now(), total: villages.length, results: [], complete: false };
+    lockScan();
+    renderScanSummary();
+    let completed = false;
+    try {
+      for (let index = 0; index < villages.length; index++) {
+        checkScanCancelled();
+        const entry = villages[index];
+        scanStatus('Scanning ' + (index + 1) + '/' + villages.length + ': ' + entry.villageName);
+        try {
+          const popup = await navigateForScan(entry);
+          const details = attackTimers(popup);
+          if (details.unreadable) throw new Error('Incoming attack timer was unreadable.');
+          lastScan.results.push({
+            ...entry, status: details.arrivals.length ? 'attacked' : 'clear',
+            total: details.total, arrivalAt: details.arrivals[0]?.arrivalAt || 0,
+            arrivals: details.arrivals
+          });
+        } catch (error) {
+          if (scanCancelled || !enabled()) throw error;
+          lastScan.results.push({ ...entry, status: 'unavailable', error: clean(error?.message) });
+        }
+        renderScanSummary();
+      }
+      completed = true;
+      lastScan.complete = true;
+      const attacked = lastScan.results.filter(row => row.status === 'attacked').length;
+      const failures = lastScan.results.filter(row => row.status === 'unavailable').length;
+      scanStatus('Scan finished: ' + attacked + ' village(s) under attack, ' +
+        failures + ' unchecked.');
+      return failures === 0;
+    } catch (error) {
+      scanStatus(scanCancelled ? 'Scan cancelled · partial results shown.' :
+        (error?.message || 'Scan interrupted.'));
+      return false;
+    } finally {
+      scanInProgress = false;
+      document.getElementById(LOCK_ID)?.remove();
+      if (location.hash !== originalHash && /(?:^|\/)window:mapCellDetails(?:\/|$)/i.test(location.hash)) {
+        location.hash = originalHash;
+      } else if (location.hash === '#/page:map') {
+        location.hash = originalHash;
+      }
+      // Never overwrite saved village records with transient attack results.
+      if (completed) lastScan.scannedAt = Date.now();
+      renderScanSummary();
+      if (originalFocus?.isConnected) originalFocus.focus?.();
+    }
+  }
+
   function renderPanel() {
     const panel = document.getElementById(PANEL_ID);
     if (!panel) return;
@@ -203,6 +436,7 @@
     const list = entries();
     panel.querySelector('[data-poop-count]').textContent =
       list.length + (list.length === 1 ? ' village saved' : ' villages saved');
+    renderScanSummary();
     tbody.innerHTML = list.length ? list.map(item => '<tr>' +
       '<td>' + esc(item.owner) + '</td>' +
       '<td>' + esc(item.villageName) + '</td>' +
@@ -214,6 +448,7 @@
   }
 
   function close() {
+    if (scanInProgress) return;
     document.getElementById(PANEL_ID)?.classList.remove('is-open');
   }
 
@@ -238,10 +473,14 @@
         '<span class="apes-poop-close" role="button" tabindex="0" aria-label="Close POOP">×</span></div>' +
         '<div class="apes-poop-body"><p>Villages belonging to members of your scanned Secret Societies.</p>' +
         '<div class="apes-poop-count" data-poop-count></div>' +
+        '<div class="apes-poop-scanbar"><div class="apes-poop-scan-button" data-poop-scan role="button" tabindex="0">Scan Villages</div>' +
+        '<span data-poop-scan-status aria-live="polite">Not scanned</span></div>' +
+        '<section class="apes-poop-results" data-poop-results></section>' +
         '<div class="apes-poop-scroll"><table><thead><tr><th>Owner</th><th>Village</th>' +
         '<th>Coordinates</th><th>Location</th><th></th></tr></thead><tbody></tbody></table></div></div>';
       panel.querySelector('.apes-poop-close').addEventListener('click', close);
       panel.addEventListener('click', event => {
+        if (event.target.closest('[data-poop-scan]')) { void scan(); return; }
         const id = event.target.closest('[data-poop-remove]')?.getAttribute('data-poop-remove');
         if (id) removeVillage(id);
       });
@@ -278,11 +517,14 @@
         attributeFilter:['playerid','playername','x','y'] });
     }
     queueRefresh();
+    if (!window.__apesPoopScanTicker) window.__apesPoopScanTicker = window.setInterval(tickScanTimers, 1000);
   }
 
   window.APES_POOP_SCANNER = Object.freeze({
     open, close, getEntries: entries, addVillage, removeVillage,
-    hasMember: societyMember, getVillageInfo, refresh: refreshMapActions
+    hasMember: societyMember, getVillageInfo, refresh: refreshMapActions,
+    scan, cancelScan: () => { scanCancelled = true; }, attackTimers,
+    getScan: () => lastScan && JSON.parse(JSON.stringify(lastScan))
   });
   window.APES?.actions?.register?.({
     id: 'kingdom.poop', label: 'Protection Of Outside Peasants',
