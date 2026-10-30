@@ -160,6 +160,35 @@ async function routeChecks() {
 }
 
 
+async function capitalCropperChecks() {
+  const env = environment();
+  const inputCapital = input(10);
+  inputCapital.layout = '1-1-1-15';
+  inputCapital.maxLevel = 20;
+  inputCapital.steps = 30;
+  inputCapital.fields = {
+    wood: [10], clay: [10], iron: [10], crop: Array(15).fill(10)
+  };
+  inputCapital.buildings = {
+    sawmill: 5, brickyard: 5, foundry: 5, mill: 5, bakery: 5, embassy: 0
+  };
+  await env.api.setState(inputCapital);
+  const capital = env.api.calculate();
+  equal(capital.results.length > 0, true);
+  equal(capital.results.some(row =>
+    row.kind === 'field' && row.fromLevel === 10 && row.toLevel === 11), true);
+  equal(env.api.validatePlan(capital), true);
+
+  const ordinary = { ...inputCapital, maxLevel: 10 };
+  await env.api.setState(ordinary);
+  equal(env.api.calculate().results.length, 0);
+
+  const city = { ...inputCapital, maxLevel: 12 };
+  await env.api.setState(city);
+  equal(env.api.calculate().results.some(row =>
+    row.kind === 'field' && row.toLevel === 11), true);
+}
+
 async function worldSpeedChecks() {
   // The world speed is surfaced by the MAIN-world bridge, not inferred from
   // the hostname 'trickandtreat' (which would incorrectly default to x1).
@@ -289,6 +318,7 @@ async function importChecks() {
 (async () => {
   await scannerChecks();
   await routeChecks();
+  await capitalCropperChecks();
   await worldSpeedChecks();
   await importChecks();
   console.log(`Passed ${checks} scanner, prerequisite, sequential-upgrade and roadmap-import checks.`);
