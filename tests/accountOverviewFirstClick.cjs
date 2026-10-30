@@ -34,6 +34,46 @@ const makeWait=new Function('snapshot','requestSnapshot','sleep','Date',
     'Never invent owned villages when bridge is unavailable');
   assert.ok(failedRequests>=1);
 
+
+  // Exercise the actual scanAllVillages function, not just its wait helper.
+  const scanEnd=palette.indexOf('    function switchDashboardMode(',start);
+  assert.ok(scanEnd>end);
+  const scanChunk=palette.slice(start,scanEnd);
+  const makeScan=new Function('snapshot','requestSnapshot','sleep','Date',
+    'currentVillageIdFromUrl','window','updateScanButton',
+    'captureCurrentVillageScan','waitForVillageNavigation',
+    'SCAN_SETTLE_MS','SCAN_REFRESH_MS','isOpen','renderDashboard','console',
+    'let scanInProgress=false,scanProgress={current:0,total:0,returning:false};\n'+
+    scanChunk+'\nreturn {scanAllVillages,getBusy:()=>scanInProgress};');
+  let currentMs=1000, captureCount=0, historyCount=0, refreshCount=0;
+  const pendingSnapshot={villages:[],activeVillageId:'101'};
+  const gameWindow={location:{hash:'#/page:village/villId:101'},
+    APES:{villageResourceProduction:{
+      captureForScan:()=>({wood:25}),
+      recordScan:()=>{historyCount++;}
+    }}};
+  const actual=makeScan(pendingSnapshot,()=>{refreshCount++;},
+    async ms=>{currentMs+=ms;if(currentMs>=1100)pendingSnapshot.villages=[{villageId:'101'}];},
+    {now:()=>currentMs},()=> '101',gameWindow,()=>{},
+    ()=>{captureCount++;},async()=>true,0,0,()=>false,()=>{},console);
+  const firstClick=actual.scanAllVillages();
+  assert.equal(actual.getBusy(),true,'First click acquires the busy guard immediately');
+  assert.equal(await actual.scanAllVillages(),false,'Repeated click while loading cannot start a second scan');
+  assert.equal(await firstClick,true,'First click completes once village data arrives');
+  assert.equal(captureCount,1,'Exactly one village captured from one click');
+  assert.equal(historyCount,1,'One resource history snapshot saved');
+  assert.equal(actual.getBusy(),false,'Busy guard released on completion');
+
+  let timeoutNow=1000, timeoutWarning=0;
+  const noVillages=makeScan({villages:[]},()=>{},
+    async ms=>{timeoutNow+=ms;},{now:()=>timeoutNow},
+    ()=>'',{location:{hash:''},APES:{}},()=>{},
+    ()=>{},async()=>true,0,0,()=>false,()=>{},
+    {warn:()=>{timeoutWarning++;}});
+  assert.equal(await noVillages.scanAllVillages(),false,'Unavailable snapshot does not masquerade as success');
+  assert.equal(noVillages.getBusy(),false,'Unavailable snapshot does not lock future clicks');
+  assert.equal(timeoutWarning,1,'First-click missing-village problem is reported');
+
   assert.match(palette,/scanInProgress = true;\s*scanProgress = \{ current: 0, total: 0, returning: false \};\s*updateScanButton\(\);\s*const ids = await waitForScanVillages\(\)/,
     'Busy guard is acquired before waiting, preventing repeated-click races');
   assert.match(palette,/if \(!ids\.length\) \{\s*scanInProgress = false;/,
