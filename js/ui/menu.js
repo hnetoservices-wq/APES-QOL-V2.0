@@ -172,6 +172,12 @@ const KINGDOM_MANAGEMENT_FEATURES = [{
   icon: '⌖',
   description: 'Records scanned oases, croppers and Natars and builds useful coordinate lists.'
 }, {
+  id: 'qol-chk-poop-scanner',
+  key: 'poopScanner',
+  name: 'Protection Of Outside Peasants',
+  icon: 'P',
+  description: 'Capture villages belonging to saved Secret Society members into a Kingdom Management POOP list.'
+}, {
   id: 'qol-chk-secret-society-scanner',
   key: 'secretSocietyScanner',
   name: 'Secret Society Scanner',
