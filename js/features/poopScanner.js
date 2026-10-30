@@ -90,7 +90,7 @@
     const hashId = location.hash.match(/(?:^|\/)cellId:(\d+)(?:\/|$)/i)?.[1];
     const centerAction = coord?.querySelector('[clickable*="centerId"]')?.getAttribute('clickable') || '';
     const centerId = centerAction.match(/centerId['"]?\s*,\s*['"](\d+)(?:_\d+)?['"]/i)?.[1];
-    const cellId = hashId || centerId || '';
+    const cellId = centerId || hashId || '';
     if (!owner || !playerId || !title || !populationRow || !cellId ||
       !Number.isInteger(x) || !Number.isInteger(y)) return null;
     const match = societyMember(playerId, owner);
