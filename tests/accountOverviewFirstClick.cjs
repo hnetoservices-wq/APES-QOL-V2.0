@@ -42,7 +42,7 @@ const makeWait=new Function('snapshot','requestSnapshot','sleep','Date',
   const makeScan=new Function('snapshot','requestSnapshot','sleep','Date',
     'currentVillageIdFromUrl','window','updateScanButton',
     'captureCurrentVillageScan','waitForVillageNavigation',
-    'SCAN_SETTLE_MS','SCAN_REFRESH_MS','isOpen','renderDashboard','console',
+    'SCAN_SETTLE_MS','SCAN_REFRESH_MS','SCAN_CAPTURE_TIMEOUT_MS','isOpen','renderDashboard','console',
     'let scanInProgress=false,scanProgress={current:0,total:0,returning:false};\n'+
     scanChunk+'\nreturn {scanAllVillages,getBusy:()=>scanInProgress};');
   let currentMs=1000, captureCount=0, historyCount=0, refreshCount=0;
@@ -55,7 +55,7 @@ const makeWait=new Function('snapshot','requestSnapshot','sleep','Date',
   const actual=makeScan(pendingSnapshot,()=>{refreshCount++;},
     async ms=>{currentMs+=ms;if(currentMs>=1100)pendingSnapshot.villages=[{villageId:'101'}];},
     {now:()=>currentMs},()=> '101',gameWindow,()=>{},
-    ()=>{captureCount++;},async()=>true,0,0,()=>false,()=>{},console);
+    ()=>{captureCount++;},async()=>true,0,0,800,()=>false,()=>{},console);
   const firstClick=actual.scanAllVillages();
   assert.equal(actual.getBusy(),true,'First click acquires the busy guard immediately');
   assert.equal(await actual.scanAllVillages(),false,'Repeated click while loading cannot start a second scan');
@@ -68,11 +68,50 @@ const makeWait=new Function('snapshot','requestSnapshot','sleep','Date',
   const noVillages=makeScan({villages:[]},()=>{},
     async ms=>{timeoutNow+=ms;},{now:()=>timeoutNow},
     ()=>'',{location:{hash:''},APES:{}},()=>{},
-    ()=>{},async()=>true,0,0,()=>false,()=>{},
+    ()=>{},async()=>true,0,0,800,()=>false,()=>{},
     {warn:()=>{timeoutWarning++;}});
   assert.equal(await noVillages.scanAllVillages(),false,'Unavailable snapshot does not masquerade as success');
   assert.equal(noVillages.getBusy(),false,'Unavailable snapshot does not lock future clicks');
   assert.equal(timeoutWarning,1,'First-click missing-village problem is reported');
+
+
+  // Regression: when Scan Now starts on village #2's RESOURCE FIELDS page,
+  // matching villId alone does not mean its production bar is readable.
+  // The scan must visit /page:village first, retry delayed data within the
+  // same click, save a complete three-village pass, and restore the page.
+  let secondMs=0, retryCount=0, secondRecords=null;
+  const resourceHash='#/page:resources/villId:102';
+  const secondWindow={
+    location:{hash:resourceHash},
+    APES:{villageResourceProduction:{
+      captureForScan:id=>{
+        assert.match(secondWindow.location.hash,/^#\/page:village\/villId:/);
+        if(id==='103' && retryCount++ < 2)return null;
+        return {villageId:id,production:{wood:10,clay:20,iron:30,crop:40}};
+      },
+      recordScan:(expected,captures)=>{
+        secondRecords={expected:[...expected],captured:Object.keys(captures).sort()};
+      }
+    }}
+  };
+  const secondSnapshot={
+    villages:[{villageId:'101'},{villageId:'102'},{villageId:'103'}],
+    activeVillageId:'102'
+  };
+  const second=makeScan(secondSnapshot,()=>{},
+    async ms=>{secondMs+=ms;},
+    {now:()=>secondMs},
+    ()=>secondWindow.location.hash.match(/villId:(\d+)/)?.[1]||'',
+    secondWindow,()=>{},()=>{},async()=>true,450,0,900,
+    ()=>false,()=>{},{warn:()=>{}});
+  assert.equal(await second.scanAllVillages(),true);
+  assert.deepEqual(secondRecords.expected,['102','101','103'],
+    'Scan starts from selected second village');
+  assert.deepEqual(secondRecords.captured,['101','102','103'],
+    'All three production values captured with an in-pass retry');
+  assert.ok(retryCount>=3,'Delayed third village retried rather than marked partial');
+  assert.equal(secondWindow.location.hash,resourceHash,
+    'Original resource-fields page restored after scan');
 
   assert.match(palette,/scanInProgress = true;\s*scanProgress = \{ current: 0, total: 0, returning: false \};\s*updateScanButton\(\);\s*const ids = await waitForScanVillages\(\)/,
     'Busy guard is acquired before waiting, preventing repeated-click races');
