@@ -119,7 +119,7 @@ const makeWait=new Function('snapshot','requestSnapshot','sleep','Date',
     'Unavailable snapshots release the busy guard');
   assert.match(palette,/return true;\s*\}\s*function switchDashboardMode/,
     'Completed pass returns an explicit success result');
-  assert.match(palette,/button\.textContent = scanProgress\.total === 0\s*\?\s*'Loading villages…'/,
+  assert.match(palette,/button\.textContent = scanProgress\.total === 0\s*\?\s*'Scanning · Loading villages…'/,
     'User sees immediate loading state');
   assert.match(combined,/if \(villagesScanned === false\)/,
     'Combined scanner stops if village pass could not start');
