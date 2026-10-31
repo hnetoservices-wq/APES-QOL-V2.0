@@ -486,6 +486,10 @@
     if(data)snapshot=data;
     const root=document.querySelector(`#${ROOT} .apes-v2-village-dashboard`),panel=root?.querySelector('.apes-vd-account-overview');
     if(!root?.classList.contains('apes-vd-account-mode')||!panel||!Array.isArray(snapshot?.villages))return;
+    // During Scan Now each village produces multiple cache and resource
+    // events. Rebuilding every Account Overview chart at each hop adds UI
+    // jank and can hide the scanning state. Paint once after the full pass.
+    if(window.APES?.villageDashboardCombinedScan?.isRunning?.())return;
     const villages=snapshot.villages;
     const pop=popHistory(snapshot.playerId).slice(-30),army=armyHistory(snapshot).slice(-30),last=army.at(-1);
     const c=celebrationCounts(villages),q=activeQueues(villages);
@@ -580,5 +584,6 @@
   window.addEventListener('apes_vd_army_history_updated',()=>{lastRender='';render();});
   window.addEventListener('apes_vd_resource_production_updated',()=>{render();});
   window.addEventListener('apes_vd_resource_history_updated',()=>{lastRender='';render();});
+  window.addEventListener('apes_vd_dashboard_scan_complete',()=>{lastRender='';render();});
   window.APES_ACCOUNT_OVERVIEW=Object.freeze({render});
 })();
