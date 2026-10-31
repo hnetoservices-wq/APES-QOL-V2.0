@@ -185,14 +185,14 @@ function initBuildingAlarm() {
       body.qol-building-alarm-enabled .queueContainer .detailsContent .detailsTime > i.symbol_clock_small_flat_black.duration.${CLOCK_CLASS}.active{filter:invert(38%) sepia(28%) saturate(1030%) hue-rotate(46deg) brightness(84%) contrast(86%)!important}
 
       #${STATUS_ID},#${STATUS_ID} *{box-sizing:border-box!important;font-family:Arial,sans-serif!important;text-shadow:none!important}
-      #${STATUS_ID}{position:fixed!important;z-index:9998!important;display:none!important;width:176px!important;height:28px!important;color:#f8f2e7!important;user-select:none!important}
-      #${STATUS_ID} .qol-building-alarm-status-main{display:flex!important;align-items:center!important;gap:6px!important;width:100%!important;height:28px!important;padding:0 8px!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:4px!important;background:linear-gradient(to bottom,#665137,#4b3927)!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important;cursor:default!important;outline:none!important}
+      #${STATUS_ID}{position:fixed!important;z-index:9998!important;display:none!important;width:28px!important;height:28px!important;color:#f8f2e7!important;user-select:none!important}
+      #${STATUS_ID} .qol-building-alarm-status-main{display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;width:100%!important;height:28px!important;padding:0!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:4px!important;background:linear-gradient(to bottom,#665137,#4b3927)!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important;cursor:default!important;outline:none!important}
       #${STATUS_ID}.idle .qol-building-alarm-status-main{background:linear-gradient(to bottom,#554a3c,#40382f)!important;color:#d7ccbd!important}
       #${STATUS_ID}.upcoming .qol-building-alarm-status-main{background:linear-gradient(to bottom,#766038,#594724)!important;color:#fff4cf!important}
       #${STATUS_ID}.ready .qol-building-alarm-status-main{background:linear-gradient(to bottom,#58723a,#3c5627)!important;color:#f1ffe5!important;box-shadow:0 0 0 1px rgba(150,190,98,.28),0 2px 5px rgba(0,0,0,.3)!important}
       #${STATUS_ID} .qol-building-alarm-status-icon{display:inline-flex!important;align-items:center!important;justify-content:center!important;flex:0 0 16px!important;width:16px!important;height:16px!important}
       #${STATUS_ID} .qol-building-alarm-status-icon svg{display:block!important;width:15px!important;height:15px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important}
-      #${STATUS_ID} .qol-building-alarm-status-text{overflow:hidden!important;flex:1 1 auto!important;font-size:9.5px!important;font-weight:bold!important;line-height:1!important;text-overflow:ellipsis!important;white-space:nowrap!important}
+      #${STATUS_ID} .qol-building-alarm-status-text{position:absolute!important;width:1px!important;height:1px!important;padding:0!important;margin:-1px!important;overflow:hidden!important;clip:rect(0,0,0,0)!important;clip-path:inset(50%)!important;white-space:nowrap!important}
 
       #${STATUS_ID} .qol-building-alarm-popover{position:absolute!important;top:34px!important;right:0!important;width:430px!important;max-width:min(430px,calc(100vw - 16px))!important;max-height:min(360px,calc(100vh - 90px))!important;border:2px solid var(--qol-border,#6b5334)!important;border-radius:5px!important;background:#f7f5f0!important;box-shadow:0 10px 28px rgba(0,0,0,.42)!important;color:#3e3021!important;opacity:0!important;visibility:hidden!important;pointer-events:none!important;transform:translateY(-4px)!important;transition:opacity .12s ease,transform .12s ease,visibility .12s ease!important;overflow:hidden!important}
       #${STATUS_ID}:hover .qol-building-alarm-popover,#${STATUS_ID}:focus-within .qol-building-alarm-popover{opacity:1!important;visibility:visible!important;pointer-events:auto!important;transform:translateY(0)!important}
@@ -291,7 +291,7 @@ function initBuildingAlarm() {
       return;
     }
     root.style.setProperty('display', 'block', 'important');
-    const width = root.offsetWidth || 176;
+    const width = root.offsetWidth || 28;
     const left = Math.max(8, Math.round(rect.left - width - 8));
     const top = Math.max(8, Math.round(rect.top));
     root.style.setProperty('left', `${left}px`, 'important');
@@ -346,6 +346,8 @@ function initBuildingAlarm() {
       text.textContent = 'No Free Finish Ready';
     }
 
+    // Keep the complete description available on the compact clock icon.
+    root.querySelector('.qol-building-alarm-status-main').title = text.textContent;
     summary.textContent = alarms.length
       ? `${alarms.length} active · ${readyAlarms.length} ready`
       : 'No alarms set';
