@@ -943,9 +943,9 @@
             button.classList.add('scanning');
             button.setAttribute('aria-disabled', 'true');
             button.textContent = scanProgress.total === 0
-                ? 'Loading villages…'
+                ? 'Scanning · Loading villages…'
                 : scanProgress.returning
-                    ? 'Returning…'
+                    ? 'Scanning · Returning…'
                     : `Scanning ${scanProgress.current}/${scanProgress.total}`;
         } else if (window.APES?.villageDashboardCombinedScan?.isRunning?.()) {
             // The village pass may be finished while Smithy/Troops scans are
