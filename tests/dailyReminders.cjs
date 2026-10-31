@@ -101,7 +101,7 @@ function setup({ store = new Map(), server = 'trickandtreat.kingdoms.com', playe
   w.isQolEnabled = name => { eq(name, 'dailyReminders'); return enabled; };
   const createElement = doc.createElement.bind(doc); doc.createElement = (...args) => { if (String(args[0]).toLowerCase() === 'button') nativeButtons++; return createElement(...args); };
   const hero = doc.querySelector('.heroStats'); hero.getBoundingClientRect = () => ({ left: 920, top: 20, width: 80, height: 40 });
-  const finishBox = doc.querySelector('#qol-building-alarm-status'); finishBox.getBoundingClientRect = () => ({ left: 736, top: 20, width: 176, height: 28 });
+  const finishBox = doc.querySelector('#qol-building-alarm-status'); finishBox.getBoundingClientRect = () => ({ left: 884, top: 20, width: 28, height: 28 });
   if (!finish) finishBox.remove();
   w.eval(scheduleSource); w.eval(featureSource);
   const click = async selector => { const node = doc.querySelector(selector); ok(node); node.click(); await pause(); return node; };
@@ -119,9 +119,12 @@ function setup({ store = new Map(), server = 'trickandtreat.kingdoms.com', playe
   let gameClicks = 0; e.doc.body.addEventListener('click', () => gameClicks++);
   const box = () => e.doc.querySelector('#qol-daily-reminders-status');
   const panel = () => e.doc.querySelector('#qol-daily-reminders-panel');
-  eq(box().style.left, '552px'); eq(box().style.top, '20px');
-  eq(e.w.getComputedStyle(box()).width, '176px'); eq(e.w.getComputedStyle(box()).height, '28px');
+  eq(box().style.left, '848px'); eq(box().style.top, '20px');
+  eq(e.w.getComputedStyle(box()).width, '28px'); eq(e.w.getComputedStyle(box()).height, '28px');
+  eq(e.w.getComputedStyle(box().querySelector('.qol-rem-main')).justifyContent, 'center');
+  eq(box().querySelector('.qol-rem-main').title, 'Add a reminder');
   eq(box().querySelector('.qol-rem-label').textContent, 'Add a reminder');
+  ok(box().querySelector('.qol-rem-main > svg'), 'The compact bell icon is preserved');
   eq(e.actions.get('reminders.open').group, 'Expert Features');
   await e.click('[data-rem-open]'); ok(panel());
   await e.click('[data-rem-new]');
@@ -191,9 +194,9 @@ function setup({ store = new Map(), server = 'trickandtreat.kingdoms.com', playe
   eq(e.doc.querySelectorAll('#qol-daily-reminders-status button, #qol-daily-reminders-panel button, #qol-daily-reminders-status .button, #qol-daily-reminders-panel .button').length, 0);
   eq(e.nativeButtons, 0); eq(gameClicks, 0);
   // Position fallback and small viewports keep both boxes apart.
-  e.doc.querySelector('#qol-building-alarm-status').getBoundingClientRect = () => ({ left: 120, top: 20, width: 176, height: 28 });
-  e.w.innerWidth = 340; e.tick(); eq(box().style.left, '120px'); eq(box().style.top, '54px');
-  const solo = setup({ finish: false }); await pause(); eq(solo.doc.querySelector('#qol-daily-reminders-status').style.left, '736px'); solo.dom.window.close();
+  e.doc.querySelector('#qol-building-alarm-status').getBoundingClientRect = () => ({ left: 28, top: 20, width: 28, height: 28 });
+  e.w.innerWidth = 340; e.tick(); eq(box().style.left, '28px'); eq(box().style.top, '56px');
+  const solo = setup({ finish: false }); await pause(); eq(solo.doc.querySelector('#qol-daily-reminders-status').style.left, '884px'); solo.dom.window.close();
   const otherPlayer = setup({ store: e.store, player: '43' }); const otherServer = setup({ store: e.store, server: 'com1.kingdoms.com' }); await pause();
   eq(otherPlayer.records, []); eq(otherServer.records, []); otherPlayer.dom.window.close(); otherServer.dom.window.close();
   const failed = setup({ failRead: true }); await pause(); failed.api.open(); await pause();
