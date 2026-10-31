@@ -51,4 +51,12 @@ assert.match(html,/stroke-width="3.5"/,'Total line is heavier');
 assert.doesNotMatch(html,/99,999/,'Partial readings excluded rather than added');
 assert.match(html,/wood, clay, iron, crop and total production per hour/);
 
+// The account panel is expensive to regenerate. While Scan Now visits each
+// village, keep the prior chart visible instead of repainting on every cache
+// message; the full scan-complete event triggers a final redraw.
+assert.match(js, /if\(window\.APES\?\.villageDashboardCombinedScan\?\.isRunning\?\.\(\)\)return;/,
+  'Account Overview defers expensive chart rendering while Scan Now is active');
+assert.match(js, /window\.addEventListener\('apes_vd_dashboard_scan_complete',\(\)=>\{lastRender='';render\(\);\}\)/,
+  'Chart is repainted after all village, Smithy and Troop passes finish');
+
 console.log('Account Overview production graph has five wrapped legend entries and a correct Total series.');
