@@ -947,6 +947,14 @@
                 : scanProgress.returning
                     ? 'Returning…'
                     : `Scanning ${scanProgress.current}/${scanProgress.total}`;
+        } else if (window.APES?.villageDashboardCombinedScan?.isRunning?.()) {
+            // The village pass may be finished while Smithy/Troops scans are
+            // still running. A dashboard refresh must never reset Scan Now
+            // or make the button appear clickable in this interval.
+            button.classList.add('scanning');
+            button.setAttribute('aria-disabled', 'true');
+            button.textContent = window.APES.villageDashboardCombinedScan.getPhase?.() ||
+                'Scanning…';
         } else {
             button.classList.remove('scanning');
             button.setAttribute('aria-disabled', 'false');
