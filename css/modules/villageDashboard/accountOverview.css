@@ -829,7 +829,7 @@
     max-height: 158px !important;
   }
   #apes-v2-village-overlay .apes-ao-resource-stack .apes-ao-resource-legend {
-    grid-template-columns: repeat(4,minmax(0,1fr)) !important;
+    grid-template-columns: repeat(auto-fit,minmax(110px,1fr)) !important;
     gap: 3px 6px !important;
     flex: 0 0 auto !important;
   }
