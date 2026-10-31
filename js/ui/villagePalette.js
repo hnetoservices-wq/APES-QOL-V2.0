@@ -20,7 +20,8 @@
     const REQUEST_TYPE = 'REQUEST_SNAPSHOT';
     const RESPONSE_TYPE = 'VILLAGE_SNAPSHOT';
     const REFRESH_MS = 2500;
-    const SCAN_SETTLE_MS = 1100;
+    const SCAN_SETTLE_MS = 450;
+    const SCAN_CAPTURE_TIMEOUT_MS = 4200;
     const SCAN_REFRESH_MS = 250;
     const COUNTDOWN_REFRESH_MS = 1000;
     const SCAN_STORAGE_VERSION = 1;
@@ -1170,6 +1171,34 @@
         return [];
     }
 
+    function scanSelectedVillageMatches(villageId) {
+        const entry = (snapshot?.villages || []).find(village =>
+            String(village?.villageId) === String(villageId));
+        const label = window.document?.querySelector?.(
+            '.currentVillageName .dropdownHead .selectedItem .villageEntry, ' +
+            '#villageList .dropdownHead .selectedItem .villageEntry, ' +
+            '.dropdownHead .selectedItem .villageEntry'
+        );
+        if (!entry?.name || !label?.textContent?.trim()) return true;
+        const normalise = text => String(text).replace(/\s+/g, ' ').trim().toLowerCase();
+        return normalise(entry.name) === normalise(label.textContent);
+    }
+
+    async function waitForProductionScanCapture(villageId, timeout = SCAN_CAPTURE_TIMEOUT_MS) {
+        const deadline = Date.now() + timeout;
+        do {
+            if (currentVillageIdFromUrl() !== villageId) return null;
+            if (scanSelectedVillageMatches(villageId)) {
+                const production = window.APES?.villageResourceProduction?.captureForScan?.(villageId);
+                if (production) return production;
+            }
+            await sleep(180);
+        } while (Date.now() < deadline);
+        console.warn('[APES Village Dashboard] Production not ready for village ' +
+            villageId + '; this scan will be marked partial instead of using stale data.');
+        return null;
+    }
+
     async function scanAllVillages() {
         if (scanInProgress) return false;
         // Acquire the busy guard before awaiting the first snapshot so rapid
@@ -1186,6 +1215,7 @@
             return false;
         }
 
+        const originalHash = window.location.hash;
         const startVillageId = currentVillageIdFromUrl() || String(snapshot?.activeVillageId || '') || ids[0];
         const orderedIds = ids.includes(startVillageId)
             ? [startVillageId, ...ids.filter(id => id !== startVillageId)]
@@ -1205,34 +1235,40 @@
                 };
                 updateScanButton();
 
-                if (currentVillageIdFromUrl() !== villageId) {
-                    window.location.hash = `#/page:village/villId:${villageId}`;
+                // Merely having the right villId is not enough: if Scan Now
+                // begins on /page:resources, the production reader cannot
+                // capture anything until the village overview actually opens.
+                const villageHash = `#/page:village/villId:${villageId}`;
+                if (window.location.hash !== villageHash)
+                    window.location.hash = villageHash;
+                const navigated = await waitForVillageNavigation(villageId);
+                if (!navigated) {
+                    console.warn('[APES Village Dashboard] Village navigation timed out:', villageId);
+                    continue;
                 }
-
-                await waitForVillageNavigation(villageId);
                 await sleep(SCAN_SETTLE_MS);
-                captureCurrentVillageScan(villageId);
-                // Read each village's current DOM values during this scan pass.
-                // Do not substitute previously cached production if this capture fails.
-                if (currentVillageIdFromUrl() === villageId) {
-                    const production = window.APES?.villageResourceProduction?.captureForScan?.(villageId);
-                    if (production) resourceCaptures[villageId] = production;
-                }
+                // Avoid snapshotting the previous village's Angular-rendered
+                // resource bar when switching quickly between villages.
+                const production = await waitForProductionScanCapture(villageId);
+                if (production) resourceCaptures[villageId] = production;
+                if (currentVillageIdFromUrl() === villageId && scanSelectedVillageMatches(villageId))
+                    captureCurrentVillageScan(villageId);
                 requestSnapshot();
                 await sleep(SCAN_REFRESH_MS);
             }
 
-            if (/^\d+$/.test(startVillageId) && currentVillageIdFromUrl() !== startVillageId) {
+            // Restore the *exact* page the user started from, including a
+            // resource-fields page or an open building window.
+            if (originalHash && window.location.hash !== originalHash) {
                 scanProgress = {
                     current: orderedIds.length,
                     total: orderedIds.length,
                     returning: true
                 };
                 updateScanButton();
-                window.location.hash = `#/page:village/villId:${startVillageId}`;
-                await waitForVillageNavigation(startVillageId);
-                await sleep(SCAN_SETTLE_MS);
-                captureCurrentVillageScan(startVillageId);
+                window.location.hash = originalHash;
+                if (/^\d+$/.test(startVillageId))
+                    await waitForVillageNavigation(startVillageId);
             }
         } finally {
             // One historical snapshot per Scan Now pass; mark missing village
