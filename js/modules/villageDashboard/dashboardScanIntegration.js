@@ -3,12 +3,14 @@
 
   const OVERLAY_ID = 'apes-v2-village-overlay';
   let running = false;
+  let phase = '';
 
   function dashboardOpen() {
     return document.getElementById(OVERLAY_ID)?.classList.contains('open') || false;
   }
 
   function setPhase(text) {
+    phase = text;
     const button = document.querySelector(`#${OVERLAY_ID} .apes-vd-scan-btn`);
     if (!button) return;
     button.classList.toggle('scanning', Boolean(text));
@@ -30,7 +32,7 @@
       // Preserve the dashboard's existing scan first: construction/building
       // locations and the resource-production collector all depend on its
       // normal village-by-village navigation.
-      setPhase('Loading villages…');
+      setPhase('Scanning · Loading villages…');
       const villagesScanned = await palette.scan();
       if (villagesScanned === false) {
         villagesFailed = true;
@@ -42,7 +44,7 @@
       // village. Run the Smithy pass immediately afterwards; it reuses cached
       // Research data where available and only opens a Smithy when needed.
       if (smithy?.scan) {
-        setPhase('Scanning Smithies…');
+        setPhase('Scanning · Smithies…');
         try {
           await smithy.scan();
         } catch (error) {
@@ -58,7 +60,7 @@
       // reads its per-village figures, records the history and restores
       // the original hash. This does NOT read only stationary village troops.
       if (troops?.refreshTroops) {
-        setPhase('Scanning Troops…');
+        setPhase('Scanning · Troops…');
         const refreshed = await troops.refreshTroops();
         if (!refreshed) {
           troopFailed = true;
@@ -73,6 +75,7 @@
       console.warn('[APES Village Dashboard] Combined dashboard scan failed.', error);
     } finally {
       running = false;
+      phase = '';
       const button = document.querySelector(`#${OVERLAY_ID} .apes-vd-scan-btn`);
       if (button) {
         button.classList.remove('scanning');
@@ -121,6 +124,7 @@
   window.APES = window.APES || {};
   window.APES.villageDashboardCombinedScan = Object.freeze({
     run: runCombinedDashboardScan,
-    isRunning: () => running
+    isRunning: () => running,
+    getPhase: () => phase
   });
 })();
