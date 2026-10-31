@@ -110,21 +110,33 @@
   function position() {
     const box = document.getElementById(BOX);
     if (!box) return;
+    const width = 28, gap = 8, stride = width + gap;
     const finish = document.getElementById('qol-building-alarm-status');
     const finishRect = finish?.getBoundingClientRect();
-    const hero = document.querySelector('#heroQuickInfo .heroStats'), heroRect = hero?.getBoundingClientRect();
+    const hero = document.querySelector('#heroQuickInfo .heroStats');
+    const heroRect = hero?.getBoundingClientRect();
     const useFinish = finishRect?.width > 0 && window.getComputedStyle(finish).display !== 'none';
-    if (!useFinish && !(heroRect?.width || heroRect?.height)) { box.style.setProperty('display', 'none', 'important'); return; }
-    const anchor = useFinish ? finishRect : { left: Math.max(8, heroRect.left - 184), top: heroRect.top, height: 28 };
-    let left = anchor.left - 184, top = anchor.top;
-    if (!useFinish) left = anchor.left;
-    if (left < 8) { left = Math.max(8, anchor.left); top += 34; }
-    left = Math.min(left, Math.max(8, window.innerWidth - 184));
+    if (!useFinish && !(heroRect?.width || heroRect?.height)) {
+      box.style.setProperty('display', 'none', 'important');
+      return;
+    }
+    // Stay just to the left of the Building Alarm clock. When that feature
+    // is disabled, use the same offset from the native hero stats instead.
+    const anchor = useFinish ? finishRect : heroRect;
+    let left = anchor.left - stride, top = anchor.top;
+    if (left < 8) {
+      // No horizontal room? Stack beneath rather than overlap either icon.
+      left = Math.max(8, anchor.left);
+      top += stride;
+    }
+    left = Math.min(left, Math.max(8, window.innerWidth - width - 8));
     box.style.setProperty('display', 'block', 'important');
-    box.style.setProperty('left', `${Math.round(left)}px`, 'important'); box.style.setProperty('top', `${Math.max(8, Math.round(top))}px`, 'important');
+    box.style.setProperty('left', `${Math.round(left)}px`, 'important');
+    box.style.setProperty('top', `${Math.max(8, Math.round(top))}px`, 'important');
     const popover = box.querySelector('.qol-rem-popover');
-    const width = Math.min(420, window.innerWidth - 16);
-    popover.style.setProperty('left', `${Math.min(0, window.innerWidth - 8 - left - width)}px`, 'important');
+    const popoverWidth = Math.min(420, window.innerWidth - 16);
+    popover.style.setProperty('left',
+      `${Math.min(0, window.innerWidth - 8 - left - popoverWidth)}px`, 'important');
   }
   function mountBox() {
     let box = document.getElementById(BOX);
