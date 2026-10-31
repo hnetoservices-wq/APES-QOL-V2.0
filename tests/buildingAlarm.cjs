@@ -23,14 +23,24 @@ function setup(now, alarms = []) {
 }
 const alarm = { id: 'existing', villageId: '123', villageName: 'Test village', buildingName: 'Granary', levelText: '4 → 5', finishAt: 1000, alarmAt: 700, triggered: false };
 const e = setup(694);
+const alarmSquare = e.d.getElementById('qol-building-alarm-status');
+const alarmMain = alarmSquare.querySelector('.qol-building-alarm-status-main');
+eq(e.w.getComputedStyle(alarmSquare).width, '28px');
+eq(e.w.getComputedStyle(alarmSquare).height, '28px');
+eq(e.w.getComputedStyle(alarmMain).justifyContent, 'center');
+eq(alarmSquare.style.left, '464px');
+eq(alarmMain.title, 'No Free Finish Ready');
+eq(Boolean(alarmSquare.querySelector('.qol-building-alarm-status-icon svg')), true);
+eq(Boolean(alarmSquare.querySelector('.qol-building-alarm-popover')), true);
 eq(e.d.querySelector('.duration').title.includes('5 minutes and 5 seconds'), true);
 e.d.querySelector('.duration').click(); eq(e.alarms()[0].alarmAt, 695); eq(e.dings, 0);
 e.advance(694.9); eq(e.dings, 0); eq(e.ready(), false);
 e.advance(695); eq(e.dings, 1); eq(e.alarms()[0].triggeredAt, 695); eq(e.text(), '1 Free Finish in 00:00:05!'); eq(e.ready(), false);
 eq(e.d.querySelector('.qol-building-alarm-hover-time').textContent, 'Free in 00:00:05');
+eq(alarmMain.title, '1 Free Finish in 00:00:05!');
 e.advance(696); eq(e.dings, 1); eq(e.text(), '1 Free Finish in 00:00:04!');
 e.advance(699); eq(e.ready(), false); eq(e.text(), '1 Free Finish in 00:00:01!');
-e.advance(700); eq(e.ready(), true); eq(e.text(), '1 Free Finish Ready!'); eq(e.dings, 1);
+e.advance(700); eq(e.ready(), true); eq(e.text(), '1 Free Finish Ready!'); eq(alarmMain.title, '1 Free Finish Ready!'); eq(e.dings, 1);
 e.advance(701); eq(e.dings, 1); e.advance(1000); eq(e.alarms().length, 0); eq(e.text(), 'No Free Finish Ready'); e.dom.window.close();
 const migrated = setup(694, [alarm]); eq(migrated.alarms()[0].alarmAt, 695); eq(migrated.dings, 0); migrated.advance(695); eq(migrated.dings, 1); eq(migrated.ready(), false); migrated.advance(700); eq(migrated.dings, 1); eq(migrated.ready(), true); migrated.dom.window.close();
 const fired = setup(695, [{ ...alarm, triggered: true }]); eq(fired.alarms()[0].alarmAt, 695); eq(fired.dings, 0); eq(fired.ready(), false); fired.advance(700); eq(fired.dings, 0); eq(fired.ready(), true); fired.dom.window.close();
