@@ -172,6 +172,12 @@ const KINGDOM_MANAGEMENT_FEATURES = [{
   icon: '⌖',
   description: 'Records scanned oases, croppers and Natars and builds useful coordinate lists.'
 }, {
+  id: 'qol-chk-oasis-sniper-checker',
+  key: 'oasisSniperChecker',
+  name: 'Oasis Sniper Checker (Experimental)',
+  icon: '⌖',
+  description: 'Tests the native oasis influence request without hovering and highlights ranking positions that require troop influence.'
+}, {
   id: 'qol-chk-poop-scanner',
   key: 'poopScanner',
   name: 'Protection Of Outside Peasants',
