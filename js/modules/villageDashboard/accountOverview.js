@@ -8,6 +8,13 @@
     {key:'iron',label:'Iron',color:'#a4bdd2'},
     {key:'crop',label:'Crop',color:'#dfc66e'}
   ];
+  // The fifth production line is derived from the four stored resource
+  // totals for each *complete* Scan Now pass; no extra network/storage needed.
+  const TOTAL_PRODUCTION={key:'total',label:'Total',color:'#f5eee0'};
+  const RESOURCE_CHART_TYPES=[...RESOURCE_TYPES,TOTAL_PRODUCTION];
+  const productionValue=(row,resource)=>resource.key==='total'
+    ? RESOURCE_TYPES.reduce((sum,item)=>sum+Number(row.totals[item.key]),0)
+    : Number(row.totals[resource.key]);
   const TRIBES={1:'Romans',2:'Teutons',3:'Gauls'};
   const TROOP_NAMES={
     1:['Legionnaire','Praetorian','Imperian','Equites Legati','Equites Imperatoris','Equites Caesaris','Battering Ram','Fire Catapult','Senator','Settler'],
@@ -146,7 +153,7 @@
       <div class="apes-ao-resource-empty">No complete production scans yet. Use Scan Now to record the first snapshot.</div>
       ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
     const W=700,H=150,L=55,R=13,T=13,B=26,PW=W-L-R,PH=H-T-B;
-    const amounts=records.flatMap(row=>RESOURCE_TYPES.map(item=>Number(row.totals[item.key])));
+    const amounts=records.flatMap(row=>RESOURCE_CHART_TYPES.map(item=>productionValue(row,item)));
     let minimum=Math.min(0,...amounts),maximum=Math.max(0,...amounts);
     if(maximum===minimum){maximum+=1;minimum-=1;}
     const range=maximum-minimum;
@@ -157,14 +164,14 @@
       return `<line class="apes-ao-gridline" x1="${L}" y1="${yy.toFixed(2)}" x2="${W-R}" y2="${yy.toFixed(2)}"/>
         <text class="apes-ao-axis" text-anchor="end" x="${L-7}" y="${(yy+3).toFixed(2)}">${safe(compact(value))}</text>`;
     }).join('');
-    const lines=RESOURCE_TYPES.map(resource=>{
-      const values=records.map(row=>Number(row.totals[resource.key]));
+    const lines=RESOURCE_CHART_TYPES.map(resource=>{
+      const values=records.map(row=>productionValue(row,resource));
       const points=values.map((value,i)=>`${x(i).toFixed(2)},${y(value).toFixed(2)}`).join(' ');
       const path=records.length>1?`<polyline points="${points}" fill="none" stroke="${resource.color}"
-        stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>`:'';
+        stroke-width="${resource.key==='total'?'3.5':'2.6'}" stroke-linecap="round" stroke-linejoin="round"/>`:'';
       const dots=values.map((value,i)=>{
         const stamp=new Date(Number(records[i].timestamp)).toLocaleString();
-        return `<circle r="3.4" cx="${x(i).toFixed(2)}" cy="${y(value).toFixed(2)}"
+        return `<circle r="${resource.key==='total'?'4':'3.4'}" cx="${x(i).toFixed(2)}" cy="${y(value).toFixed(2)}"
           fill="${resource.color}"><title>${safe(resource.label)}: ${safe(fmt(value))}/h · ${safe(stamp)}</title></circle>`;
       }).join('');
       return path+dots;
@@ -175,13 +182,13 @@
       const stamp=d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
       return `<text class="apes-ao-axis" x="${x(i).toFixed(2)}" y="${H-8}" text-anchor="${i===0?'start':i===records.length-1?'end':'middle'}">${safe(stamp)}</text>`;
     }).join('');
-    const legend=RESOURCE_TYPES.map(item=>{
-      const current=Number(records.at(-1).totals[item.key]);
+    const legend=RESOURCE_CHART_TYPES.map(item=>{
+      const current=productionValue(records.at(-1),item);
       return `<span><i style="background:${item.color}"></i><b>${safe(item.label)}</b>
         <em>${current>0?'+':''}${safe(fmt(current))}/h</em></span>`;
     }).join('');
     return `<div class="apes-ao-resource-trend">${heading}
-      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Historical wood, clay, iron and crop production per hour">${grid}${lines}${labels}</svg>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Historical wood, clay, iron, crop and total production per hour">${grid}${lines}${labels}</svg>
       <div class="apes-ao-resource-legend">${legend}</div>
       <small class="apes-ao-chart-foot">Each point represents one complete Scan Now pass.${records.length===1?' Scan again to build a trend.':''}</small>
       ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
