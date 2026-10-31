@@ -1,0 +1,48 @@
+/* Oasis Sniper Checker: compact APES-styled inline oasis ranking evidence. */
+window.modalWrapper.mapCellDetails .apes-oasis-sniper {
+  clear:both!important;margin:8px 1px 4px!important;padding:7px!important;
+  border:1px solid #a98b62!important;border-radius:4px!important;
+  background:#f2eadb!important;color:#4b3a24!important;
+  font:11px Arial,Helvetica,sans-serif!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-head {
+  display:flex!important;align-items:center!important;justify-content:space-between!important;
+  gap:8px!important;margin-bottom:5px!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-head strong {
+  font-size:12px!important;color:#634626!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-trigger {
+  padding:4px 8px!important;border:1px solid #725636!important;border-radius:3px!important;
+  color:#fff!important;background:linear-gradient(#ab8d5d,#775331)!important;
+  font-weight:bold!important;font-size:10px!important;white-space:nowrap!important;
+  text-align:center!important;cursor:pointer!important;user-select:none!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-busy .apes-sniper-trigger {
+  opacity:.6!important;cursor:progress!important;pointer-events:none!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-status,
+window.modalWrapper.mapCellDetails .apes-sniper-empty {
+  font-size:10px!important;color:#6c5a42!important;margin-bottom:4px!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-summary {
+  margin:6px 0!important;font-size:10px!important;font-weight:bold!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-scroll {
+  width:100%!important;max-height:174px!important;overflow:auto!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-scroll table {
+  width:100%!important;border-collapse:collapse!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-scroll th,
+window.modalWrapper.mapCellDetails .apes-sniper-scroll td {
+  padding:4px 5px!important;text-align:left!important;vertical-align:top!important;
+  border-bottom:1px solid #ded0b5!important;font-size:10px!important;
+  white-space:normal!important;line-height:1.35!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-scroll td small {
+  display:block!important;color:#765c40!important;font-size:9px!important;margin-top:2px!important
+}
+window.modalWrapper.mapCellDetails .apes-sniper-confirmed {
+  font-weight:bold!important;color:#ae3e25!important
+}
