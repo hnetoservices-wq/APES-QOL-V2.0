@@ -10,7 +10,7 @@
   ];
   // The fifth production line is derived from the four stored resource
   // totals for each *complete* Scan Now pass; no extra network/storage needed.
-  const TOTAL_PRODUCTION={key:'total',label:'Total',color:'#f5eee0'};
+  const TOTAL_PRODUCTION={key:'total',label:'Total',color:'#C9A7EB'};
   const RESOURCE_CHART_TYPES=[...RESOURCE_TYPES,TOTAL_PRODUCTION];
   const productionValue=(row,resource)=>resource.key==='total'
     ? RESOURCE_TYPES.reduce((sum,item)=>sum+Number(row.totals[item.key]),0)
