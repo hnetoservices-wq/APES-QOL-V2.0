@@ -21,6 +21,7 @@
         "js/modules/villageDashboard/bridge.js",
         "js/modules/villageDashboard/researchBridge.js",
         "js/modules/oasisScanner/networkBridge.js",
+        "js/modules/oasisSniper/influenceBridge.js",
         "js/modules/royalTributes/etaCalculator.js",
         "js/modules/royalTributes/liveCountdown.js",
         "js/modules/barracksTraining/dayPlanner.js"
@@ -47,6 +48,8 @@
         "js/ui/storageManager.js",
         "js/ui/backupManager.js",
         "js/features/oasisScanner.js",
+        "js/modules/oasisSniper/math.js",
+        "js/features/oasisSniperChecker.js",
         "js/modules/oasisScanner/csvInterop.js",
         "js/features/rallyPointEnhancer.js",
         "js/modules/igm/conversationIdentity.js",
@@ -162,7 +165,8 @@
         "css/modules/roadmaps/uxEnhancements.css",
         "css/features/royalTributeCountdown.css",
         "css/features/barracksTrainingDayPlanner.css",
-        "css/features/poopScanner.css"
+        "css/features/poopScanner.css",
+        "css/features/oasisSniperChecker.css"
       ],
       "run_at": "document_idle"
     }
