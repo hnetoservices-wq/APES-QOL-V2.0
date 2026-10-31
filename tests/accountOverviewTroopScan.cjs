@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const intel = fs.readFileSync(path.join(root,'js/modules/villageDashboard/expandedVillageIntel.js'),'utf8');
 const integration = fs.readFileSync(path.join(root,'js/modules/villageDashboard/dashboardScanIntegration.js'),'utf8');
+const paletteCode = fs.readFileSync(path.join(root,'js/ui/villagePalette.js'),'utf8');
 const overview = fs.readFileSync(path.join(root,'js/modules/villageDashboard/accountOverview.js'),'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
 const isolated = manifest.content_scripts.find(group =>
@@ -82,9 +83,14 @@ assert.match(overview,/window\.addEventListener\('apes_vd_army_history_updated',
 // Simulate clicking "Scan Now" with existing village and Smithy passes.
 const events = [];
 const listeners = {};
+const buttonClasses = new Set();
+const buttonAttributes = {};
 const button = {
-  classList:{add(){},remove(){},toggle(){}},
-  setAttribute(){},textContent:'Scan Now'
+  classList:{
+    add(k){buttonClasses.add(k)},remove(k){buttonClasses.delete(k)},
+    toggle(k,on){if(on)buttonClasses.add(k);else buttonClasses.delete(k)}
+  },
+  setAttribute(k,v){buttonAttributes[k]=String(v)},textContent:'Scan Now'
 };
 const overlay = {classList:{contains:key=>key==='open'},contains:()=>true};
 const document = {
@@ -145,5 +151,43 @@ assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
   await Promise.resolve();
   assert.deepEqual(events,['villages','smithy','troops','refresh'],'Single click triggers full scan');
   assert.equal(button.textContent,'Scan Now','Single-click success restores label');
+
+  // Reproduce a dashboard repaint after the village pass has ended, while
+  // Smithy and Troop scans are still running. Previously palette.js reset
+  // the Scan Now button during these intermediate render calls.
+  const statusStart=paletteCode.indexOf('    function updateScanButton() {');
+  const statusEnd=paletteCode.indexOf('    function mountDashboard()',statusStart);
+  assert.ok(statusStart>=0 && statusEnd>statusStart);
+  const repaint=new Function('document','OVERLAY_ID','window','scanInProgress','scanProgress',
+    paletteCode.slice(statusStart,statusEnd)+'return updateScanButton;')(
+    document,'apes-v2-village-overlay',window,false,{total:0,current:0,returning:false});
+  const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}};
+  const villageDone=deferred(),smithyDone=deferred(),troopDone=deferred();
+  events.length=0;
+  window.APES_VILLAGE_PALETTE.scan=async()=>{events.push('villages');return villageDone.promise};
+  window.APES.villageSmithyLevels.scan=async()=>{events.push('smithy');return smithyDone.promise};
+  window.APES.villageDashboardIntel.refreshTroops=async()=>{events.push('troops');return troopDone.promise};
+  const activeScan=window.APES.villageDashboardCombinedScan.run();
+  assert.equal(window.APES.villageDashboardCombinedScan.isRunning(),true);
+  assert.match(button.textContent,/Scanning/,'First click immediately reports scanning');
+  assert.equal(buttonAttributes['aria-disabled'],'true');
+  villageDone.resolve(true); await Promise.resolve();await Promise.resolve();
+  assert.deepEqual(events,['villages','smithy']);
+  repaint();
+  assert.match(button.textContent,/Scanning.*Smithies/,'A dashboard render cannot clear Smithy scanning state');
+  assert.ok(buttonClasses.has('scanning'));
+  assert.equal(buttonAttributes['aria-disabled'],'true');
+  smithyDone.resolve();await Promise.resolve();await Promise.resolve();
+  assert.deepEqual(events,['villages','smithy','troops']);
+  repaint();
+  assert.match(button.textContent,/Scanning.*Troops/,'A dashboard render cannot clear Troop scanning state');
+  assert.equal(buttonAttributes['aria-disabled'],'true');
+  assert.equal(window.APES.villageDashboardCombinedScan.isRunning(),true);
+  troopDone.resolve(true);
+  await activeScan;
+  assert.equal(window.APES.villageDashboardCombinedScan.isRunning(),false);
+  assert.equal(button.textContent,'Scan Now','Only a completed full scan returns to Scan Now');
+  assert.equal(buttonAttributes['aria-disabled'],'false');
+  assert.equal(buttonClasses.has('scanning'),false);
   console.log('Dashboard Scan Now is loaded in manifest; scans Troops overview; 213 Clubswingers / 225 non-hero troops; partial totals and failed scans detected.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
