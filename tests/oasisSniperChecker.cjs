@@ -43,6 +43,36 @@ assert.equal(calc.evaluate([
  {name:'Other',villageInfluence:400}
 ])[0].status,'unknown');
 
+
+const uiWindow={
+ APES_OASIS_SNIPER_MATH:calc,
+ isQolEnabled:()=>true,
+ addEventListener(){},
+ setTimeout(){return 1;}
+};
+const uiDoc={readyState:'loading',addEventListener(){}};
+new Function('window','document','location','MutationObserver',ui)(
+ uiWindow,uiDoc,{origin:'https://tr2nx3.kingdoms.com'},function(){});
+const api=uiWindow.APES_OASIS_SNIPER;
+assert.ok(api);
+const mkRank=(playerId,name)=>({
+ getAttribute:key=>key==='tooltip-data-request'?'requestInfluenceData;'+playerId:null,
+ querySelector:key=>key==='a.playerLink[playerid]'?{
+   getAttribute:attr=>attr==='playerid'?playerId:null,
+   textContent:name
+ }:null
+});
+const originalOasis={
+ querySelectorAll:()=>[
+  mkRank('203','Ruboon'),mkRank('175','Apequinte'),
+  mkRank('1171','Kötü Kız'),mkRank('193','Zlorilla'),mkRank('1308','Basic')
+ ]
+};
+assert.deepEqual(api.ranking(originalOasis).map(x=>x.playerId),
+ ['203','175','1171','193','1308'],
+ 'The exact saved oasis hierarchy is discovered without hovering');
+assert.equal(api.ranking(originalOasis)[2].name,'Kötü Kız');
+
 const events={};
 const fakeRows=['203','175'].map(id=>({
   getAttribute:key=>key==='tooltip-data-request'?'requestInfluenceData;'+id:null
