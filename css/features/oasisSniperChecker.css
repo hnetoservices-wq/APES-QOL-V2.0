@@ -1,8 +1,43 @@
+/* Oasis Sniper: selectable replacement for the native Production content.
+ * Travian's Angular Production DOM stays mounted, just visually hidden. */
+window.modalWrapper.mapCellDetails .contentBox.rightBox.apes-sniper-enhanced
+.villageDetails.contentBoxHeader h6 > span[translate] {
+  display:none!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-selector {
+  position:relative!important;display:inline-flex!important;
+  align-items:center!important;max-width:100%!important;vertical-align:middle!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-view-select {
+  display:block!important;max-width:100%!important;min-width:116px!important;
+  height:20px!important;margin:0!important;padding:0 18px 0 1px!important;
+  border:0!important;border-radius:0!important;outline-offset:1px!important;
+  background:transparent!important;appearance:none!important;-webkit-appearance:none!important;
+  color:#49341d!important;font:700 13px Arial,Helvetica,sans-serif!important;
+  cursor:pointer!important;box-shadow:none!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-selector::after {
+  content:"▾"!important;position:absolute!important;right:4px!important;top:50%!important;
+  transform:translateY(-50%)!important;color:#806341!important;font-size:12px!important;
+  pointer-events:none!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox.apes-sniper-enhanced .apes-oasis-sniper {
+  display:none!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox.apes-sniper-enhanced.apes-sniper-view-active
+.contentBoxBody.oasisProduction {
+  display:none!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox.apes-sniper-enhanced.apes-sniper-view-active
+.apes-oasis-sniper {
+  display:block!important
+}
 /* Oasis Sniper Checker: compact APES-styled inline oasis ranking evidence. */
-window.modalWrapper.mapCellDetails .apes-oasis-sniper {
-  clear:both!important;margin:8px 1px 4px!important;padding:7px!important;
-  border:1px solid #a98b62!important;border-radius:4px!important;
-  background:#f2eadb!important;color:#4b3a24!important;
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-oasis-sniper {
+  clear:both!important;margin:0!important;padding:7px 8px!important;
+  border:0!important;border-radius:0!important;box-sizing:border-box!important;
+  min-height:155px!important;max-height:265px!important;overflow:auto!important;
+  background:#f6f2e9!important;color:#4b3a24!important;
   font:11px Arial,Helvetica,sans-serif!important
 }
 window.modalWrapper.mapCellDetails .apes-sniper-head {
@@ -29,7 +64,7 @@ window.modalWrapper.mapCellDetails .apes-sniper-summary {
   margin:6px 0!important;font-size:10px!important;font-weight:bold!important
 }
 window.modalWrapper.mapCellDetails .apes-sniper-scroll {
-  width:100%!important;max-height:174px!important;overflow:auto!important
+  width:100%!important;max-height:170px!important;overflow:auto!important
 }
 window.modalWrapper.mapCellDetails .apes-sniper-scroll table {
   width:100%!important;border-collapse:collapse!important
@@ -52,4 +87,19 @@ window.modalWrapper.mapCellDetails .apes-sniper-diagnostic {
   padding:3px 5px!important;background:#e9dfce!important;
   border-radius:3px!important;color:#775d3b!important;
   overflow-wrap:anywhere!important;white-space:normal!important;
+}
+
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll th,
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll td {
+  padding:4px 3px!important;white-space:nowrap!important;
+  font-size:10px!important;line-height:15px!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll td:nth-child(3) {
+  text-align:right!important;font-variant-numeric:tabular-nums!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-confirmed {
+  color:#8c3325!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-unproven {
+  color:#7e7567!important
 }
