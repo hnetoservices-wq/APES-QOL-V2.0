@@ -77,7 +77,8 @@ async function until(check,description){
  assert.equal(right.querySelector('select').value,'sniper');
  assert.equal(w.localStorage.getItem('apes_oasis_sniper_view_v1'),'sniper');
  assert.equal(right.classList.contains('apes-sniper-view-active'),true);
- assert.match(right.querySelector('.apes-sniper-results').textContent,/221/);
+ assert.match(right.querySelector('.apes-sniper-results').textContent,/222/,
+  'Influence 221.3 is displayed rounded upwards');
  assert.doesNotMatch(right.querySelector('.apes-sniper-results').textContent,/Checked|proven troop/);
  await delay(380);
  assert.equal(calls.length,2,'Repeated MutationObserver passes must not retrigger scans');
