@@ -1,6 +1,7 @@
-/* Oasis Sniper MAIN-world bridge: attempts Travian's existing tooltip
- * requestInfluenceData handler WITHOUT synthesising mouse events.
- * It never submits troops or changes ranking/game state. Fail closed.
+/* Oasis Sniper MAIN-world read-only influence bridge.
+ * Directly calls Travian's existing village.getVillagesWithInfluenceOnOasisForPlayer
+ * action using the SAME-ORIGIN authenticated game API. No synthetic hover.
+ * Never logs, stores or posts the game session outside Travian's own origin.
  */
 (() => {
   'use strict';
@@ -35,10 +36,17 @@
         if(found!==null)return found;
       }
       for(const key of ['villages','villageInfluences','villageData','villageDetails']) {
-        if(!Array.isArray(data[key])||!data[key].length)continue;
-        const values=data[key].map(row=>{
+        const source=data[key];
+        // Game responses may use either an array or a dictionary keyed by
+        // village ID. An empty list means zero natural influence.
+        const rows=Array.isArray(source)?source:
+          source&&typeof source==='object'?Object.values(source):null;
+        if(!rows)continue;
+        if(!rows.length)return 0;
+        const values=rows.map(row=>{
           if(!row||typeof row!=='object')return null;
-          return numeric(row.villageInfluence??row.influenceFromVillage??row.influence);
+          return numeric(row.villageInfluence??row.influenceFromVillage??
+            row.influence??row.influenceValue);
         });
         if(values.every(value=>value!==null))return values.reduce((a,b)=>a+b,0);
       }
@@ -52,61 +60,87 @@
     if(Array.isArray(value))return 'array ('+value.length+')';
     return 'object: '+Object.keys(value).filter(x=>!x.startsWith('$')).slice(0,12).join(', ');
   };
-  function findScopeHandler(element) {
-    if(!window.angular?.element)return null;
-    let scope;
-    try {
-      const e=window.angular.element(element);
-      scope=e.scope?.()||e.isolateScope?.();
+  // A player ID and oasis ID are verified against the currently displayed
+  // ranking. The isolated UI cannot issue arbitrary game API actions.
+  function currentOasisId(){
+    const container=document.querySelector('window.modalWrapper.mapCellDetails .contentBoxBody.oasisDetails');
+    if(!container)return '';
+    const heading=container.closest('.contentBox')?.querySelector('.coordinateWrapper[x][y]');
+    const x=Number(heading?.getAttribute('x'));
+    const y=Number(heading?.getAttribute('y'));
+    if(!heading||!Number.isInteger(x)||!Number.isInteger(y)||
+      Math.abs(x)>16384||Math.abs(y)>16384)return '';
+    const action=heading.querySelector('[clickable*="centerId"]')?.getAttribute('clickable')||'';
+    const fromLink=action.match(/centerId['"]?\s*,\s*['"](\d+)(?:_[^'"]*)?['"]/i)?.[1];
+    return fromLink||String((y+16384)*32768+(x+16384));
+  }
+  function sessionKey(){
+    // Travian's game client uses the same t5SessionKey cookie for its own
+    // /api/ calls. Never expose this value to the content-script UI.
+    const raw=document.cookie.split(';').map(item=>item.trim())
+      .find(item=>item.startsWith('t5SessionKey='));
+    if(!raw)return null;
+    try{
+      const value=JSON.parse(decodeURIComponent(raw.slice('t5SessionKey='.length)));
+      return typeof value?.key==='string'&&value.key.length>5?value.key:null;
     }catch(_){return null;}
-    for(let depth=0;scope&&depth<16;depth++,scope=scope.$parent){
-      if(typeof scope.requestInfluenceData==='function')
-        return {scope,handler:scope.requestInfluenceData};
-    }
-    return null;
   }
-  function correlatedData(scope,id) {
-    for(let node=scope,depth=0;node&&depth<10;depth++,node=node.$parent){
-      for(const key of ['influenceData','oasisInfluenceData','tooltipData']) {
-        const value=node[key];
-        // Scope values may belong to a previously hovered player. Do not
-        // read one without a matching identity attached to the data.
-        if(safeId(value?.playerId??value?.player?.playerId)===id)
-          return influenceFrom(value);
-      }
-    }
-    return null;
+  function responseBody(json){
+    if(!json||typeof json!=='object')return null;
+    if(json.error)return null;
+    return json.response??json.data??json;
   }
-  const delay=ms=>new Promise(resolve=>setTimeout(resolve,ms));
-  async function probe(playerId) {
-    const id=safeId(playerId);
-    const rows=Array.from(document.querySelectorAll(SELECTOR));
-    const row=rows.find(element=>element.getAttribute('tooltip-data-request')===
-      'requestInfluenceData;'+id);
-    if(!row)return {status:'player-not-in-current-oasis'};
-    const target=findScopeHandler(row);
-    if(!target)return {status:'handler-not-exposed',
-      diagnostic:'Angular tooltip request is not available on the ranking scope'};
-    try {
-      let value=target.handler.call(target.scope,Number(id));
-      if(value&&typeof value.then==='function')
-        value=await Promise.race([Promise.resolve(value),delay(3500).then(()=>{throw Error('timeout');})]);
-      let found=influenceFrom(value);
-      // Some Angular handlers publish the response to a scope rather than
-      // returning it. Only accept data correlated to this exact player ID.
-      if(found===null){
-        for(let i=0;i<7;i++){
-          found=correlatedData(target.scope,id);
-          if(found!==null)break;
-          await delay(180);
-        }
-      }
+  async function requestNativeInfluence(playerId,oasisId){
+    const session=sessionKey();
+    if(!session)return {status:'session-unavailable',
+      diagnostic:'Game API session not accessible; no credentials were exported'};
+    if(typeof window.fetch!=='function')return {status:'api-unavailable'};
+    const payload={
+      controller:'village',
+      action:'getVillagesWithInfluenceOnOasisForPlayer',
+      params:{oasisId:Number(oasisId),playerId:Number(playerId)},
+      session
+    };
+    // Only the game world's own API receives the normal game session.
+    // This is a read-only endpoint and is called at most once per player.
+    let response;
+    try{
+      const abort=typeof AbortController==='function'?new AbortController():null;
+      const limit=setTimeout(()=>abort?.abort(),5000);
+      try{
+        response=await window.fetch(location.origin+
+          '/api/?c=village&a=getVillagesWithInfluenceOnOasisForPlayer',{
+          method:'POST',credentials:'same-origin',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(payload),
+          ...(abort?{signal:abort.signal}:{})
+        });
+      }finally{clearTimeout(limit);}
+      if(!response.ok)return {status:'api-http-error',
+        diagnostic:'Game API returned HTTP '+response.status};
+      const json=await response.json();
+      if(json?.error)return {status:'api-rejected',
+        diagnostic:'Travian rejected the influence request'};
+      const body=responseBody(json);
+      const found=influenceFrom(body);
       return found===null
-        ? {status:'unrecognised-response',diagnostic:shape(value)}
-        : {status:'ok',villageInfluence:found,diagnostic:shape(value)};
+        ? {status:'unrecognised-response',diagnostic:shape(body)}
+        : {status:'ok',villageInfluence:found};
     }catch(error){
-      return {status:'request-failed',diagnostic:String(error?.message||error).slice(0,120)};
+      return {status:'request-failed',
+        diagnostic:error?.name==='AbortError'?'Influence request timed out':
+          'Could not complete same-origin influence request'};
     }
+  }
+  async function probe(playerId,oasisId){
+    const id=safeId(playerId);
+    const oasis=safeId(oasisId);
+    if(!id||!oasis||oasis!==currentOasisId())return {status:'oasis-changed'};
+    const rows=Array.from(document.querySelectorAll(SELECTOR));
+    const found=rows.some(element=>element.getAttribute('tooltip-data-request')===
+      'requestInfluenceData;'+id);
+    if(!found)return {status:'player-not-in-current-oasis'};
+    return requestNativeInfluence(id,oasis);
   }
   let busy=false;
   window.addEventListener('message',async event=>{
@@ -114,14 +148,18 @@
     const msg=event.data;
     if(msg?.source!==UI||msg.type!=='INFLUENCE_REQUEST')return;
     const playerId=safeId(msg.playerId);
+    const oasisId=safeId(msg.oasisId);
     const requestId=String(msg.requestId||'').slice(0,90);
-    if(!playerId||!/^[a-zA-Z0-9_-]{5,90}$/.test(requestId)||busy)return;
+    if(!playerId||!oasisId||!/^[a-zA-Z0-9_-]{5,90}$/.test(requestId)||busy)return;
     busy=true;
     let result;
-    try{result=await probe(playerId);}
+    try{result=await probe(playerId,oasisId);}
     finally{busy=false;}
-    window.postMessage({source:BRIDGE,type:'INFLUENCE_RESULT',requestId,playerId,...result},location.origin);
+    window.postMessage({source:BRIDGE,type:'INFLUENCE_RESULT',
+      requestId,playerId,oasisId,...result},location.origin);
   });
   // Exposed for local diagnostic tests, not for game writes.
-  window.APES_OASIS_SNIPER_BRIDGE=Object.freeze({influenceFrom,probe});
+  window.APES_OASIS_SNIPER_BRIDGE=Object.freeze({
+    influenceFrom,probe,currentOasisId,requestNativeInfluence
+  });
 })();
