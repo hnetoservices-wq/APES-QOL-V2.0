@@ -70,37 +70,65 @@ window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-oasis-sniper {
   background:#f6f2e9!important;color:#4b3a24!important;
   font:11px Arial,Helvetica,sans-serif!important
 }
-window.modalWrapper.mapCellDetails .apes-sniper-scroll {
-  width:100%!important;max-height:170px!important;overflow:auto!important
+/* Same visual system as Secret Society Scanner's member table, scaled to
+   fit the native oasis Production pane. Restrict all selectors to Sniper. */
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll {
+  width:100%!important;max-height:170px!important;min-width:0!important;
+  box-sizing:border-box!important;overflow:auto!important;
+  border:1px solid #cdbb9d!important;border-radius:4px!important;
+  background:#fff!important;
+  scrollbar-color:var(--qol-scroll-thumb,#b8a080) #e7ded1!important;
+  scrollbar-width:thin!important
 }
-window.modalWrapper.mapCellDetails .apes-sniper-scroll table {
-  width:100%!important;border-collapse:collapse!important
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table {
+  width:100%!important;min-width:0!important;
+  border-collapse:collapse!important;table-layout:fixed!important;
+  background:#fff!important;
+  color:#4d3824!important;font:9px Arial,Helvetica,sans-serif!important
 }
-window.modalWrapper.mapCellDetails .apes-sniper-scroll th,
-window.modalWrapper.mapCellDetails .apes-sniper-scroll td {
-  padding:4px 5px!important;text-align:left!important;vertical-align:top!important;
-  border-bottom:1px solid #ded0b5!important;font-size:10px!important;
-  white-space:normal!important;line-height:1.35!important
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table th {
+  position:sticky!important;top:0!important;z-index:2!important;
+  height:29px!important;padding:4px 5px!important;
+  border:0!important;border-bottom:1px solid #cbbd9f!important;
+  background:#e5d4b8!important;color:#533b22!important;
+  text-align:left!important;font:700 8px Arial,Helvetica,sans-serif!important;
+  text-transform:uppercase!important;white-space:nowrap!important;
+  overflow:hidden!important;text-overflow:ellipsis!important
 }
-window.modalWrapper.mapCellDetails .apes-sniper-scroll td small {
-  display:block!important;color:#765c40!important;font-size:9px!important;margin-top:2px!important
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td {
+  height:29px!important;padding:4px 5px!important;
+  border:0!important;border-top:1px solid #eadfce!important;
+  background:#fff!important;color:#4d3824!important;
+  font:9px Arial,Helvetica,sans-serif!important;line-height:15px!important;
+  text-align:left!important;vertical-align:middle!important;
+  white-space:nowrap!important;overflow:hidden!important;
+  text-overflow:ellipsis!important;text-shadow:none!important
 }
-window.modalWrapper.mapCellDetails .apes-sniper-confirmed {
-  font-weight:bold!important;color:#ae3e25!important
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table tbody tr:hover td {
+  background:#fff8e7!important
 }
-
-window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll th,
-window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll td {
-  padding:4px 3px!important;white-space:nowrap!important;
-  font-size:10px!important;line-height:15px!important
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table th:first-child,
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:first-child {
+  width:24px!important;text-align:center!important
 }
-window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll td:nth-child(3) {
-  text-align:right!important;font-variant-numeric:tabular-nums!important
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table th:nth-child(2),
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:nth-child(2) {
+  width:29%!important
 }
-window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-confirmed {
-  color:#8c3325!important
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:nth-child(2) {
+  font-weight:700!important
 }
-window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-unproven {
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table th:nth-child(3),
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:nth-child(3) {
+  width:27%!important;text-align:right!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:nth-child(3) {
+  font-variant-numeric:tabular-nums!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table .apes-sniper-confirmed {
+  color:#8c3325!important;font-weight:700!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table .apes-sniper-unproven {
   color:#7e7567!important
 }
 
