@@ -69,7 +69,7 @@ const contentFragment=[
  assert.ok(fresh.querySelector('.original-native-production'));
 
  const a=ui.indexOf('  function resultsTable(rows){');
- const b=ui.indexOf('  function render(box,rows,status){',a);
+ const b=ui.indexOf('  function render(box,rows){',a);
  assert.ok(a>=0 && b>a);
  const findings=new Function('math','html',
    ui.slice(a,b)+'return resultsTable;')(
