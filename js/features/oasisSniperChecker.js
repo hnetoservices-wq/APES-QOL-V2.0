@@ -77,23 +77,35 @@
         '</td><td>'+finding+'</td></tr>';
     }).join('');
   }
-  function render(box,rows,status){
-    if(!box)return;
-    const indicator=box.querySelector('.apes-sniper-status');
-    if(indicator)indicator.textContent=status;
-    const target=box.querySelector('.apes-sniper-results');
+  // No extra headings, status lines or summaries: the native title dropdown
+  // already identifies the view, and each row carries the complete finding.
+  function render(box,rows){
+    const target=box?.querySelector('.apes-sniper-results');
     if(!target)return;
     if(!rows){
-      target.innerHTML='<div class="apes-sniper-empty">Check the current oasis to request village influence without hovering.</div>';
+      target.innerHTML='';
       return;
     }
-    const confirmed=math.evaluate(rows).filter(r=>r.proof).length;
-    target.innerHTML='<div class="apes-sniper-summary">'+confirmed+' proven troop-presence '+
-      (confirmed===1?'case':'cases')+' · '+rows.filter(r=>r.villageInfluence!==null).length+
-      '/'+rows.length+' village values</div>'+
-      '<div class="apes-sniper-scroll"><table><thead><tr><th>#</th><th>Player</th>'+
-      '<th>Village influence</th><th>Finding</th></tr></thead><tbody>'+
-      resultsTable(rows)+'</tbody></table></div>';
+    target.innerHTML='<div class="apes-sniper-scroll"><table><thead><tr>'+
+      '<th>#</th><th>Player</th><th>Village influence</th>'+
+      '<th>Finding</th></tr></thead><tbody>'+resultsTable(rows)+
+      '</tbody></table></div>';
+  }
+  // Each native oasis popup (or reused Angular popup with new oasis content)
+  // gets one automatic scan, even if Production is currently selected.
+  // The selected view is only a presentation preference.
+  function autoScan(root,right){
+    if(!enabled())return;
+    const box=right?.querySelector('.'+CLASS);
+    const id=oasisId(root),rows=ranking(root);
+    if(!box||!id||!rows.length)return;
+    const signature=id+'|'+rows.map(row=>row.playerId).join('|');
+    if(box.dataset.apesSniperScanKey===signature||working)return;
+    box.dataset.apesSniperScanKey=signature;
+    // Run after mounting finishes, so Travian's DOM and the panel are ready.
+    Promise.resolve().then(()=>{
+      if(box.isConnected&&popup()===root)void scan();
+    });
   }
   async function scan(){
     if(working||!enabled())return false;
@@ -102,39 +114,38 @@
     if(!root||!box)return false;
     const rows=ranking(root);
     const selectedOasisId=oasisId(root);
-    if(!rows.length||!selectedOasisId){
-      if(box)render(box,rows.length?rows:null,'Oasis coordinates not available');
-      return false;
-    }
+    if(!rows.length||!selectedOasisId)return false;
     working=true;
     const current=box;
-    const signature=rows.map(row=>row.playerId).join('|');
+    const signature=selectedOasisId+'|'+rows.map(row=>row.playerId).join('|');
     currentResults=null;
     current.classList.add('apes-sniper-busy');
-    render(current,rows,'Reading game influence data…');
+    current.setAttribute('aria-busy','true');
+    render(current,rows);
     try{
       for(let i=0;i<rows.length;i++){
         // The visible map popup must still represent the same ranking.
-        if(!current.isConnected || !enabled() ||
-          ranking(root).map(row=>row.playerId).join('|')!==signature){
-          render(current,rows,'Oasis changed — stopped');
+        if(!current.isConnected || !enabled() || popup()!==root ||
+          oasisId(root)+'|'+ranking(root).map(row=>row.playerId).join('|')!==signature)
           return false;
-        }
-        render(current,rows,'Checking '+(i+1)+'/'+rows.length+': '+rows[i].name);
         const result=await message(rows[i].playerId,selectedOasisId);
         if(result.status==='ok'&&Number.isFinite(result.villageInfluence)&&result.villageInfluence>=0){
           rows[i].villageInfluence=result.villageInfluence;
         }else{
           rows[i].diagnostic=result.status+(result.diagnostic?' — '+result.diagnostic:'');
         }
-        render(current,rows,'Checking '+(i+1)+'/'+rows.length);
+        render(current,rows);
       }
       currentResults=rows.map(row=>({...row}));
-      render(current,rows,'Checked '+rows.length+' players');
+      render(current,rows);
       return true;
     }finally{
       working=false;
       current.classList.remove('apes-sniper-busy');
+      current.removeAttribute('aria-busy');
+      // If a different oasis opened while the previous request was in flight,
+      // its scan begins automatically as soon as this one releases the lock.
+      refresh();
     }
   }
   function applyView(right){
@@ -149,6 +160,7 @@
     savePreference(view);
     const root=popup();
     applyView(elementFor(root));
+    mount();
   }
   function mount(){
     const root=popup();
@@ -186,25 +198,12 @@
     if(!right.querySelector('.'+CLASS)){
       const div=document.createElement('div');
       div.className='contentBoxBody '+CLASS;
-      div.innerHTML='<div class="apes-sniper-head"><strong>Oasis Sniper</strong>'+
-        '<span class="apes-sniper-trigger" role="button" tabindex="0">Check influence</span></div>'+
-        '<div class="apes-sniper-status">Ready</div>'+
-        '<div class="apes-sniper-results"></div>';
-      const trigger=div.querySelector('.apes-sniper-trigger');
-      trigger.addEventListener('click',event=>{
-        event.stopPropagation();
-        void scan();
-      });
-      trigger.addEventListener('keydown',event=>{
-        if(event.key!=='Enter'&&event.key!==' ')return;
-        event.preventDefault();
-        if(!event.repeat)void scan();
-      });
+      div.innerHTML='<div class="apes-sniper-results"></div>';
       production.insertAdjacentElement('afterend',div);
-      render(div,null,'Ready');
     }
     right.classList.add('apes-sniper-enhanced');
     applyView(right);
+    autoScan(root,right);
   }
   function refresh(){
     if(refreshTimer)return;
