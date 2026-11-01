@@ -1,5 +1,5 @@
 /* APES Oasis Sniper Checker — in-game, opt-in, hoverless influence probe.
- * Uses Travian's existing Angular request via the MAIN-world bridge.
+ * Uses Travian's existing same-origin influence API via the MAIN-world bridge.
  * All unavailable values remain unknown; no troops or ranks are invented.
  */
 (() => {
@@ -8,6 +8,10 @@
   const UI='APES_QOL_OASIS_SNIPER_UI';
   const BRIDGE='APES_QOL_OASIS_SNIPER_BRIDGE';
   const CLASS='apes-oasis-sniper';
+  const VIEW_KEY='apes_oasis_sniper_view_v1';
+  const readPreference=()=>{try{return window.localStorage.getItem(VIEW_KEY)==='sniper'?'sniper':'production';}catch(_){return 'production';}};
+  const savePreference=view=>{try{window.localStorage.setItem(VIEW_KEY,view);}catch(_){}};
+  let selectedView=readPreference();
   const ROW='[tooltip-data-request^="requestInfluenceData;"]';
   const math=window.APES_OASIS_SNIPER_MATH;
   if(!math)return;
@@ -30,8 +34,8 @@
       .find(root=>root.querySelector('.contentBoxBody.oasisDetails '+ROW))||null;
   }
   function elementFor(root){
-    const list=root?.querySelector('.contentBoxBody.oasisDetails '+ROW)?.parentElement;
-    return list||null;
+    const right=root?.querySelector('.contentBox.rightBox');
+    return right?.querySelector('.contentBoxBody.oasisProduction')?right:null;
   }
   function oasisId(root){
     const header=root.querySelector('.contentBoxBody.oasisDetails')?.
@@ -58,23 +62,19 @@
     });
   }
   function resultsTable(rows){
-    const calculated=math.evaluate(rows);
-    return calculated.map(row=>{
-      const base=row.villageInfluence===null?'—':String(row.villageInfluence);
-      let diagnosis;
-      if(row.status==='confirmed'){
-        diagnosis='<strong class="apes-sniper-confirmed">Troops required</strong>' +
-          '<small>Rank '+row.rank+' above '+html(row.witness)+' (village influence '+
-          row.witnessBaseline+'); at least '+row.minimumInfluenceFromTroops+
-          ' troop influence needed to match.</small>';
-      }else if(row.status==='possible'){
-        diagnosis='<span>Not proven</span>';
-      }else{
-        diagnosis='<span>Unknown</span>'+
-          (row.diagnostic?'<small class="apes-sniper-diagnostic">'+html(row.diagnostic)+'</small>':'');
-      }
+    return math.evaluate(rows).map(row=>{
+      // Display village influence as a whole number, rounded upwards.
+      // Proof calculations retain the unrounded server values.
+      const base=row.villageInfluence===null?'—':
+        Math.ceil(row.villageInfluence).toLocaleString('en-US');
+      // 'Unproven' deliberately also covers missing readings: it does not
+      // claim that the oasis is empty or troops are absent.
+      const finding=row.proof
+        ? '<strong class="apes-sniper-confirmed">'+
+          row.strictOvertake.toLocaleString('en-US')+' units minimum</strong>'
+        : '<span class="apes-sniper-unproven">Unproven</span>';
       return '<tr><td>'+row.rank+'</td><td>'+html(row.name)+'</td><td>'+base+
-        '</td><td>'+diagnosis+'</td></tr>';
+        '</td><td>'+finding+'</td></tr>';
     }).join('');
   }
   function render(box,rows,status){
@@ -137,34 +137,74 @@
       current.classList.remove('apes-sniper-busy');
     }
   }
+  function applyView(right){
+    if(!right)return;
+    right.classList.toggle('apes-sniper-view-active',selectedView==='sniper');
+    const select=right.querySelector('.apes-sniper-view-select');
+    if(select&&select.value!==selectedView)select.value=selectedView;
+  }
+  function setView(view){
+    if(view!=='production'&&view!=='sniper')return;
+    selectedView=view;
+    savePreference(view);
+    const root=popup();
+    applyView(elementFor(root));
+  }
   function mount(){
     const root=popup();
-    const parent=elementFor(root);
-    if(!parent)return;
-    const old=parent.querySelector('.'+CLASS);
+    const right=elementFor(root);
+    if(!right)return;
     if(!enabled()){
-      old?.remove();
+      right.classList.remove('apes-sniper-enhanced','apes-sniper-view-active');
+      right.querySelector('.apes-sniper-selector')?.remove();
+      right.querySelector('.'+CLASS)?.remove();
       return;
     }
-    if(old)return;
-    const div=document.createElement('div');
-    div.className=CLASS;
-    div.innerHTML='<div class="apes-sniper-head"><strong>Oasis Sniper Checker</strong>'+
-      '<div class="apes-sniper-trigger" role="button" tabindex="0">Check influence</div></div>'+
-      '<div class="apes-sniper-status">Ready</div>'+
-      '<div class="apes-sniper-results"></div>';
-    const trigger=div.querySelector('.apes-sniper-trigger');
-    trigger.addEventListener('click',event=>{
-      event.stopPropagation();
-      void scan();
-    });
-    trigger.addEventListener('keydown',event=>{
-      if(event.key!=='Enter'&&event.key!==' ')return;
-      event.preventDefault();
-      if(!event.repeat)void scan();
-    });
-    parent.appendChild(div);
-    render(div,null,'Ready');
+    const production=right.querySelector('.contentBoxBody.oasisProduction');
+    const header=right.querySelector('.villageDetails.contentBoxHeader h6');
+    if(!production||!header)return;
+
+    // Keep Travian's Angular-rendered Production content untouched.
+    // Only hide it when the saved Oasis Sniper view is selected.
+    if(!right.querySelector('.apes-sniper-selector')){
+      const selector=document.createElement('span');
+      selector.className='apes-sniper-selector';
+      selector.innerHTML='<select class="apes-sniper-view-select" '+
+        'aria-label="Oasis information view">'+
+        '<option value="production">Production</option>'+
+        '<option value="sniper">Oasis Sniper</option></select>';
+      const dropdown=selector.querySelector('select');
+      dropdown.value=selectedView;
+      dropdown.addEventListener('click',event=>event.stopPropagation());
+      dropdown.addEventListener('change',event=>{
+        event.stopPropagation();
+        setView(dropdown.value);
+      });
+      header.appendChild(selector);
+    }
+
+    if(!right.querySelector('.'+CLASS)){
+      const div=document.createElement('div');
+      div.className='contentBoxBody '+CLASS;
+      div.innerHTML='<div class="apes-sniper-head"><strong>Oasis Sniper</strong>'+
+        '<span class="apes-sniper-trigger" role="button" tabindex="0">Check influence</span></div>'+
+        '<div class="apes-sniper-status">Ready</div>'+
+        '<div class="apes-sniper-results"></div>';
+      const trigger=div.querySelector('.apes-sniper-trigger');
+      trigger.addEventListener('click',event=>{
+        event.stopPropagation();
+        void scan();
+      });
+      trigger.addEventListener('keydown',event=>{
+        if(event.key!=='Enter'&&event.key!==' ')return;
+        event.preventDefault();
+        if(!event.repeat)void scan();
+      });
+      production.insertAdjacentElement('afterend',div);
+      render(div,null,'Ready');
+    }
+    right.classList.add('apes-sniper-enhanced');
+    applyView(right);
   }
   function refresh(){
     if(refreshTimer)return;
@@ -190,6 +230,7 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
   window.APES_OASIS_SNIPER=Object.freeze({
-    scan,ranking,oasisId,calculate:math.evaluate,getLastResults:()=>currentResults?.map(row=>({...row}))||null
+    scan,ranking,oasisId,setView,getView:()=>selectedView,
+    calculate:math.evaluate,getLastResults:()=>currentResults?.map(row=>({...row}))||null
   });
 })();
