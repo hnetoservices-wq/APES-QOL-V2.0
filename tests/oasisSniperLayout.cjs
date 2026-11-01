@@ -32,6 +32,8 @@ const contentFragment=[
  window.isQolEnabled=()=>true;
  window.eval(math);
  window.eval(ui);
+ // JSDOM may still be in "loading" state after eval.
+ window.document.dispatchEvent(new window.Event('DOMContentLoaded'));
  const api=window.APES_OASIS_SNIPER;
  const right=window.document.querySelector('.contentBox.rightBox');
  const select=right.querySelector('.apes-sniper-view-select');
