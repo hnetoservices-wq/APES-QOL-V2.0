@@ -26,6 +26,31 @@ window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-selector::a
   line-height:1!important;box-shadow:0 1px 2px rgba(73,52,29,.16)!important;
   pointer-events:none!important
 }
+
+/* Compact, native-style refresh control next to the view selector. */
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-refresh {
+  display:inline-flex!important;align-items:center!important;justify-content:center!important;
+  vertical-align:middle!important;box-sizing:border-box!important;
+  width:23px!important;height:22px!important;margin-left:6px!important;
+  border:1px solid #8b7353!important;border-radius:5px!important;
+  background:linear-gradient(#fffcf6,#e5d6bd)!important;
+  color:#5e4325!important;box-shadow:0 1px 2px rgba(73,52,29,.16)!important;
+  cursor:pointer!important;user-select:none!important;
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-refresh:hover {
+  background:linear-gradient(#fffef9,#d8c39e)!important;border-color:#69502d!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-refresh:focus-visible {
+  outline:2px solid #9c7c4d!important;outline-offset:1px!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-refresh svg {
+  display:block!important;pointer-events:none!important
+}
+window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-refresh.is-refreshing svg {
+  animation:apesSniperRefreshSpin 1.25s linear infinite!important
+}
+@keyframes apesSniperRefreshSpin { to{transform:rotate(360deg)} }
+
 window.modalWrapper.mapCellDetails .contentBox.rightBox.apes-sniper-enhanced .apes-oasis-sniper {
   display:none!important
 }
