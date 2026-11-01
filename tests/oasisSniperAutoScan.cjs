@@ -39,7 +39,9 @@ async function until(check,description){
  throw Error('Timed out: '+description);
 }
 (async()=>{
- const initial=oasis('536199206',[['203','Ruboon'],['175','Apequinte']]);
+ // Travian initially renders ranked player IDs but populates their visible
+ // names asynchronously. Do not start an incomplete 2-player scan yet.
+ const initial=oasis('536199206',[['203',''],['175','']]);
  const dom=new JSDOM('<!doctype html><html><body>'+initial+'</body></html>',{
   url:'https://tr2nx3.kingdoms.com/#/page:map',runScripts:'outside-only'
  });
@@ -62,8 +64,16 @@ async function until(check,description){
  w.eval(math);w.eval(ui);
  w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
  const api=w.APES_OASIS_SNIPER;
+ await delay(275);
+ assert.equal(calls.length,0,'Ranked IDs with empty names do not trigger premature scan');
+ const links=w.document.querySelectorAll('.leftBox a.playerLink');
+ links[0].textContent='Ruboon';
+ await delay(275);
+ assert.equal(calls.length,0,'One missing player name keeps the scan from starting');
+ links[1].textContent='Apequinte';
  await until(()=>calls.length===2&&api.getLastResults()?.length===2,
-  'first oasis auto scan (default Production selection)');
+  'first oasis auto scan after ranking is fully hydrated');
+ assert.deepEqual(api.getLastResults().map(x=>x.name),['Ruboon','Apequinte']);
  assert.deepEqual(calls.map(x=>x.playerId),['203','175']);
  assert.equal(api.getView(),'production','Default still uses Production');
  let right=w.document.querySelector('.contentBox.rightBox');
@@ -71,6 +81,9 @@ async function until(check,description){
  assert.equal(right.querySelector('.apes-sniper-trigger'),null);
  assert.equal(right.querySelector('.apes-sniper-status'),null);
  assert.equal(right.querySelector('.apes-sniper-summary'),null);
+ const refreshButton=right.querySelector('.apes-sniper-refresh');
+ assert.ok(refreshButton,'Manual refresh is placed alongside the selector');
+ assert.equal(refreshButton.getAttribute('aria-label'),'Refresh Oasis Sniper');
  assert.equal(right.querySelectorAll('.apes-oasis-sniper').length,1);
  assert.ok(right.querySelector('.contentBoxBody.oasisProduction'));
  const select=right.querySelector('select.apes-sniper-view-select');
@@ -85,27 +98,37 @@ async function until(check,description){
  await delay(380);
  assert.equal(calls.length,2,'Repeated MutationObserver passes must not retrigger scans');
 
+ // A refresh click reissues both influence requests without closing the
+ // modal, even though the ranking signature has not changed.
+ refreshButton.click();
+ await until(()=>calls.length===4&&api.getLastResults()?.length===2,
+  'manual refresh requests the same two players again');
+ assert.deepEqual(calls.slice(2,4).map(x=>x.playerId),['203','175']);
+ assert.equal(right.querySelector('select').value,'sniper');
+ await delay(350);
+ assert.equal(calls.length,4,'Manual refresh is not followed by duplicate autoscan');
+
  // Open another oasis. Its details can replace the old modal.
  w.document.querySelector('window.modalWrapper.mapCellDetails').remove();
  w.document.body.insertAdjacentHTML('beforeend',
   oasis('536199207',[['999','Other Player'],['888','Second Player']]));
- await until(()=>calls.length===4&&
+ await until(()=>calls.length===6&&
   api.getLastResults()?.[0]?.playerId==='999','second oasis auto scan');
  right=w.document.querySelector('.contentBox.rightBox');
  assert.equal(right.querySelector('select').value,'sniper',
   'Last view is automatically selected in a new oasis');
  assert.ok(right.classList.contains('apes-sniper-view-active'));
- assert.deepEqual(calls.slice(2).map(x=>x.playerId),['999','888']);
+ assert.deepEqual(calls.slice(4).map(x=>x.playerId),['999','888']);
  assert.equal(right.querySelectorAll('.apes-oasis-sniper').length,1);
  await delay(350);
- assert.equal(calls.length,4,'No duplicate API requests on repeated UI mutations');
+ assert.equal(calls.length,6,'No duplicate API requests on repeated UI mutations');
 
  // Rapid switch back to Production is presentation-only, no additional scan.
  select.value='production';
  api.setView('production');
  await delay(200);
  assert.equal(api.getView(),'production');
- assert.equal(calls.length,4);
+ assert.equal(calls.length,6);
  dom.window.close();
- console.log('Oasis Sniper: automatic scan once per oasis, remembered view, clean panel, and no duplicate requests passed.');
+ console.log('Oasis Sniper: delayed player names, manual refresh, automatic scan, remembered view and no duplicates passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
