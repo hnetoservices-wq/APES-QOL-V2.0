@@ -33,7 +33,20 @@
     const list=root?.querySelector('.contentBoxBody.oasisDetails '+ROW)?.parentElement;
     return list||null;
   }
-  function message(playerId){
+  function oasisId(root){
+    const header=root.querySelector('.contentBoxBody.oasisDetails')?.
+      closest('.contentBox')?.querySelector('.coordinateWrapper[x][y]');
+    if(!header)return '';
+    const click=header.querySelector('[clickable*="centerId"]')?.
+      getAttribute('clickable')||'';
+    const native=click.match(/centerId['"]?\s*,\s*['"](\d+)(?:_[^'"]*)?['"]/i)?.[1];
+    if(native)return native;
+    const x=Number(header.getAttribute('x')),y=Number(header.getAttribute('y'));
+    return Number.isInteger(x)&&Number.isInteger(y)&&
+      Math.abs(x)<=16384&&Math.abs(y)<=16384?
+      String((y+16384)*32768+(x+16384)):'';
+  }
+  function message(playerId,oasisId){
     return new Promise(resolve=>{
       const requestId=unique();
       const timer=window.setTimeout(()=>{
@@ -41,7 +54,7 @@
         resolve({status:'timeout',diagnostic:'No reply from game influence bridge'});
       },5400);
       pending.set(requestId,{resolve,timer,playerId});
-      window.postMessage({source:UI,type:'INFLUENCE_REQUEST',playerId,requestId},location.origin);
+      window.postMessage({source:UI,type:'INFLUENCE_REQUEST',playerId,oasisId,requestId},location.origin);
     });
   }
   function resultsTable(rows){
@@ -58,7 +71,7 @@
         diagnosis='<span>Not proven</span>';
       }else{
         diagnosis='<span>Unknown</span>'+
-          (row.diagnostic?'<small>'+html(row.diagnostic)+'</small>':'');
+          (row.diagnostic?'<small class="apes-sniper-diagnostic">'+html(row.diagnostic)+'</small>':'');
       }
       return '<tr><td>'+row.rank+'</td><td>'+html(row.name)+'</td><td>'+base+
         '</td><td>'+diagnosis+'</td></tr>';
@@ -88,7 +101,11 @@
     const box=container?.querySelector('.'+CLASS);
     if(!root||!box)return false;
     const rows=ranking(root);
-    if(!rows.length)return false;
+    const selectedOasisId=oasisId(root);
+    if(!rows.length||!selectedOasisId){
+      if(box)render(box,rows.length?rows:null,'Oasis coordinates not available');
+      return false;
+    }
     working=true;
     const current=box;
     const signature=rows.map(row=>row.playerId).join('|');
@@ -104,11 +121,11 @@
           return false;
         }
         render(current,rows,'Checking '+(i+1)+'/'+rows.length+': '+rows[i].name);
-        const result=await message(rows[i].playerId);
+        const result=await message(rows[i].playerId,selectedOasisId);
         if(result.status==='ok'&&Number.isFinite(result.villageInfluence)&&result.villageInfluence>=0){
           rows[i].villageInfluence=result.villageInfluence;
         }else{
-          rows[i].diagnostic=result.status+(result.diagnostic?' ('+result.diagnostic+')':'');
+          rows[i].diagnostic=result.status+(result.diagnostic?' — '+result.diagnostic:'');
         }
         render(current,rows,'Checking '+(i+1)+'/'+rows.length);
       }
@@ -173,6 +190,6 @@
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
   window.APES_OASIS_SNIPER=Object.freeze({
-    scan,ranking,calculate:math.evaluate,getLastResults:()=>currentResults?.map(row=>({...row}))||null
+    scan,ranking,oasisId,calculate:math.evaluate,getLastResults:()=>currentResults?.map(row=>({...row}))||null
   });
 })();
