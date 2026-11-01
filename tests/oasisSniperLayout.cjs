@@ -15,11 +15,18 @@ for(const value of ['#cdbb9d','#cbbd9f','#e5d4b8','#533b22','#eadfce','#4d3824',
  assert.ok(society.includes(value),'Secret Society actually uses '+value);
  assert.ok(css.includes(value),'Oasis Sniper must reuse Secret Society colour '+value);
 }
-assert.match(css,/\.apes-sniper-table th \{[\s\S]*?position:sticky!important/);
-assert.match(css,/\.apes-sniper-table td \{[\s\S]*?height:29px!important/);
+// Five ranked players and the header should fit at ~132px before pane padding;
+// the Results table does not impose an extra vertical scrollbar.
+assert.match(css,/\.apes-oasis-sniper \{[\s\S]*?max-height:none!important;[\s\S]*?overflow:visible!important/);
+assert.match(css,/\.apes-sniper-scroll \{[\s\S]*?max-height:none!important;[\s\S]*?overflow:visible!important/);
+assert.match(css,/\.apes-sniper-table th \{[\s\S]*?position:static!important/);
+assert.match(css,/\.apes-sniper-table th \{[\s\S]*?height:22px!important;padding:2px 3px!important/);
+assert.match(css,/\.apes-sniper-table th \{[\s\S]*?text-align:center!important;vertical-align:middle!important/);
+assert.match(css,/\.apes-sniper-table td \{[\s\S]*?height:22px!important;padding:2px 3px!important/);
+assert.match(css,/\.apes-sniper-table td \{[\s\S]*?text-align:center!important;vertical-align:middle!important/);
 assert.match(css,/\.apes-sniper-table tbody tr:hover td \{[\s\S]*?background:#fff8e7!important/);
 assert.match(css,/\.apes-sniper-table td:nth-child\(2\) \{[\s\S]*?font-weight:700!important/);
-assert.match(css,/\.apes-sniper-table td:nth-child\(3\) \{[\s\S]*?text-align:right!important/);
+assert.match(css,/\.apes-sniper-table td:nth-child\(3\) \{[\s\S]*?text-align:center!important/);
 assert.match(css,/\.apes-sniper-view-select/);
 assert.match(css,/\.apes-sniper-view-active[\s\S]*?\.contentBoxBody\.oasisProduction/);
 assert.match(css,/\.apes-sniper-view-active[\s\S]*?\.apes-oasis-sniper/);
