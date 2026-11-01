@@ -100,7 +100,10 @@
     const id=oasisId(root),rows=ranking(root);
     if(!box||!id||!rows.length)return;
     const signature=id+'|'+rows.map(row=>row.playerId).join('|');
-    if(box.dataset.apesSniperScanKey===signature||working)return;
+    if(box.dataset.apesSniperScanKey===signature)return;
+    // Never display a previous oasis's findings while its replacement loads.
+    render(box,null);
+    if(working)return;
     box.dataset.apesSniperScanKey=signature;
     // Run after mounting finishes, so Travian's DOM and the panel are ready.
     Promise.resolve().then(()=>{
@@ -129,6 +132,11 @@
           oasisId(root)+'|'+ranking(root).map(row=>row.playerId).join('|')!==signature)
           return false;
         const result=await message(rows[i].playerId,selectedOasisId);
+        // The native modal can reuse its DOM for a different oasis while a
+        // read is in flight; don't let old responses repaint the new oasis.
+        if(!current.isConnected || popup()!==root ||
+          oasisId(root)+'|'+ranking(root).map(row=>row.playerId).join('|')!==signature)
+          return false;
         if(result.status==='ok'&&Number.isFinite(result.villageInfluence)&&result.villageInfluence>=0){
           rows[i].villageInfluence=result.villageInfluence;
         }else{
