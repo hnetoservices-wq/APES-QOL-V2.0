@@ -23,6 +23,19 @@
     return value;
   };
   function influenceFrom(result) {
+    const sumVillages=rows=>{
+      if(!Array.isArray(rows))return null;
+      if(!rows.length)return 0;
+      const values=rows.map(row=>{
+        if(!row||typeof row!=='object')return null;
+        return numeric(row.villageInfluence??row.influenceFromVillage??
+          row.influence??row.influenceValue);
+      });
+      return values.every(value=>value!==null)?
+        values.reduce((a,b)=>a+b,0):null;
+    };
+    // Some server versions return the village rows directly as a list.
+    if(Array.isArray(result))return sumVillages(result);
     const object=asObject(result);
     if(!object)return null;
     for(const candidate of [object,object.data,object.result,object.influenceData,object.tooltipData]) {
@@ -42,13 +55,8 @@
         const rows=Array.isArray(source)?source:
           source&&typeof source==='object'?Object.values(source):null;
         if(!rows)continue;
-        if(!rows.length)return 0;
-        const values=rows.map(row=>{
-          if(!row||typeof row!=='object')return null;
-          return numeric(row.villageInfluence??row.influenceFromVillage??
-            row.influence??row.influenceValue);
-        });
-        if(values.every(value=>value!==null))return values.reduce((a,b)=>a+b,0);
+        const total=sumVillages(rows);
+        if(total!==null)return total;
       }
     }
     return null;
