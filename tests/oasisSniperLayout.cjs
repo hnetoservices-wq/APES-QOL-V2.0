@@ -7,7 +7,19 @@ const base=path.resolve(__dirname,'..');
 const math=fs.readFileSync(path.join(base,'js/modules/oasisSniper/math.js'),'utf8');
 const ui=fs.readFileSync(path.join(base,'js/features/oasisSniperChecker.js'),'utf8');
 const css=fs.readFileSync(path.join(base,'css/features/oasisSniperChecker.css'),'utf8');
+const society=fs.readFileSync(path.join(base,'js/features/secretSocietyScanner.js'),'utf8');
 assert.doesNotThrow(()=>new Function(ui));
+assert.match(ui, /<table class="apes-sniper-table">/,
+  'Oasis Sniper results use a dedicated, scoped member-table class');
+for(const value of ['#cdbb9d','#cbbd9f','#e5d4b8','#533b22','#eadfce','#4d3824','#fff8e7']) {
+ assert.ok(society.includes(value),'Secret Society actually uses '+value);
+ assert.ok(css.includes(value),'Oasis Sniper must reuse Secret Society colour '+value);
+}
+assert.match(css,/\.apes-sniper-table th \{[\s\S]*?position:sticky!important/);
+assert.match(css,/\.apes-sniper-table td \{[\s\S]*?height:29px!important/);
+assert.match(css,/\.apes-sniper-table tbody tr:hover td \{[\s\S]*?background:#fff8e7!important/);
+assert.match(css,/\.apes-sniper-table td:nth-child\(2\) \{[\s\S]*?font-weight:700!important/);
+assert.match(css,/\.apes-sniper-table td:nth-child\(3\) \{[\s\S]*?text-align:right!important/);
 assert.match(css,/\.apes-sniper-view-select/);
 assert.match(css,/\.apes-sniper-view-active[\s\S]*?\.contentBoxBody\.oasisProduction/);
 assert.match(css,/\.apes-sniper-view-active[\s\S]*?\.apes-oasis-sniper/);
@@ -51,6 +63,8 @@ const contentFragment=[
  assert.equal(right.classList.contains('apes-sniper-view-active'),false);
  assert.ok(right.querySelector('.original-native-production'),'Native Production data not removed');
  assert.equal(right.querySelectorAll('.apes-oasis-sniper').length,1);
+ assert.ok(right.querySelector('.apes-sniper-scroll > table.apes-sniper-table')===null,
+  'No results table exists until a scan produces rows');
  select.value='sniper';
  select.dispatchEvent(new window.Event('change',{bubbles:true}));
  assert.equal(window.localStorage.getItem('apes_oasis_sniper_view_v1'),'sniper');
