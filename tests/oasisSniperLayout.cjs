@@ -11,6 +11,7 @@ assert.doesNotThrow(()=>new Function(ui));
 assert.match(css,/\.apes-sniper-view-select/);
 assert.match(css,/\.apes-sniper-view-active[\s\S]*?\.contentBoxBody\.oasisProduction/);
 assert.match(css,/\.apes-sniper-view-active[\s\S]*?\.apes-oasis-sniper/);
+assert.match(css,/\.apes-sniper-refresh \{[\s\S]*?border-radius:5px!important/);
 const contentFragment=[
 '<window class="modalWrapper mapCellDetails">',
 '<div class="contentBox leftBox"><div class="contentBoxBody oasisDetails occupied">',
@@ -39,6 +40,11 @@ const contentFragment=[
  const select=right.querySelector('.apes-sniper-view-select');
  const sniper=right.querySelector('.apes-oasis-sniper');
  assert.ok(select&&sniper,'Selector and scanner inserted in native right panel');
+ const refresh=right.querySelector('.apes-sniper-refresh');
+ assert.ok(refresh,'Refresh icon is adjacent to the view selector');
+ assert.equal(refresh.getAttribute('role'),'button');
+ assert.equal(refresh.getAttribute('aria-label'),'Refresh Oasis Sniper');
+ assert.ok(refresh.querySelector('svg'),'Refresh icon is an SVG rather than text');
  assert.equal(right.parentElement.querySelector('.leftBox .apes-oasis-sniper'),null,
   'Oasis rank list remains untouched');
  assert.equal(select.value,'production','Production is the original default');
@@ -66,6 +72,7 @@ const contentFragment=[
  assert.equal(fresh.querySelector('.apes-sniper-view-select').value,'sniper');
  assert.ok(fresh.classList.contains('apes-sniper-view-active'));
  assert.equal(fresh.querySelectorAll('.apes-oasis-sniper').length,1);
+ assert.equal(fresh.querySelectorAll('.apes-sniper-refresh').length,1);
  assert.ok(fresh.querySelector('.original-native-production'));
 
  const a=ui.indexOf('  function resultsTable(rows){');
