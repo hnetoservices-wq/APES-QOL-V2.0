@@ -91,7 +91,7 @@
       target.innerHTML='';
       return;
     }
-    target.innerHTML='<div class="apes-sniper-scroll"><table><thead><tr>'+
+    target.innerHTML='<div class="apes-sniper-scroll"><table class="apes-sniper-table"><thead><tr>'+
       '<th>#</th><th>Player</th><th>Village influence</th>'+
       '<th>Finding</th></tr></thead><tbody>'+resultsTable(rows)+
       '</tbody></table></div>';
