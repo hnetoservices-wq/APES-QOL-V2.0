@@ -16,6 +16,8 @@
   const math=window.APES_OASIS_SNIPER_MATH;
   if(!math)return;
   let pending=new Map(), sequence=0, working=false, refreshTimer=0, currentResults=null;
+  let scheduledScan=null, refreshAfterScan=null;
+  const RANKING_SETTLE_MS=600;
   const enabled=()=>typeof window.isQolEnabled!=='function'||window.isQolEnabled(FEATURE)===true;
   const clean=value=>String(value??'').replace(/\s+/g,' ').trim();
   const html=value=>clean(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -26,7 +28,10 @@
       const id=row.getAttribute('tooltip-data-request')?.match(/^requestInfluenceData;(\d+)$/)?.[1];
       const link=row.querySelector('a.playerLink[playerid]');
       if(!id||!link||link.getAttribute('playerid')!==id)return null;
-      return {playerId:id,name:clean(link.textContent),villageInfluence:null,diagnostic:''};
+      const name=clean(link.getAttribute('playername')||link.textContent);
+      // Travian populates names asynchronously; empty names are not usable.
+      if(!name)return null;
+      return {playerId:id,name,villageInfluence:null,diagnostic:''};
     }).filter(Boolean);
   }
   function popup(){
@@ -91,36 +96,81 @@
       '<th>Finding</th></tr></thead><tbody>'+resultsTable(rows)+
       '</tbody></table></div>';
   }
-  // Each native oasis popup (or reused Angular popup with new oasis content)
-  // gets one automatic scan, even if Production is currently selected.
-  // The selected view is only a presentation preference.
+  // The first frame of an oasis may contain all the influence rows but not
+  // their Angular player names yet. Never scan or cache that partial snapshot.
+  function readyRanking(root){
+    const all=Array.from(root?.querySelectorAll(ROW)||[]);
+    const rows=ranking(root);
+    const id=root?oasisId(root):'';
+    if(!id||!all.length||rows.length!==all.length)return null;
+    return {rows,signature:id+'|'+rows.map(row=>row.playerId+':'+row.name).join('|')};
+  }
+  function cancelScheduledScan(){
+    if(!scheduledScan)return;
+    window.clearTimeout(scheduledScan.timer);
+    scheduledScan=null;
+  }
+  // Debounce *changes in the ranking*, not every DOM mutation. This keeps
+  // APES' own results-table updates from causing more server requests.
   function autoScan(root,right){
     if(!enabled())return;
     const box=right?.querySelector('.'+CLASS);
-    const id=oasisId(root),rows=ranking(root);
-    if(!box||!id||!rows.length)return;
-    const signature=id+'|'+rows.map(row=>row.playerId).join('|');
-    if(box.dataset.apesSniperScanKey===signature)return;
-    // Never display a previous oasis's findings while its replacement loads.
-    render(box,null);
-    if(working)return;
-    box.dataset.apesSniperScanKey=signature;
-    // Run after mounting finishes, so Travian's DOM and the panel are ready.
-    Promise.resolve().then(()=>{
-      if(box.isConnected&&popup()===root)void scan();
-    });
+    if(!box)return;
+    const ready=readyRanking(root);
+    if(!ready){
+      cancelScheduledScan();
+      return;
+    }
+    if(box.dataset.apesSniperScanKey===ready.signature||working)return;
+    if(scheduledScan?.box===box&&scheduledScan.signature===ready.signature)return;
+    cancelScheduledScan();
+    const candidate={box,signature:ready.signature,timer:0};
+    scheduledScan=candidate;
+    candidate.timer=window.setTimeout(()=>{
+      if(scheduledScan!==candidate)return;
+      scheduledScan=null;
+      if(!box.isConnected||popup()!==root||!enabled()||working)return;
+      const latest=readyRanking(root);
+      if(!latest||latest.signature!==candidate.signature){
+        refresh();
+        return;
+      }
+      if(box.dataset.apesSniperScanKey===latest.signature)return;
+      // Mark only after the list is complete and stable.
+      box.dataset.apesSniperScanKey=latest.signature;
+      void scan();
+    },RANKING_SETTLE_MS);
+  }
+  // User-initiated refresh bypasses the one-scan-per-ranking cache. If a
+  // request is active, queue exactly one replacement scan after it finishes.
+  function requestRefresh(){
+    const root=popup(),right=elementFor(root);
+    const box=right?.querySelector('.'+CLASS);
+    if(!box||!enabled())return false;
+    cancelScheduledScan();
+    box.dataset.apesSniperScanKey='';
+    if(working){
+      refreshAfterScan=box;
+    }else{
+      render(box,null);
+      autoScan(root,right);
+    }
+    return true;
   }
   async function scan(){
     if(working||!enabled())return false;
     const root=popup(),container=elementFor(root);
     const box=container?.querySelector('.'+CLASS);
     if(!root||!box)return false;
-    const rows=ranking(root);
+    const ready=readyRanking(root);
+    if(!ready)return false;
+    const rows=ready.rows;
     const selectedOasisId=oasisId(root);
-    if(!rows.length||!selectedOasisId)return false;
     working=true;
     const current=box;
-    const signature=selectedOasisId+'|'+rows.map(row=>row.playerId).join('|');
+    const signature=ready.signature;
+    current.dataset.apesSniperScanKey=signature;
+    container.querySelector('.apes-sniper-refresh')?.classList.add('is-refreshing');
     currentResults=null;
     current.classList.add('apes-sniper-busy');
     current.setAttribute('aria-busy','true');
@@ -129,13 +179,13 @@
       for(let i=0;i<rows.length;i++){
         // The visible map popup must still represent the same ranking.
         if(!current.isConnected || !enabled() || popup()!==root ||
-          oasisId(root)+'|'+ranking(root).map(row=>row.playerId).join('|')!==signature)
+          readyRanking(root)?.signature!==signature)
           return false;
         const result=await message(rows[i].playerId,selectedOasisId);
         // The native modal can reuse its DOM for a different oasis while a
         // read is in flight; don't let old responses repaint the new oasis.
         if(!current.isConnected || popup()!==root ||
-          oasisId(root)+'|'+ranking(root).map(row=>row.playerId).join('|')!==signature)
+          readyRanking(root)?.signature!==signature)
           return false;
         if(result.status==='ok'&&Number.isFinite(result.villageInfluence)&&result.villageInfluence>=0){
           rows[i].villageInfluence=result.villageInfluence;
@@ -151,8 +201,14 @@
       working=false;
       current.classList.remove('apes-sniper-busy');
       current.removeAttribute('aria-busy');
-      // If a different oasis opened while the previous request was in flight,
-      // its scan begins automatically as soon as this one releases the lock.
+      container.querySelector('.apes-sniper-refresh')?.classList.remove('is-refreshing');
+      if(refreshAfterScan===current){
+        refreshAfterScan=null;
+        current.dataset.apesSniperScanKey='';
+        render(current,null);
+      }
+      // Also handles a new or newly completed ranking that arrived while
+      // an older oasis scan was still in flight.
       refresh();
     }
   }
@@ -175,8 +231,10 @@
     const right=elementFor(root);
     if(!right)return;
     if(!enabled()){
+      cancelScheduledScan();
       right.classList.remove('apes-sniper-enhanced','apes-sniper-view-active');
       right.querySelector('.apes-sniper-selector')?.remove();
+      right.querySelector('.apes-sniper-refresh')?.remove();
       right.querySelector('.'+CLASS)?.remove();
       return;
     }
@@ -201,6 +259,31 @@
         setView(dropdown.value);
       });
       header.appendChild(selector);
+    }
+    if(!header.querySelector('.apes-sniper-refresh')){
+      const button=document.createElement('span');
+      button.className='apes-sniper-refresh';
+      button.setAttribute('role','button');
+      button.setAttribute('tabindex','0');
+      button.setAttribute('aria-label','Refresh Oasis Sniper');
+      button.title='Refresh Oasis Sniper';
+      button.innerHTML='<svg viewBox="0 0 24 24" width="15" height="15" '+
+        'aria-hidden="true" fill="none" stroke="currentColor" '+
+        'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+
+        '<path d="M20 7v5h-5"/><path d="M4 17v-5h5"/>'+
+        '<path d="M5.7 9A7 7 0 0 1 18 6l2 1"/>'+
+        '<path d="M18.3 15A7 7 0 0 1 6 18l-2-1"/>'+
+        '</svg>';
+      button.addEventListener('click',event=>{
+        event.stopPropagation();
+        requestRefresh();
+      });
+      button.addEventListener('keydown',event=>{
+        if(event.key!=='Enter'&&event.key!==' ')return;
+        event.preventDefault();
+        if(!event.repeat)requestRefresh();
+      });
+      header.appendChild(button);
     }
 
     if(!right.querySelector('.'+CLASS)){
@@ -231,13 +314,16 @@
     if(event.detail?.key===FEATURE)refresh();
   });
   const init=()=>{
-    new MutationObserver(refresh).observe(document.body,{childList:true,subtree:true});
+    new MutationObserver(refresh).observe(document.body,{
+      childList:true,subtree:true,characterData:true,attributes:true,
+      attributeFilter:['playerid','playername','tooltip-data-request']
+    });
     mount();
   };
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init,{once:true});
   else init();
   window.APES_OASIS_SNIPER=Object.freeze({
-    scan,ranking,oasisId,setView,getView:()=>selectedView,
+    scan,requestRefresh,ranking,oasisId,setView,getView:()=>selectedView,
     calculate:math.evaluate,getLastResults:()=>currentResults?.map(row=>({...row}))||null
   });
 })();
