@@ -72,58 +72,82 @@ assert.deepEqual(api.ranking(originalOasis).map(x=>x.playerId),
  ['203','175','1171','193','1308'],
  'The exact saved oasis hierarchy is discovered without hovering');
 assert.equal(api.ranking(originalOasis)[2].name,'Kötü Kız');
+const coordinateWrapper={getAttribute:k=>({x:'38',y:'-21'})[k],
+ querySelector:()=>({getAttribute:()=>"$root.openPage('map', 'centerId', '536199206_123');"})};
+const selectedOasis={querySelectorAll:()=>[],querySelector:q=>
+ q==='.contentBoxBody.oasisDetails'?{closest:()=>({querySelector:()=>coordinateWrapper})}:null};
+assert.equal(api.oasisId(selectedOasis),'536199206');
 
 const events={};
-const fakeRows=['203','175'].map(id=>({
-  getAttribute:key=>key==='tooltip-data-request'?'requestInfluenceData;'+id:null
-}));
-const fakeScope={
- requestInfluenceData(playerId){
-  return playerId===203
-    ? Promise.resolve({villages:[
-      {name:'Silverback',population:486,distance:2.2,influence:221}
-    ]})
-    : Promise.resolve({totalInfluence:999,influenceFromTroops:101});
+const coordinates={getAttribute:key=>({x:'38',y:'-21'})[key],
+ querySelector:()=>({getAttribute:()=>"$root.openPage('map', 'centerId', '536199206_123');"})};
+const gameOasis={closest:()=>({querySelector:()=>coordinates})};
+const doc={
+ cookie:'t5SessionKey='+encodeURIComponent(JSON.stringify({key:'test-session-key'})),
+ querySelector:()=>gameOasis,
+ querySelectorAll:selector=>{assert.match(selector,/requestInfluenceData/);return [
+  {getAttribute:()=> 'requestInfluenceData;203'},
+  {getAttribute:()=> 'requestInfluenceData;175'},
+  {getAttribute:()=> 'requestInfluenceData;1171'}
+ ];}
+};
+const loc={origin:'https://tr2nx3.kingdoms.com'};
+const calls=[];
+const serverReplies=[
+ {response:{villages:[{name:'Silverback',population:486,distance:2.2,influence:221}]}},
+ {response:{villages:{a:{influence:140},b:{influence:100}}}},
+ {response:{totalInfluence:1000,influenceFromTroops:700}}
+];
+const gameWindow={
+ addEventListener(type,fn){events[type]=fn;},
+ postMessage(payload,origin){this.sent={payload,origin};},
+ fetch:async(url,options)=>{
+  assert.equal(url,loc.origin+'/api/?c=village&a=getVillagesWithInfluenceOnOasisForPlayer');
+  assert.equal(options.method,'POST');
+  assert.equal(options.credentials,'same-origin');
+  const payload=JSON.parse(options.body);
+  assert.equal(payload.controller,'village');
+  assert.equal(payload.action,'getVillagesWithInfluenceOnOasisForPlayer');
+  assert.equal(payload.params.oasisId,536199206);
+  assert.equal(payload.session,'test-session-key');
+  calls.push(payload);
+  return {ok:true,json:async()=>serverReplies.shift()};
  }
 };
-const gameWindow={
- angular:{element:()=>({scope:()=>({$parent:fakeScope})})},
- addEventListener(type,fn){events[type]=fn;},
- postMessage(payload){this.sent=payload;},
-};
-const doc={querySelectorAll:selector=>{
-  assert.match(selector,/requestInfluenceData/);
-  return fakeRows;
-}};
-const location={origin:'https://tr2nx3.kingdoms.com'};
-new Function('window','document','location','setTimeout',bridge)(
-  gameWindow,doc,location,(callback)=>{callback();return 0;});
+const timers=new Set();
+function timer(fn){const handle={fn};timers.add(handle);return handle;}
+function untimer(handle){timers.delete(handle);}
+class FakeAbortController {constructor(){this.signal={}}abort(){}}
+new Function('window','document','location','setTimeout','clearTimeout','AbortController',bridge)(
+ gameWindow,doc,loc,timer,untimer,FakeAbortController);
 const b=gameWindow.APES_OASIS_SNIPER_BRIDGE;
+assert.equal(b.currentOasisId(),'536199206');
 assert.equal(b.influenceFrom({villageInfluence:221}),221);
-assert.equal(b.influenceFrom({influenceFromVillages:350}),350);
 assert.equal(b.influenceFrom({villages:[{influence:111},{influence:222}]}),333);
-assert.equal(b.influenceFrom({totalInfluence:777,troops:444}),null,
-  'Never treat total influence with hidden troops as natural influence');
-assert.equal(b.influenceFrom({villages:[{influence:10},{influence:null}]}),null,
-  'Incomplete village lists must not manufacture a sum');
+assert.equal(b.influenceFrom([{influence:44},{influence:56}]),100);
+assert.equal(b.influenceFrom({totalInfluence:777,troops:444}),null);
+assert.equal(b.influenceFrom({villages:[{influence:10},{influence:null}]}),null);
 
 (async()=>{
- const good=await b.probe('203');
- assert.equal(good.status,'ok');
- assert.equal(good.villageInfluence,221);
- const bad=await b.probe('175');
- assert.equal(bad.status,'unrecognised-response');
- const missing=await b.probe('1234');
- assert.equal(missing.status,'player-not-in-current-oasis');
+ const good=await b.probe('203','536199206');
+ assert.equal(good.status,'ok');assert.equal(good.villageInfluence,221);
+ const dict=await b.probe('175','536199206');
+ assert.equal(dict.status,'ok');assert.equal(dict.villageInfluence,240);
+ const ambiguity=await b.probe('1171','536199206');
+ assert.equal(ambiguity.status,'unrecognised-response');
+ assert.equal((await b.probe('203','555')).status,'oasis-changed');
+ assert.equal((await b.probe('999','536199206')).status,'player-not-in-current-oasis');
+ assert.equal(calls.length,3,'Only player/oasis IDs in native DOM trigger API calls');
+ serverReplies.push({response:{villages:[{influence:221}]}});
  await events.message({
-  source:gameWindow,origin:location.origin,
+  source:gameWindow,origin:loc.origin,
   data:{source:'APES_QOL_OASIS_SNIPER_UI',type:'INFLUENCE_REQUEST',
-    requestId:'request_001',playerId:'203'}
+   requestId:'request_001',playerId:'203',oasisId:'536199206'}
  });
- assert.equal(gameWindow.sent.source,'APES_QOL_OASIS_SNIPER_BRIDGE');
- assert.equal(gameWindow.sent.requestId,'request_001');
- assert.equal(gameWindow.sent.villageInfluence,221);
- assert.doesNotMatch(ui,/dispatchEvent\(\s*new MouseEvent|\.hover\(|mouseenter/,
-  'Hover-free request does not fake pointer movement');
- console.log('Oasis Sniper: verified natural influence, conservative troop proof, failed-closed unknowns and hoverless bridge.');
+ assert.equal(gameWindow.sent.origin,loc.origin);
+ assert.equal(gameWindow.sent.payload.source,'APES_QOL_OASIS_SNIPER_BRIDGE');
+ assert.equal(gameWindow.sent.payload.villageInfluence,221);
+ assert.equal(JSON.stringify(gameWindow.sent).includes('test-session-key'),false);
+ assert.doesNotMatch(ui,/dispatchEvent\(\s*new MouseEvent|\.hover\(|mouseenter/);
+ console.log('Oasis Sniper: same-origin read-only API, village-only sums, exact oasis identity and no manual hovering passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});
