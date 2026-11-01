@@ -46,3 +46,10 @@ window.modalWrapper.mapCellDetails .apes-sniper-scroll td small {
 window.modalWrapper.mapCellDetails .apes-sniper-confirmed {
   font-weight:bold!important;color:#ae3e25!important
 }
+
+window.modalWrapper.mapCellDetails .apes-sniper-diagnostic {
+  display:block!important;margin-top:4px!important;
+  padding:3px 5px!important;background:#e9dfce!important;
+  border-radius:3px!important;color:#775d3b!important;
+  overflow-wrap:anywhere!important;white-space:normal!important;
+}
