@@ -51,11 +51,13 @@ async function until(check,description){
      event.data?.type!=='INFLUENCE_REQUEST')return;
   calls.push({playerId:event.data.playerId,oasisId:event.data.oasisId});
   const amounts={'203':221.3,'175':180,'999':150,'888':50};
-  w.postMessage({
-    source:'APES_QOL_OASIS_SNIPER_BRIDGE',type:'INFLUENCE_RESULT',
-    requestId:event.data.requestId,playerId:event.data.playerId,oasisId:event.data.oasisId,
-    status:'ok',villageInfluence:amounts[event.data.playerId]
-  },w.location.origin);
+  w.dispatchEvent(new w.MessageEvent('message',{
+    source:w,origin:w.location.origin,data:{
+      source:'APES_QOL_OASIS_SNIPER_BRIDGE',type:'INFLUENCE_RESULT',
+      requestId:event.data.requestId,playerId:event.data.playerId,oasisId:event.data.oasisId,
+      status:'ok',villageInfluence:amounts[event.data.playerId]
+    }
+  }));
  });
  w.eval(math);w.eval(ui);
  w.document.dispatchEvent(new w.Event('DOMContentLoaded'));
