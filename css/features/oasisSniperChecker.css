@@ -64,21 +64,20 @@ window.modalWrapper.mapCellDetails .contentBox.rightBox.apes-sniper-enhanced.ape
 }
 /* Oasis Sniper Checker: compact APES-styled inline oasis ranking evidence. */
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-oasis-sniper {
-  clear:both!important;margin:0!important;padding:7px 8px!important;
+  clear:both!important;margin:0!important;padding:4px 5px!important;
   border:0!important;border-radius:0!important;box-sizing:border-box!important;
-  min-height:155px!important;max-height:265px!important;overflow:auto!important;
+  height:auto!important;min-height:0!important;max-height:none!important;
+  overflow:visible!important;
   background:#f6f2e9!important;color:#4b3a24!important;
   font:11px Arial,Helvetica,sans-serif!important
 }
 /* Same visual system as Secret Society Scanner's member table, scaled to
    fit the native oasis Production pane. Restrict all selectors to Sniper. */
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-scroll {
-  width:100%!important;max-height:170px!important;min-width:0!important;
-  box-sizing:border-box!important;overflow:auto!important;
+  width:100%!important;height:auto!important;max-height:none!important;min-width:0!important;
+  box-sizing:border-box!important;overflow:visible!important;
   border:1px solid #cdbb9d!important;border-radius:4px!important;
-  background:#fff!important;
-  scrollbar-color:var(--qol-scroll-thumb,#b8a080) #e7ded1!important;
-  scrollbar-width:thin!important
+  background:#fff!important
 }
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table {
   width:100%!important;min-width:0!important;
@@ -87,20 +86,21 @@ window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table {
   color:#4d3824!important;font:9px Arial,Helvetica,sans-serif!important
 }
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table th {
-  position:sticky!important;top:0!important;z-index:2!important;
-  height:29px!important;padding:4px 5px!important;
+  position:static!important;
+  height:22px!important;padding:2px 3px!important;
   border:0!important;border-bottom:1px solid #cbbd9f!important;
   background:#e5d4b8!important;color:#533b22!important;
-  text-align:left!important;font:700 8px Arial,Helvetica,sans-serif!important;
+  text-align:center!important;vertical-align:middle!important;
+  font:700 8px Arial,Helvetica,sans-serif!important;line-height:14px!important;
   text-transform:uppercase!important;white-space:nowrap!important;
   overflow:hidden!important;text-overflow:ellipsis!important
 }
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td {
-  height:29px!important;padding:4px 5px!important;
+  height:22px!important;padding:2px 3px!important;
   border:0!important;border-top:1px solid #eadfce!important;
   background:#fff!important;color:#4d3824!important;
-  font:9px Arial,Helvetica,sans-serif!important;line-height:15px!important;
-  text-align:left!important;vertical-align:middle!important;
+  font:9px Arial,Helvetica,sans-serif!important;line-height:14px!important;
+  text-align:center!important;vertical-align:middle!important;
   white-space:nowrap!important;overflow:hidden!important;
   text-overflow:ellipsis!important;text-shadow:none!important
 }
@@ -120,7 +120,7 @@ window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:nt
 }
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table th:nth-child(3),
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:nth-child(3) {
-  width:27%!important;text-align:right!important
+  width:27%!important;text-align:center!important
 }
 window.modalWrapper.mapCellDetails .contentBox.rightBox .apes-sniper-table td:nth-child(3) {
   font-variant-numeric:tabular-nums!important
