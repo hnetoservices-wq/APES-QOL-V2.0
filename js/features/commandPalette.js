@@ -39,6 +39,7 @@
         `,
     rally: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 13-6 3 6-13 6zM4 10l-2 1 2 4 3-1M17 4l2-1 3 6-2 1M11 14v4M11 18l-4 4M11 18l4 4"/></svg>',
     calculator: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
+    distance: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M7 17 17 7M10 6h8v8"/></svg>',
     cp: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19V5M4 19h16M7 15l3-4 3 2 5-7M15 6h3v3"/></svg>',
     oasis: `
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -93,6 +94,12 @@
     label: 'NPC Calculator',
     icon: ICONS.calculator,
     controlId: 'qol-npc-calc-toggle-btn'
+  }, {
+    id: 'distance.open',
+    featureKey: 'distanceCalculator',
+    label: 'Distance & Arrival',
+    icon: ICONS.distance,
+    controlId: 'qol-distance-calc-toggle-btn'
   }, {
     id: 'cp.open',
     featureKey: 'cpManager',
