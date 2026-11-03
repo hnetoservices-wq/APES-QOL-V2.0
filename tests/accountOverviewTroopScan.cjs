@@ -5,6 +5,7 @@ const path = require('node:path');
 const root = path.resolve(__dirname, '..');
 const intel = fs.readFileSync(path.join(root,'js/modules/villageDashboard/expandedVillageIntel.js'),'utf8');
 const integration = fs.readFileSync(path.join(root,'js/modules/villageDashboard/dashboardScanIntegration.js'),'utf8');
+const smithyScript = fs.readFileSync(path.join(root,'js/modules/villageDashboard/armySmithyScanner.js'),'utf8');
 const paletteCode = fs.readFileSync(path.join(root,'js/ui/villagePalette.js'),'utf8');
 const overview = fs.readFileSync(path.join(root,'js/modules/villageDashboard/accountOverview.js'),'utf8');
 const manifest = JSON.parse(fs.readFileSync(path.join(root,'manifest.json'),'utf8'));
@@ -112,6 +113,30 @@ new Function('window','document','CustomEvent','console',integration)(
 assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
 
 (async()=>{
+  // No Smithy: avoid the old Number(null) -> 0 bug, which navigated to
+  // location:0 and caused long, unnecessary waits during deep scans.
+  const smithyStart = smithyScript.indexOf('  async function loadVillageResearch(village) {');
+  const smithyEnd = smithyScript.indexOf('  function setButtonText()', smithyStart);
+  assert.ok(smithyStart >= 0 && smithyEnd > smithyStart);
+  const routeWrites = [], smithySaves = [];
+  const noSmithyLoader = new Function('requestResearch','savedVillageResearch',
+    'saveVillageResearch','smithyLocationFromDom','window','waitForResearch',
+    'waitForVillage','sleep',
+    smithyScript.slice(smithyStart,smithyEnd)+'return loadVillageResearch;')(
+    async()=>null, ()=>null,
+    (villageId,payload,location)=>smithySaves.push({villageId,payload,location}),
+    ()=>null,
+    {location:{set hash(value){routeWrites.push(value)}}},
+    async()=>{throw Error('Should not wait for absent Smithy research')},
+    async()=>{throw Error('Should not wait for absent Smithy navigation')},
+    async()=>{throw Error('Should not sleep for an absent Smithy')}
+  );
+  assert.equal(await noSmithyLoader({villageId:'101'}),null);
+  assert.deepEqual(routeWrites,[],'Missing Smithy must never open location:0');
+  assert.equal(smithySaves.length,1);
+  assert.equal(smithySaves[0].payload.loaded,false);
+  assert.equal(smithySaves[0].location,null);
+
   await window.APES.villageDashboardCombinedScan.run();
   assert.deepEqual(events,['villages','troops','refresh']);
   events.length=0;
