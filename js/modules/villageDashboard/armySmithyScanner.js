@@ -66,7 +66,7 @@
       ...previous,
       levels: payload?.units && typeof payload.units === 'object' ? payload.units : previous.levels || {},
       loaded: payload?.loaded === true,
-      smithyLocation: Number.isFinite(Number(smithyLocation)) ? Number(smithyLocation) : (previous.smithyLocation ?? null),
+      smithyLocation: smithyLocation != null && Number.isFinite(Number(smithyLocation)) ? Number(smithyLocation) : (previous.smithyLocation ?? null),
       scannedAt: Date.now()
     };
     writeStore(store);
@@ -141,7 +141,9 @@
     }
 
     const smithyLocation = smithyLocationFromDom();
-    if (!Number.isFinite(Number(smithyLocation))) {
+    // Number(null) is 0, which is not a valid missing-Smithy signal.
+    // Do not open /location:0 and wait up to ~10 seconds for a non-existent Smithy.
+    if (smithyLocation == null || !Number.isFinite(Number(smithyLocation))) {
       saveVillageResearch(villageId, { loaded: false, units: {} }, null);
       return null;
     }
