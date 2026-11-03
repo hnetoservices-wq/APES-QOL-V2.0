@@ -74,8 +74,14 @@ description.classList.add('description');
 description.textContent = 'Original unit description';
 cell.appendChild(description);
 const icon = { getAttribute: name => name === 'data' ? unitId : null };
-const info = {querySelector: sel => sel === '.description' ? description :
-  sel === '.unitHeader .unitIcon[data]' ? icon : null };
+let selectedCount = null;
+const info = {
+  querySelector: sel => sel === '.description' ? description :
+    sel === '.unitHeader .unitIcon[data]' ? icon : null,
+  querySelectorAll: sel => sel === 'input' && selectedCount !== null
+    ? [{value:String(selectedCount),name:'amount',type:'number',getAttribute:()=>null}]
+    : []
+};
 let time = '00:02:08', unitId = '11', fallbackTime = '128';
 const fallback = { wood: '85', clay: '65', iron: '30' };
 const footer = {
@@ -102,10 +108,16 @@ stableDescription.textContent = 'Paladin original description';
 stableCell.appendChild(stableDescription);
 let stableUnitId = '15', stableTime = '00:08:45';
 const stableCost = {wood:'330',clay:'170',iron:'200'};
-const stableInfo = { querySelector: sel => sel === '.description' ? stableDescription :
-  sel === '.unitHeader .unitIcon[data]' ? {
-    getAttribute: name => name === 'data' ? stableUnitId : null
-  } : null };
+let stableSelectedCount = null;
+const stableInfo = {
+  querySelector: sel => sel === '.description' ? stableDescription :
+    sel === '.unitHeader .unitIcon[data]' ? {
+      getAttribute: name => name === 'data' ? stableUnitId : null
+    } : null,
+  querySelectorAll: sel => sel === 'input' && stableSelectedCount !== null
+    ? [{value:String(stableSelectedCount),name:'quantity',type:'number',getAttribute:()=>null}]
+    : []
+};
 const stableFooter = {
   getAttribute: name => name === 'time' ? '525' : null,
   querySelector(sel) {
@@ -171,6 +183,19 @@ assert.equal(cell.querySelectorAll('.qol-training24-plan').length,1,'Never injec
 assert.equal(cell.querySelector('.qol-training24-plan'),plan,'Do not recreate unchanged summary');
 assert.equal(stableCell.querySelector('.qol-training24-plan'),stablePlan,'Stable summary not duplicated');
 
+// Stable totals must be invariant as the selected batch quantity changes.
+stableSelectedCount=50;
+stableTime='07:17:30'; // 50 * 00:08:45
+stableCost.wood='16500';stableCost.clay='8500';stableCost.iron='10000';
+runner();
+stablePlan=stableCell.querySelector('.qol-training24-plan');
+assert.match(stablePlan.textContent,/164 units \/ 24h/);
+assert.match(stablePlan.textContent,/00:08:45 each/);
+assert.match(stablePlan.textContent,/54,120/);
+assert.match(stablePlan.textContent,/27,880/);
+assert.match(stablePlan.textContent,/32,800/);
+stableSelectedCount=null;
+
 stableUnitId='16'; stableTime='00:10:00';
 stableCost.wood='280';stableCost.clay='320';stableCost.iron='260';runner();
 stablePlan=stableCell.querySelector('.qol-training24-plan');
@@ -201,6 +226,30 @@ time='00:02:08';fallback.wood='130';runner();
 plan=cell.querySelector('.qol-training24-plan');
 assert.match(plan.textContent,/87,750/,'Current displayed wood cost of 130 must override the static 125');
 assert.match(plan.textContent,/Total: 165,375 Resources \| 6,890\.63 Resources\/hour/,'Hourly average updates with displayed costs');
+
+// The 65-Clubswinger in-game example is a 65-unit batch, not a new
+// per-unit time or price. Both selected quantities must show 929/day.
+unitId='11';
+window.Travian.Config.troopConfig[11]={costs:{1:80,2:60,3:30,4:0}};
+selectedCount=65;
+time='01:40:45'; // 65 * 00:01:33
+fallback.wood='5135'; fallback.clay='3965'; fallback.iron='1820';
+runner();
+plan=cell.querySelector('.qol-training24-plan');
+assert.match(plan.textContent,/929 units \/ 24h/);
+assert.match(plan.textContent,/00:01:33 each/);
+assert.match(plan.textContent,/73,391/,'929 * live wood cost 79, not static 80');
+assert.match(plan.textContent,/56,669/,'929 * live clay cost 61, not static 60');
+assert.match(plan.textContent,/26,012/,'929 * live iron cost 28, not static 30');
+assert.match(plan.textContent,/Total: 156,072 Resources/);
+const batchPlan=plan;
+selectedCount=1;
+time='00:01:33';
+fallback.wood='79'; fallback.clay='61'; fallback.iron='28';
+runner();
+assert.equal(cell.querySelector('.qol-training24-plan'),batchPlan,
+ 'Changing only the selected batch quantity must not alter the 24-hour estimate');
+selectedCount=null;
 
 on=false;runner();
 assert.equal(cell.querySelector('.qol-training24-plan'),null,'Disabling removes replacement');
