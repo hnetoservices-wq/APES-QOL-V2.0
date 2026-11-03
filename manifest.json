@@ -95,6 +95,7 @@
         "js/features/resourceUpgradePlanner.js",
         "js/modules/resourceUpgradePlanner/cityDetection.js",
         "js/modules/resourceUpgradePlanner/integration.js",
+        "js/features/distanceCalculator.js",
         "js/features/auctionHouseScanner.js",
         "js/features/cpVillageNavigator.js",
         "js/features/cpManager.js",
