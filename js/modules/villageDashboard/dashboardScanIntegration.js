@@ -21,7 +21,6 @@
   async function runCombinedDashboardScan() {
     if (running) return;
     const palette = window.APES_VILLAGE_PALETTE;
-    const smithy = window.APES?.villageSmithyLevels;
     const troops = window.APES?.villageDashboardIntel;
     if (!palette?.scan) return;
 
@@ -40,18 +39,9 @@
         return;
       }
 
-      // The Research models are not guaranteed to load simply by visiting a
-      // village. Run the Smithy pass immediately afterwards; it reuses cached
-      // Research data where available and only opens a Smithy when needed.
-      if (smithy?.scan) {
-        setPhase('Scanning · Smithies…');
-        try {
-          await smithy.scan();
-        } catch (error) {
-          // A Smithy failure should not prevent a fresh troop snapshot.
-          console.warn('[APES Village Dashboard] Smithy pass failed.', error);
-        }
-      }
+      // Smithy upgrades are deliberately optional: fetching them navigates
+      // into every Smithy and can block Scan Now for many seconds per village.
+      // The separate Scan Army control still offers deep Smithy collection.
 
       // Account Overview's Unit Counter reads saved army-history snapshots.
       // A normal village-by-village Scan Now previously never refreshed them,
@@ -96,7 +86,7 @@
 
   // Capture before villagePalette's overlay handler. This makes the visible
   // dashboard Scan Now button the single entry point for both the legacy scan
-  // and the Smithy/army pass instead of leaving Smithy behind a second button.
+  // and the troop overview refresh. Smithy remains an explicit, optional scan.
   window.addEventListener('click', event => {
     const button = event.target?.closest?.('.apes-vd-scan-btn');
     if (!button || !dashboardOpen()) return;
