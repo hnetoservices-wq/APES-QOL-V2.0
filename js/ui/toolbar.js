@@ -38,6 +38,10 @@
     label: 'NPC Calculator',
     key: 'npcCalculator'
   }, {
+    id: 'qol-distance-calc-toggle-btn',
+    label: 'Distance & Arrival Calculator',
+    key: 'distanceCalculator'
+  }, {
     id: 'qol-resource-planner-toggle-btn',
     label: 'Resource Upgrade Planner',
     key: 'resourceUpgradePlanner'
