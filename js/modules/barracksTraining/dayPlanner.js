@@ -66,6 +66,92 @@
     return { unitId, wood, clay, iron };
   }
 
+  // Travian's costs footer displays the cost and duration for the entire
+  // quantity entered in the training form, not always a single troop.
+  function selectedQuantity(info, footer) {
+    const parse = value => {
+      const text = String(value ?? '').trim();
+      if (!/^\d+$/.test(text)) return null;
+      const count = Number(text);
+      return Number.isSafeInteger(count) && count > 0 ? count : null;
+    };
+    for (const attr of ['amount', 'quantity', 'count', 'units']) {
+      const count = parse(footer.getAttribute(attr));
+      if (count !== null) return count;
+    }
+    // Only look in the selected unit's details, not other troop cards.
+    const seen = new Set(), inputs = [];
+    for (const scope of [info, footer.parentElement].filter(Boolean)) {
+      for (const input of scope.querySelectorAll?.('input') || []) {
+        if (seen.has(input) || input.disabled || input.type === 'hidden') continue;
+        seen.add(input);
+        const count = parse(input.value);
+        if (count === null) continue;
+        const hint = [
+          input.name, input.id, input.getAttribute?.('ng-model'),
+          input.getAttribute?.('data-ng-model'), input.getAttribute?.('aria-label')
+        ].join(' ');
+        inputs.push({ count, hint });
+      }
+    }
+    const identified = inputs.filter(input => /amount|quantity|count|units|troops/i.test(input.hint));
+    if (identified.length === 1) return identified[0].count;
+    return inputs.length === 1 ? inputs[0].count : null;
+  }
+
+  function commonDivisor(a, b) {
+    while (b) [a, b] = [b, a % b];
+    return a;
+  }
+
+  function quantityFromUnitConfig(costs) {
+    const config = window.Travian?.Config?.troopConfig?.[costs.unitId]?.costs;
+    if (!config) return null;
+    const entries = [['wood', '1'], ['clay', '2'], ['iron', '3']]
+      .map(([key, id]) => ({ amount: costs[key], base: resourceNumber(config[id]) }))
+      .filter(item => item.base > 0 && item.amount > 0);
+    if (entries.length < 2) return null;
+    const gcd = entries.reduce((value, item) => commonDivisor(value, item.amount), 0);
+    if (gcd <= 0) return null;
+
+    // The batch's resource costs share the quantity as a factor. Compare
+    // eligible factors against static unit costs to identify the quantity,
+    // allowing slight live-world cost variation without overwriting it.
+    let best = null;
+    const consider = count => {
+      if (count < 1 || !entries.every(item => item.amount % count === 0)) return;
+      const errors = entries.map(item => Math.abs(item.amount / count - item.base) / item.base);
+      const worst = Math.max(...errors);
+      const average = errors.reduce((sum, item) => sum + item, 0) / errors.length;
+      if (worst > 0.2 || average > 0.12) return;
+      if (!best || average < best.error) best = { count, error: average };
+    };
+    for (let divisor = 1; divisor * divisor <= gcd; divisor += 1) {
+      if (gcd % divisor !== 0) continue;
+      consider(divisor);
+      if (divisor * divisor !== gcd) consider(gcd / divisor);
+    }
+    return best?.count || null;
+  }
+
+  function unitFigures(info, footer) {
+    const batchSeconds = durationFor(footer);
+    const batchCosts = unitCosts(info, footer);
+    if (!batchSeconds || !batchCosts) return null;
+
+    const fromInput = selectedQuantity(info, footer);
+    const fromConfig = quantityFromUnitConfig(batchCosts);
+    const count = fromConfig || fromInput || 1;
+    const costs = { unitId: batchCosts.unitId };
+    for (const resource of ['wood', 'clay', 'iron']) {
+      if (batchCosts[resource] % count !== 0) return null;
+      costs[resource] = batchCosts[resource] / count;
+    }
+    const seconds = batchSeconds / count;
+    if (!Number.isFinite(seconds) || seconds <= 0) return null;
+    return { seconds, costs };
+  }
+
   function format(number) { return number.toLocaleString('en-US'); }
 
   function element(tag, cls, content) {
@@ -95,9 +181,9 @@
     output.appendChild(element('strong', '', format(completed)));
     output.appendChild(element('span', '', ' units / 24h'));
     const timing = element('span', 'qol-training24-time', ' · ' +
-      String(Math.floor(seconds / 3600)).padStart(2, '0') + ':' +
-      String(Math.floor(seconds / 60) % 60).padStart(2, '0') + ':' +
-      String(seconds % 60).padStart(2, '0') + ' each');
+      String(Math.floor(Math.round(seconds) / 3600)).padStart(2, '0') + ':' +
+      String(Math.floor(Math.round(seconds) / 60) % 60).padStart(2, '0') + ':' +
+      String(Math.round(seconds) % 60).padStart(2, '0') + ' each');
     output.appendChild(timing);
     plan.appendChild(output);
 
@@ -133,9 +219,9 @@
       const description = info?.querySelector('.description');
       const footer = root.querySelector('display-resources.costsFooter');
       if (!description || !footer) { restore(root); continue; }
-      const seconds = durationFor(footer);
-      const costs = unitCosts(info, footer);
-      if (!seconds || !costs) { restore(root); continue; }
+      const figures = unitFigures(info, footer);
+      if (!figures) { restore(root); continue; }
+      const { seconds, costs } = figures;
       const buildingName = root.closest('.building.buildingType20') ? 'Stable' : 'Barracks';
       const key = [buildingName, costs.unitId, seconds, costs.wood, costs.clay, costs.iron].join('|');
       let plan = description.parentElement?.querySelector('.' + PLAN_CLASS);
