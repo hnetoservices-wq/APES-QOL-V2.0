@@ -11,6 +11,7 @@
     ['qol-roadmaps-toggle-btn', 'roadmaps', 'Roadmaps'],
     ['qol-building-alarm-toggle-btn', 'buildingAlarm', 'Building Alarms'],
     ['qol-npc-calc-toggle-btn', 'npcCalculator', 'NPC Calculator'],
+    ['qol-distance-calc-toggle-btn', 'distanceCalculator', 'Distance & Arrival Calculator'],
     ['qol-resource-planner-toggle-btn', 'resourceUpgradePlanner', 'Resource Upgrade Planner'],
     ['qol-watchlist-toggle', 'watchlist', 'Watchlists'],
     ['qol-report-archive-toggle', 'reportArchive', 'Report Archive'],
