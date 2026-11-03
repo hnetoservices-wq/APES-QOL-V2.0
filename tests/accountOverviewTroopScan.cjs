@@ -80,7 +80,7 @@ assert.match(intel,/\.tabOwnTroops\.activeTab\.currentTab \.ownTroops table\.vil
 assert.match(intel,/validateOwnTroopsTable\(table, parsed\)/);
 assert.match(overview,/window\.addEventListener\('apes_vd_army_history_updated',\(\)=>\{lastRender='';render\(\);\}\)/);
 
-// Simulate clicking "Scan Now" with existing village and Smithy passes.
+// Simulate Scan Now: village and troop passes only; deep Smithy stays on-demand.
 const events = [];
 const listeners = {};
 const buttonClasses = new Set();
@@ -113,11 +113,11 @@ assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
 
 (async()=>{
   await window.APES.villageDashboardCombinedScan.run();
-  assert.deepEqual(events,['villages','smithy','troops','refresh']);
+  assert.deepEqual(events,['villages','troops','refresh']);
   events.length=0;
   window.APES.villageSmithyLevels.scan=async()=>{events.push('smithy');throw Error('Smithy temporarily unavailable')};
   await window.APES.villageDashboardCombinedScan.run();
-  assert.deepEqual(events,['villages','smithy','troops','refresh'],'Troops still refresh if Smithy fails');
+  assert.deepEqual(events,['villages','troops','refresh'],'Smithy failure does not affect Scan Now because it is never invoked');
   assert.equal(button.textContent,'Scan Now','Scan button restored on successful scan');
   events.length=0;
   window.APES.villageSmithyLevels.scan=async()=>events.push('smithy');
@@ -125,18 +125,18 @@ assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
     events.push('troops'); return false;
   };
   await window.APES.villageDashboardCombinedScan.run();
-  assert.deepEqual(events,['villages','smithy','troops','refresh']);
+  assert.deepEqual(events,['villages','troops','refresh']);
   assert.match(button.textContent,/Troop scan failed/,'Failure is shown rather than silently claiming success');
 
   // First click with no village snapshot must remain a visible failure. It
-  // must not run the Smithy and Troops passes on stale history.
+  // must not run the Troop pass on stale history.
   events.length=0;
   window.APES_VILLAGE_PALETTE.scan=async()=>{events.push('villages');return false};
   await window.APES.villageDashboardCombinedScan.run();
   assert.deepEqual(events,['villages','refresh'],'A failed village pass stops subsequent scans');
   assert.match(button.textContent,/Villages unavailable — Retry/,'Show failed start on the button');
 
-  // A subsequent successful first click must start the entire chain once.
+  // A subsequent successful first click must scan villages and troops exactly once.
   events.length=0;
   window.APES_VILLAGE_PALETTE.scan=async()=>{events.push('villages');return true};
   window.APES.villageDashboardIntel.refreshTroops=async()=>{events.push('troops');return true};
@@ -149,11 +149,11 @@ assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
   await Promise.resolve();
   await Promise.resolve();
   await Promise.resolve();
-  assert.deepEqual(events,['villages','smithy','troops','refresh'],'Single click triggers full scan');
+  assert.deepEqual(events,['villages','troops','refresh'],'Single click triggers full scan');
   assert.equal(button.textContent,'Scan Now','Single-click success restores label');
 
   // Reproduce a dashboard repaint after the village pass has ended, while
-  // Smithy and Troop scans are still running. Previously palette.js reset
+  // the Troop scan is still running. Previously palette.js reset
   // the Scan Now button during these intermediate render calls.
   const statusStart=paletteCode.indexOf('    function updateScanButton() {');
   const statusEnd=paletteCode.indexOf('    function mountDashboard()',statusStart);
@@ -162,23 +162,16 @@ assert.equal(typeof window.APES.villageDashboardCombinedScan.run,'function');
     paletteCode.slice(statusStart,statusEnd)+'return updateScanButton;')(
     document,'apes-v2-village-overlay',window,false,{total:0,current:0,returning:false});
   const deferred=()=>{let resolve;const promise=new Promise(r=>{resolve=r});return {promise,resolve}};
-  const villageDone=deferred(),smithyDone=deferred(),troopDone=deferred();
+  const villageDone=deferred(),troopDone=deferred();
   events.length=0;
   window.APES_VILLAGE_PALETTE.scan=async()=>{events.push('villages');return villageDone.promise};
-  window.APES.villageSmithyLevels.scan=async()=>{events.push('smithy');return smithyDone.promise};
   window.APES.villageDashboardIntel.refreshTroops=async()=>{events.push('troops');return troopDone.promise};
   const activeScan=window.APES.villageDashboardCombinedScan.run();
   assert.equal(window.APES.villageDashboardCombinedScan.isRunning(),true);
   assert.match(button.textContent,/Scanning/,'First click immediately reports scanning');
   assert.equal(buttonAttributes['aria-disabled'],'true');
   villageDone.resolve(true); for(let i=0;i<8;i++)await Promise.resolve();
-  assert.deepEqual(events,['villages','smithy']);
-  repaint();
-  assert.match(button.textContent,/Scanning.*Smithies/,'A dashboard render cannot clear Smithy scanning state');
-  assert.ok(buttonClasses.has('scanning'));
-  assert.equal(buttonAttributes['aria-disabled'],'true');
-  smithyDone.resolve();for(let i=0;i<8;i++)await Promise.resolve();
-  assert.deepEqual(events,['villages','smithy','troops']);
+  assert.deepEqual(events,['villages','troops']);
   repaint();
   assert.match(button.textContent,/Scanning.*Troops/,'A dashboard render cannot clear Troop scanning state');
   assert.equal(buttonAttributes['aria-disabled'],'true');
