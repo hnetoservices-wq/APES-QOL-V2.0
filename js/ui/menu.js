@@ -135,6 +135,12 @@ const ADVANCED_FEATURES = [{
   icon: '🔔',
   description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
 }, {
+  id: 'qol-chk-distance-calculator',
+  key: 'distanceCalculator',
+  name: 'Distance & Arrival Calculator',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="19" r="2"/><circle cx="19" cy="5" r="2"/><path d="M7 17 17 7M10 6h8v8"/></svg>',
+  description: 'Calculate route distances, troop or merchant travel time, and exact server-time landings with manual speed overrides.'
+}, {
   id: 'qol-chk-cp-manager',
   key: 'cpManager',
   name: 'CP Manager',
@@ -286,6 +292,10 @@ const TOOLBAR_ITEMS = [{
   label: 'NPC Calculator',
   key: 'npcCalculator'
 }, {
+  id: 'qol-distance-calc-toggle-btn',
+  label: 'Distance & Arrival Calculator',
+  key: 'distanceCalculator'
+}, {
   id: 'qol-oasis-toggle-btn',
   label: 'Oasis Scanner',
   key: 'oasisScanner'
@@ -401,6 +411,7 @@ function injectQolMenuStyles() {
         body.qol-toolbar-collapsed #qol-checklist-toggle-btn,
         body.qol-toolbar-collapsed #qol-building-alarm-toggle-btn,
         body.qol-toolbar-collapsed #qol-npc-calc-toggle-btn,
+        body.qol-toolbar-collapsed #qol-distance-calc-toggle-btn,
         body.qol-toolbar-collapsed #qol-oasis-toggle-btn,
         body.qol-toolbar-collapsed #qol-report-archive-toggle,
         body.qol-toolbar-collapsed #qol-cp-toggle-btn,
