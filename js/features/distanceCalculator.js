@@ -279,9 +279,10 @@
       if (!['auto', '1', '2', '3', '5'].includes(String(merged.worldSpeedOverride))) {
         merged.worldSpeedOverride = 'auto';
       }
-      // Retain existing preferences, but never silently interpret obsolete
-      // saved worldSpeed or customSpeed values as an active override.
-      merged.customSpeed = '';
+      // Manual override is explicit and saved with the user's settings.
+      const custom = String(merged.customSpeed ?? '').trim();
+      merged.customSpeed = custom && Number.isFinite(Number(custom)) && Number(custom) > 0
+        ? custom : '';
       return merged;
     } catch (_) {
       return fallback;
@@ -401,7 +402,7 @@
     const movement = MOVEMENT_MAP.get(state.movementKey);
     const speedOverride = String(state.customSpeed ?? '').trim();
     const manualSpeed = speedOverride === '' ? null : Number(speedOverride);
-    const baseSpeed = Number.isFinite(manualSpeed) && manualSpeed > 0
+    const baseSpeed = speedOverride !== ''
       ? manualSpeed : Number(movement?.speed || 0);
     const worldSpeed = activeWorldSpeed();
     const world = WORLD_SPEEDS[worldSpeed] || WORLD_SPEEDS[1];
