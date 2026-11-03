@@ -631,6 +631,14 @@
     const panel = document.getElementById(PANEL_ID);
     if (!panel) return;
     lastResult = calculate();
+    // The official world-speed bridge may publish after the modal mounts.
+    // Keep the detected multiplier label synchronized with live calculations.
+    const world = WORLD_SPEEDS[activeWorldSpeed()] || WORLD_SPEEDS[1];
+    const worldLabel = panel.querySelector('[data-world-label]');
+    const movementLabel = panel.querySelector('[data-world-movement]');
+    if (worldLabel) worldLabel.textContent = world.label +
+      (state.worldSpeedOverride === 'auto' ? ' · auto' : ' · manual');
+    if (movementLabel) movementLabel.textContent = `Movement x${world.movement}`;
     panel.classList.toggle('qol-invalid', !lastResult.valid);
     const sendButton = panel.querySelector('[data-send]');
     sendButton?.classList.toggle('qol-disabled', !lastResult.valid);
