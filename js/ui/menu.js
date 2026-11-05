@@ -914,7 +914,7 @@ function buildSettingsMarkup() {
             <div class="qol-modal-body">
                 <section class="qol-language-picker" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px">
                     <label for="qol-language-select">Extension language</label>
-                    <select id="qol-language-select" data-apes-language-select style="font:inherit;max-width:100%;padding:6px 10px">
+                    <select id="qol-language-select" data-apes-language-select style="display:inline-block!important;visibility:visible!important;opacity:1!important;position:static!important;appearance:auto!important;-webkit-appearance:menulist!important;box-sizing:border-box!important;width:220px!important;min-width:160px!important;max-width:100%!important;height:34px!important;min-height:34px!important;margin:0!important;padding:6px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font:inherit!important;font-size:12px!important;line-height:normal!important;pointer-events:auto!important;clip:auto!important;clip-path:none!important;transform:none!important">
                         <option value="en" lang="en">English</option>
                         <option value="pt-PT" lang="pt-PT">Português (Portugal)</option>
                         <option value="es-ES" lang="es-ES">Español (España)</option>
