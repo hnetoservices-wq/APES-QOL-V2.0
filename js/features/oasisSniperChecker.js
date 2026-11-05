@@ -78,7 +78,7 @@ const apesHtml_oasisSniperChecker = window.APES?.i18n?.html || ((s, ...v) => Str
       // claim that the oasis is empty or troops are absent.
       const finding=row.proof
         ? apesHtml_oasisSniperChecker`<strong class="apes-sniper-confirmed">`+
-          row.strictOvertake.toLocaleString('en-US')+' units minimum</strong>'
+          row.strictOvertake.toLocaleString('en-US')+apesHtml_oasisSniperChecker` units minimum</strong>`
         : apesHtml_oasisSniperChecker`<span class="apes-sniper-unproven">Unproven</span>`;
       return apesHtml_oasisSniperChecker`<tr><td>`+row.rank+apesHtml_oasisSniperChecker`</td><td>`+html(row.name)+apesHtml_oasisSniperChecker`</td><td>`+base+
         apesHtml_oasisSniperChecker`</td><td>`+finding+'</td></tr>';

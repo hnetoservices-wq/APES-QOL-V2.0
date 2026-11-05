@@ -130,7 +130,7 @@ const apesHtml_buildingSteps = window.APES?.i18n?.html || ((s, ...v) => String.r
     document.querySelector('.qol-rme-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = 'qol-rme-toast';
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2400);
   }
@@ -172,10 +172,8 @@ const apesHtml_buildingSteps = window.APES?.i18n?.html || ((s, ...v) => String.r
     }
 
     const count = Math.max(1, target - next + 1);
-    summary.textContent = count === 1
-      ? `Adds ${buildingName}${meta.repeatable ? ` #${instance}` : ''} → Level ${next}.`
-      : `Adds ${count} separate steps: Level ${next} through Level ${target}.`;
-    confirm.textContent = count === 1 ? 'Add Step' : `Add ${count} Steps`;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 1)?(write("Adds {v0}{v1} → Level {v2}.",{v0:(buildingName),v1:(meta.repeatable ? ` #${instance}` : ''),v2:(next)})):(write("Adds {v0} separate steps: Level {v1} through Level {v2}.",{v0:(count),v1:(next),v2:(target)}));})(summary);
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 1)?(write("Add Step")):(write("Add {v0} Steps",{v0:(count)}));})(confirm);
   }
 
   function batchAdd(dialog, event) {

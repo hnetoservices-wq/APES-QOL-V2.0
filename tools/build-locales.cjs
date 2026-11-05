@@ -8,6 +8,8 @@ const catalogs = Object.fromEntries(languages.map(code => [code, {}]));
 for (const [index, row] of rows.entries()) {
   if (row.length !== 8 || row.some(cell => !cell.trim())) throw Error(`Incomplete translation row ${index + 2}`);
   const [key, ...values] = row;
+  const placeholders = text => [...text.matchAll(/\{(\w+)\}/g)].map(match => match[1]).sort().join(',');
+  if (values.some(value => placeholders(value) !== placeholders(key))) throw Error(`Translation placeholders differ at row ${index + 2}: ${key}`);
   values.forEach((value, i) => {
     if (Object.hasOwn(catalogs[languages[i]], key)) throw Error(`Duplicate key: ${key}`);
     catalogs[languages[i]][key] = value;

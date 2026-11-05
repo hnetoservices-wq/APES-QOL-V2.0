@@ -110,7 +110,7 @@
     const node = detectionNode();
     if (!node) return;
     node.className = `qol-rmac-detection ${tone}`;
-    node.textContent = text;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(node);
   }
 
   function resetConfirmation() {
@@ -165,7 +165,7 @@
     document.querySelector('.qol-rma-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = 'qol-rma-toast';
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2400);
   }

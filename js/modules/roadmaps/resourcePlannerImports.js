@@ -166,7 +166,7 @@ const apesHtml_resourcePlannerImports = window.APES?.i18n?.html || ((s, ...v) =>
     const node = detectionNode();
     if (!node) return;
     node.className = `qol-rmpi-detection ${tone}`;
-    node.textContent = text;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(node);
   }
 
   function completeCurrent(current) {
@@ -412,7 +412,7 @@ const apesHtml_resourcePlannerImports = window.APES?.i18n?.html || ((s, ...v) =>
     document.querySelector('.qol-rup-import-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = `qol-rup-import-toast ${tone}`;
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2800);
   }
@@ -494,7 +494,7 @@ const apesHtml_resourcePlannerImports = window.APES?.i18n?.html || ((s, ...v) =>
 
       if (button) {
         const original = button.textContent;
-        button.textContent = 'Imported ✓';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Imported ✓");})(button);
         button.classList.add('success');
         setTimeout(() => {
           if (!button.isConnected) return;
@@ -544,7 +544,7 @@ const apesHtml_resourcePlannerImports = window.APES?.i18n?.html || ((s, ...v) =>
       row.classList.add('qol-rmpi-resource-row');
       const badge = row.querySelector('.qol-rm-step-type');
       if (badge) {
-        badge.textContent = 'Resource';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Resource");})(badge);
         badge.classList.remove('instruction', 'building', 'checkpoint');
         badge.classList.add('resource');
       }
@@ -579,15 +579,13 @@ const apesHtml_resourcePlannerImports = window.APES?.i18n?.html || ((s, ...v) =>
 
     const type = panel.querySelector('.qol-rmr-type');
     if (type) {
-      type.textContent = 'Resource Field';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Resource Field");})(type);
       type.classList.remove('building', 'checkpoint');
       type.classList.add('resource');
     }
     const stepText = panel.querySelector('.qol-rmr-step-text');
     if (stepText) {
-      stepText.textContent = current.info.mode === 'count'
-        ? `${current.info.requiredCount}/${current.info.totalCount} ${current.info.resourceLabel} Fields → Level ${current.info.level}`
-        : `${current.info.resourceLabel} Field #${current.info.fieldNumber} → Level ${current.info.level}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (current.info.mode === 'count')?(write("{v0}/{v1} {v2} Fields → Level {v3}",{v0:(current.info.requiredCount),v1:(current.info.totalCount),v2:(current.info.resourceLabel),v3:(current.info.level)})):(write("{v0} Field #{v1} → Level {v2}",{v0:(current.info.resourceLabel),v1:(current.info.fieldNumber),v2:(current.info.level)}));})(stepText);
     }
     if (!panel.querySelector('.qol-rmpi-detection')) {
       renderDetection(current.info.mode === 'count' ? 'Counting completed resource fields…' : 'Checking legacy exact resource field…', 'waiting');

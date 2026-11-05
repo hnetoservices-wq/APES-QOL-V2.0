@@ -15,6 +15,27 @@
   const decode = value => { const el = document.createElement('textarea'); el.innerHTML = value; return el.value; };
   let language = 'en', revision = 0;
   const missing = new Set();
+  // Match only explicitly authored labels and status messages, never page data.
+  const sourceCatalog = Object.values(catalogs)[0] || {};
+  const escapeRegex = value => value.replace(/[.*+?^$\x7b\x7d()|[\]\\]/g, '\\$&');
+  const patterns = Object.keys(sourceCatalog).filter(key => /\{\w+\}/.test(key)).map(key => {
+    const names = []; let previous = 0, pattern = '^';
+    for (const match of key.matchAll(/\{(\w+)\}/g)) {
+      pattern += escapeRegex(key.slice(previous, match.index)) + '(.*?)';
+      names.push(match[1]); previous = match.index + match[0].length;
+    }
+    pattern += escapeRegex(key.slice(previous)) + '$';
+    return { key, names, regex: new RegExp(pattern), weight: key.replace(/\{\w+\}/g, '').length };
+  }).sort((a, b) => b.weight - a.weight);
+  function resolve(source, values) {
+    const key = normalize(source);
+    if (Object.keys(values).length || Object.hasOwn(sourceCatalog, key)) return [key, values];
+    for (const pattern of patterns) {
+      const match = key.match(pattern.regex);
+      if (match) return [pattern.key, Object.fromEntries(pattern.names.map((name, index) => [name, match[index + 1]]))];
+    }
+    return [key, values];
+  }
   function t(source, values = {}) {
     const key = normalize(source);
     const translated = language === 'en' ? key : (catalogs[language]?.[key] || folded[language]?.[key.toLowerCase()]);
@@ -22,10 +43,11 @@
     return (translated || key).replace(/\{([\w]+)\}/g, (match, key) => Object.hasOwn(values, key) ? String(values[key]) : match);
   }
   const encodeKey = key => encodeURIComponent(key).replace(/-/g, '%2D');
-  // Comments bind only authored text. Interpolated names, messages, saved labels,
-  // coordinates and HTML are substituted afterwards and never inspected.
+  // Bind authored text only. Interpolated names, saved labels and coordinates
+  // remain escaped values; unmarked page content is never translated.
   function label(source, values = {}) {
-    const key = normalize(source);
+    const [key, resolvedValues] = resolve(source, values);
+    values = resolvedValues;
     if (!key) return '';
     const payload = encodeKey(JSON.stringify([key, values]));
     return `<!--apes-i18n:${payload}-->${escape(t(key, values))}<!--/apes-i18n-->`;
@@ -76,14 +98,14 @@
         if (text.data !== result) text.data = result;
       } catch (_) { /* Ignore unrelated or incomplete markup. */ }
     }
-    const selector = '[data-apes-i18n],[data-apes-i18n-title],[data-apes-i18n-aria-label],[data-apes-i18n-placeholder]';
+    const selector = '[data-apes-i18n],[data-apes-i18n-title],[data-apes-i18n-aria-label],[data-apes-i18n-placeholder],[data-apes-i18n-label]';
     const elements = [...(root.matches?.(selector) ? [root] : []), ...(root.querySelectorAll?.(selector) || [])];
     for (const el of elements) {
       if (el.hasAttribute('data-apes-i18n')) {
         const value = t(el.getAttribute('data-apes-i18n'));
         if (el.textContent !== value) el.textContent = value;
       }
-      for (const attr of ['title', 'aria-label', 'placeholder']) {
+      for (const attr of ['title', 'aria-label', 'placeholder', 'label']) {
         const key = el.getAttribute(`data-apes-i18n-${attr}`);
         if (!key) continue;
         const value = t(decodeURIComponent(key));
@@ -97,7 +119,12 @@
     apply();
     APES.events?.emit('languageChanged', { language });
   }
-  function setText(element, key, values) {
+  const textBindings = new WeakMap();
+  function setText(element, key, values = {}) {
+    [key, values] = resolve(key, values);
+    const signature = JSON.stringify([key, values]);
+    if (textBindings.get(element) === signature && element.textContent === t(key, values)) return t(key, values);
+    textBindings.set(element, signature);
     element.removeAttribute('data-apes-i18n');
     element.replaceChildren();
     // This API is for authored labels, never for player or server data.
@@ -107,7 +134,7 @@
     return t(key, values);
   }
   function setAttribute(element, attr, key) {
-    if (!['title', 'aria-label', 'placeholder'].includes(attr)) throw new RangeError('Unsupported localized attribute.');
+    if (!['title', 'aria-label', 'placeholder', 'label'].includes(attr)) throw new RangeError('Unsupported localized attribute.');
     element.setAttribute(`data-apes-i18n-${attr}`, encodeKey(key));
     element.setAttribute(attr, t(key));
   }

@@ -447,7 +447,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
   function setStatus(message, tone = 'neutral') {
     const element = document.querySelector(`#${PANEL_ID} .qol-cp-status`);
     if (element) {
-      element.textContent = message;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(element);
       element.dataset.tone = tone;
     }
     if (isScanning) updateScanOverlay(message);
@@ -457,7 +457,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (!button) return;
     button.classList.toggle('disabled', disabled);
     button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-    if (text) button.textContent = text;
+    if (text) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(button);
   }
   function setPlanButtonVisible(visible) {
     document.querySelector(`#${PANEL_ID} .qol-cp-plan-btn`)?.classList.toggle('hidden', !visible);
@@ -835,7 +835,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     const section = document.querySelector(`#${PANEL_ID} .qol-cp-townhalls`);
     if (!section) return;
     const halls = scan.villages.filter(village => village.hasTownHall);
-    const rows = halls.map(village => apesHtml_cpManager`<tr><td title="${escapeHtml(village.villageName)}">${escapeHtml(village.villageName)}${village.stale?' (cached)':''}</td><td>Town Hall ${village.level}</td></tr>`).join('');
+    const rows = halls.map(village => apesHtml_cpManager`<tr><td title="${escapeHtml(village.villageName)}">${escapeHtml(village.villageName)}${village.stale?(window.APES?.i18n?.label(' (cached)') ?? ' (cached)'):''}</td><td>Town Hall ${village.level}</td></tr>`).join('');
     section.innerHTML = apesHtml_cpManager`<div class="qol-cp-box-heading"><span>Town Halls Detected</span><span class="qol-cp-count">${halls.length}</span></div><div class="qol-cp-table-wrap"><table><thead><tr><th>Village Name</th><th>Town Hall</th></tr></thead><tbody>${rows || apesHtml_cpManager`<tr><td colspan="2">No Town Halls detected.</td></tr>`}</tbody></table></div><div class="qol-cp-box-meta">Scanned ${scan.scannedCount}/${scan.expectedCount||scan.scannedCount} villages.${scan.complete?'':` ${scan.failures?.length||0} failed; ${scan.reusedCount||0} previous Town Hall readings retained. ${(scan.failures||[]).slice(0,3).map(v=>escapeHtml(v.name)+': '+escapeHtml(v.reason)).join('; ')}`}</div>`;
     section.style.setProperty('display', 'block', 'important');
   }
@@ -907,7 +907,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
   function buildTargetSlotOptions(result) {
     const start = getNextExpansionSlot(result);
     const options = [];
-    for (let slot = start; slot <= CP_SLOT_TARGETS.length; slot += 1) options.push(apesHtml_cpManager`<option value="${slot}"${slot === start ? ' selected' : ''}>${formatSlotOption(slot)}</option>`);
+    for (let slot = start; slot <= CP_SLOT_TARGETS.length; slot += 1) options.push(apesHtml_cpManager`<option value="${slot}"${slot === start ? (' selected') : ''}>${formatSlotOption(slot)}</option>`);
     return options.join('');
   }
   function count247StartsInPeriod(duration, busyUntil, periodDays, now = Date.now()) {
@@ -1071,15 +1071,15 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     planner.querySelector('.qol-cp-plan-oneoff').textContent = formatNumber(oneOff);
     planner.querySelector('.qol-cp-plan-artworks').textContent = formatNumber(artworkReward * artworkCount);
     planner.querySelector('.qol-cp-plan-eta').textContent = prediction.text;
-    planner.querySelector('.qol-cp-target-remaining').textContent = `${formatNumber(remaining)} CP remaining`;
-    planner.querySelector('.qol-cp-artwork-hint').textContent = `${formatNumber(artworkReward)} CP each · 1/day`;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} CP remaining",{v0:(formatNumber(remaining))});})(planner.querySelector('.qol-cp-target-remaining'));
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} CP each · 1/day",{v0:(formatNumber(artworkReward))});})(planner.querySelector('.qol-cp-artwork-hint'));
     planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
     updateRoadmap(planner, plans, periodDays, targetSlot, artworkCount);
   }
   function buildLevelOptions(village) {
     const start = village.hasTownHall ? Math.max(1, village.level) : 0;
     const options = [];
-    for (let level = start; level <= 20; level += 1) options.push(apesHtml_cpManager`<option value="${level}"${level === start ? ' selected' : ''}>${level}</option>`);
+    for (let level = start; level <= 20; level += 1) options.push(apesHtml_cpManager`<option value="${level}"${level === start ? (' selected') : ''}>${level}</option>`);
     return options.join('');
   }
   function renderPlanner() {

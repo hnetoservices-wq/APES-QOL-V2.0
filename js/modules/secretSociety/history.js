@@ -493,7 +493,7 @@ const apesHtml_history = window.APES?.i18n?.html || ((s, ...v) => String.raw({ r
   function resetComparisonResult(dialog) {
     const summary = dialog.querySelector('.qol-ss-compare-summary');
     const wrap = dialog.querySelector('.qol-ss-compare-table-wrap');
-    if (summary) summary.textContent = 'Select an earlier Scan A and a later Scan B.';
+    if (summary) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Select an earlier Scan A and a later Scan B.");})(summary);
     if (wrap) {
       wrap.innerHTML = apesHtml_history`<div class="qol-ss-compare-empty">Choose two dated scans, then select Compare.</div>`;
     }
@@ -733,7 +733,7 @@ const apesHtml_history = window.APES?.i18n?.html || ((s, ...v) => String.raw({ r
       compare.dataset.ssCompareHistory = 'true';
       compare.setAttribute('role', 'button');
       compare.setAttribute('tabindex', '0');
-      compare.textContent = 'Compare SS Scan';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Compare SS Scan");})(compare);
       const deleteButton = toolbar.querySelector('[data-ss-delete]');
       toolbar.insertBefore(compare, deleteButton || null);
       const open = event => {

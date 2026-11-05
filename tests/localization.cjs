@@ -28,6 +28,6 @@ const assert = require('node:assert/strict');
  fail = false; await i.setLanguage('pt-PT');
  const dynamic = w.document.createElement('div'); dynamic.innerHTML = i.html`<b>Language</b>`; ui.append(dynamic);
  await new Promise(resolve => w.setTimeout(resolve,0)); assert.equal(dynamic.textContent,'Idioma');
- for (const catalog of Object.values(w.APES.localeCatalogs)) { assert.equal(Object.keys(catalog).length,491); assert.ok(Object.values(catalog).every(value=>value.trim())); }
+ for (const catalog of Object.values(w.APES.localeCatalogs)) { assert.ok(Object.keys(catalog).length >= 870); assert.ok(Object.values(catalog).every(value=>value.trim())); }
  dom.window.close(); console.log('Localization: eight languages, persistence, switching, attributes, dynamic UI, data isolation and save failures passed.');
 })();

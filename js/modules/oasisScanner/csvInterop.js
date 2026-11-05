@@ -245,10 +245,10 @@ const apesHtml_csvInterop = window.APES?.i18n?.html || ((s, ...v) => String.raw(
 
     const summary = panel.querySelector('#qol-tag-team-setup-summary');
     if (summary && config.enabled) {
-      if (config.selectedSection === 'ALL') summary.textContent = `All sections · ${config.teamSize} users`;
+      if (config.selectedSection === 'ALL') ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("All sections · {v0} users",{v0:(config.teamSize)});})(summary);
       else {
         const section = sections.find(item => item.id === config.selectedSection);
-        summary.textContent = section ? `Section ${section.id} · ${section.name}` : `Section ${config.selectedSection}`;
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (section)?(write("Section {v0} · {v1}",{v0:(section.id),v1:(section.name)})):(write("Section {v0}",{v0:(config.selectedSection)}));})(summary);
       }
     }
 
@@ -272,11 +272,9 @@ const apesHtml_csvInterop = window.APES?.i18n?.html || ((s, ...v) => String.raw(
     const overallBar = panel.querySelector('#qol-tag-team-overall-bar');
 
     if (assignedText) {
-      assignedText.textContent = selectedSection
-        ? `Section ${selectedSection.id}: ${assignedScanned.toLocaleString()} / ${assignedTotal.toLocaleString()} (${formatPercent(assignedPct)})`
-        : `All sections: ${assignedScanned.toLocaleString()} / ${assignedTotal.toLocaleString()} (${formatPercent(assignedPct)})`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (selectedSection)?(write("Section {v0}: {v1} / {v2} ({v3})",{v0:(selectedSection.id),v1:(assignedScanned.toLocaleString()),v2:(assignedTotal.toLocaleString()),v3:(formatPercent(assignedPct))})):(write("All sections: {v0} / {v1} ({v2})",{v0:(assignedScanned.toLocaleString()),v1:(assignedTotal.toLocaleString()),v2:(formatPercent(assignedPct))}));})(assignedText);
     }
-    if (overallText) overallText.textContent = `Full map: ${scanned.length.toLocaleString()} / ${total.toLocaleString()} (${formatPercent(overallPct)})`;
+    if (overallText) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Full map: {v0} / {v1} ({v2})",{v0:(scanned.length.toLocaleString()),v1:(total.toLocaleString()),v2:(formatPercent(overallPct))});})(overallText);
     if (assignedBar) {
       assignedBar.style.setProperty('width', formatPercent(assignedPct), 'important');
       assignedBar.style.backgroundColor = selectedSection?.hex || 'var(--qol-accent)';
@@ -480,7 +478,7 @@ const apesHtml_csvInterop = window.APES?.i18n?.html || ((s, ...v) => String.raw(
 
   function setStatus(message) {
     const status = document.getElementById('qol-oasis-status-message');
-    if (status) status.textContent = message;
+    if (status) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(status);
   }
 
   function exportReducedSession() {
@@ -733,7 +731,7 @@ const apesHtml_csvInterop = window.APES?.i18n?.html || ((s, ...v) => String.raw(
     const button = document.createElement('div');
     button.id = 'qol-oasis-import';
     button.className = 'qol-oasis-action-btn';
-    button.textContent = 'Import CSV';
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Import CSV");})(button);
     button.title = 'Import an APES Oasis Scanner CSV export';
     exportButton.insertAdjacentElement('beforebegin', button);
 

@@ -1893,7 +1893,7 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
                             ${row.id === activeFolderId ? 'qol-ra-active' : ''}
                         "
                         data-folder-id="${escapeHtml(row.id)}"
-                        data-custom-folder="${row.custom ? 'true' : 'false'}"
+                        data-custom-folder="${row.custom ? ('true') : ('false')}"
                         ${row.custom ? 'draggable="true" ' + 'title="Drag to reorder"' : ''}
                     >
                         <span class="qol-ra-folder-icon">
@@ -2039,13 +2039,14 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
     const folderReports = getVisibleReports();
     const reports = getSortedVisibleReports();
     title.textContent = getFolderName(activeFolderId);
-    subtitle.textContent = searchQuery ? `${reports.length} of ` + `${folderReports.length} ` + 'archived reports' : `${reports.length} ` + `archived report${reports.length === 1 ? '' : 's'}`;
+    if (window.APES?.i18n) window.APES.i18n.setText(subtitle, searchQuery ? '{count} of {total} archived reports' : reports.length === 1 ? '{count} archived report' : '{count} archived reports', { count: reports.length, total: folderReports.length });
+    else subtitle.textContent = searchQuery ? `${reports.length} of ` + `${folderReports.length} ` + 'archived reports' : `${reports.length} ` + `archived report${reports.length === 1 ? '' : 's'}`;
     if (!reports.length) {
       list.innerHTML = apesHtml_reportArchive`
                 <div class="qol-ra-empty">
                     <div>
                         <strong>
-                            ${searchQuery ? 'No matching reports found.' : 'No reports saved here yet.'}
+                            ${searchQuery ? (window.APES?.i18n?.label('No matching reports found.') ?? 'No matching reports found.') : (window.APES?.i18n?.label('No reports saved here yet.') ?? 'No reports saved here yet.')}
                         </strong>
                     </div>
 
@@ -2483,7 +2484,7 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
     }) : null;
     const layer = createDialog(existing ? 'Rename Folder' : 'Create Folder', apesHtml_reportArchive`
                     <label>
-                        ${existing ? 'Folder name' : 'Name the new report folder'}
+                        ${existing ? (window.APES?.i18n?.label('Folder name') ?? 'Folder name') : (window.APES?.i18n?.label('Name the new report folder') ?? 'Name the new report folder')}
 
                         <input
                             class="qol-ra-input"
@@ -2501,7 +2502,7 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
     const submit = async () => {
       const name = normalizeText(input.value);
       if (!name) {
-        errorBox.textContent = 'Enter a folder name.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Enter a folder name.");})(errorBox);
         input.focus();
         return;
       }
@@ -2509,7 +2510,7 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
         return folder.id !== folderId && folder.name.toLowerCase() === name.toLowerCase();
       });
       if (duplicate) {
-        errorBox.textContent = 'A folder with this name already exists.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("A folder with this name already exists.");})(errorBox);
         input.focus();
         return;
       }
@@ -2535,7 +2536,7 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
           afterCreate(savedFolder);
         }
       } catch (error) {
-        errorBox.textContent = `Could not save: ${error.message}`;
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Could not save: {v0}",{v0:(error.message)});})(errorBox);
       }
     };
     addDialogControl(layer, 'Cancel', 'qol-ra-secondary', closeDialogs);
@@ -2717,7 +2718,7 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
     });
     const toast = document.createElement('div');
     toast.className = `qol-ra-toast ${type === 'error' ? 'qol-ra-toast-error' : ''}`.trim();
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2800);
   }

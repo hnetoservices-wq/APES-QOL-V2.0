@@ -293,9 +293,9 @@ const apesHtml_poopScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw
 
   function scanStatus(message) {
     const status = document.querySelector('#' + PANEL_ID + ' [data-poop-scan-status]');
-    if (status) status.textContent = message;
+    if (status) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(status);
     const progress = document.querySelector('#' + LOCK_ID + ' [data-poop-progress]');
-    if (progress) progress.textContent = message;
+    if (progress) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(progress);
   }
 
   function renderScanSummary() {

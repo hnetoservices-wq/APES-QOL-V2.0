@@ -339,11 +339,9 @@ const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.
       if (editing) {
         levelInput.value = next;
         levelInput.disabled = true;
-        note.textContent = earlier
-          ? `${selectedGroup.label} previously reaches Level ${earlier}, so this exact step is Level ${next}.`
-          : `${selectedGroup.label} has no earlier resource step, so this exact step is Level 1.`;
-        confirm.textContent = 'Save Step';
-        status.textContent = earlier >= MAX_FIELD_LEVEL ? `${selectedGroup.label} is already at the roadmap maximum.` : '';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (earlier)?(write("{v0} previously reaches Level {v1}, so this exact step is Level {v2}.",{v0:(selectedGroup.label),v1:(earlier),v2:(next)})):(write("{v0} has no earlier resource step, so this exact step is Level 1.",{v0:(selectedGroup.label)}));})(note);
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Save Step");})(confirm);
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (earlier >= MAX_FIELD_LEVEL)?(write("{v0} is already at the roadmap maximum.",{v0:(selectedGroup.label)})):(element.textContent=(''));})(status);
         return { earlier, target: next, count: 1 };
       }
 
@@ -351,11 +349,9 @@ const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.
       let target = Math.max(1, Math.min(MAX_FIELD_LEVEL, Number(levelInput.value) || next));
       levelInput.value = target;
       const count = Math.max(0, target - earlier);
-      note.textContent = earlier
-        ? `${selectedGroup.label} already reaches Level ${earlier} in this roadmap. This will add Level ${earlier + 1}${count > 1 ? ` through Level ${target}` : ''}.`
-        : `This will add ${selectedGroup.label} Level 1${target > 1 ? ` through Level ${target}` : ''}.`;
-      confirm.textContent = count === 1 ? 'Add 1 Step' : `Add ${count} Steps`;
-      status.textContent = count === 0 ? `${selectedGroup.label} already reaches Level ${earlier}. Choose a higher target.` : '';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (earlier)?(write("{v0} already reaches Level {v1} in this roadmap. This will add Level {v2}{v3}.",{v0:(selectedGroup.label),v1:(earlier),v2:(earlier + 1),v3:(count > 1 ? ` through Level ${target}` : '')})):(write("This will add {v0} Level 1{v1}.",{v0:(selectedGroup.label),v1:(target > 1 ? ` through Level ${target}` : '')}));})(note);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 1)?(write("Add 1 Step")):(write("Add {v0} Steps",{v0:(count)}));})(confirm);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 0)?(write("{v0} already reaches Level {v1}. Choose a higher target.",{v0:(selectedGroup.label),v1:(earlier)})):(element.textContent=(''));})(status);
       return { earlier, target, count };
     };
 
@@ -464,7 +460,7 @@ const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.
       resource.dataset.rmrfAdd = '1';
       resource.setAttribute('role', 'button');
       resource.setAttribute('tabindex', '0');
-      resource.textContent = '+ Resource Fields';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("+ Resource Fields");})(resource);
       const instruction = add.querySelector('[data-rme-add="instruction"]');
       if (instruction) add.insertBefore(resource, instruction);
       else add.appendChild(resource);
@@ -479,7 +475,7 @@ const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.
       resourceCount += 1;
       const badge = row.querySelector('.qol-rm-step-type');
       if (badge) {
-        badge.textContent = 'Resource';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Resource");})(badge);
         badge.classList.remove('instruction');
         badge.classList.add('resource');
       }
@@ -503,7 +499,7 @@ const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.
     }
 
     const routeHint = hub.querySelector('.qol-rm-route-head > span');
-    if (routeHint) routeHint.textContent = 'Exact order followed by the runner.';
+    if (routeHint) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Exact order followed by the runner.");})(routeHint);
   }
 
   function ensureResourceDetectionNode() {
@@ -522,7 +518,7 @@ const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.
     const node = ensureResourceDetectionNode();
     if (!node) return;
     node.className = `qol-rmrf-detection ${tone}`;
-    node.textContent = text;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(node);
   }
 
   function enhanceRunner() {
@@ -537,7 +533,7 @@ const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.
 
     const type = panel.querySelector('.qol-rmr-type');
     if (type) {
-      type.textContent = 'Resource Fields';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Resource Fields");})(type);
       type.classList.remove('building');
       type.classList.add('resource');
     }

@@ -558,17 +558,17 @@ const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.r
     const node = panel?.querySelector('.qol-npc-status');
     const detailNode = panel?.querySelector('.qol-npc-status-detail');
     if (node) {
-      node.textContent = message;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(node);
       node.dataset.tone = tone;
     }
-    if (detailNode) detailNode.textContent = detail;
+    if (detailNode) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(detail);})(detailNode);
   }
   function setBanner(message, tone = 'neutral', detail = '') {
     const banner = panel?.querySelector('.qol-npc-banner');
     if (!banner) return;
     banner.dataset.tone = tone;
-    banner.querySelector('.qol-npc-banner-text').textContent = message;
-    banner.querySelector('.qol-npc-banner-sub').textContent = detail;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(banner.querySelector('.qol-npc-banner-text'));
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(detail);})(banner.querySelector('.qol-npc-banner-sub'));
   }
   function setTribe(tribeKey, rebuild = true) {
     if (!ALL_TRIBE_UNITS[tribeKey]) return;
@@ -588,7 +588,7 @@ const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.r
     const great = row.dataset.great === 'true' && !siege;
     mode.classList.toggle('great', great);
     mode.classList.toggle('siege', siege);
-    mode.textContent = siege ? 'Siege' : great ? 'GS / GB' : 'Normal';
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (siege)?(write("Siege")):((great)?(write("GS / GB")):(write("Normal")));})(mode);
     mode.setAttribute('aria-pressed', great ? 'true' : 'false');
     mode.setAttribute('aria-disabled', siege ? 'true' : 'false');
   }
@@ -598,7 +598,7 @@ const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.r
     row.className = 'qol-npc-row';
     row.dataset.great = 'false';
     row.innerHTML = apesHtml_npcCalculator`
-            <td><select class="qol-npc-unit-select">${units.map(unit => apesHtml_npcCalculator`<option value="${unit.name}">${unit.name}</option>`).join('')}</select></td>
+            <td><select class="qol-npc-unit-select">${units.map(unit => apesHtml_npcCalculator`<option value="${unit.name}" data-apes-i18n="${(unit.name)}">${(window.APES?.i18n?.label(unit.name) ?? (unit.name))}</option>`).join('')}</select></td>
             <td><span class="qol-npc-mode" role="button" tabindex="0" aria-pressed="false">Normal</span></td>
             <td class="num qol-npc-max">0</td>
             <td class="center"><input class="qol-npc-count" type="number" min="0" value="0" inputmode="numeric"></td>
@@ -860,7 +860,7 @@ const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.r
     const passNode = panel?.querySelector('#qol-npc-passes');
     if (passNode) {
       const count = passes.length || 1;
-      passNode.textContent = passes.length ? `Pass ${selectedPassIndex + 1}/${count}` : '1 pass';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (passes.length)?(write("Pass {v0}/{v1}",{v0:(selectedPassIndex + 1),v1:(count)})):(write("1 pass"));})(passNode);
       passNode.className = `qol-npc-pill ${count > 1 ? 'warn' : 'good'}`;
     }
     if (action) action.classList.toggle('disabled', !pass || Boolean(npcFillOperation));
@@ -875,9 +875,9 @@ const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.r
       const required = pass?.required?.[key] || 0;
       const leaves = Math.max(0, target - required);
       if (valueNode) valueNode.textContent = formatNumber(target);
-      if (requiredNode) requiredNode.textContent = `Need ${formatNumber(required)}`;
+      if (requiredNode) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Need {v0}",{v0:(formatNumber(required))});})(requiredNode);
       if (overflowNode) {
-        overflowNode.textContent = pass ? `Leaves ${formatNumber(leaves)}` : 'Leaves 0';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (pass)?(write("Leaves {v0}",{v0:(formatNumber(leaves))})):(write("Leaves 0"));})(overflowNode);
         overflowNode.classList.remove('overflow');
       }
       card?.classList.toggle('capped', Number.isFinite(cap) && cap > 0 && target >= cap && required > 0);
@@ -965,7 +965,7 @@ const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.r
     document.body.appendChild(overlay);
     cancel.focus();
     operation.progress = message => {
-      overlay.querySelector('.qol-npc-fill-progress').textContent = message;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(overlay.querySelector('.qol-npc-fill-progress'));
     };
     let released = false;
     operation.release = () => {
@@ -1187,7 +1187,7 @@ const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.r
       const capacity = resources[key].capacity;
       const percent = Number.isFinite(capacity) && capacity > 0 ? Math.max(0, Math.min(100, Math.round(current / capacity * 100))) : null;
       panel.querySelector(`#qol-npc-stock-${key}`).textContent = formatNumber(current);
-      panel.querySelector(`#qol-npc-stock-${key}-capacity`).textContent = Number.isFinite(capacity) ? `Cap ${formatNumber(capacity)}` : 'Cap unknown';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (Number.isFinite(capacity))?(write("Cap {v0}",{v0:(formatNumber(capacity))})):(write("Cap unknown"));})(panel.querySelector(`#qol-npc-stock-${key}-capacity`));
       panel.querySelector(`#qol-npc-stock-${key}-percent`).textContent = percent == null ? '—' : `${percent}%`;
       panel.querySelector(`#qol-npc-stock-${key}-meter`).style.width = `${percent ?? 0}%`;
     });

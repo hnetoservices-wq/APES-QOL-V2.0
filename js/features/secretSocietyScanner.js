@@ -318,7 +318,7 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
   function scanButtonState(text, working) {
     const button = document.getElementById(NATIVE_SCAN_ID);
     if (!button) return;
-    button.textContent = text;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(button);
     button.classList.toggle('qol-ss-working', Boolean(working));
     button.setAttribute('aria-busy', String(Boolean(working)));
   }
@@ -339,14 +339,14 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
                 <div class="qol-ss-lock-stop" role="button" tabindex="0">Stop after current message</div>
             </div>
         `;
-    lock.querySelector('.qol-ss-lock-title').textContent = title;
-    lock.querySelector('.qol-ss-lock-status').textContent = message;
+    window.APES?.i18n ? window.APES.i18n.setText(lock.querySelector('.qol-ss-lock-title'), title) : (lock.querySelector('.qol-ss-lock-title').textContent = title);
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(lock.querySelector('.qol-ss-lock-status'));
     const stop = lock.querySelector('.qol-ss-lock-stop');
     const requestStop = event => {
       event?.preventDefault();
       event?.stopPropagation();
       cancelMessageRun = true;
-      stop.textContent = 'Stopping…';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Stopping…");})(stop);
       stop.setAttribute('aria-disabled', 'true');
       updateInteractionLock('Finishing the current message, then APES will stop.');
     };
@@ -363,7 +363,7 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
   }
   function updateInteractionLock(message) {
     const status = document.querySelector(`#${LOCK_ID} .qol-ss-lock-status`);
-    if (status) status.textContent = message;
+    if (status) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(status);
   }
   function hideInteractionLock() {
     document.getElementById(LOCK_ID)?.remove();
@@ -546,10 +546,10 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
   function iconHtml(kind, label, extraClass = '') {
     const classes = `qol-ss-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
     if (kind === 'crop') {
-      return apesHtml_secretSocietyScanner`<span class="${classes}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><i class="unit_crop_small_illu resType4"></i></span>`;
+      return apesHtml_secretSocietyScanner`<span class="${classes}" title="${(escapeHtml(label))}" aria-label="${(escapeHtml(label))}"><i class="unit_crop_small_illu resType4"></i></span>`;
     }
     const paths = ICON_PATHS[kind] || '';
-    return apesHtml_secretSocietyScanner`<span class="${classes}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg></span>`;
+    return apesHtml_secretSocietyScanner`<span class="${classes}" title="${(escapeHtml(label))}" aria-label="${(escapeHtml(label))}"><svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg></span>`;
   }
   function formatMetric(value) {
     const numeric = numericValue(value);
@@ -641,8 +641,8 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
                 </div>
             </div>
         `;
-    dialog.querySelector('.qol-ss-dialog-title').textContent = title;
-    dialog.querySelector('.qol-ss-dialog-message').textContent = message;
+    window.APES?.i18n ? window.APES.i18n.setText(dialog.querySelector('.qol-ss-dialog-title'), title) : (dialog.querySelector('.qol-ss-dialog-title').textContent = title);
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(dialog.querySelector('.qol-ss-dialog-message'));
     const close = () => dialog.remove();
     const ok = dialog.querySelector('.qol-ss-action');
     ok.addEventListener('click', close);
@@ -667,9 +667,9 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
                     </div>
                 </div>
             `;
-      dialog.querySelector('.qol-ss-dialog-title').textContent = title;
-      dialog.querySelector('.qol-ss-dialog-message').textContent = message;
-      dialog.querySelector('[data-confirm]').textContent = confirmLabel;
+      window.APES?.i18n ? window.APES.i18n.setText(dialog.querySelector('.qol-ss-dialog-title'), title) : (dialog.querySelector('.qol-ss-dialog-title').textContent = title);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(dialog.querySelector('.qol-ss-dialog-message'));
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(confirmLabel);})(dialog.querySelector('[data-confirm]'));
       const finish = value => {
         dialog.remove();
         resolve(value);
@@ -1026,7 +1026,7 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
                     <thead><tr>
                         ${MEMBER_COLUMNS.map(column => apesHtml_secretSocietyScanner`
                             <th class="qol-ss-sort${column.icon ? ' qol-ss-icon-column' : ''}${memberSort.key === column.key ? ` qol-sort-${memberSort.direction}` : ''}"
-                                data-ss-sort="${column.key}" role="button" tabindex="0" title="${escapeHtml(column.label)}">${column.icon ? iconHtml(column.icon, column.label) : column.label}</th>
+                                data-ss-sort="${column.key}" role="button" tabindex="0" title="${(escapeHtml(column.label))}">${column.icon ? iconHtml(column.icon, column.label) : (window.APES?.i18n?.label(column.label) ?? column.label)}</th>
                         `).join('')}
                         <th class="qol-ss-role-column">Def</th>
                         <th class="qol-ss-role-column">Off</th>
@@ -1046,9 +1046,9 @@ const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => S
     const refreshRecipientCount = () => {
       const role = recipientSelect.value;
       const count = roleCount(selected, role);
-      recipientCount.textContent = `${count} ${role.toUpperCase()} ${count === 1 ? 'member' : 'members'} selected`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} {v1} {v2} selected",{v0:(count),v1:(role.toUpperCase()),v2:(count === 1 ? 'member' : 'members')});})(recipientCount);
       sendButton.setAttribute('aria-disabled', String(count === 0));
-      sendButton.textContent = count === 0 ? 'No recipients' : `Send to ${count}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 0)?(write("No recipients")):(write("Send to {v0}",{v0:(count)}));})(sendButton);
     };
     const renderRows = () => {
       const query = normalizedText(search.value);

@@ -99,7 +99,7 @@ const apesHtml_integration = window.APES?.i18n?.html || ((s, ...v) => String.raw
       const count = grid.previousElementSibling?.querySelector('.qol-section-count');
       if (count && count.dataset.rupCounted !== 'true') {
         const current = Number.parseInt(count.textContent, 10);
-        if (Number.isFinite(current)) count.textContent = `${current + 1} tools`;
+        if (Number.isFinite(current)) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} tools",{v0:(current + 1)});})(count);
         count.dataset.rupCounted = 'true';
       }
     }
@@ -297,7 +297,7 @@ const apesHtml_integration = window.APES?.i18n?.html || ((s, ...v) => String.raw
     document.querySelector('.qol-rup-import-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = `qol-rup-import-toast ${tone}`;
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2800);
   }
@@ -366,7 +366,7 @@ const apesHtml_integration = window.APES?.i18n?.html || ((s, ...v) => String.raw
 
     if (button) {
       const original = button.textContent;
-      button.textContent = 'Imported ✓';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Imported ✓");})(button);
       button.classList.add('success');
       setTimeout(() => {
         if (!button.isConnected) return;
@@ -409,7 +409,7 @@ const apesHtml_integration = window.APES?.i18n?.html || ((s, ...v) => String.raw
     button.setAttribute(IMPORT_BUTTON_ATTR, 'true');
     button.setAttribute('role', 'button');
     button.setAttribute('tabindex', '0');
-    button.textContent = 'Import to Roadmap';
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Import to Roadmap");})(button);
     const activate = event => {
       event.preventDefault();
       event.stopPropagation();

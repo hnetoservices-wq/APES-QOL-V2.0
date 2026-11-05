@@ -210,7 +210,7 @@ const apesHtml_editor = window.APES?.i18n?.html || ((s, ...v) => String.raw({ ra
     document.querySelector('.qol-rme-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = `qol-rme-toast ${type}`;
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2400);
   }
@@ -289,7 +289,7 @@ const apesHtml_editor = window.APES?.i18n?.html || ((s, ...v) => String.raw({ ra
     const save = () => {
       const name = clean(nameInput.value);
       if (!name) {
-        status.textContent = 'Enter a roadmap name.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Enter a roadmap name.");})(status);
         nameInput.focus();
         return;
       }
@@ -437,11 +437,9 @@ const apesHtml_editor = window.APES?.i18n?.html || ((s, ...v) => String.raw({ ra
       const beforeIndex = editing ? stepIndex : state.roadmap.steps.length;
       const previous = previousLevel(state.roadmap.steps, selectedBuilding.name, instance, beforeIndex);
       const next = previous + 1;
-      nextLevelLabel.textContent = next <= selectedBuilding.max ? `Level ${next}` : 'MAX';
-      sequenceNote.textContent = previous
-        ? `${selectedBuilding.name}${selectedBuilding.repeatable ? ` #${instance}` : ''} is Level ${previous} at the previous roadmap step. The next step is therefore locked to Level ${next}.`
-        : `${selectedBuilding.name}${selectedBuilding.repeatable ? ` #${instance}` : ''} has no earlier roadmap step. Its first exact upgrade is Level 1.`;
-      status.textContent = next > selectedBuilding.max ? `${selectedBuilding.name} is already at its roadmap maximum of Level ${selectedBuilding.max}.` : '';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (next <= selectedBuilding.max)?(write("Level {v0}",{v0:(next)})):(write("MAX"));})(nextLevelLabel);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (previous)?(write("{v0}{v1} is Level {v2} at the previous roadmap step. The next step is therefore locked to Level {v3}.",{v0:(selectedBuilding.name),v1:(selectedBuilding.repeatable ? ` #${instance}` : ''),v2:(previous),v3:(next)})):(write("{v0}{v1} has no earlier roadmap step. Its first exact upgrade is Level 1.",{v0:(selectedBuilding.name),v1:(selectedBuilding.repeatable ? ` #${instance}` : '')}));})(sequenceNote);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (next > selectedBuilding.max)?(write("{v0} is already at its roadmap maximum of Level {v1}.",{v0:(selectedBuilding.name),v1:(selectedBuilding.max)})):(element.textContent=(''));})(status);
       return { instance, next };
     };
 
@@ -456,7 +454,7 @@ const apesHtml_editor = window.APES?.i18n?.html || ((s, ...v) => String.raw({ ra
     wireButton(layer.querySelector('[data-rme-confirm]'), () => {
       const { instance, next } = sync();
       if (next > selectedBuilding.max) {
-        status.textContent = `${selectedBuilding.name} cannot go above Level ${selectedBuilding.max}.`;
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} cannot go above Level {v1}.",{v0:(selectedBuilding.name),v1:(selectedBuilding.max)});})(status);
         return;
       }
 
@@ -498,7 +496,7 @@ const apesHtml_editor = window.APES?.i18n?.html || ((s, ...v) => String.raw({ ra
     wireButton(layer.querySelector('[data-rme-confirm]'), () => {
       const text = clean(input.value);
       if (!text) {
-        status.textContent = 'Enter an instruction.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Enter an instruction.");})(status);
         input.focus();
         return;
       }

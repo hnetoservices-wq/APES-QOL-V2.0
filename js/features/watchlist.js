@@ -34,7 +34,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
   function iconHtml(kind, label, extraClass = '') {
     const classes = `qol-wl-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
     const artwork = kind === 'swordCastle' ? `${iconSvg('sword')}${iconSvg('castle')}` : kind === 'swordHouse' ? `${iconSvg('sword')}${iconSvg('house')}` : iconSvg(kind);
-    return apesHtml_watchlist`<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? ' qol-wl-combo-icon' : ''}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${artwork}</span>`;
+    return apesHtml_watchlist`<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? (' qol-wl-combo-icon') : ''}" title="${(escapeHtml(label))}" aria-label="${(escapeHtml(label))}">${artwork}</span>`;
   }
   function changeDescriptor(value) {
     const numeric = value == null || value === '' ? null : Number(value);
@@ -649,7 +649,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       toast.style.backgroundColor = '#c62828';
       toast.style.color = '#ffffff';
     }
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     watchlistContainer.appendChild(toast);
     setTimeout(() => {
       toast.style.opacity = '0';
@@ -663,9 +663,9 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     overlay.className = 'qol-modal-overlay';
     overlay.innerHTML = apesHtml_watchlist`
             <div class="qol-modal-box">
-                <div class="qol-modal-header">${title}</div>
+                <div class="qol-modal-header">${window.APES?.i18n?.label(title) ?? title}</div>
                 <div class="qol-modal-body">
-                    <div>${message}</div>
+                    <div>${window.APES?.i18n?.label(message) ?? message}</div>
                     <input type="text" class="qol-modal-input" value="${defaultValue || ''}" maxlength="20" />
                 </div>
                 <div class="qol-modal-footer">
@@ -701,9 +701,9 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     overlay.className = 'qol-modal-overlay';
     overlay.innerHTML = apesHtml_watchlist`
             <div class="qol-modal-box">
-                <div class="qol-modal-header">${title}</div>
+                <div class="qol-modal-header">${window.APES?.i18n?.label(title) ?? title}</div>
                 <div class="qol-modal-body">
-                    <div>${message}</div>
+                    <div>${window.APES?.i18n?.label(message) ?? message}</div>
                 </div>
                 <div class="qol-modal-footer">
                     <div class="qol-modal-btn qol-modal-btn-secondary qol-modal-cancel">Cancel</div>
@@ -1103,7 +1103,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     if (watchlistTabs.length < MAX_TABS) {
       const addTabBtn = document.createElement('div');
       addTabBtn.className = 'qol-wl-tab qol-wl-tab-add';
-      addTabBtn.innerText = '+ Add Tab';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("+ Add Tab");})(addTabBtn);
       addTabBtn.addEventListener('click', () => {
         const newTabNumber = watchlistTabs.length + 1;
         const newTab = {
@@ -1128,7 +1128,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     const activeTab = watchlistTabs.find(t => t.id === activeTabId) || watchlistTabs[0];
     if (statusEl) {
       const updated = activeTab.updatedAt ? ` · Updated ${new Date(activeTab.updatedAt).toLocaleString()}` : '';
-      statusEl.textContent = `${activeTab.name} · ${activeTab.entries.length}/${MAX_PLAYERS_PER_TAB} players${updated}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} · {v1}/{v2} players{v3}",{v0:(activeTab.name),v1:(activeTab.entries.length),v2:(MAX_PLAYERS_PER_TAB),v3:(updated)});})(statusEl);
     }
     tbody.innerHTML = '';
     if (activeTab.entries.length === 0) {

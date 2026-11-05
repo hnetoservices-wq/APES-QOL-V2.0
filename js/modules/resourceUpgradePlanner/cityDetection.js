@@ -119,7 +119,7 @@
       const cap = lastDetected.isCity ? 12 : 10;
       const current = planner()?.getState?.();
       if (Number(current?.maxLevel) !== 20) {
-        status.textContent = `${String(status.textContent || '').replace(/\s*$/, '')} ${lastDetected.label} detected · fields to ${cap}.`;
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} {v1} detected · fields to {v2}.",{v0:(String(status.textContent || '').replace(/\s*$/, '')),v1:(lastDetected.label),v2:(cap)});})(status);
       }
     }
     lastDetected = null;

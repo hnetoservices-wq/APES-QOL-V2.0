@@ -415,7 +415,7 @@ const apesHtml_officialGuides = window.APES?.i18n?.html || ((s, ...v) => String.
     }
 
     const badge = head.querySelector('.qol-rm-badge');
-    if (badge && badge.textContent !== 'APES Official') badge.textContent = 'APES Official';
+    if (badge && badge.textContent !== 'APES Official') ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("APES Official");})(badge);
 
     const signature = metadataSignature(id, definition.meta);
     let meta = currentMeta;

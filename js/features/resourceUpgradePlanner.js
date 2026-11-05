@@ -570,11 +570,11 @@ const apesHtml_resourceUpgradePlanner = window.APES?.i18n?.html || ((s, ...v) =>
   function setScanStatus(message, tone = 'neutral') {
     const status = document.querySelector(`#${PANEL_ID} [data-scan-status]`);
     if (status) {
-      status.textContent = message;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(status);
       status.dataset.tone = tone;
     }
     const lockStatus = document.querySelector(`#${SCAN_LOCK_ID} [data-lock-status]`);
-    if (lockStatus) lockStatus.textContent = message;
+    if (lockStatus) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(lockStatus);
   }
   function showScanLock() {
     document.getElementById(SCAN_LOCK_ID)?.remove();
@@ -598,7 +598,7 @@ const apesHtml_resourceUpgradePlanner = window.APES?.i18n?.html || ((s, ...v) =>
     const button = document.querySelector(`#${PANEL_ID} [data-action="scan"]`);
     button?.classList.toggle('qol-disabled', busy);
     button?.setAttribute('aria-disabled', busy ? 'true' : 'false');
-    if (button) button.textContent = busy ? 'Scanning…' : 'Scan village';
+    if (button) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (busy)?(write("Scanning…")):(write("Scan village"));})(button);
   }
   async function scanCurrentVillage() {
     if (isScanning) return;
@@ -1076,7 +1076,7 @@ const apesHtml_resourceUpgradePlanner = window.APES?.i18n?.html || ((s, ...v) =>
             <div class="qol-rup-oasis-summary">
                 <label class="qol-rup-oasis-count"><span>Assigned oases</span><select data-rup-oasis-count aria-label="Number of assigned oases">${Array.from({
       length: 4
-    }, (_, count) => apesHtml_resourceUpgradePlanner`<option value="${count}"${combined.count === count ? ' selected' : ''}>${count}</option>`).join('')}</select></label>
+    }, (_, count) => apesHtml_resourceUpgradePlanner`<option value="${count}"${combined.count === count ? (' selected') : ''}>${count}</option>`).join('')}</select></label>
                 ${RESOURCE_KEYS.map((resource, resourceIndex) => apesHtml_resourceUpgradePlanner`<label class="qol-rup-oasis-total" title="${RESOURCE_LABELS[resource]} oasis bonus">${resourceIcon(resource)}<span>${RESOURCE_LABELS[resource]}</span><input type="number" min="0" max="150" step="1" value="${combined.bonuses[resourceIndex]}" data-rup-oasis-total="${resourceIndex}" aria-label="Total ${RESOURCE_LABELS[resource]} oasis bonus percent"><b>%</b></label>`).join('')}
             </div>`;
   }
@@ -1095,7 +1095,7 @@ const apesHtml_resourceUpgradePlanner = window.APES?.i18n?.html || ((s, ...v) =>
     const gold = panel.querySelector('[data-rup="goldBoost"]');
     if (gold) gold.checked = state.goldBoost;
     const speedLabel = panel.querySelector('[data-rup-speed-label]');
-    if (speedLabel) speedLabel.textContent = speedInfo.detected ? `World speed · x${speedInfo.speed} detected` : 'World speed';
+    if (speedLabel) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (speedInfo.detected)?(write("World speed · x{v0} detected",{v0:(speedInfo.speed)})):(write("World speed"));})(speedLabel);
     const speedSelect = panel.querySelector('[data-rup="speed"]');
     if (speedSelect) speedSelect.title = speedInfo.detected ? `Detected from ${speedInfo.source}` : 'Server speed could not be identified automatically; choose it here.';
     Object.entries(state.buildings).forEach(([key, value]) => setValue(`[data-rup-building="${key}"]`, value));
@@ -1134,7 +1134,7 @@ const apesHtml_resourceUpgradePlanner = window.APES?.i18n?.html || ((s, ...v) =>
                     <section class="qol-rup-section" data-rup-section="buildings">
                         <div class="qol-rup-section-head" data-section-toggle role="button" tabindex="0" aria-expanded="true"><span class="qol-rup-section-title">Production buildings</span><span class="qol-rup-section-chevron" aria-hidden="true"></span></div>
                         <div class="qol-rup-section-body qol-rup-buildings">
-                            ${Object.entries(BUILDINGS).map(([key, building]) => apesHtml_resourceUpgradePlanner`<label class="qol-rup-building-level"><span>${escapeHtml(building.label)} —</span><select data-rup-building="${key}" aria-label="${escapeHtml(building.label)} level">${Array.from({
+                            ${Object.entries(BUILDINGS).map(([key, building]) => apesHtml_resourceUpgradePlanner`<label class="qol-rup-building-level"><span>${(window.APES?.i18n?.label(building.label) ?? (escapeHtml(building.label)))} —</span><select data-rup-building="${key}" aria-label="${(escapeHtml(building.label))} level">${Array.from({
       length: 6
     }, (_, level) => apesHtml_resourceUpgradePlanner`<option value="${level}">${level}</option>`).join('')}</select></label>`).join('')}
                             <label class="qol-rup-building-level"><span>Embassy —</span><select data-rup-building="embassy" aria-label="Embassy level">${Array.from({
@@ -1221,7 +1221,7 @@ const apesHtml_resourceUpgradePlanner = window.APES?.i18n?.html || ((s, ...v) =>
   function completionCheckbox(steps, label) {
     const normalized = steps.map(Number).filter(Number.isInteger);
     const checked = stepsAreCompleted(normalized) ? ' checked' : '';
-    return apesHtml_resourceUpgradePlanner`<label class="qol-rup-step-check" title="${escapeHtml(label)}"><input type="checkbox" data-rup-complete="${normalized.join(',')}" aria-label="${escapeHtml(label)}"${checked}><span class="qol-rup-step-check-box" aria-hidden="true"></span></label>`;
+    return apesHtml_resourceUpgradePlanner`<label class="qol-rup-step-check" title="${escapeHtml(label)}"><input type="checkbox" data-rup-complete="${normalized.join(',')}" aria-label="${(escapeHtml(label))}"${checked}><span class="qol-rup-step-check-box" aria-hidden="true"></span></label>`;
   }
   function syncCompletionPlan(results) {
     const key = getCompletionPlanKey(results);
@@ -1299,12 +1299,12 @@ const apesHtml_resourceUpgradePlanner = window.APES?.i18n?.html || ((s, ...v) =>
       if (group.kind === 'field') {
         return apesHtml_resourceUpgradePlanner`<div class="qol-rup-compact-row${completedClass}" data-rup-result-steps="${groupSteps.join(',')}"><div class="qol-rup-compact-step">${step}</div><div class="qol-rup-action-name">Upgrade ${RESOURCE_LABELS[group.resource]} fields ×${group.rows.length}</div><div class="qol-rup-levels">${renderLevelChips(group.startFields[group.resource], group.endFields[group.resource])}</div><div>Avg ROI ${formatHours(group.rows.reduce((sum, row) => sum + row.roiHours, 0) / group.rows.length)}</div><div>Total ${formatHours(last.elapsedHours)}</div>${done}</div>`;
       }
-      return apesHtml_resourceUpgradePlanner`<div class="qol-rup-compact-row${completedClass}" data-rup-result-steps="${groupSteps.join(',')}"><div class="qol-rup-compact-step">${step}</div><div class="qol-rup-action-name">${escapeHtml(first.label)}</div><div>${formatResourceLine(first.productionAfter)}</div><div>ROI ${formatHours(first.roiHours)}</div><div>Total ${formatHours(first.elapsedHours)}</div>${done}</div>`;
+      return apesHtml_resourceUpgradePlanner`<div class="qol-rup-compact-row${completedClass}" data-rup-result-steps="${groupSteps.join(',')}"><div class="qol-rup-compact-step">${step}</div><div class="qol-rup-action-name">${(window.APES?.i18n?.label(first.label) ?? (escapeHtml(first.label)))}</div><div>${formatResourceLine(first.productionAfter)}</div><div>ROI ${formatHours(first.roiHours)}</div><div>Total ${formatHours(first.elapsedHours)}</div>${done}</div>`;
     }).join('')}</div>`;
   }
   function renderDetail(results) {
     if (!results.length) return apesHtml_resourceUpgradePlanner`<div class="qol-rup-empty">No further production-improving action is available.</div>`;
-    return apesHtml_resourceUpgradePlanner`<div class="qol-rup-table-wrap"><table><thead><tr><th>#</th><th>Upgrade</th><th>Cost</th><th>Production before / h</th><th>Production after / h</th><th>Gain / h</th><th>Save time</th><th>ROI</th><th>Total time</th><th class="qol-rup-done-column" title="Completed">Done</th></tr></thead><tbody>${results.map(row => apesHtml_resourceUpgradePlanner`<tr class="${stepsAreCompleted([row.step]) ? 'qol-rup-completed' : ''}" data-rup-result-steps="${row.step}"><td class="qol-rup-step">${row.step}</td><td class="qol-rup-action-name">${escapeHtml(row.label)}</td><td>${formatResourceLine(row.cost)}</td><td>${formatResourceLine(row.productionBefore)}</td><td>${formatResourceLine(row.productionAfter)}</td><td class="qol-rup-gain">+${formatNumber(row.gainTotal, 1)}</td><td>${formatHours(row.saveHours)}</td><td>${formatHours(row.roiHours)}</td><td>${formatHours(row.elapsedHours)}</td><td class="qol-rup-done-column">${completionCheckbox([row.step], `Mark step ${row.step} complete`)}</td></tr>`).join('')}</tbody></table></div>`;
+    return apesHtml_resourceUpgradePlanner`<div class="qol-rup-table-wrap"><table><thead><tr><th>#</th><th>Upgrade</th><th>Cost</th><th>Production before / h</th><th>Production after / h</th><th>Gain / h</th><th>Save time</th><th>ROI</th><th>Total time</th><th class="qol-rup-done-column" title="Completed">Done</th></tr></thead><tbody>${results.map(row => apesHtml_resourceUpgradePlanner`<tr class="${stepsAreCompleted([row.step]) ? 'qol-rup-completed' : ''}" data-rup-result-steps="${row.step}"><td class="qol-rup-step">${row.step}</td><td class="qol-rup-action-name">${(window.APES?.i18n?.label(row.label) ?? (escapeHtml(row.label)))}</td><td>${formatResourceLine(row.cost)}</td><td>${formatResourceLine(row.productionBefore)}</td><td>${formatResourceLine(row.productionAfter)}</td><td class="qol-rup-gain">+${formatNumber(row.gainTotal, 1)}</td><td>${formatHours(row.saveHours)}</td><td>${formatHours(row.roiHours)}</td><td>${formatHours(row.elapsedHours)}</td><td class="qol-rup-done-column">${completionCheckbox([row.step], `Mark step ${row.step} complete`)}</td></tr>`).join('')}</tbody></table></div>`;
   }
   function setSectionCollapsed(section, collapsed) {
     if (!section) return;

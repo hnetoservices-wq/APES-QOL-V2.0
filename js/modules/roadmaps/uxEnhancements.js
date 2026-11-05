@@ -114,7 +114,7 @@ const apesHtml_uxEnhancements = window.APES?.i18n?.html || ((s, ...v) => String.
     document.querySelector('.qol-rmux-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = `qol-rmux-toast ${tone}`;
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2400);
   }
@@ -596,7 +596,7 @@ const apesHtml_uxEnhancements = window.APES?.i18n?.html || ((s, ...v) => String.
       const ok = await copyText(text);
       const status = layer.querySelector('[data-rms-status]');
       if (status) {
-        status.textContent = ok ? 'Copied. Paste this into Discord or send it to another APES user.' : 'Copy failed. Select the text and copy it manually.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (ok)?(write("Copied. Paste this into Discord or send it to another APES user.")):(write("Copy failed. Select the text and copy it manually."));})(status);
         status.classList.toggle('error', !ok);
       }
       return;
@@ -623,7 +623,7 @@ const apesHtml_uxEnhancements = window.APES?.i18n?.html || ((s, ...v) => String.
     custom[id] = roadmap;
     if (!writeCustom(custom)) {
       if (status) {
-        status.textContent = 'Could not save the imported roadmap.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Could not save the imported roadmap.");})(status);
         status.classList.add('error');
       }
       return;

@@ -88,7 +88,7 @@
     const info = current.info;
     const stepText = panel.querySelector('.qol-rmr-step-text');
     if (stepText) {
-      stepText.textContent = `${info.resourceLabel} Fields → Level ${info.level}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} Fields → Level {v1}",{v0:(info.resourceLabel),v1:(info.level)});})(stepText);
     }
 
     const detection = ensureDetection(panel);
@@ -109,14 +109,14 @@
 
       if (safeToClarify) {
         detection.className = 'qol-rmpi-detection waiting';
-        detection.textContent = `Current: ${atTarget}/${info.totalCount} completed at Lv ${info.level}+ · Target: ${info.requiredCount}/${info.totalCount}`;
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Current: {v0}/{v1} completed at Lv {v2}+ · Target: {v3}/{v4}",{v0:(atTarget),v1:(info.totalCount),v2:(info.level),v3:(info.requiredCount),v4:(info.totalCount)});})(detection);
       }
     }
 
     const next = nextCountInfo(current);
     const nextStrong = panel.querySelector('.qol-rmr-next strong');
     if (next && nextStrong) {
-      nextStrong.textContent = `Target: ${next.requiredCount}/${next.totalCount} ${next.resourceLabel} Fields → Level ${next.level}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Target: {v0}/{v1} {v2} Fields → Level {v3}",{v0:(next.requiredCount),v1:(next.totalCount),v2:(next.resourceLabel),v3:(next.level)});})(nextStrong);
     }
   }
 

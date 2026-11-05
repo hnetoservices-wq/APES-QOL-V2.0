@@ -227,7 +227,7 @@ const apesHtml_roadmaps = window.APES?.i18n?.html || ((s, ...v) => String.raw({ 
     target.innerHTML = apesHtml_roadmaps`
       <div class="qol-rm-main-head">
         <div class="qol-rm-title-copy">
-          <div class="qol-rm-title-row"><h2>${escapeHtml(roadmap.name)}</h2><span class="qol-rm-badge">${custom ? 'Custom' : 'APES Guide'}</span></div>
+          <div class="qol-rm-title-row"><h2>${escapeHtml(roadmap.name)}</h2><span class="qol-rm-badge">${custom ? (window.APES?.i18n?.label('Custom') ?? 'Custom') : (window.APES?.i18n?.label('APES Guide') ?? 'APES Guide')}</span></div>
           ${roadmap.description ? apesHtml_roadmaps`<p>${escapeHtml(roadmap.description)}</p>` : ''}
         </div>
         <div class="qol-rm-actions">
@@ -246,7 +246,7 @@ const apesHtml_roadmaps = window.APES?.i18n?.html || ((s, ...v) => String.raw({ 
         ${roadmap.steps.map((step, index) => apesHtml_roadmaps`
           <div class="qol-rm-step">
             <span class="qol-rm-step-number">${index + 1}</span>
-            <span class="qol-rm-step-type ${step.type === 'building' ? 'building' : 'instruction'}">${step.type === 'building' ? 'Building' : 'Instruction'}</span>
+            <span class="qol-rm-step-type ${step.type === 'building' ? 'building' : 'instruction'}">${step.type === 'building' ? (window.APES?.i18n?.label('Building') ?? 'Building') : (window.APES?.i18n?.label('Instruction') ?? 'Instruction')}</span>
             <span class="qol-rm-step-text">${escapeHtml(stepLabel(step))}</span>
           </div>`).join('') || apesHtml_roadmaps`<div class="qol-rm-empty">This roadmap has no steps.</div>`}
       </div>`;
@@ -263,7 +263,7 @@ const apesHtml_roadmaps = window.APES?.i18n?.html || ((s, ...v) => String.raw({ 
     document.querySelector('.qol-rm-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = `qol-rm-toast${type === 'error' ? ' error' : type === 'info' ? ' info' : ''}`;
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     window.setTimeout(() => toast.remove(), 2500);
   }
@@ -295,7 +295,7 @@ const apesHtml_roadmaps = window.APES?.i18n?.html || ((s, ...v) => String.raw({ 
     const confirm = () => {
       const value = cleanText(input.value);
       if (!value) {
-        status.textContent = 'Enter a roadmap name.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Enter a roadmap name.");})(status);
         input.focus();
         return;
       }

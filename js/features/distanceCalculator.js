@@ -461,9 +461,9 @@ const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => Str
       groups.get(item.group).push(item);
     });
     return [...groups.entries()].map(([group, items]) => `
-            <optgroup label="${escapeHtml(group)}">
+            <optgroup label="${escapeHtml(group)}" data-apes-i18n-label="${encodeURIComponent(group)}">
                 ${items.map(item => apesHtml_distanceCalculator`
-                    <option value="${escapeHtml(item.key)}">${escapeHtml(item.label)} · ${item.speed} fields/h at x1</option>
+                    <option value="${escapeHtml(item.key)}">${(window.APES?.i18n?.label(item.label) ?? (escapeHtml(item.label)))} · ${item.speed} fields/h at x1</option>
                 `).join('')}
             </optgroup>
         `).join('');
@@ -612,7 +612,7 @@ const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => Str
     const detectedMovement = panel.querySelector('[data-world-movement]');
     if (detectedWorldLabel) detectedWorldLabel.textContent = detectedWorld.label +
       (state.worldSpeedOverride === 'auto' ? ' · auto' : ' · manual');
-    if (detectedMovement) detectedMovement.textContent = `Movement x${detectedWorld.movement}`;
+    if (detectedMovement) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Movement x{v0}",{v0:(detectedWorld.movement)});})(detectedMovement);
     const siegeToggle = panel.querySelector('[data-siege]');
     siegeToggle?.classList.toggle('qol-checked', state.siegeMode === true);
     siegeToggle?.setAttribute('aria-checked', String(state.siegeMode === true));
@@ -627,7 +627,7 @@ const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => Str
     panel.querySelectorAll('[data-troop-modifier]').forEach(input => input.toggleAttribute('disabled', merchant));
     panel.querySelector('.qol-distance-modifiers')?.classList.toggle('qol-disabled', merchant);
     const help = panel.querySelector('.qol-distance-modifier-help');
-    if (help) help.textContent = merchant ? 'Merchants ignore Tournament Square and hero boots.' : 'Tournament Square and boots apply only after the first 20 fields.';
+    if (help) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (merchant)?(write("Merchants ignore Tournament Square and hero boots.")):(write("Tournament Square and boots apply only after the first 20 fields."));})(help);
   }
   function updateResult() {
     const panel = document.getElementById(PANEL_ID);
@@ -640,7 +640,7 @@ const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => Str
     const movementLabel = panel.querySelector('[data-world-movement]');
     if (worldLabel) worldLabel.textContent = world.label +
       (state.worldSpeedOverride === 'auto' ? ' · auto' : ' · manual');
-    if (movementLabel) movementLabel.textContent = `Movement x${world.movement}`;
+    if (movementLabel) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Movement x{v0}",{v0:(world.movement)});})(movementLabel);
     panel.classList.toggle('qol-invalid', !lastResult.valid);
     const sendButton = panel.querySelector('[data-send]');
     sendButton?.classList.toggle('qol-disabled', !lastResult.valid);
@@ -648,7 +648,7 @@ const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => Str
     if (!lastResult.valid) return;
     const set = (selector, value) => {
       const element = panel.querySelector(selector);
-      if (element) element.textContent = value;
+      if (element) { if (window.APES?.i18n) window.APES.i18n.setText(element, value); else element.textContent = value; }
     };
     set('[data-result="arrival"]', lastResult.arrival === '—'
       ? 'Server clock unavailable' : lastResult.arrival);
@@ -659,11 +659,8 @@ const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => Str
     const sendPlan = calculateSendPlan(lastResult.durationSeconds);
     const sendAt = panel.querySelector('[data-result="sendAt"]');
     const plannedArrival = panel.querySelector('[data-result="plannedArrival"]');
-    if (sendAt) sendAt.textContent = sendPlan.valid ? sendPlan.sendLabel :
-      (sendPlan.clockMissing ? 'Clock unavailable' : 'Choose a time');
-    if (plannedArrival) plannedArrival.textContent = sendPlan.valid
-      ? `Landing ${sendPlan.arrivalLabel}`
-      : (sendPlan.clockMissing ? 'Waiting for game server clock' : 'Uses the live server clock');
+    if (sendAt) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (sendPlan.valid)?(element.textContent=(sendPlan.sendLabel)):((sendPlan.clockMissing)?(write("Clock unavailable")):(write("Choose a time")));})(sendAt);
+    if (plannedArrival) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (sendPlan.valid)?(write("Landing {v0}",{v0:(sendPlan.arrivalLabel)})):((sendPlan.clockMissing)?(write("Waiting for game server clock")):(write("Uses the live server clock")));})(plannedArrival);
   }
   function updateStateFromInput(input) {
     const field = input.dataset.field;
@@ -692,7 +689,7 @@ const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => Str
     if (!element) return;
     const original = element.dataset.original || element.textContent;
     element.dataset.original = original;
-    element.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(element);
     window.setTimeout(() => {
       if (element.isConnected) element.textContent = original;
     }, 1800);

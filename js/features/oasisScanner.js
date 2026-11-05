@@ -379,7 +379,7 @@ const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.ra
     if (!button) {
       return;
     }
-    button.textContent = visualAidEnabled ? "Visual Aid: On" : "Visual Aid: Off";
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (visualAidEnabled)?(write("Visual Aid: On")):(write("Visual Aid: Off"));})(button);
     button.classList.toggle("is-active", visualAidEnabled);
     button.setAttribute("aria-pressed", String(visualAidEnabled));
     button.title = visualAidEnabled ? "Hide map scan colours" : "Show map scan colours";
@@ -396,10 +396,10 @@ const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.ra
     const assignedBar = document.getElementById("qol-tag-team-assigned-bar");
     const overallBar = document.getElementById("qol-tag-team-overall-bar");
     if (assignedText) {
-      assignedText.textContent = progress.allSections ? `All sections: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()} (${formatPercentage(progress.assignedPercentage)})` : selectedSection ? `Section ${selectedSection.id}: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()} (${formatPercentage(progress.assignedPercentage)})` : "No section selected";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (progress.allSections)?(write("All sections: {v0} / {v1} ({v2})",{v0:(progress.assignedScanned.toLocaleString()),v1:(progress.assignedTotal.toLocaleString()),v2:(formatPercentage(progress.assignedPercentage))})):((selectedSection)?(write("Section {v0}: {v1} / {v2} ({v3})",{v0:(selectedSection.id),v1:(progress.assignedScanned.toLocaleString()),v2:(progress.assignedTotal.toLocaleString()),v3:(formatPercentage(progress.assignedPercentage))})):(write("No section selected")));})(assignedText);
     }
     if (overallText) {
-      overallText.textContent = `Full map: ${progress.overallScanned.toLocaleString()} / ${progress.overallTotal.toLocaleString()} (${formatPercentage(progress.overallPercentage)})`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Full map: {v0} / {v1} ({v2})",{v0:(progress.overallScanned.toLocaleString()),v1:(progress.overallTotal.toLocaleString()),v2:(formatPercentage(progress.overallPercentage))});})(overallText);
     }
     if (assignedBar) {
       assignedBar.style.setProperty("width", formatPercentage(progress.assignedPercentage), "important");
@@ -417,7 +417,7 @@ const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.ra
     card.classList.toggle("is-enabled", tagTeamConfig.enabled);
     const toggleButton = document.getElementById("qol-tag-team-toggle");
     if (toggleButton) {
-      toggleButton.textContent = tagTeamConfig.enabled ? "Tag Team: On" : "Tag Team: Off";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (tagTeamConfig.enabled)?(write("Tag Team: On")):(write("Tag Team: Off"));})(toggleButton);
       toggleButton.classList.toggle("is-active", tagTeamConfig.enabled);
       toggleButton.setAttribute("aria-pressed", String(tagTeamConfig.enabled));
     }
@@ -433,7 +433,7 @@ const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.ra
     const setupSummary = document.getElementById("qol-tag-team-setup-summary");
     const selectedSection = getSelectedTagTeamSection();
     if (setupSummary) {
-      setupSummary.textContent = tagTeamConfig.enabled ? isAllTagTeamSectionsVisible() ? `All sections · ${tagTeamConfig.teamSize} users` : selectedSection ? `Section ${selectedSection.id} · ${selectedSection.position} · ${selectedSection.name}` : "Manual shared scan sections" : "Manual shared scan sections";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (tagTeamConfig.enabled)?((isAllTagTeamSectionsVisible())?(write("All sections · {v0} users",{v0:(tagTeamConfig.teamSize)})):((selectedSection)?(write("Section {v0} · {v1} · {v2}",{v0:(selectedSection.id),v1:(selectedSection.position),v2:(selectedSection.name)})):(write("Manual shared scan sections")))):(write("Manual shared scan sections"));})(setupSummary);
     }
     const legend = document.getElementById("qol-tag-team-legend");
     if (legend) {
@@ -452,7 +452,7 @@ const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.ra
     }
     const exportButton = document.getElementById("qol-oasis-export");
     if (exportButton) {
-      exportButton.textContent = tagTeamConfig.enabled ? "Export Session" : "Export CSV";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (tagTeamConfig.enabled)?(write("Export Session")):(write("Export CSV"));})(exportButton);
     }
     updateTagTeamProgressUI();
   }
@@ -1740,7 +1740,7 @@ const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.ra
   function setStatus(message) {
     const statusElement = document.getElementById("qol-oasis-status-message");
     if (statusElement) {
-      statusElement.textContent = message;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(statusElement);
     }
     updateResultCount();
   }
@@ -1752,11 +1752,11 @@ const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.ra
     if (tagTeamConfig.enabled) {
       const progress = getTagTeamProgress();
       const scope = progress.allSections ? "All sections" : `Section ${tagTeamConfig.selectedSection}`;
-      countElement.textContent = `${createDisplayEntries().length} results / ${scope}: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} results / {v1}: {v2} / {v3}",{v0:(createDisplayEntries().length),v1:(scope),v2:(progress.assignedScanned.toLocaleString()),v3:(progress.assignedTotal.toLocaleString())});})(countElement);
       updateTagTeamProgressUI();
       return;
     }
-    countElement.textContent = `${createDisplayEntries().length} results shown / ${getTotalSavedCount()} tiles scanned`;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} results shown / {v1} tiles scanned",{v0:(createDisplayEntries().length),v1:(getTotalSavedCount())});})(countElement);
   }
   function getCropperStatusLabel(cropper) {
     return cropper?.isNatar ? "Conquer Natars" : "Available";
