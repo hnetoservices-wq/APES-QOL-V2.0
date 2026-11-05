@@ -912,18 +912,18 @@ function buildSettingsMarkup() {
             </div>
 
             <div class="qol-modal-body">
-                <section class="qol-language-picker" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px">
-                    <label for="qol-language-select">Extension language</label>
-                    <select id="qol-language-select" data-apes-language-select style="display:inline-block!important;visibility:visible!important;opacity:1!important;position:static!important;appearance:auto!important;-webkit-appearance:menulist!important;box-sizing:border-box!important;width:220px!important;min-width:160px!important;max-width:100%!important;height:34px!important;min-height:34px!important;margin:0!important;padding:6px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font:inherit!important;font-size:12px!important;line-height:normal!important;pointer-events:auto!important;clip:auto!important;clip-path:none!important;transform:none!important">
-                        <option value="en" lang="en">English</option>
-                        <option value="pt-PT" lang="pt-PT">Português (Portugal)</option>
-                        <option value="es-ES" lang="es-ES">Español (España)</option>
-                        <option value="fr" lang="fr">Français</option>
-                        <option value="ru" lang="ru">Русский</option>
-                        <option value="cs" lang="cs">Čeština</option>
-                        <option value="de" lang="de">Deutsch</option>
-                        <option value="it" lang="it">Italiano</option>
-                    </select>
+                <section class="qol-language-picker" aria-labelledby="qol-language-title" style="display:block!important;margin:0 0 18px!important">
+                    <div id="qol-language-title">Extension language</div>
+                    <div role="group" aria-labelledby="qol-language-title" style="display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-top:8px!important">
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="en" lang="en" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">English</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="pt-PT" lang="pt-PT" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Português (Portugal)</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="es-ES" lang="es-ES" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Español (España)</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="fr" lang="fr" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Français</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="ru" lang="ru" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Русский</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="cs" lang="cs" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Čeština</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="de" lang="de" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Deutsch</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="it" lang="it" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Italiano</div>
+                    </div>
                     <span data-apes-language-status role="status" aria-live="polite"></span>
                 </section>
                 <div class="qol-section-heading qol-keybind-heading">
@@ -1102,19 +1102,35 @@ function setupQolMenu() {
 }
 function bindLanguageSelector(overlay) {
   const i18n = window.APES?.i18n;
-  const select = overlay.querySelector('[data-apes-language-select]');
-  if (!select || !i18n || select.dataset.bound === 'true') return;
-  select.dataset.bound = 'true';
-  const status = overlay.querySelector('[data-apes-language-status]');
-  const sync = () => { select.value = i18n.getLanguage(); };
+  const picker = overlay.querySelector('.qol-language-picker');
+  if (!picker || !i18n || picker.dataset.bound === 'true') return;
+  picker.dataset.bound = 'true';
+  const buttons = [...picker.querySelectorAll('[data-apes-language]')];
+  const status = picker.querySelector('[data-apes-language-status]');
+  let saving = false;
+  const sync = () => buttons.forEach(button => {
+    const selected = button.dataset.apesLanguage === i18n.getLanguage();
+    button.setAttribute('aria-pressed', String(selected));
+    button.style.setProperty('background', selected ? '#6b5030' : '#fffdf8', 'important');
+    button.style.setProperty('color', selected ? '#fffaf0' : '#4b3822', 'important');
+  });
   sync();
   i18n.ready.then(sync);
-  select.addEventListener('change', async () => {
-    select.disabled = true;
+  window.APES.events?.on?.('languageChanged', sync);
+  const choose = async button => {
+    if (saving) return;
+    saving = true;
+    buttons.forEach(item => item.setAttribute('aria-disabled', 'true'));
     status.textContent = '';
-    try { await i18n.setLanguage(select.value); }
+    try { await i18n.setLanguage(button.dataset.apesLanguage); }
     catch (_) { status.textContent = i18n.t('Language preference could not be saved. Please try again.'); }
-    finally { select.disabled = false; sync(); }
+    finally { saving = false; buttons.forEach(item => item.removeAttribute('aria-disabled')); sync(); }
+  };
+  buttons.forEach(button => {
+    button.addEventListener('click', () => choose(button));
+    button.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(button); }
+    });
   });
 }
 function bindMenuShell(overlay) {
