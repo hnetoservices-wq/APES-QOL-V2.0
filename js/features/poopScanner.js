@@ -443,13 +443,13 @@ const apesHtml_poopScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw
     panel.querySelector('[data-poop-count]').textContent =
       list.length + (list.length === 1 ? ' village saved' : ' villages saved');
     renderScanSummary();
-    tbody.innerHTML = list.length ? list.map(item => apesHtml_poopScanner`<tr>` +
-      apesHtml_poopScanner`<td>` + esc(item.owner) + '</td>' +
-      apesHtml_poopScanner`<td>` + esc(item.villageName) + '</td>' +
-      apesHtml_poopScanner`<td>(` + esc(item.x) + ' | ' + esc(item.y) + ')</td>' +
-      apesHtml_poopScanner`<td><a target="_self" href="` + esc(item.url) + '">Open map</a></td>' +
-      apesHtml_poopScanner`<td><div class="apes-poop-remove" role="button" tabindex="0" data-poop-remove="` +
-      esc(item.cellId) + '">Remove</div></td></tr>').join('') :
+    tbody.innerHTML = list.length ? list.map(item => apesHtml_poopScanner`<tr>
+      <td>${esc(item.owner)}</td>
+      <td>${esc(item.villageName)}</td>
+      <td>(${esc(item.x)} | ${esc(item.y)})</td>
+      <td><a target="_self" href="${esc(item.url)}">Open map</a></td>
+      <td><div class="apes-poop-remove" role="button" tabindex="0" data-poop-remove="${esc(item.cellId)}">Remove</div></td>
+    </tr>`).join('') :
       apesHtml_poopScanner`<tr><td colspan="5" class="apes-poop-empty">No villages saved. Select a village belonging to a scanned Secret Society member and use Add Player to POOP.</td></tr>`;
   }
 

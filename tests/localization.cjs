@@ -11,6 +11,10 @@ const assert = require('node:assert/strict');
  for (const file of ['js/locales/catalogs.js','js/core/i18n.js']) w.eval(fs.readFileSync(require('node:path').join(__dirname,'..',file),'utf8'));
  const i = w.APES.i18n; await i.ready;
  const ui = w.document.querySelector('#ui');
+ const fragment = w.document.createElement('div');
+ fragment.innerHTML = i.html`<a href="` + '/map' + '">Open map</a>';
+ assert.equal(fragment.querySelector('a')?.getAttribute('href'), '/map', 'Split opening tags must stay markup');
+ assert.equal(fragment.textContent, 'Open map');
  ui.innerHTML = i.html`<h1>Extension language</h1><input title="Language"><p>${'Settings'}</p>`;
  for (const {code} of i.languages) {
   await i.setLanguage(code); assert.equal(saved[i.STORAGE_KEY],code);

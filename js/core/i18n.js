@@ -38,7 +38,7 @@
       const source = strings.map((part, index) => part + (index < strings.length - 1 ? `\uE000${index}\uE001` : '')).join('');
       parts = [];
       let blocked = '';
-      for (const token of source.match(/<[^>]*>|[^<]+|</g) || []) {
+      for (const token of source.match(/<[^>]*>|<[^>]*$|[^<]+|</g) || []) {
         if (token.startsWith('<')) {
           if (/^<\/(style|script|textarea)\b/i.test(token)) blocked = '';
           if (/^<(style|script|textarea)\b/i.test(token)) blocked = token.match(/^<(\w+)/)[1];
