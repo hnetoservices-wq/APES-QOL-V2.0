@@ -187,7 +187,8 @@ const apesHtml_buildingAlarm = window.APES?.i18n?.html || ((s, ...v) => String.r
       body.qol-building-alarm-enabled .queueContainer .detailsContent .detailsTime > i.symbol_clock_small_flat_black.duration.${CLOCK_CLASS}.active{filter:invert(38%) sepia(28%) saturate(1030%) hue-rotate(46deg) brightness(84%) contrast(86%)!important}
 
       #${STATUS_ID},#${STATUS_ID} *{box-sizing:border-box!important;font-family:Arial,sans-serif!important;text-shadow:none!important}
-      #${STATUS_ID}{position:fixed!important;z-index:9998!important;display:none!important;width:28px!important;height:28px!important;color:#f8f2e7!important;user-select:none!important}
+      /* Native game tooltips use layer 4070; keep the header indicator below them. */
+      #${STATUS_ID}{position:fixed!important;z-index:4060!important;display:none!important;width:28px!important;height:28px!important;color:#f8f2e7!important;user-select:none!important}
       #${STATUS_ID} .qol-building-alarm-status-main{display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;width:100%!important;height:28px!important;padding:0!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:4px!important;background:linear-gradient(to bottom,#665137,#4b3927)!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important;cursor:default!important;outline:none!important}
       #${STATUS_ID}.idle .qol-building-alarm-status-main{background:linear-gradient(to bottom,#554a3c,#40382f)!important;color:#d7ccbd!important}
       #${STATUS_ID}.upcoming .qol-building-alarm-status-main{background:linear-gradient(to bottom,#766038,#594724)!important;color:#fff4cf!important}
