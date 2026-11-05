@@ -1,5 +1,5 @@
 const apesHtml_menu = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
-const QOL_DEFAULT_DISABLED_FEATURES = new Set(['cpManager', 'oasisScanner', 'reportArchive', 'watchlist']);
+const QOL_DEFAULT_DISABLED_FEATURES = new Set();
 const QOL_THEME_STORAGE_KEY = 'qol_theme';
 const QOL_THEMES = Object.freeze([{
   key: 'brown',
@@ -57,11 +57,11 @@ const QOL_BUTTON_SIZE = 30;
 const QOL_BUTTON_GAP = 6;
 const QOL_MAX_EXPANDED_TOOLBAR_ITEMS = 5;
 const BASIC_FEATURES = [{
-  id: 'qol-chk-barracks-24h-planner',
-  key: 'barracks24hPlanner',
-  name: 'Barracks & Stables 24h Planner',
-  icon: '⌛',
-  description: 'Replaces Barracks and Stables unit descriptions with 24-hour troop counts, wood/clay/iron costs, and the average resources per hour.'
+  id: 'qol-chk-daily-reminders',
+  key: 'dailyReminders',
+  name: 'Daily Reminders',
+  icon: '🔔',
+  description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
 }, {
   id: 'qol-chk-auction-house-scanner',
   key: 'auctionHouseScanner',
@@ -117,12 +117,6 @@ const BASIC_FEATURES = [{
   icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 13-6 3 6-13 6zM4 10l-2 1 2 4 3-1M17 4l2-1 3 6-2 1M11 14v4M11 18l-4 4M11 18l4 4"/></svg>',
   description: 'Scans attacks, sieges, raids, reinforcements and incoming resources from one tabbed window.'
 }, {
-  id: 'qol-chk-npc-calc',
-  key: 'npcCalculator',
-  name: 'NPC Calculator',
-  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
-  description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
-}, {
   id: 'qol-chk-send-troops',
   key: 'sendTroopsEnhanced',
   name: 'Send Button Enhancer',
@@ -130,11 +124,17 @@ const BASIC_FEATURES = [{
   description: 'Keeps Continue, Back and Send fixed at the top while preparing multiple troop movements.'
 }];
 const ADVANCED_FEATURES = [{
-  id: 'qol-chk-daily-reminders',
-  key: 'dailyReminders',
-  name: 'Daily Reminders',
-  icon: '🔔',
-  description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
+  id: 'qol-chk-barracks-24h-planner',
+  key: 'barracks24hPlanner',
+  name: '24h Training Planner',
+  icon: '⌛',
+  description: 'Replaces Barracks and Stables unit descriptions with 24-hour troop counts, wood/clay/iron costs, and the average resources per hour.'
+}, {
+  id: 'qol-chk-npc-calc',
+  key: 'npcCalculator',
+  name: 'NPC Calculator',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
+  description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
 }, {
   id: 'qol-chk-distance-calculator',
   key: 'distanceCalculator',
@@ -204,6 +204,9 @@ const COSMETIC_FEATURES = [{
   icon: '♜',
   description: 'Choose tribe artwork and toggle the night appearance on or off on any server.'
 }];
+// Defaults follow the groups; saved choices always take precedence.
+[...ADVANCED_FEATURES, ...KINGDOM_MANAGEMENT_FEATURES, ...COSMETIC_FEATURES].forEach(feature => QOL_DEFAULT_DISABLED_FEATURES.add(feature.key));
+QOL_DEFAULT_DISABLED_FEATURES.add('roadmaps');
 const KEYBINDS = [{
   keys: ['W', 'A', 'S', 'D'],
   label: 'Map Navigation (2x Speed)',

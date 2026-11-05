@@ -24,8 +24,8 @@
   window[FLAG] = true;
 
   function isEnabled() {
-    try { return window.localStorage?.getItem(STORAGE_KEY) !== 'false'; }
-    catch (_) { return true; }
+    try { return window.localStorage?.getItem(STORAGE_KEY) === 'true'; }
+    catch (_) { return false; }
   }
 
   function villageIdFor(row) {

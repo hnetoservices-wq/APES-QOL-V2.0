@@ -16,7 +16,7 @@ const apesHtml_roadmapsExpertPlacement = window.APES?.i18n?.html || ((s, ...v) =
   function isEnabled() {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
-      return stored === null ? true : stored !== 'false';
+      return stored === null ? false : stored !== 'false';
     } catch (_) {
       return true;
     }

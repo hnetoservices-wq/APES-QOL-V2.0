@@ -338,7 +338,7 @@ const apesHtml_dailyReminders = window.APES?.i18n?.html || ((s, ...v) => String.
     });
   }
   window.APES_DAILY_REMINDERS = Object.freeze({ open, close, refresh, load });
-  window.APES?.actions?.register({ id: 'reminders.open', label: 'Daily Reminders', description: 'Set up daily tasks, repeats and snoozes.', group: 'Expert Features', keywords: ['reminder', 'daily', 'schedule', 'snooze'], enabled, run: open });
+  window.APES?.actions?.register({ id: 'reminders.open', label: 'Daily Reminders', description: 'Set up daily tasks, repeats and snoozes.', group: 'Basic Features', keywords: ['reminder', 'daily', 'schedule', 'snooze'], enabled, run: open });
   window.addEventListener('qol_setting_changed', event => { if (event.detail?.key === FEATURE) { refresh(); if (enabled() && !loaded) void load(); } });
   window.addEventListener('qol_close_others', event => { if (event.detail?.source !== FEATURE) close(); });
   window.addEventListener('qol_backup_imported', () => { captureEditor(); void load(); });
