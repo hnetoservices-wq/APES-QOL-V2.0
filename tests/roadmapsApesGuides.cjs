@@ -27,7 +27,7 @@ for(const c of ['data-apes-guides-toggle','aria-expanded="'+'$'+'{apesGuidesExpa
 const storage=new Map();
 const localStorage={getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,String(v))};
 const excerpt=road.slice(road.indexOf('  const FEATURE_KEY ='),road.indexOf('  function showToast('));
-const app=new Function('localStorage',excerpt+
+const app=new Function('localStorage',"const apesHtml_roadmaps = (s,...v) => String.raw({raw:s},...v);\n" + excerpt+
  '\nreturn {renderSidebar,setPanel:v=>panel=v,expand:v=>apesGuidesExpanded=v,builtins:()=>BUILTIN_ROADMAPS};'
 )(localStorage);
 let sidebar='';
