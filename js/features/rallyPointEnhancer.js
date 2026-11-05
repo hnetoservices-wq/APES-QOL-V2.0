@@ -1,5 +1,7 @@
 function initRallyPointEnhancer() {
   'use strict';
+const apesHtml_rallyPointEnhancer = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'rallyPointParser';
   const PANEL_ID = 'qol-rp-action-bar';
@@ -532,7 +534,7 @@ function initRallyPointEnhancer() {
     button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
   }
   function renderEmptyState(container, title = 'No scan results yet.', description = 'Choose the incoming types, then select “Scan Incomings”.') {
-    container.innerHTML = `
+    container.innerHTML = apesHtml_rallyPointEnhancer`
             <div class="qol-rp-empty">
                 <strong>
                     ${escapeHtml(title)}
@@ -545,7 +547,7 @@ function initRallyPointEnhancer() {
         `;
   }
   function renderScanningState(container) {
-    container.innerHTML = `
+    container.innerHTML = apesHtml_rallyPointEnhancer`
             <div class="qol-rp-scanning">
                 <div class="qol-rp-spinner"></div>
 
@@ -988,7 +990,7 @@ function initRallyPointEnhancer() {
     const rows = compiledWaves.map(wave => {
       const typeText = String(wave.type || 'Attack');
       const category = getMovementCategory(typeText) || 'attack';
-      return `
+      return apesHtml_rallyPointEnhancer`
                         <tr>
                             <td class="qol-rp-enemy">
                                 ${escapeHtml(wave.enemy || 'Unknown')}
@@ -1016,7 +1018,7 @@ function initRallyPointEnhancer() {
                         </tr>
                     `;
     }).join('');
-    container.innerHTML = `
+    container.innerHTML = apesHtml_rallyPointEnhancer`
             <table class="qol-rp-table">
                 <thead>
                     <tr>
@@ -1095,7 +1097,7 @@ function initRallyPointEnhancer() {
     injectStyles();
     const bar = document.createElement('div');
     bar.id = PANEL_ID;
-    bar.innerHTML = `
+    bar.innerHTML = apesHtml_rallyPointEnhancer`
             <div class="qol-rp-header">
                 <span>
                     Rally Point Scanner

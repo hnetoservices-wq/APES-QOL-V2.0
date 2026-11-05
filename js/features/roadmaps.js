@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_roadmaps = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'roadmaps';
   const CUSTOM_STORAGE_KEY = 'qol_roadmap_profiles_v1';
@@ -192,7 +194,7 @@
     const library = panel?.querySelector('.qol-rm-library');
     if (!library) return;
     const custom = getCustomRoadmaps();
-    const item = (id, roadmap) => `
+    const item = (id, roadmap) => apesHtml_roadmaps`
       <div class="qol-rm-nav-item${id === selectedId ? ' qol-active' : ''}" data-roadmap-select="${escapeHtml(id)}" role="button" tabindex="0">
         <div class="qol-rm-nav-row"><strong>${escapeHtml(roadmap.name)}</strong><span>${roadmap.steps.length}</span></div>
         <small>${roadmap.steps.length} steps</small>
@@ -201,14 +203,14 @@
       .sort(([, a], [, b]) => a.name.localeCompare(b.name, undefined, { numeric: true, sensitivity: 'base' }))
       .map(([id, roadmap]) => item(id, roadmap)).join('');
     const customs = Object.entries(custom).map(([id, roadmap]) => item(id, roadmap)).join('');
-    library.innerHTML = `
+    library.innerHTML = apesHtml_roadmaps`
       <div class="qol-rm-guides-toggle" data-apes-guides-toggle role="button" tabindex="0"
            aria-label="Toggle APES Guides" aria-expanded="${apesGuidesExpanded}" aria-controls="qol-rm-guides-list">
         <span>APES Guides</span><span class="qol-rm-guides-caret" aria-hidden="true">${apesGuidesExpanded ? '▾' : '▸'}</span>
       </div>
       <div class="qol-rm-guides-list" id="qol-rm-guides-list">${apesGuidesExpanded ? builtins : ''}</div>
       <div class="qol-rm-group-title">My Roadmaps</div>
-      ${customs || '<div class="qol-rm-empty-small">Duplicate an APES roadmap to create your first editable profile.</div>'}`;
+      ${customs || apesHtml_roadmaps`<div class="qol-rm-empty-small">Duplicate an APES roadmap to create your first editable profile.</div>`}`;
   }
 
   function renderMain() {
@@ -216,21 +218,21 @@
     if (!target) return;
     const roadmap = getAllRoadmaps()[selectedId];
     if (!roadmap) {
-      target.innerHTML = '<div class="qol-rm-empty">No roadmap selected.</div>';
+      target.innerHTML = apesHtml_roadmaps`<div class="qol-rm-empty">No roadmap selected.</div>`;
       return;
     }
     const custom = isCustom(selectedId);
     const buildingCount = roadmap.steps.filter(step => step.type === 'building').length;
     const instructionCount = roadmap.steps.length - buildingCount;
-    target.innerHTML = `
+    target.innerHTML = apesHtml_roadmaps`
       <div class="qol-rm-main-head">
         <div class="qol-rm-title-copy">
           <div class="qol-rm-title-row"><h2>${escapeHtml(roadmap.name)}</h2><span class="qol-rm-badge">${custom ? 'Custom' : 'APES Guide'}</span></div>
-          ${roadmap.description ? `<p>${escapeHtml(roadmap.description)}</p>` : ''}
+          ${roadmap.description ? apesHtml_roadmaps`<p>${escapeHtml(roadmap.description)}</p>` : ''}
         </div>
         <div class="qol-rm-actions">
           <div class="qol-rm-action qol-secondary" data-roadmap-action="duplicate" role="button" tabindex="0">Duplicate</div>
-          ${custom ? '<div class="qol-rm-action qol-secondary" data-roadmap-action="rename" role="button" tabindex="0">Rename</div><div class="qol-rm-action qol-danger" data-roadmap-action="delete" role="button" tabindex="0">Delete</div>' : ''}
+          ${custom ? apesHtml_roadmaps`<div class="qol-rm-action qol-secondary" data-roadmap-action="rename" role="button" tabindex="0">Rename</div><div class="qol-rm-action qol-danger" data-roadmap-action="delete" role="button" tabindex="0">Delete</div>` : ''}
         </div>
       </div>
       <div class="qol-rm-summary">
@@ -241,12 +243,12 @@
       </div>
       <div class="qol-rm-route-head"><strong>Full Roadmap</strong><span>The runner will later show only the current active step.</span></div>
       <div class="qol-rm-route">
-        ${roadmap.steps.map((step, index) => `
+        ${roadmap.steps.map((step, index) => apesHtml_roadmaps`
           <div class="qol-rm-step">
             <span class="qol-rm-step-number">${index + 1}</span>
             <span class="qol-rm-step-type ${step.type === 'building' ? 'building' : 'instruction'}">${step.type === 'building' ? 'Building' : 'Instruction'}</span>
             <span class="qol-rm-step-text">${escapeHtml(stepLabel(step))}</span>
-          </div>`).join('') || '<div class="qol-rm-empty">This roadmap has no steps.</div>'}
+          </div>`).join('') || apesHtml_roadmaps`<div class="qol-rm-empty">This roadmap has no steps.</div>`}
       </div>`;
   }
 
@@ -274,7 +276,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_roadmaps`
       <div class="qol-rm-dialog" role="dialog" aria-modal="true">
         <div class="qol-rm-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rm-dialog-body">
@@ -459,7 +461,7 @@
     if (panel) return panel;
     panel = document.createElement('div');
     panel.id = PANEL_ID;
-    panel.innerHTML = `
+    panel.innerHTML = apesHtml_roadmaps`
       <div class="qol-rm-header">
         <div class="qol-rm-header-copy"><span class="qol-rm-header-icon"><svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/></svg></span><div><strong>Roadmaps</strong><small>Guide profiles and build routes</small></div></div>
         <div class="qol-rm-close" role="button" tabindex="0" aria-label="Close Roadmaps">×</div>

@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_nextEvents = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const OVERLAY_ID = 'apes-v2-village-overlay';
   const UI_SOURCE = 'APES_QOL_VILLAGE_DASHBOARD_UI';
@@ -296,7 +298,7 @@
     panel = document.createElement('section');
     panel.className = 'apes-vd-next-events';
     panel.setAttribute('aria-label', 'Next account events');
-    panel.innerHTML = `
+    panel.innerHTML = apesHtml_nextEvents`
       <div class="apes-vd-next-events-head">
         <strong>Next Events</strong>
         <small>Account-wide</small>
@@ -347,7 +349,7 @@
         const clock = ready || event.at <= now + 1000
           ? 'NOW'
           : new Date(event.at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
-        return `
+        return apesHtml_nextEvents`
           <div class="apes-vd-next-event ${esc(event.kind)}${ready ? ' ready' : ''}"
                role="button" tabindex="0" data-next-event-village="${esc(event.villageId)}"
                title="Open ${esc(event.villageName)}">
@@ -359,7 +361,7 @@
             <span class="apes-vd-next-event-countdown" data-event-at="${event.at}">${esc(ready ? 'ready' : duration(event.at - now))}</span>
           </div>
         `;
-      }).join('') : '<span class="apes-vd-next-events-empty">No upcoming account events found.</span>';
+      }).join('') : apesHtml_nextEvents`<span class="apes-vd-next-events-empty">No upcoming account events found.</span>`;
     } catch (error) {
       console.warn('[APES Village Dashboard] Next Events render failed safely.', error);
     }

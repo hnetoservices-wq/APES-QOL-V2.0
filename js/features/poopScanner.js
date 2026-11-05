@@ -4,6 +4,8 @@
  */
 (() => {
   'use strict';
+const apesHtml_poopScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE = 'poopScanner';
   const SS_STORAGE = 'apes_secret_society_scans_v1';
@@ -304,36 +306,36 @@
     const hasAttacks = Boolean(lastScan?.results?.some(row => row.status === 'attacked'));
     node.classList.toggle('has-attacks', hasAttacks);
     if (!lastScan) {
-      node.innerHTML = '<div class="apes-poop-scan-empty">Run Scan Villages to check for incoming attacks.</div>';
+      node.innerHTML = apesHtml_poopScanner`<div class="apes-poop-scan-empty">Run Scan Villages to check for incoming attacks.</div>`;
       return;
     }
     const rows = lastScan.results;
     const attacked = rows.filter(row => row.status === 'attacked');
     const unavailable = rows.filter(row => row.status === 'unavailable');
     const checked = rows.length - unavailable.length;
-    const heading = '<div class="apes-poop-scan-metrics"><strong>' + attacked.length +
+    const heading = apesHtml_poopScanner`<div class="apes-poop-scan-metrics"><strong>` + attacked.length +
       '</strong> villages under attack · ' + checked + '/' + lastScan.total +
       ' checked' + (unavailable.length ? ' · ' + unavailable.length + ' unavailable' : '') + '</div>';
     if (!attacked.length) {
-      node.innerHTML = heading + '<div class="apes-poop-scan-empty">' +
+      node.innerHTML = heading + apesHtml_poopScanner`<div class="apes-poop-scan-empty">` +
         (unavailable.length ? 'No attacks detected in successfully checked villages. Some villages could not be checked.' :
           (lastScan.complete ? 'No active incoming attacks detected.' : 'No attacks detected so far.')) +
         '</div>' + (unavailable.length ?
-        '<div class="apes-poop-scan-failures">Unable to check: ' +
+        apesHtml_poopScanner`<div class="apes-poop-scan-failures">Unable to check: ` +
           unavailable.map(row => esc(row.villageName)).join(', ') + '</div>' : '');
       return;
     }
     const lines = attacked.sort((a, b) => a.arrivalAt - b.arrivalAt).map(row =>
-      '<tr><td>' + esc(row.owner) + '</td><td>' + esc(row.villageName) + '</td>' +
-      '<td>(' + esc(row.x) + ' | ' + esc(row.y) + ')</td>' +
-      '<td><strong>' + row.total + '</strong></td>' +
+      apesHtml_poopScanner`<tr><td>` + esc(row.owner) + apesHtml_poopScanner`</td><td>` + esc(row.villageName) + '</td>' +
+      apesHtml_poopScanner`<td>(` + esc(row.x) + ' | ' + esc(row.y) + ')</td>' +
+      apesHtml_poopScanner`<td><strong>` + row.total + '</strong></td>' +
       '<td class="apes-poop-eta" data-poop-eta="' + row.arrivalAt + '">' + formatRemaining(row.arrivalAt) + '</td>' +
-      '<td><a href="' + esc(row.url) + '">Open map</a></td></tr>').join('');
+      apesHtml_poopScanner`<td><a href="` + esc(row.url) + '">Open map</a></td></tr>').join('');
     node.innerHTML = heading +
-      '<div class="apes-poop-scan-table"><table><thead><tr><th>Owner</th><th>Village</th>' +
-      '<th>Coordinates</th><th>Attacks</th><th>Next arrival</th><th></th></tr></thead><tbody>' +
+      apesHtml_poopScanner`<div class="apes-poop-scan-table"><table><thead><tr><th>Owner</th><th>Village</th>` +
+      apesHtml_poopScanner`<th>Coordinates</th><th>Attacks</th><th>Next arrival</th><th></th></tr></thead><tbody>` +
       lines + '</tbody></table></div>' +
-      (unavailable.length ? '<div class="apes-poop-scan-failures">Unable to check: ' +
+      (unavailable.length ? apesHtml_poopScanner`<div class="apes-poop-scan-failures">Unable to check: ` +
         unavailable.map(row => esc(row.villageName)).join(', ') + '</div>' : '');
   }
 
@@ -350,9 +352,9 @@
     overlay.id = LOCK_ID;
     overlay.setAttribute('role', 'dialog');
     overlay.setAttribute('aria-modal', 'true');
-    overlay.innerHTML = '<div class="apes-poop-lock-card"><strong>Scanning POOP villages</strong>' +
-      '<div data-poop-progress>Preparing saved villages…</div>' +
-      '<div class="apes-poop-lock-stop" role="button" tabindex="0">Cancel scan</div></div>';
+    overlay.innerHTML = apesHtml_poopScanner`<div class="apes-poop-lock-card"><strong>Scanning POOP villages</strong>` +
+      apesHtml_poopScanner`<div data-poop-progress>Preparing saved villages…</div>` +
+      apesHtml_poopScanner`<div class="apes-poop-lock-stop" role="button" tabindex="0">Cancel scan</div></div>`;
     overlay.querySelector('.apes-poop-lock-stop').addEventListener('click', () => { scanCancelled = true; });
     overlay.querySelector('.apes-poop-lock-stop').addEventListener('keydown', event => {
       if (event.key === 'Enter' || event.key === ' ') {
@@ -441,14 +443,14 @@
     panel.querySelector('[data-poop-count]').textContent =
       list.length + (list.length === 1 ? ' village saved' : ' villages saved');
     renderScanSummary();
-    tbody.innerHTML = list.length ? list.map(item => '<tr>' +
-      '<td>' + esc(item.owner) + '</td>' +
-      '<td>' + esc(item.villageName) + '</td>' +
-      '<td>(' + esc(item.x) + ' | ' + esc(item.y) + ')</td>' +
-      '<td><a target="_self" href="' + esc(item.url) + '">Open map</a></td>' +
-      '<td><div class="apes-poop-remove" role="button" tabindex="0" data-poop-remove="' +
+    tbody.innerHTML = list.length ? list.map(item => apesHtml_poopScanner`<tr>` +
+      apesHtml_poopScanner`<td>` + esc(item.owner) + '</td>' +
+      apesHtml_poopScanner`<td>` + esc(item.villageName) + '</td>' +
+      apesHtml_poopScanner`<td>(` + esc(item.x) + ' | ' + esc(item.y) + ')</td>' +
+      apesHtml_poopScanner`<td><a target="_self" href="` + esc(item.url) + '">Open map</a></td>' +
+      apesHtml_poopScanner`<td><div class="apes-poop-remove" role="button" tabindex="0" data-poop-remove="` +
       esc(item.cellId) + '">Remove</div></td></tr>').join('') :
-      '<tr><td colspan="5" class="apes-poop-empty">No villages saved. Select a village belonging to a scanned Secret Society member and use Add Player to POOP.</td></tr>';
+      apesHtml_poopScanner`<tr><td colspan="5" class="apes-poop-empty">No villages saved. Select a village belonging to a scanned Secret Society member and use Add Player to POOP.</td></tr>`;
   }
 
   function makePanelDraggable(panel) {
@@ -531,15 +533,15 @@
     if (!document.getElementById(PANEL_ID)) {
       const panel = document.createElement('div');
       panel.id = PANEL_ID;
-      panel.innerHTML = '<div class="apes-poop-head"><strong>Protection Of Outside Peasants</strong>' +
-        '<span class="apes-poop-close" role="button" tabindex="0" aria-label="Close POOP">×</span></div>' +
-        '<div class="apes-poop-body"><p>Villages belonging to members of your scanned Secret Societies.</p>' +
-        '<div class="apes-poop-count" data-poop-count></div>' +
-        '<div class="apes-poop-scanbar"><div class="apes-poop-scan-button" data-poop-scan role="button" tabindex="0">Scan Villages</div>' +
-        '<span data-poop-scan-status aria-live="polite">Not scanned</span></div>' +
-        '<section class="apes-poop-results" data-poop-results></section>' +
-        '<div class="apes-poop-scroll"><table><thead><tr><th>Owner</th><th>Village</th>' +
-        '<th>Coordinates</th><th>Location</th><th></th></tr></thead><tbody></tbody></table></div></div>';
+      panel.innerHTML = apesHtml_poopScanner`<div class="apes-poop-head"><strong>Protection Of Outside Peasants</strong>` +
+        apesHtml_poopScanner`<span class="apes-poop-close" role="button" tabindex="0" aria-label="Close POOP">×</span></div>` +
+        apesHtml_poopScanner`<div class="apes-poop-body"><p>Villages belonging to members of your scanned Secret Societies.</p>` +
+        apesHtml_poopScanner`<div class="apes-poop-count" data-poop-count></div>` +
+        apesHtml_poopScanner`<div class="apes-poop-scanbar"><div class="apes-poop-scan-button" data-poop-scan role="button" tabindex="0">Scan Villages</div>` +
+        apesHtml_poopScanner`<span data-poop-scan-status aria-live="polite">Not scanned</span></div>` +
+        apesHtml_poopScanner`<section class="apes-poop-results" data-poop-results></section>` +
+        apesHtml_poopScanner`<div class="apes-poop-scroll"><table><thead><tr><th>Owner</th><th>Village</th>` +
+        apesHtml_poopScanner`<th>Coordinates</th><th>Location</th><th></th></tr></thead><tbody></tbody></table></div></div>`;
       panel.querySelector('.apes-poop-close').addEventListener('click', close);
       panel.addEventListener('click', event => {
         if (event.target.closest('[data-poop-scan]')) { void scan(); return; }

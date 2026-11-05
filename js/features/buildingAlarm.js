@@ -1,5 +1,7 @@
 function initBuildingAlarm() {
   'use strict';
+const apesHtml_buildingAlarm = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'buildingAlarm';
   const STORAGE_KEY = 'qol_building_alarms';
@@ -235,7 +237,7 @@ function initBuildingAlarm() {
     root = document.createElement('div');
     root.id = STATUS_ID;
     root.className = 'idle';
-    root.innerHTML = `
+    root.innerHTML = apesHtml_buildingAlarm`
       <div class="qol-building-alarm-status-main" tabindex="0" role="status" aria-live="polite">
         <span class="qol-building-alarm-status-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"></circle><path d="M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6"></path></svg>
@@ -300,7 +302,7 @@ function initBuildingAlarm() {
 
   function renderHoverRows(alarms, now, ready) {
     if (!alarms.length) {
-      return `<div class="qol-building-alarm-hover-empty">${ready ? 'No buildings are currently ready for free instant finish.' : 'No upcoming building alarms are set.'}</div>`;
+      return apesHtml_buildingAlarm`<div class="qol-building-alarm-hover-empty">${ready ? 'No buildings are currently ready for free instant finish.' : 'No upcoming building alarms are set.'}</div>`;
     }
     return alarms.map(alarm => {
       const transition = getLevelTransition(alarm);
@@ -309,7 +311,7 @@ function initBuildingAlarm() {
         : now >= Number(alarm.alarmAt)
           ? `Free in ${escapeHtml(formatCountdown(Number(alarm.finishAt) - FREE_FINISH_SECONDS - now))}`
           : `Alarm in ${escapeHtml(formatCountdown(Number(alarm.alarmAt) - now))}`;
-      return `
+      return apesHtml_buildingAlarm`
         <div class="qol-building-alarm-hover-row${ready ? ' ready' : ''}" data-alarm-id="${escapeHtml(alarm.id)}">
           <span class="qol-building-alarm-hover-village" data-village-id="${escapeHtml(alarm.villageId)}" title="Open ${escapeHtml(alarm.villageName)}">${escapeHtml(alarm.villageName)}</span>
           <span class="qol-building-alarm-hover-building" title="${escapeHtml(transition.from)} → ${escapeHtml(transition.to)}">${escapeHtml(transition.from)} → ${escapeHtml(transition.to)}</span>
@@ -352,7 +354,7 @@ function initBuildingAlarm() {
       ? `${alarms.length} active · ${readyAlarms.length} ready`
       : 'No alarms set';
 
-    body.innerHTML = `
+    body.innerHTML = apesHtml_buildingAlarm`
       <div class="qol-building-alarm-group-title ready">
         <span>Ready for Free Finish</span>
         <span class="qol-building-alarm-badge">${readyAlarms.length}</span>

@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_integration = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const APES = window.APES;
   const FEATURE_KEY = 'resourceUpgradePlanner';
@@ -80,7 +82,7 @@
       const card = document.createElement('article');
       card.className = 'qol-feature-card';
       card.dataset.featureKey = FEATURE_KEY;
-      card.innerHTML = `
+      card.innerHTML = apesHtml_integration`
         <span class="qol-feature-icon" aria-hidden="true"><svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22V9M12 2c-3 3-3 5 0 7 3-2 3-4 0-7zM12 13c-5 0-7-3-7-6 4 0 7 2 7 6zM12 13c5 0 7-3 7-6-4 0-7 2-7 6zM12 19c-5 0-7-3-7-6 4 0 7 2 7 6zM12 19c5 0 7-3 7-6-4 0-7 2-7 6z"/></svg></span>
         <div class="qol-feature-copy">
           <h3 class="qol-feature-name">Resource Upgrade Planner</h3>
@@ -118,7 +120,7 @@
     item.setAttribute(TOOLBAR_ENTRY_ATTR, 'true');
     item.setAttribute('role', 'button');
     item.setAttribute('tabindex', '0');
-    item.innerHTML = '<span>Resource Upgrade Planner</span><span class="qol-toolbar-menu-arrow">›</span>';
+    item.innerHTML = apesHtml_integration`<span>Resource Upgrade Planner</span><span class="qol-toolbar-menu-arrow">›</span>`;
     const activate = event => {
       event.preventDefault();
       event.stopPropagation();
@@ -214,7 +216,7 @@
       item.setAttribute('role', 'button');
       item.setAttribute('tabindex', '0');
       item.title = 'Resource Upgrade Planner';
-      item.innerHTML = `<span class="apes-v2-radial-icon">${radialIcon()}</span><span class="apes-v2-radial-label">Resource Upgrade Planner</span>`;
+      item.innerHTML = apesHtml_integration`<span class="apes-v2-radial-icon">${radialIcon()}</span><span class="apes-v2-radial-label">Resource Upgrade Planner</span>`;
       container.appendChild(item);
     }
     layoutRadialItems(container);

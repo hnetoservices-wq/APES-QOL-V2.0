@@ -35,6 +35,8 @@
       ],
       "js": [
         "js/core/bootstrap.js",
+        "js/locales/catalogs.js",
+        "js/core/i18n.js",
         "js/core/context.js",
         "js/core/storage.js",
         "js/core/actions.js",

@@ -1,3 +1,4 @@
+const apesHtml_menu = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
 const QOL_DEFAULT_DISABLED_FEATURES = new Set(['cpManager', 'oasisScanner', 'reportArchive', 'watchlist']);
 const QOL_THEME_STORAGE_KEY = 'qol_theme';
 const QOL_THEMES = Object.freeze([{
@@ -333,12 +334,12 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 function featureCardHtml(feature) {
-  return `
+  return apesHtml_menu`
         <article class="qol-feature-card" data-feature-key="${escapeHtml(feature.key)}">
             <span class="qol-feature-icon" aria-hidden="true">${String(feature.icon).startsWith('<svg class="qol-feature-symbol"') ? feature.icon : escapeHtml(feature.icon)}</span>
             <div class="qol-feature-copy">
-                <h3 class="qol-feature-name">${escapeHtml(feature.name)}</h3>
-                <p class="qol-feature-desc">${escapeHtml(feature.description)}</p>
+                <h3 class="qol-feature-name" data-apes-i18n="${escapeHtml(feature.name)}">${escapeHtml(feature.name)}</h3>
+                <p class="qol-feature-desc" data-apes-i18n="${escapeHtml(feature.description)}">${escapeHtml(feature.description)}</p>
             </div>
             <label class="qol-switch" title="Toggle ${escapeHtml(feature.name)}">
                 <input type="checkbox" id="${escapeHtml(feature.id)}" class="qol-checkbox">
@@ -349,7 +350,7 @@ function featureCardHtml(feature) {
     `;
 }
 function themePickerHtml() {
-  const options = QOL_THEMES.map(theme => `
+  const options = QOL_THEMES.map(theme => apesHtml_menu`
         <div class="qol-theme-option"
              data-qol-theme-option="${escapeHtml(theme.key)}"
              role="radio"
@@ -360,13 +361,13 @@ function themePickerHtml() {
                 ${theme.swatches.map(color => `<i style="background:${escapeHtml(color)}"></i>`).join('')}
             </span>
             <span class="qol-theme-option-copy">
-                <strong>${escapeHtml(theme.name)}</strong>
-                <small>${escapeHtml(theme.description)}</small>
+                <strong data-apes-i18n="${escapeHtml(theme.name)}">${escapeHtml(theme.name)}</strong>
+                <small data-apes-i18n="${escapeHtml(theme.description)}">${escapeHtml(theme.description)}</small>
             </span>
             <span class="qol-theme-selected" aria-hidden="true">&#10003;</span>
         </div>
     `).join('');
-  return `
+  return apesHtml_menu`
         <section class="qol-theme-card" aria-labelledby="qol-theme-title">
             <div class="qol-theme-card-copy">
                 <h3 id="qol-theme-title">Extension Theme</h3>
@@ -379,18 +380,18 @@ function themePickerHtml() {
     `;
 }
 function keybindHtml(item) {
-  const keys = item.keys.map(key => `<span class="qol-kbd">${escapeHtml(key)}</span>`).join('');
-  const state = item.fixed ? '<span class="qol-fixed-state">Fixed</span>' : `
+  const keys = item.keys.map(key => apesHtml_menu`<span class="qol-kbd">${escapeHtml(key)}</span>`).join('');
+  const state = item.fixed ? apesHtml_menu`<span class="qol-fixed-state">Fixed</span>` : apesHtml_menu`
             <label class="qol-switch" title="Toggle ${escapeHtml(item.label)} shortcut">
                 <input type="checkbox" id="${escapeHtml(item.id)}" class="qol-checkbox">
                 <span class="qol-switch-track" aria-hidden="true"></span>
                 <span class="qol-visually-hidden">Toggle ${escapeHtml(item.label)} shortcut</span>
             </label>
         `;
-  return `
+  return apesHtml_menu`
         <div class="qol-keybind-item">
             <div class="qol-key-combo">${keys}</div>
-            <span class="qol-keybind-action">${escapeHtml(item.label)}</span>
+            <span class="qol-keybind-action" data-apes-i18n="${escapeHtml(item.label)}">${escapeHtml(item.label)}</span>
             ${state}
         </div>
     `;
@@ -773,9 +774,9 @@ function toggleToolbarDropdown() {
     return;
   }
   const items = getEnabledToolbarItems();
-  dropdown.innerHTML = `
+  dropdown.innerHTML = apesHtml_menu`
         <div class="qol-toolbar-menu-title">Enabled APES tools</div>
-        ${items.map(item => `
+        ${items.map(item => apesHtml_menu`
             <div class="qol-toolbar-menu-item" data-toolbar-id="${escapeHtml(item.id)}" role="button" tabindex="0">
                 <span>${escapeHtml(item.label)}</span><span class="qol-toolbar-menu-arrow">›</span>
             </div>
@@ -894,7 +895,7 @@ window.qolRepositionAllButtons = function () {
   }
 };
 function buildSettingsMarkup() {
-  return `
+  return apesHtml_menu`
         <div id="qol-modal" role="dialog" aria-modal="true" aria-labelledby="qol-menu-title">
             <div class="qol-modal-header">
                 <div class="qol-modal-title-group">
@@ -911,6 +912,20 @@ function buildSettingsMarkup() {
             </div>
 
             <div class="qol-modal-body">
+                <section class="qol-language-picker" style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px">
+                    <label for="qol-language-select">Extension language</label>
+                    <select id="qol-language-select" data-apes-language-select style="font:inherit;max-width:100%;padding:6px 10px">
+                        <option value="en" lang="en">English</option>
+                        <option value="pt-PT" lang="pt-PT">Português (Portugal)</option>
+                        <option value="es-ES" lang="es-ES">Español (España)</option>
+                        <option value="fr" lang="fr">Français</option>
+                        <option value="ru" lang="ru">Русский</option>
+                        <option value="cs" lang="cs">Čeština</option>
+                        <option value="de" lang="de">Deutsch</option>
+                        <option value="it" lang="it">Italiano</option>
+                    </select>
+                    <span data-apes-language-status role="status" aria-live="polite"></span>
+                </section>
                 <div class="qol-section-heading qol-keybind-heading">
                     <div class="qol-section-title-group">
                         <h2 class="qol-section-title">Keybinds</h2>
@@ -1065,6 +1080,7 @@ function setupQolMenu() {
     document.body.appendChild(overlay);
     bindMenuControls(overlay);
     bindMenuShell(overlay);
+    bindLanguageSelector(overlay);
   } else {
     bindMenuControls(overlay);
   }
@@ -1083,6 +1099,23 @@ function setupQolMenu() {
   }
   mountToolbarDropdown();
   scheduleReposition();
+}
+function bindLanguageSelector(overlay) {
+  const i18n = window.APES?.i18n;
+  const select = overlay.querySelector('[data-apes-language-select]');
+  if (!select || !i18n || select.dataset.bound === 'true') return;
+  select.dataset.bound = 'true';
+  const status = overlay.querySelector('[data-apes-language-status]');
+  const sync = () => { select.value = i18n.getLanguage(); };
+  sync();
+  i18n.ready.then(sync);
+  select.addEventListener('change', async () => {
+    select.disabled = true;
+    status.textContent = '';
+    try { await i18n.setLanguage(select.value); }
+    catch (_) { status.textContent = i18n.t('Language preference could not be saved. Please try again.'); }
+    finally { select.disabled = false; sync(); }
+  });
 }
 function bindMenuShell(overlay) {
   const closeModal = () => {

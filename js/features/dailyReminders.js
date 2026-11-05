@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_dailyReminders = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
   const S = window.APES_REMINDER_SCHEDULE;
   if (!S || window.APES_DAILY_REMINDERS) return;
   const FEATURE = 'dailyReminders', BOX = 'qol-daily-reminders-status', PANEL = 'qol-daily-reminders-panel';
@@ -7,7 +9,7 @@
   const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
   const enabled = () => typeof window.isQolEnabled !== 'function' || window.isQolEnabled(FEATURE);
-  const action = (label, attrs = '', disabled = false) => `<div class="qol-rem-action" role="button" tabindex="${disabled ? -1 : 0}" aria-disabled="${disabled}" ${attrs}>${label}</div>`;
+  const action = (label, attrs = '', disabled = false) => apesHtml_dailyReminders`<div class="qol-rem-action" role="button" tabindex="${disabled ? -1 : 0}" aria-disabled="${disabled}" ${attrs}>${label}</div>`;
   const BELL = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9a6 6 0 0112 0c0 7 3 7 3 8H3c0-1 3-1 3-8M9 21h6"></path></svg>';
   const ICONS = {
     pause: '<path d="M8 5v14M16 5v14"/>', play: '<path d="m8 5 10 7-10 7z"/>',
@@ -142,7 +144,7 @@
     let box = document.getElementById(BOX);
     if (box) return box;
     box = document.createElement('section'); box.id = BOX;
-    box.innerHTML = `<div class="qol-rem-main" role="button" tabindex="0" aria-expanded="false" aria-controls="qol-rem-popover" data-rem-open>${BELL}<span class="qol-rem-label" role="status" aria-live="polite">Reminders</span></div><div id="qol-rem-popover" class="qol-rem-popover"><header><strong>Daily Reminders</strong>${action('Manage', 'data-rem-manage')}</header><div data-rem-alerts></div></div>`;
+    box.innerHTML = apesHtml_dailyReminders`<div class="qol-rem-main" role="button" tabindex="0" aria-expanded="false" aria-controls="qol-rem-popover" data-rem-open>${BELL}<span class="qol-rem-label" role="status" aria-live="polite">Reminders</span></div><div id="qol-rem-popover" class="qol-rem-popover"><header><strong>Daily Reminders</strong>${action('Manage', 'data-rem-manage')}</header><div data-rem-alerts></div></div>`;
     wire(box); document.body.append(box); return box;
   }
   function refresh() {
@@ -169,7 +171,7 @@
     const nextSignature = JSON.stringify([label, due.map(row => [row.item.id, row.key, row.item.text]), message, busy]);
     if (signature !== nextSignature) {
       box.querySelector('.qol-rem-label').textContent = label; main.title = label;
-      box.querySelector('[data-rem-alerts]').innerHTML = due.length ? due.map(row => `<div class="qol-rem-alert" data-rem-id="${esc(row.item.id)}" data-rem-key="${row.key}"><strong>${esc(row.item.text)}</strong><small>Due ${row.key} at ${row.item.time} · local time</small><div class="qol-rem-actions">${action('Done', 'data-rem-done', busy)}<select data-rem-snooze-minutes aria-label="Snooze duration"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select>${action('Snooze', 'data-rem-snooze', busy)}</div></div>`).join('') : `<p class="qol-rem-empty">${esc(message || (items.length ? 'Nothing due right now. Manage your schedules below.' : 'Create your first reminder, such as “Scan Kingdoms!” at 22:00.'))}</p>`;
+      box.querySelector('[data-rem-alerts]').innerHTML = due.length ? due.map(row => apesHtml_dailyReminders`<div class="qol-rem-alert" data-rem-id="${esc(row.item.id)}" data-rem-key="${row.key}"><strong>${esc(row.item.text)}</strong><small>Due ${row.key} at ${row.item.time} · local time</small><div class="qol-rem-actions">${action('Done', 'data-rem-done', busy)}<select data-rem-snooze-minutes aria-label="Snooze duration"><option value="15">15 minutes</option><option value="30">30 minutes</option><option value="60">1 hour</option></select>${action('Snooze', 'data-rem-snooze', busy)}</div></div>`).join('') : apesHtml_dailyReminders`<p class="qol-rem-empty">${esc(message || (items.length ? 'Nothing due right now. Manage your schedules below.' : 'Create your first reminder, such as “Scan Kingdoms!” at 22:00.'))}</p>`;
       signature = nextSignature; syncDisabled();
     }
     playDueSounds(); updateCountdowns(); position();
@@ -193,17 +195,17 @@
   }
   function editorHTML() {
     if (!editor) return '';
-    return `<section class="qol-rem-editor"><strong>${editor.id ? 'Edit reminder' : 'New reminder'}</strong><label>Reminder<input data-rem-field="text" maxlength="160" value="${esc(editor.text)}" placeholder="Scan Kingdoms!"></label><div class="qol-rem-fields"><label>Time<input data-rem-field="time" type="time" value="${editor.time}"></label><label>Repeat<select data-rem-field="repeat">${[['once', 'Once'], ['daily', 'Every day'], ['weekdays', 'Selected weekdays'], ['interval', 'Every X days']].map(([value, label]) => `<option value="${value}"${editor.repeat === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label>Start date<input data-rem-field="startDate" type="date" value="${editor.startDate}"></label><label>End date · optional<input data-rem-field="endDate" type="date" value="${editor.endDate}"></label></div><div data-rem-weekdays${editor.repeat === 'weekdays' ? '' : ' hidden'}>${DAYS.map((day, index) => `<label><input type="checkbox" data-rem-day="${index}"${editor.days.includes(index) ? ' checked' : ''}>${day}</label>`).join('')}</div><label data-rem-interval${editor.repeat === 'interval' ? '' : ' hidden'}>Repeat every<input data-rem-field="interval" type="number" min="1" max="365" value="${editor.interval}">days</label><div class="qol-rem-actions">${action('Save reminder', 'data-rem-save', busy)}${action('Cancel', 'data-rem-cancel', busy)}</div></section>`;
+    return apesHtml_dailyReminders`<section class="qol-rem-editor"><strong>${editor.id ? 'Edit reminder' : 'New reminder'}</strong><label>Reminder<input data-rem-field="text" maxlength="160" value="${esc(editor.text)}" placeholder="Scan Kingdoms!"></label><div class="qol-rem-fields"><label>Time<input data-rem-field="time" type="time" value="${editor.time}"></label><label>Repeat<select data-rem-field="repeat">${[['once', 'Once'], ['daily', 'Every day'], ['weekdays', 'Selected weekdays'], ['interval', 'Every X days']].map(([value, label]) => apesHtml_dailyReminders`<option value="${value}"${editor.repeat === value ? ' selected' : ''}>${label}</option>`).join('')}</select></label><label>Start date<input data-rem-field="startDate" type="date" value="${editor.startDate}"></label><label>End date · optional<input data-rem-field="endDate" type="date" value="${editor.endDate}"></label></div><div data-rem-weekdays${editor.repeat === 'weekdays' ? '' : ' hidden'}>${DAYS.map((day, index) => apesHtml_dailyReminders`<label><input type="checkbox" data-rem-day="${index}"${editor.days.includes(index) ? ' checked' : ''}>${day}</label>`).join('')}</div><label data-rem-interval${editor.repeat === 'interval' ? '' : ' hidden'}>Repeat every<input data-rem-field="interval" type="number" min="1" max="365" value="${editor.interval}">days</label><div class="qol-rem-actions">${action('Save reminder', 'data-rem-save', busy)}${action('Cancel', 'data-rem-cancel', busy)}</div></section>`;
   }
   function renderPanel() {
     const panel = document.getElementById(PANEL); if (!panel) return;
     const body = panel.querySelector('.qol-rem-panel-body'), scrollTop = body.scrollTop;
-    body.innerHTML = `<p class="qol-rem-intro">Times use this device’s local time. Reminders ding every two minutes until Done; Snooze pauses the sound. The latest missed occurrence appears when you return to the game.</p><p data-rem-message role="status">${esc(message)}</p>${!loaded ? action('Retry loading', 'data-rem-retry') : `${action('New reminder', 'data-rem-new')}${editorHTML()}<div class="qol-rem-saved">${items.map(savedRowHTML).join('') || '<p class="qol-rem-empty">No reminders yet.</p>'}</div>`}`;
+    body.innerHTML = apesHtml_dailyReminders`<p class="qol-rem-intro">Times use this device’s local time. Reminders ding every two minutes until Done; Snooze pauses the sound. The latest missed occurrence appears when you return to the game.</p><p data-rem-message role="status">${esc(message)}</p>${!loaded ? action('Retry loading', 'data-rem-retry') : apesHtml_dailyReminders`${action('New reminder', 'data-rem-new')}${editorHTML()}<div class="qol-rem-saved">${items.map(savedRowHTML).join('') || apesHtml_dailyReminders`<p class="qol-rem-empty">No reminders yet.</p>`}</div>`}`;
     body.scrollTop = scrollTop; syncDisabled(); updateCountdowns();
   }
   function savedRowHTML(item) {
-    const confirming = deleting === item.id, separator = '<span class="qol-rem-separator" aria-hidden="true">|</span>';
-    return `<section class="qol-rem-saved-row" data-rem-id="${esc(item.id)}"><div class="qol-rem-row-head"><div class="qol-rem-row-summary" title="${esc(`${item.text} – ${describe(item)}`)}"><strong>"${esc(item.text)}"</strong><span class="qol-rem-row-schedule"> – ${esc(describe(item, true))}</span></div><div class="qol-rem-row-actions">${iconAction(item.enabled ? 'pause' : 'play', item.enabled ? 'Pause reminder' : 'Resume reminder', 'data-rem-toggle')}${separator}${iconAction('edit', 'Edit reminder', 'data-rem-edit')}${separator}${confirming ? '<span class="qol-rem-delete-question">Delete?</span>' : ''}${iconAction(confirming ? 'check' : 'trash', confirming ? 'Confirm delete reminder' : 'Delete reminder', 'data-rem-delete')}${confirming ? iconAction('cancel', 'Cancel deletion', 'data-rem-delete-cancel') : ''}</div></div><small class="qol-rem-countdown" data-rem-countdown></small></section>`;
+    const confirming = deleting === item.id, separator = apesHtml_dailyReminders`<span class="qol-rem-separator" aria-hidden="true">|</span>`;
+    return apesHtml_dailyReminders`<section class="qol-rem-saved-row" data-rem-id="${esc(item.id)}"><div class="qol-rem-row-head"><div class="qol-rem-row-summary" title="${esc(`${item.text} – ${describe(item)}`)}"><strong>"${esc(item.text)}"</strong><span class="qol-rem-row-schedule"> – ${esc(describe(item, true))}</span></div><div class="qol-rem-row-actions">${iconAction(item.enabled ? 'pause' : 'play', item.enabled ? 'Pause reminder' : 'Resume reminder', 'data-rem-toggle')}${separator}${iconAction('edit', 'Edit reminder', 'data-rem-edit')}${separator}${confirming ? apesHtml_dailyReminders`<span class="qol-rem-delete-question">Delete?</span>` : ''}${iconAction(confirming ? 'check' : 'trash', confirming ? 'Confirm delete reminder' : 'Delete reminder', 'data-rem-delete')}${confirming ? iconAction('cancel', 'Cancel deletion', 'data-rem-delete-cancel') : ''}</div></div><small class="qol-rem-countdown" data-rem-countdown></small></section>`;
   }
   function captureEditor() {
     if (!editor) return;
@@ -270,7 +272,7 @@
     let panel = document.getElementById(PANEL);
     if (!panel) {
       panel = document.createElement('section'); panel.id = PANEL; panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Daily Reminders');
-      panel.innerHTML = `<header class="qol-rem-panel-head" title="Drag to move"><strong>${BELL} Daily Reminders</strong>${action('×', 'data-rem-close aria-label="Close Daily Reminders"')}</header><div class="qol-rem-panel-body"></div><div class="qol-rem-resize" data-rem-resize role="button" tabindex="0" aria-label="Resize Daily Reminders" title="Drag to resize, or use arrow keys"></div>`;
+      panel.innerHTML = apesHtml_dailyReminders`<header class="qol-rem-panel-head" title="Drag to move"><strong>${BELL} Daily Reminders</strong>${action('×', 'data-rem-close aria-label="Close Daily Reminders"')}</header><div class="qol-rem-panel-body"></div><div class="qol-rem-resize" data-rem-resize role="button" tabindex="0" aria-label="Resize Daily Reminders" title="Drag to resize, or use arrow keys"></div>`;
       wire(panel); document.body.append(panel); makeMovable(panel);
     }
     panel.hidden = false; fitPanel(panel); renderPanel();

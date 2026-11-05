@@ -1,3 +1,4 @@
+const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
 (function () {
   const MAX_TABS = 10;
   const MAX_PLAYERS_PER_TAB = 50;
@@ -33,7 +34,7 @@
   function iconHtml(kind, label, extraClass = '') {
     const classes = `qol-wl-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
     const artwork = kind === 'swordCastle' ? `${iconSvg('sword')}${iconSvg('castle')}` : kind === 'swordHouse' ? `${iconSvg('sword')}${iconSvg('house')}` : iconSvg(kind);
-    return `<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? ' qol-wl-combo-icon' : ''}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${artwork}</span>`;
+    return apesHtml_watchlist`<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? ' qol-wl-combo-icon' : ''}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}">${artwork}</span>`;
   }
   function changeDescriptor(value) {
     const numeric = value == null || value === '' ? null : Number(value);
@@ -60,13 +61,13 @@
   }
   function changeMetricHtml(kind, label, value) {
     const change = changeDescriptor(value);
-    return `<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
+    return apesHtml_watchlist`<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
   }
   function changesHtml(entry) {
     if (entry.villageChange == null && entry.populationChange == null) {
-      return '<span class="qol-wl-change qol-stationary">Baseline</span>';
+      return apesHtml_watchlist`<span class="qol-wl-change qol-stationary">Baseline</span>`;
     }
-    return `${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
+    return apesHtml_watchlist`${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
   }
   function navigateToGameRoute(route) {
     let currentHash = window.location.hash || '#/';
@@ -660,7 +661,7 @@
   function showCustomPrompt(title, message, defaultValue, callback) {
     const overlay = document.createElement('div');
     overlay.className = 'qol-modal-overlay';
-    overlay.innerHTML = `
+    overlay.innerHTML = apesHtml_watchlist`
             <div class="qol-modal-box">
                 <div class="qol-modal-header">${title}</div>
                 <div class="qol-modal-body">
@@ -698,7 +699,7 @@
   function showCustomConfirm(title, message, callback) {
     const overlay = document.createElement('div');
     overlay.className = 'qol-modal-overlay';
-    overlay.innerHTML = `
+    overlay.innerHTML = apesHtml_watchlist`
             <div class="qol-modal-box">
                 <div class="qol-modal-header">${title}</div>
                 <div class="qol-modal-body">
@@ -920,7 +921,7 @@
     watchlistTabs.forEach(tab => {
       const item = document.createElement('div');
       item.className = 'qol-wl-dropdown-item';
-      item.innerHTML = `<span>${escapeHtml(tab.name)}</span> <span style="font-size:10px; color:#777;">(${tab.entries.length}/${MAX_PLAYERS_PER_TAB})</span>`;
+      item.innerHTML = apesHtml_watchlist`<span>${escapeHtml(tab.name)}</span> <span style="font-size:10px; color:#777;">(${tab.entries.length}/${MAX_PLAYERS_PER_TAB})</span>`;
       item.addEventListener('click', e => {
         e.stopPropagation();
         menu.remove();
@@ -954,7 +955,7 @@
     wrapper.style.cssText = 'display: inline-flex; align-items: center; vertical-align: middle; position: relative;';
     const btn = document.createElement('div');
     btn.className = 'qol-wl-profile-btn';
-    btn.innerHTML = `<span>Add Profile to Watchlist</span> <span style="font-size:9px;">▼</span>`;
+    btn.innerHTML = apesHtml_watchlist`<span>Add Profile to Watchlist</span> <span style="font-size:9px;">▼</span>`;
     btn.addEventListener('click', e => {
       e.stopPropagation();
       e.preventDefault();
@@ -998,7 +999,7 @@
             flex-direction: column !important;
             gap: 8px !important;
         `;
-    overlay.innerHTML = `
+    overlay.innerHTML = apesHtml_watchlist`
             <div>Updating Watchlist... (<span id="qol-update-progress">0</span> / ${total})</div>
             <div style="font-size: 11px; font-weight: normal; color: #ccc;">Please wait, this may take a few seconds...</div>
         `;
@@ -1132,32 +1133,32 @@
     tbody.innerHTML = '';
     if (activeTab.entries.length === 0) {
       const tr = document.createElement('tr');
-      tr.innerHTML = `<td colspan="8" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
+      tr.innerHTML = apesHtml_watchlist`<td colspan="8" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
       tbody.appendChild(tr);
       return;
     }
     activeTab.entries.forEach((entry, index) => {
       const capitalName = entry.capital?.name || 'N/A';
       const capitalTitle = entry.capital?.coords ? `Capital village ${entry.capital.coords}` : 'Capital village';
-      const capitalCoordsLink = entry.capital && entry.capital.coords ? `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.capital.x)}/y:${escapeHtml(entry.capital.y)}" title="Send troops to ${escapeHtml(capitalName)}">${escapeHtml(entry.capital.coords)}</a>` : '-';
+      const capitalCoordsLink = entry.capital && entry.capital.coords ? apesHtml_watchlist`<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.capital.x)}/y:${escapeHtml(entry.capital.y)}" title="Send troops to ${escapeHtml(capitalName)}">${escapeHtml(entry.capital.coords)}</a>` : '-';
       const nonCapitalVillages = (entry.villages || []).filter(v => !v.isCapital);
-      let selectOptions = `<option value="">Select village…</option>`;
+      let selectOptions = apesHtml_watchlist`<option value="">Select village…</option>`;
       if (nonCapitalVillages.length > 0) {
         nonCapitalVillages.forEach(v => {
           const selected = v.id === entry.selected2ndId ? 'selected' : '';
-          selectOptions += `<option value="${escapeHtml(v.id)}" data-x="${escapeHtml(v.x)}" data-y="${escapeHtml(v.y)}" data-coords="${escapeHtml(v.coords)}" ${selected}>${escapeHtml(v.name)}</option>`;
+          selectOptions += apesHtml_watchlist`<option value="${escapeHtml(v.id)}" data-x="${escapeHtml(v.x)}" data-y="${escapeHtml(v.y)}" data-coords="${escapeHtml(v.coords)}" ${selected}>${escapeHtml(v.name)}</option>`;
         });
       } else {
-        selectOptions = `<option value="">No other village</option>`;
+        selectOptions = apesHtml_watchlist`<option value="">No other village</option>`;
       }
       let send2ndLink = '-';
       if (entry.selected2ndCoords) {
-        send2ndLink = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.selected2ndX)}/y:${escapeHtml(entry.selected2ndY)}" title="Send troops to selected village">${escapeHtml(entry.selected2ndCoords)}</a>`;
+        send2ndLink = apesHtml_watchlist`<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.selected2ndX)}/y:${escapeHtml(entry.selected2ndY)}" title="Send troops to selected village">${escapeHtml(entry.selected2ndCoords)}</a>`;
       }
       const population = numericValue(entry.population);
       const populationText = population == null ? escapeHtml(entry.population || 'N/A') : population.toLocaleString();
       const tr = document.createElement('tr');
-      tr.innerHTML = `
+      tr.innerHTML = apesHtml_watchlist`
                 <td>
                     <div class="qol-wl-player-cell">
                         <a href="javascript:void(0)" class="qol-route-link qol-wl-player-link" data-route="playerId:${escapeHtml(entry.playerId)}/profileTab:playerProfile/window:profile" title="Open ${escapeHtml(entry.playerName)}'s profile">${escapeHtml(entry.playerName)}</a>
@@ -1187,7 +1188,7 @@
         entry.selected2ndY = y;
         saveWatchlist();
         if (coords) {
-          send2ndCell.innerHTML = `<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(x)}/y:${escapeHtml(y)}" title="Send troops to selected village">${escapeHtml(coords)}</a>`;
+          send2ndCell.innerHTML = apesHtml_watchlist`<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(x)}/y:${escapeHtml(y)}" title="Send troops to selected village">${escapeHtml(coords)}</a>`;
         } else {
           send2ndCell.innerHTML = '-';
         }
@@ -1232,7 +1233,7 @@
     watchlistContainer = document.createElement('div');
     watchlistContainer.id = 'qol-watchlist-container';
     watchlistContainer.style.display = 'none';
-    watchlistContainer.innerHTML = `
+    watchlistContainer.innerHTML = apesHtml_watchlist`
             <div class="qol-wl-header">
                 <span>Player Watchlist</span>
                 <span class="qol-wl-close" title="Close Watchlist">&times;</span>

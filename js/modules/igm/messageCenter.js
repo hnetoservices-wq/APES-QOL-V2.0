@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_messageCenter = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'igmEnhanced';
   const TABS_ID = 'qol-message-center-tabs';
@@ -179,7 +181,7 @@
     create.setAttribute('role', 'button');
     create.tabIndex = 0;
     create.title = 'Create a custom message tab';
-    create.innerHTML = '<span class="qol-message-tab-plus">+</span><span>Tab</span>';
+    create.innerHTML = apesHtml_messageCenter`<span class="qol-message-tab-plus">+</span><span>Tab</span>`;
     const createTab = event => {
       event.preventDefault();
       event.stopPropagation();

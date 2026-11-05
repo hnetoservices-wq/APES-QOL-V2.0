@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_editor = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const CUSTOM_STORAGE_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_STORAGE_KEY = 'qol_roadmap_selected_v1';
@@ -237,7 +239,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_editor`
       <div class="qol-rm-dialog qol-rme-dialog" role="dialog" aria-modal="true">
         <div class="qol-rm-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rm-dialog-body">
@@ -271,7 +273,7 @@
 
     const layer = createDialog(
       create ? 'Create Roadmap' : 'Edit Roadmap Details',
-      `<label for="qol-rme-name">Name</label>
+      apesHtml_editor`<label for="qol-rme-name">Name</label>
        <input id="qol-rme-name" data-name maxlength="90">
        <label for="qol-rme-description">Description</label>
        <textarea id="qol-rme-description" data-description rows="4" maxlength="500"></textarea>`,
@@ -322,13 +324,13 @@
 
   function buildingPickerHtml(selectedName) {
     const selected = catalogEntry(selectedName);
-    return `
+    return apesHtml_editor`
       <div class="qol-rme-picker-shell">
         <div class="qol-rme-picker" data-building-picker data-value="${escapeHtml(selected.name)}" role="button" tabindex="0" aria-expanded="false">
           <span data-building-label>${escapeHtml(selected.name)}</span><span class="qol-rme-picker-arrow">▾</span>
         </div>
         <div class="qol-rme-picker-menu" data-building-menu>
-          ${BUILDINGS.map(building => `<div class="qol-rme-picker-option${building.name === selected.name ? ' active' : ''}" data-building-option="${escapeHtml(building.name)}" role="button" tabindex="0">${escapeHtml(building.name)}<span>Lv ${building.max}</span></div>`).join('')}
+          ${BUILDINGS.map(building => apesHtml_editor`<div class="qol-rme-picker-option${building.name === selected.name ? ' active' : ''}" data-building-option="${escapeHtml(building.name)}" role="button" tabindex="0">${escapeHtml(building.name)}<span>Lv ${building.max}</span></div>`).join('')}
         </div>
       </div>`;
   }
@@ -399,7 +401,7 @@
 
     const layer = createDialog(
       editing ? 'Edit Building Step' : 'Add Building Step',
-      `<div class="qol-rme-building-grid">
+      apesHtml_editor`<div class="qol-rme-building-grid">
          <div class="qol-rme-building-field">
            <label>Building</label>
            ${buildingPickerHtml(initialBuilding.name)}
@@ -484,7 +486,7 @@
 
     const layer = createDialog(
       editing ? 'Edit Instruction' : 'Add Instruction',
-      `<label for="qol-rme-instruction">Instruction</label>
+      apesHtml_editor`<label for="qol-rme-instruction">Instruction</label>
        <textarea id="qol-rme-instruction" data-text rows="6" maxlength="600"></textarea>`,
       editing ? 'Save Step' : 'Add Step'
     );
@@ -571,7 +573,7 @@
   }
 
   function stepControlsHtml(index, total) {
-    return `
+    return apesHtml_editor`
       <div class="qol-rme-step-actions">
         <div class="qol-rme-icon${index === 0 ? ' disabled' : ''}" data-rme-step="up" data-index="${index}" role="button" tabindex="${index === 0 ? -1 : 0}" title="Move up">↑</div>
         <div class="qol-rme-icon${index === total - 1 ? ' disabled' : ''}" data-rme-step="down" data-index="${index}" role="button" tabindex="${index === total - 1 ? -1 : 0}" title="Move down">↓</div>
@@ -587,7 +589,7 @@
 
     const sidebarTitle = panel.querySelector('.qol-rm-sidebar-title');
     if (sidebarTitle && !sidebarTitle.querySelector('[data-rme-new]')) {
-      sidebarTitle.insertAdjacentHTML('beforeend', '<div class="qol-rm-action qol-secondary qol-rme-new" data-rme-new role="button" tabindex="0">+ New</div>');
+      sidebarTitle.insertAdjacentHTML('beforeend', apesHtml_editor`<div class="qol-rm-action qol-secondary qol-rme-new" data-rme-new role="button" tabindex="0">+ New</div>`);
     }
     wireButton(sidebarTitle?.querySelector('[data-rme-new]'), () => openDetailsEditor(true));
 
@@ -597,14 +599,14 @@
     const actions = panel.querySelector('.qol-rm-actions');
     if (actions) {
       const rename = actions.querySelector('[data-roadmap-action="rename"]');
-      if (rename) rename.outerHTML = '<div class="qol-rm-action qol-secondary" data-rme-details role="button" tabindex="0">Edit Details</div>';
-      if (!actions.querySelector('[data-rme-details]')) actions.insertAdjacentHTML('afterbegin', '<div class="qol-rm-action qol-secondary" data-rme-details role="button" tabindex="0">Edit Details</div>');
+      if (rename) rename.outerHTML = apesHtml_editor`<div class="qol-rm-action qol-secondary" data-rme-details role="button" tabindex="0">Edit Details</div>`;
+      if (!actions.querySelector('[data-rme-details]')) actions.insertAdjacentHTML('afterbegin', apesHtml_editor`<div class="qol-rm-action qol-secondary" data-rme-details role="button" tabindex="0">Edit Details</div>`);
       wireButton(actions.querySelector('[data-rme-details]'), () => openDetailsEditor(false));
     }
 
     const routeHead = panel.querySelector('.qol-rm-route-head');
     if (routeHead && !routeHead.querySelector('[data-rme-add]')) {
-      routeHead.insertAdjacentHTML('beforeend', `
+      routeHead.insertAdjacentHTML('beforeend', apesHtml_editor`
         <div class="qol-rme-add">
           <div class="qol-rm-action qol-secondary" data-rme-add="building" role="button" tabindex="0">+ Building Step</div>
           <div class="qol-rm-action qol-secondary" data-rme-add="instruction" role="button" tabindex="0">+ Instruction</div>

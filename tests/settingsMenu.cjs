@@ -12,6 +12,7 @@ assert.ok(begin >= 0 && end > begin, 'Settings markup function must exist');
 const requestedAssets = [];
 const markup = vm.runInNewContext(source.slice(begin, end) + '\nbuildSettingsMarkup()', {
   chrome: { runtime: { getURL: asset => { requestedAssets.push(asset); return `chrome-extension://test-id/${asset}`; } } },
+  apesHtml_menu: (strings, ...values) => String.raw({raw: strings}, ...values),
   KEYBINDS: [], BASIC_FEATURES: [], ADVANCED_FEATURES: [],
   KINGDOM_MANAGEMENT_FEATURES: [], COSMETIC_FEATURES: [],
   keybindHtml: () => '', featureCardHtml: () => '',

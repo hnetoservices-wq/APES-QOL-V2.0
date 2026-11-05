@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_kingdomManagement = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
   const FEATURE = 'kingdomManagement';
   const PANEL_ID = 'qol-kingdom-management-panel';
   const BUTTON_ID = 'qol-kingdom-management-toggle-btn';
@@ -27,7 +29,7 @@
   // Use APES-owned div controls: the game decorates native button elements.
   function action(label, attributes = '', disabled = false) {
     disabled = disabled || filterSaving;
-    return `<div class="qol-km-action" role="button" tabindex="${disabled ? '-1' : '0'}" aria-disabled="${disabled}" ${attributes}>${label}</div>`;
+    return apesHtml_kingdomManagement`<div class="qol-km-action" role="button" tabindex="${disabled ? '-1' : '0'}" aria-disabled="${disabled}" ${attributes}>${label}</div>`;
   }
   function activateOnKeyboard(event) {
     if (event.key !== 'Enter' && event.key !== ' ') return;
@@ -133,7 +135,7 @@
     const lock = document.createElement('div');
     lock.id = LOCK_ID;
     lock.setAttribute('role', 'dialog'); lock.setAttribute('aria-modal', 'true'); lock.setAttribute('aria-labelledby', 'qol-km-scan-title');
-    lock.innerHTML = `<div class="qol-km-lock-card" role="status" aria-live="polite"><strong id="qol-km-scan-title">Scanning Kingdoms</strong><span data-km-progress>Preparing statistics…</span><progress data-km-bar max="5" value="0" aria-label="Completed statistics rankings"></progress>${action('Cancel scan', 'data-km-cancel')}</div>`;
+    lock.innerHTML = apesHtml_kingdomManagement`<div class="qol-km-lock-card" role="status" aria-live="polite"><strong id="qol-km-scan-title">Scanning Kingdoms</strong><span data-km-progress>Preparing statistics…</span><progress data-km-bar max="5" value="0" aria-label="Completed statistics rankings"></progress>${action('Cancel scan', 'data-km-cancel')}</div>`;
     lock.querySelector('[data-km-cancel]').addEventListener('click', event => { event.preventDefault(); event.stopPropagation(); cancelScan(); });
     lock.addEventListener('keydown', activateOnKeyboard);
     document.body.appendChild(lock);
@@ -235,13 +237,13 @@
     });
   }
   function cell(row, key) {
-    if (key === 'name') return `<span class="qol-km-name">${esc(row.name)}</span>`;
+    if (key === 'name') return apesHtml_kingdomManagement`<span class="qol-km-name">${esc(row.name)}</span>`;
     if (key === 'king') return esc(row.king || '—');
     return fmt(row[key]);
   }
   function filterChoices(selected, row = false) {
     const empty = row ? filters.tags.length ? 'No filter' : 'Create a Filter' : 'All kingdoms';
-    return `<option value=""${selected ? '' : ' selected'}${row && !filters.tags.length ? ' hidden' : ''}>${empty}</option>${filters.tags.map(tag => `<option value="tag:${esc(tag)}"${tag === selected ? ' selected' : ''}>${esc(tag)}</option>`).join('')}<option value="create">Create a Filter</option>`;
+    return apesHtml_kingdomManagement`<option value=""${selected ? '' : ' selected'}${row && !filters.tags.length ? ' hidden' : ''}>${empty}</option>${filters.tags.map(tag => apesHtml_kingdomManagement`<option value="tag:${esc(tag)}"${tag === selected ? ' selected' : ''}>${esc(tag)}</option>`).join('')}<option value="create">Create a Filter</option>`;
   }
   async function changeFilter(target) {
     if (scanning || filterSaving) { render({ preserveTableScroll: true }); return; }
@@ -280,7 +282,7 @@
   }
   function editorHTML() {
     if (!tagEditor) return '';
-    return `<section class="qol-km-tag-editor" role="group" aria-label="Create a Filter"><strong>Create a Filter${tagEditor.kingdomId ? ` · ${esc(tagEditor.name)}` : ''}</strong><div class="qol-km-controls"><label>Tag <input data-km-tag-name type="text" maxlength="60" value="${esc(tagEditor.value)}" placeholder="Unreal" aria-describedby="qol-km-tag-error"></label>${action(tagEditor.kingdomId ? 'Create & assign' : 'Create filter', 'data-km-tag-save', scanning)}${action('Cancel', 'data-km-tag-cancel', scanning)}</div><span id="qol-km-tag-error" data-tone="error" role="status">${esc(tagEditor.error)}</span></section>`;
+    return apesHtml_kingdomManagement`<section class="qol-km-tag-editor" role="group" aria-label="Create a Filter"><strong>Create a Filter${tagEditor.kingdomId ? ` · ${esc(tagEditor.name)}` : ''}</strong><div class="qol-km-controls"><label>Tag <input data-km-tag-name type="text" maxlength="60" value="${esc(tagEditor.value)}" placeholder="Unreal" aria-describedby="qol-km-tag-error"></label>${action(tagEditor.kingdomId ? 'Create & assign' : 'Create filter', 'data-km-tag-save', scanning)}${action('Cancel', 'data-km-tag-cancel', scanning)}</div><span id="qol-km-tag-error" data-tone="error" role="status">${esc(tagEditor.error)}</span></section>`;
   }
   function totals(rows) {
     const sums = {};
@@ -301,10 +303,10 @@
         value = sum.missing && !sum.known ? '—' : fmt(sum.value) + (sum.missing ? '*' : '');
         title = sum.missing ? `${label}: subtotal for ${sum.known} of ${rows.length} shown kingdoms; ${sum.missing} unavailable.` : `${label}: total for all ${rows.length} shown kingdoms.`;
       }
-      return `<td class="qol-km-${key}-column" data-km-total="${key}" title="${esc(title)}">${value}</td>`;
+      return apesHtml_kingdomManagement`<td class="qol-km-${key}-column" data-km-total="${key}" title="${esc(title)}">${value}</td>`;
     }).join('');
     return {
-      footer: `<tfoot><tr class="qol-km-totals"><th scope="row" colspan="4">Total · ${rows.length} kingdoms</th>${cells}</tr></tfoot>`,
+      footer: apesHtml_kingdomManagement`<tfoot><tr class="qol-km-totals"><th scope="row" colspan="4">Total · ${rows.length} kingdoms</th>${cells}</tr></tfoot>`,
       partial: Object.values(sums).some(sum => sum.missing)
     };
   }
@@ -312,18 +314,18 @@
     const compareMap = new Map((comparisons || []).map(row => [row.id, row]));
     const visible = sorted(rows);
     const summary = comparisons ? null : totals(visible);
-    return `<div class="qol-km-table-wrap"><table><thead><tr class="qol-km-groups"><th scope="colgroup">Filter</th><th colspan="3" scope="colgroup">Kingdom</th><th colspan="2" scope="colgroup">Population</th><th colspan="2" scope="colgroup">Territory & players</th><th colspan="2" scope="colgroup">Attack</th><th colspan="2" scope="colgroup">Defense</th><th colspan="2" scope="colgroup">Treasures & victory</th>${comparisons ? '<th scope="col">Development</th>' : ''}</tr><tr><th scope="col" class="qol-km-filter-column">Filter</th>${COLUMNS.map(([key, label]) => `<th scope="col" aria-sort="${key === sortKey ? ascending ? 'ascending' : 'descending' : 'none'}" class="qol-km-${key}-column">${action(esc(label) + (key === sortKey ? ascending ? ' ↑' : ' ↓' : ''), `data-km-sort="${key}"`)}</th>`).join('')}${comparisons ? '<th scope="col">Changes</th>' : ''}</tr></thead><tbody>${visible.map(row => {
+    return apesHtml_kingdomManagement`<div class="qol-km-table-wrap"><table><thead><tr class="qol-km-groups"><th scope="colgroup">Filter</th><th colspan="3" scope="colgroup">Kingdom</th><th colspan="2" scope="colgroup">Population</th><th colspan="2" scope="colgroup">Territory & players</th><th colspan="2" scope="colgroup">Attack</th><th colspan="2" scope="colgroup">Defense</th><th colspan="2" scope="colgroup">Treasures & victory</th>${comparisons ? apesHtml_kingdomManagement`<th scope="col">Development</th>` : ''}</tr><tr><th scope="col" class="qol-km-filter-column">Filter</th>${COLUMNS.map(([key, label]) => apesHtml_kingdomManagement`<th scope="col" aria-sort="${key === sortKey ? ascending ? 'ascending' : 'descending' : 'none'}" class="qol-km-${key}-column">${action(esc(label) + (key === sortKey ? ascending ? ' ↑' : ' ↓' : ''), `data-km-sort="${key}"`)}</th>`).join('')}${comparisons ? apesHtml_kingdomManagement`<th scope="col">Changes</th>` : ''}</tr></thead><tbody>${visible.map(row => {
       const comparison = compareMap.get(row.id);
-      return `<tr><td class="qol-km-filter-column"><select data-km-row-filter="${esc(row.id)}" aria-label="Filter for ${esc(row.name)}">${filterChoices(filters.kingdomTags[row.id], true)}</select></td>${COLUMNS.map(([key]) => {
+      return apesHtml_kingdomManagement`<tr><td class="qol-km-filter-column"><select data-km-row-filter="${esc(row.id)}" aria-label="Filter for ${esc(row.name)}">${filterChoices(filters.kingdomTags[row.id], true)}</select></td>${COLUMNS.map(([key]) => {
         const change = comparison?.changes[key];
         const improved = key === 'rank' ? change < 0 : change > 0;
-        const delta = Number.isFinite(change) ? `<small class="qol-km-delta ${change ? improved ? 'positive' : 'negative' : ''}" title="Change from earlier snapshot">${change > 0 ? '+' : ''}${fmt(change)}</small>` : '';
-        return `<td class="qol-km-${key}-column"${row[key] === null ? ' title="Not listed in this ranking"' : ''}>${cell(row, key)}${delta}</td>`;
-      }).join('')}${comparison ? `<td class="qol-km-notes">${esc([comparison.status !== 'Present' ? comparison.status : '', comparison.renamed ? `Renamed from ${comparison.before.name}` : '', comparison.kingChanged ? `King changed from ${comparison.before.king || '—'}` : ''].filter(Boolean).join(' · ') || '—')}</td>` : ''}</tr>`;
-    }).join('') || `<tr><td colspan="${COLUMNS.length + 1 + (comparisons ? 1 : 0)}">No kingdoms match your filter or search.</td></tr>`}</tbody>${summary?.footer || ''}</table></div><span class="qol-km-caption">${visible.length} of ${rows.length} kingdoms shown${summary ? ' · Totals follow the filter and search. Averages = total points ÷ total players.' : ''}${summary?.partial ? ' * Incomplete subtotals; unavailable values are excluded. — means no known value.' : ''}</span>`;
+        const delta = Number.isFinite(change) ? apesHtml_kingdomManagement`<small class="qol-km-delta ${change ? improved ? 'positive' : 'negative' : ''}" title="Change from earlier snapshot">${change > 0 ? '+' : ''}${fmt(change)}</small>` : '';
+        return apesHtml_kingdomManagement`<td class="qol-km-${key}-column"${row[key] === null ? ' title="Not listed in this ranking"' : ''}>${cell(row, key)}${delta}</td>`;
+      }).join('')}${comparison ? apesHtml_kingdomManagement`<td class="qol-km-notes">${esc([comparison.status !== 'Present' ? comparison.status : '', comparison.renamed ? `Renamed from ${comparison.before.name}` : '', comparison.kingChanged ? `King changed from ${comparison.before.king || '—'}` : ''].filter(Boolean).join(' · ') || '—')}</td>` : ''}</tr>`;
+    }).join('') || apesHtml_kingdomManagement`<tr><td colspan="${COLUMNS.length + 1 + (comparisons ? 1 : 0)}">No kingdoms match your filter or search.</td></tr>`}</tbody>${summary?.footer || ''}</table></div><span class="qol-km-caption">${visible.length} of ${rows.length} kingdoms shown${summary ? ' · Totals follow the filter and search. Averages = total points ÷ total players.' : ''}${summary?.partial ? ' * Incomplete subtotals; unavailable values are excluded. — means no known value.' : ''}</span>`;
   }
   function choices(selected) {
-    return snapshots.map(snapshot => `<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('');
+    return snapshots.map(snapshot => apesHtml_kingdomManagement`<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('');
   }
   function comparisonPair() {
     const earlier = snapshots.find(item => item.id === earlierId), later = snapshots.find(item => item.id === laterId);
@@ -333,7 +335,7 @@
     const ordered = snapshots.slice().sort((a, b) => a.scannedAt - b.scannedAt);
     const earlier = snapshots.find(item => item.id === earlierId);
     const eligible = ordered.filter(snapshot => side === 'A' ? ordered.some(other => other.scannedAt > snapshot.scannedAt) : earlier && snapshot.scannedAt > earlier.scannedAt);
-    return `<option value=""${selected ? '' : ' selected'}>Select Scan ${side}…</option>${eligible.map(snapshot => `<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>Scan ${ordered.indexOf(snapshot) + 1} · ${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('')}`;
+    return apesHtml_kingdomManagement`<option value=""${selected ? '' : ' selected'}>Select Scan ${side}…</option>${eligible.map(snapshot => apesHtml_kingdomManagement`<option value="${esc(snapshot.id)}"${snapshot.id === selected ? ' selected' : ''}>Scan ${ordered.indexOf(snapshot) + 1} · ${esc(date(snapshot.scannedAt))} · ${snapshot.kingdoms.length} kingdoms</option>`).join('')}`;
   }
   function render({ preserveTableScroll = false } = {}) {
     const panel = document.getElementById(PANEL_ID);
@@ -344,7 +346,7 @@
     const previousTable = preserveTableScroll && body.querySelector('.qol-km-table-wrap');
     const scroll = preserveTableScroll ? { top: previousTable?.scrollTop || 0, left: previousTable?.scrollLeft || 0, bodyTop: body.scrollTop, bodyLeft: body.scrollLeft } : null;
     if (!snapshots.length) {
-      body.innerHTML = `<div class="qol-km-first">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<p data-km-status data-tone="${tone}" role="status">${esc(status)}</p></div>`;
+      body.innerHTML = apesHtml_kingdomManagement`<div class="qol-km-first">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<p data-km-status data-tone="${tone}" role="status">${esc(status)}</p></div>`;
       return;
     }
     const selected = snapshots.find(item => item.id === selectedId) || snapshots[0]; selectedId = selected.id;
@@ -353,13 +355,13 @@
     let content = '';
     if (activeTab === 'results') {
       const missingRankings = S.STAGES.filter(stage => selected.missing?.[stage.tab]).map(stage => `${stage.tab}: ${selected.missing[stage.tab]}`);
-      content = `<div class="qol-km-controls"><label>Snapshot <select data-km-snapshot>${choices(selected.id)}</select></label>${action('Delete snapshot', 'data-km-delete', scanning)}<span>${esc(date(selected.startedAt || selected.scannedAt))} → ${esc(date(selected.scannedAt))} · ${selected.kingdoms.length} kingdoms</span></div><p class="qol-km-caption">Rank follows the population ranking. — means the kingdom was not listed in that ranking.${missingRankings.length ? ` Missing entries by ranking: ${esc(missingRankings.join(' · '))}.` : ''}</p>${table(selected.kingdoms)}`;
+      content = apesHtml_kingdomManagement`<div class="qol-km-controls"><label>Snapshot <select data-km-snapshot>${choices(selected.id)}</select></label>${action('Delete snapshot', 'data-km-delete', scanning)}<span>${esc(date(selected.startedAt || selected.scannedAt))} → ${esc(date(selected.scannedAt))} · ${selected.kingdoms.length} kingdoms</span></div><p class="qol-km-caption">Rank follows the population ranking. — means the kingdom was not listed in that ranking.${missingRankings.length ? ` Missing entries by ranking: ${esc(missingRankings.join(' · '))}.` : ''}</p>${table(selected.kingdoms)}`;
     } else {
       const { earlier, later, valid } = comparisonPair();
       const comparisons = valid && comparisonReady ? H.compare(earlier, later) : [];
-      content = `<div class="qol-km-compare-controls"><label><span>Scan A · Earlier</span><select data-km-earlier>${comparisonChoices(earlierId, 'A')}</select></label><span class="qol-km-compare-arrow" aria-hidden="true">→</span><label><span>Scan B · Later</span><select data-km-later>${comparisonChoices(laterId, 'B')}</select></label>${action('Compare', 'data-km-compare', !valid || scanning)}</div>${valid && comparisonReady ? `<p class="qol-km-caption">${comparisons.filter(row => row.status === 'New').length} new · ${comparisons.filter(row => row.status === 'Missing').length} missing · ${comparisons.filter(row => row.renamed).length} renamed · ${comparisons.filter(row => row.kingChanged).length} king changes. Cells show later values and changes from the earlier snapshot; missing kingdoms show their last known values. Negative rank changes mean an improved rank.</p>${table(comparisons.map(row => row.after || row.before), comparisons)}` : `<p class="qol-km-empty">${snapshots.length < 2 ? 'Scan Kingdoms again to compare kingdom development between two snapshots.' : 'Choose two dated scans in chronological order, then select Compare.'}</p>`}`;
+      content = apesHtml_kingdomManagement`<div class="qol-km-compare-controls"><label><span>Scan A · Earlier</span><select data-km-earlier>${comparisonChoices(earlierId, 'A')}</select></label><span class="qol-km-compare-arrow" aria-hidden="true">→</span><label><span>Scan B · Later</span><select data-km-later>${comparisonChoices(laterId, 'B')}</select></label>${action('Compare', 'data-km-compare', !valid || scanning)}</div>${valid && comparisonReady ? apesHtml_kingdomManagement`<p class="qol-km-caption">${comparisons.filter(row => row.status === 'New').length} new · ${comparisons.filter(row => row.status === 'Missing').length} missing · ${comparisons.filter(row => row.renamed).length} renamed · ${comparisons.filter(row => row.kingChanged).length} king changes. Cells show later values and changes from the earlier snapshot; missing kingdoms show their last known values. Negative rank changes mean an improved rank.</p>${table(comparisons.map(row => row.after || row.before), comparisons)}` : apesHtml_kingdomManagement`<p class="qol-km-empty">${snapshots.length < 2 ? 'Scan Kingdoms again to compare kingdom development between two snapshots.' : 'Choose two dated scans in chronological order, then select Compare.'}</p>`}`;
     }
-    body.innerHTML = `<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label>Filter <select data-km-filter>${filterChoices(selectedFilter)}</select></label><label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div>${editorHTML()}<nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
+    body.innerHTML = apesHtml_kingdomManagement`<div class="qol-km-controls">${action(scanning ? 'Scanning Kingdoms…' : 'Scan Kingdoms', 'data-km-scan', scanning)}<label>Filter <select data-km-filter>${filterChoices(selectedFilter)}</select></label><label class="qol-km-search">Search <input data-km-search type="search" value="${esc(search)}" placeholder="Kingdom or king"></label><span data-km-status data-tone="${tone}" role="status">${esc(status)}</span></div>${editorHTML()}<nav class="qol-km-tabs" aria-label="Kingdom views">${action('Results & snapshots', `data-km-tab="results" aria-pressed="${activeTab === 'results'}"`, scanning)}${action('Comparison', `data-km-tab="comparison" aria-pressed="${activeTab === 'comparison'}"`, scanning)}</nav>${content}`;
     for (const control of body.querySelectorAll('select, input')) control.disabled = scanning || filterSaving || control.hasAttribute('data-km-later') && !earlierId;
     const nextTable = scroll && body.querySelector('.qol-km-table-wrap');
     if (scroll) { body.scrollTop = scroll.bodyTop; body.scrollLeft = scroll.bodyLeft; }
@@ -370,7 +372,7 @@
     if (panel) return panel;
     panel = document.createElement('section'); panel.id = PANEL_ID;
     panel.setAttribute('role', 'dialog'); panel.setAttribute('aria-label', 'Kingdom Management');
-    panel.innerHTML = `<header class="qol-km-head"><span>${CROWN} Kingdom Management</span>${action('×', 'data-km-close aria-label="Close Kingdom Management"')}</header><div class="qol-km-body" data-km-body></div>`;
+    panel.innerHTML = apesHtml_kingdomManagement`<header class="qol-km-head"><span>${CROWN} Kingdom Management</span>${action('×', 'data-km-close aria-label="Close Kingdom Management"')}</header><div class="qol-km-body" data-km-body></div>`;
     panel.addEventListener('click', async event => {
       if (event.target.closest('select, input')) event.stopPropagation();
       const control = event.target.closest('.qol-km-action');

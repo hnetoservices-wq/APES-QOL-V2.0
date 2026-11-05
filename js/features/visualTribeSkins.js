@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_visualTribeSkins = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'visualTribeSkins';
   const TOOLBAR_BUTTON_ID = 'qol-tribe-skins-toggle-btn';
@@ -381,7 +383,7 @@
     if (!panel) {
       panel = document.createElement('div');
       panel.id = PANEL_ID;
-      panel.innerHTML = `
+      panel.innerHTML = apesHtml_visualTribeSkins`
                 <div class="qol-tribe-skins-header">
                     <span>Visual Tribe Skin</span>
                     <div class="qol-tribe-skins-close" data-close role="button" tabindex="0" aria-label="Close">×</div>
@@ -390,7 +392,7 @@
                     <p class="qol-tribe-skins-copy">Choose your tribe and building artwork for Village View.</p>
                     <div class="qol-tribe-skins-choice-label">Tribe</div>
                     <div class="qol-tribe-skins-choices">
-                        ${Object.entries(SKINS).map(([key, skin]) => `
+                        ${Object.entries(SKINS).map(([key, skin]) => apesHtml_visualTribeSkins`
                             <div class="qol-tribe-skins-choice" data-skin="${key}" role="button" tabindex="0" aria-pressed="false">
                                 <span class="qol-tribe-skins-mark" aria-hidden="true"><span class="qol-tribe-skins-portrait ${skin.icon}"></span></span>
                                 <span>${skin.name}</span>
@@ -399,7 +401,7 @@
                     </div>
                     <div class="qol-tribe-skins-choice-label">Artwork</div>
                     <div class="qol-tribe-skins-choices qol-tribe-skins-artworks">
-                        ${Object.entries(ARTWORK).filter(([key]) => key !== 'server').map(([key, artwork]) => `
+                        ${Object.entries(ARTWORK).filter(([key]) => key !== 'server').map(([key, artwork]) => apesHtml_visualTribeSkins`
                             <div class="qol-tribe-skins-choice" data-artwork="${key}" role="button" tabindex="0" aria-pressed="false">
                                 <span class="qol-tribe-skins-mark">${artwork.mark}</span>
                                 <span>${artwork.name}</span>

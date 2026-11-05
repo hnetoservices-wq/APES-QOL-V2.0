@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const CUSTOM_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
@@ -224,7 +226,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_resourceFields`
       <div class="qol-rm-dialog qol-rme-dialog qol-rmrf-dialog" role="dialog" aria-modal="true">
         <div class="qol-rm-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rm-dialog-body">
@@ -252,13 +254,13 @@
 
   function pickerHtml(selectedId) {
     const selected = groupById(selectedId);
-    return `
+    return apesHtml_resourceFields`
       <div class="qol-rmrf-picker-shell">
         <div class="qol-rmrf-picker" data-rmrf-picker data-value="${selected.id}" role="button" tabindex="0" aria-expanded="false">
           <span data-rmrf-picker-label>${escapeHtml(selected.label)}</span><span>▾</span>
         </div>
         <div class="qol-rmrf-picker-menu" data-rmrf-menu>
-          ${GROUPS.map(group => `<div class="qol-rmrf-picker-option${group.id === selected.id ? ' active' : ''}" data-rmrf-option="${group.id}" role="button" tabindex="0"><strong>${escapeHtml(group.label)}</strong><small>${group.id === 'all' ? 'All 18 resource fields' : 'Every field of this resource type'}</small></div>`).join('')}
+          ${GROUPS.map(group => apesHtml_resourceFields`<div class="qol-rmrf-picker-option${group.id === selected.id ? ' active' : ''}" data-rmrf-option="${group.id}" role="button" tabindex="0"><strong>${escapeHtml(group.label)}</strong><small>${group.id === 'all' ? 'All 18 resource fields' : 'Every field of this resource type'}</small></div>`).join('')}
         </div>
       </div>`;
   }
@@ -305,7 +307,7 @@
 
     const layer = createDialog(
       editing ? 'Edit Resource Fields Step' : 'Add Resource Fields',
-      `<div class="qol-rmrf-grid">
+      apesHtml_resourceFields`<div class="qol-rmrf-grid">
          <div class="qol-rmrf-field">
            <label>Resource fields</label>
            ${pickerHtml(initialGroup.id)}
@@ -493,10 +495,10 @@
         const buildings = Array.isArray(roadmap?.steps) ? roadmap.steps.filter(step => step.type === 'building').length : 0;
         const resources = Array.isArray(roadmap?.steps) ? roadmap.steps.filter(step => resourceInfo(step)).length : resourceCount;
         const instructions = Math.max(0, total - buildings - resources);
-        spans[0].innerHTML = `<strong>${total}</strong>Total steps`;
-        spans[1].innerHTML = `<strong>${buildings}</strong>Building steps`;
-        spans[2].innerHTML = `<strong>${resources}</strong>Resource steps`;
-        spans[3].innerHTML = `<strong>${instructions}</strong>Instructions`;
+        spans[0].innerHTML = apesHtml_resourceFields`<strong>${total}</strong>Total steps`;
+        spans[1].innerHTML = apesHtml_resourceFields`<strong>${buildings}</strong>Building steps`;
+        spans[2].innerHTML = apesHtml_resourceFields`<strong>${resources}</strong>Resource steps`;
+        spans[3].innerHTML = apesHtml_resourceFields`<strong>${instructions}</strong>Instructions`;
       }
     }
 

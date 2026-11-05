@@ -1,5 +1,7 @@
 (function accountOverview(){
   'use strict';
+const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
   const ROOT='apes-v2-village-overlay',KEY='apes_qol_account_population_history_v1',SOURCE='APES_QOL_VILLAGE_DASHBOARD_BRIDGE';
   const TRAINING={19:'Barracks',20:'Stable',21:'Workshop',29:'Great Barracks',30:'Great Stable'};
   const RESOURCE_TYPES=[
@@ -146,12 +148,12 @@
       RESOURCE_TYPES.every(resource=>num(row?.totals?.[resource.key])!==null)).slice(-30);
     const last=all.at(-1);
     const note=last && !last.complete ? `Latest scan partial: ${fmt(last.captured)}/${fmt(last.villages)} villages; excluded from graph.` : '';
-    const heading=`<div class="apes-ao-resource-trend-head">
+    const heading=apesHtml_accountOverview`<div class="apes-ao-resource-trend-head">
       <strong>Resource Production Development</strong>
       <small>Account totals per hour · ${records.length} complete scan${records.length===1?'':'s'}</small></div>`;
-    if(!records.length) return `<div class="apes-ao-resource-trend">${heading}
+    if(!records.length) return apesHtml_accountOverview`<div class="apes-ao-resource-trend">${heading}
       <div class="apes-ao-resource-empty">No complete production scans yet. Use Scan Now to record the first snapshot.</div>
-      ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
+      ${note?apesHtml_accountOverview`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
     const W=700,H=150,L=55,R=13,T=13,B=26,PW=W-L-R,PH=H-T-B;
     const amounts=records.flatMap(row=>RESOURCE_CHART_TYPES.map(item=>productionValue(row,item)));
     let minimum=Math.min(0,...amounts),maximum=Math.max(0,...amounts);
@@ -184,14 +186,14 @@
     }).join('');
     const legend=RESOURCE_CHART_TYPES.map(item=>{
       const current=productionValue(records.at(-1),item);
-      return `<span><i style="background:${item.color}"></i><b>${safe(item.label)}</b>
+      return apesHtml_accountOverview`<span><i style="background:${item.color}"></i><b>${safe(item.label)}</b>
         <em>${current>0?'+':''}${safe(fmt(current))}/h</em></span>`;
     }).join('');
-    return `<div class="apes-ao-resource-trend">${heading}
+    return apesHtml_accountOverview`<div class="apes-ao-resource-trend">${heading}
       <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Historical wood, clay, iron, crop and total production per hour">${grid}${lines}${labels}</svg>
       <div class="apes-ao-resource-legend">${legend}</div>
       <small class="apes-ao-chart-foot">Each point represents one complete Scan Now pass.${records.length===1?' Scan again to build a trend.':''}</small>
-      ${note?`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
+      ${note?apesHtml_accountOverview`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
   }
 
   function resourceHtml(summary){
@@ -200,13 +202,13 @@
     const tiles=RESOURCE_TYPES.map(resource=>{
       const value=summary.totals[resource.key];
       const display=available?`${value>0?'+':''}${fmt(value)}/h`:'—';
-      return `<div class="apes-ao-resource-tile ${resource.key}">
+      return apesHtml_accountOverview`<div class="apes-ao-resource-tile ${resource.key}">
         <div class="apes-ao-resource-label"><i style="background:${resource.color}"></i><span>${safe(resource.label)}</span></div>
         <strong>${safe(display)}</strong></div>`;
     }).join('');
     const combined=RESOURCE_TYPES.reduce((sum,item)=>sum+summary.totals[item.key],0);
     const oldest=summary.oldest>0?new Date(summary.oldest).toLocaleString():'—';
-    return `<section class="apes-ao-manager apes-ao-resources">
+    return apesHtml_accountOverview`<section class="apes-ao-manager apes-ao-resources">
       <div class="apes-ao-manager-head"><div class="apes-ao-resource-heading">
         <strong>Total Resource Production</strong>
         <small>${safe(coverage)}</small></div></div>
@@ -215,13 +217,13 @@
         <b>${available?safe(fmt(combined)+'/h'):'—'}</b></span>
         <small>${available?'Oldest village reading: '+safe(oldest):'No production readings yet. Use Scan Now to visit villages.'}</small></div>
       ${summary.complete<summary.villages?
-        '<small class="apes-ao-caveat">Partial account data: unscanned villages are excluded, not counted as zero.</small>':''}
+        apesHtml_accountOverview`<small class="apes-ao-caveat">Partial account data: unscanned villages are excluded, not counted as zero.</small>`:''}
     </section>`;
   }
 
   function troopHtml(counter){
     const coverage=`${counter.scanned}/${counter.villages} villages scanned`;
-    if(!counter.scanned)return `<section class="apes-ao-manager apes-ao-units">
+    if(!counter.scanned)return apesHtml_accountOverview`<section class="apes-ao-manager apes-ao-units">
       <div class="apes-ao-manager-head"><strong>Unit Counter</strong>
         <small>Own troops · ${safe(coverage)}</small></div>
       <div class="apes-ao-empty">No troop history yet. Run Scan Army in a village's expanded Info panel to collect troop counts.</div>
@@ -234,27 +236,27 @@
     });
     const gradient=stops.length?`conic-gradient(${stops.join(',')})`:
       'conic-gradient(rgba(177,171,147,.22) 0% 100%)';
-    const ring=`<div class="apes-ao-unit-donut" style="background:${gradient}">
+    const ring=apesHtml_accountOverview`<div class="apes-ao-unit-donut" style="background:${gradient}">
       <div class="apes-ao-unit-center"><strong>${safe(fmt(counter.total))}</strong>
         <small>Own troops</small></div></div>`;
     const labels=counter.rows.map(row=>{
       const pct=counter.total?100*row.count/counter.total:0;
-      return `<div class="apes-ao-unit-row" title="${safe(row.name)} (${safe(row.tribeName)}): ${safe(fmt(row.count))} troops">
+      return apesHtml_accountOverview`<div class="apes-ao-unit-row" title="${safe(row.name)} (${safe(row.tribeName)}): ${safe(fmt(row.count))} troops">
         <i style="background:${row.color}"></i><span>${safe(row.name)}
           <small>${safe(row.tribeName)}</small></span>
         <b>${safe(fmt(row.count))}</b><em>${pct<.1&&pct>0?'&lt;0.1':pct.toFixed(1)}%</em></div>`;
     }).join('');
     const oldest=counter.oldest?new Date(counter.oldest).toLocaleString():'Unknown';
     const stale=counter.oldest&&Date.now()-counter.oldest>86400000;
-    return `<section class="apes-ao-manager apes-ao-units">
+    return apesHtml_accountOverview`<section class="apes-ao-manager apes-ao-units">
       <div class="apes-ao-manager-head"><strong>Unit Counter</strong>
         <small>Latest saved own-troop scans · ${safe(coverage)}
           ${stale?' · Older data':''}</small></div>
       <div class="apes-ao-unit-content">${ring}
-        <div class="apes-ao-unit-list">${labels||'<p class="apes-ao-empty-list">No troops recorded</p>'}</div></div>
+        <div class="apes-ao-unit-list">${labels||apesHtml_accountOverview`<p class="apes-ao-empty-list">No troops recorded</p>`}</div></div>
       <div class="apes-ao-unit-footer"><small>Oldest village scan: ${safe(oldest)}. Counts exclude troops still in training.</small>
         ${counter.scanned<counter.villages?
-          '<small class="apes-ao-caveat">Partial account data. Scan Army to include every village.</small>':''}</div>
+          apesHtml_accountOverview`<small class="apes-ao-caveat">Partial account data. Scan Army to include every village.</small>`:''}</div>
     </section>`;
   }
 
@@ -317,28 +319,28 @@
       if(item.status==='countdown'){
         const direction=item.direction==='empty'?'empty':'full';
         const tone=storageCountdownTone(direction,item.finish-Date.now());
-        return `<span class="apes-vd-countdown apes-vd-storage-countdown"
+        return apesHtml_accountOverview`<span class="apes-vd-countdown apes-vd-storage-countdown"
           data-finish-ms="${Math.round(item.finish)}"
           data-forecast-direction="${direction}" data-forecast-tone="${tone}"
           title="Forecast: ${direction==='empty'?'resource depletion':'storage capacity reached'}, assuming constant production">—</span>`;
       }
       if(item.status==='reached')
-        return `<span class="apes-ao-storage-status" data-forecast-tone="red"
+        return apesHtml_accountOverview`<span class="apes-ao-storage-status" data-forecast-tone="red"
           title="Forecast target already reached at last scan">Reached</span>`;
       if(item.status==='due')
-        return '<span class="apes-ao-storage-status" data-forecast-tone="red" title="Forecast time has elapsed">Rescan</span>';
+        return apesHtml_accountOverview`<span class="apes-ao-storage-status" data-forecast-tone="red" title="Forecast time has elapsed">Rescan</span>`;
       if(item.status==='stale')
-        return '<span class="apes-ao-storage-muted">Rescan</span>';
+        return apesHtml_accountOverview`<span class="apes-ao-storage-muted">Rescan</span>`;
       if(item.status==='steady')
-        return '<span class="apes-ao-storage-muted">Stable</span>';
-      return '<span class="apes-ao-storage-muted">Scan Now</span>';
+        return apesHtml_accountOverview`<span class="apes-ao-storage-muted">Stable</span>`;
+      return apesHtml_accountOverview`<span class="apes-ao-storage-muted">Scan Now</span>`;
     };
     const entries=summary.rows.map(row=>{
       const columns=resources.map(item=>row.resources[item.key]);
-      const gridRow=(cells,kind)=>`<div class="apes-ao-storage-grid-row ${kind}" role="row">${cells.join('')}</div>`;
-      const cell=(text,role='cell')=>`<div class="apes-ao-storage-grid-cell" role="${role}">${text}</div>`;
+      const gridRow=(cells,kind)=>apesHtml_accountOverview`<div class="apes-ao-storage-grid-row ${kind}" role="row">${cells.join('')}</div>`;
+      const cell=(text,role='cell')=>apesHtml_accountOverview`<div class="apes-ao-storage-grid-cell" role="${role}">${text}</div>`;
       const header=gridRow([
-        cell(`<span class="apes-ao-storage-village" data-apes-ao-village="${safe(row.id)}"
+        cell(apesHtml_accountOverview`<span class="apes-ao-storage-village" data-apes-ao-village="${safe(row.id)}"
           role="button" tabindex="0" title="Open ${safe(row.name)}">${safe(row.name)}</span>`,'columnheader'),
         ...resources.map(resource=>cell(safe(resource.label),'columnheader'))
       ],'apes-ao-storage-grid-header');
@@ -350,15 +352,15 @@
         cell('Timer','rowheader'),
         ...columns.map(item=>cell(timerHtml(item)))
       ],'apes-ao-storage-grid-forecast');
-      return `<div class="apes-ao-storage-village-grid" role="table"
+      return apesHtml_accountOverview`<div class="apes-ao-storage-village-grid" role="table"
         aria-label="Storage forecast for ${safe(row.name)}">${header}${production}${forecast}</div>`;
     }).join('');
-    return `<section class="apes-ao-chart apes-ao-storage">
+    return apesHtml_accountOverview`<section class="apes-ao-chart apes-ao-storage">
       <div class="apes-ao-chart-head"><div><strong>Storage Forecast</strong>
         <small>Per-village production and estimated time until full or empty</small>
       </div></div>
       <div class="apes-ao-storage-list" data-apes-ao-scroll="storage">
-        ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}
+        ${entries||apesHtml_accountOverview`<div class="apes-ao-empty-list">No villages found.</div>`}
       </div>
       <small class="apes-ao-storage-foot">${safe(fmt(summary.covered))}/${safe(fmt(summary.total))} villages with recent stock readings${summary.stale?' · '+safe(fmt(summary.stale))+' outdated':''}.
         Timers assume no resource spending, transfers, or other production changes.
@@ -393,8 +395,8 @@
     return {active,idle};
   }
   function graph(title,subtitle,records,lines,empty){
-    const last=records.at(-1),header=`<div class="apes-ao-chart-head"><div><strong>${safe(title)}</strong><small>${safe(subtitle)}</small></div>${last?`<b>${safe(compact(lines[0].values.at(-1)))}</b>`:''}</div>`;
-    if(!records.length)return `<section class="apes-ao-chart">${header}<div class="apes-ao-empty">${safe(empty)}</div></section>`;
+    const last=records.at(-1),header=apesHtml_accountOverview`<div class="apes-ao-chart-head"><div><strong>${safe(title)}</strong><small>${safe(subtitle)}</small></div>${last?`<b>${safe(compact(lines[0].values.at(-1)))}</b>`:''}</div>`;
+    if(!records.length)return apesHtml_accountOverview`<section class="apes-ao-chart">${header}<div class="apes-ao-empty">${safe(empty)}</div></section>`;
     const W=400,H=190,L=46,R=10,T=12,B=30,PW=W-L-R,PH=H-T-B;
     const value=Math.max(1,...lines.flatMap(l=>l.values)),base=Math.pow(10,Math.floor(Math.log10(value))),ratio=value/base,max=base*(ratio<=1?1:ratio<=2?2:ratio<=5?5:10);
     const x=i=>records.length<=1?L+PW/2:L+PW*i/(records.length-1),y=v=>T+PH*(1-Math.max(0,v)/max);
@@ -408,9 +410,9 @@
       ' · '+records[i].coverage+'/'+records[i].villages+' villages ('+records[i].updated+' updated that day)':''}</title></circle>`).join('');
     }).join('');
     const labels=[...new Set([0,Math.floor((records.length-1)/2),records.length-1])].map(i=>`<text class="apes-ao-axis" x="${x(i).toFixed(1)}" y="${H-8}" text-anchor="${i===0?'start':i===records.length-1?'end':'middle'}">${safe(dateLabel(records[i].day))}</text>`).join('');
-    const legend=lines.length>1?`<div class="apes-ao-legend">${lines.map(l=>`<span><i style="background:${l.color}"></i>${safe(l.name)} <b>${safe(compact(l.values.at(-1)))}</b></span>`).join('')}</div>`:'';
-    return `<section class="apes-ao-chart">${header}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${safe(title)} graph">${grid}${paths}${labels}</svg>${legend}<small class="apes-ao-chart-foot">${records.length} recorded day${records.length===1?' · More scans will build the trend':'s'}
-       ${hasVillageCoverage?'<span class="apes-ao-history-caveat">Merged from village history; last-known troop counts are carried forward between scans.'+
+    const legend=lines.length>1?apesHtml_accountOverview`<div class="apes-ao-legend">${lines.map(l=>apesHtml_accountOverview`<span><i style="background:${l.color}"></i>${safe(l.name)} <b>${safe(compact(l.values.at(-1)))}</b></span>`).join('')}</div>`:'';
+    return apesHtml_accountOverview`<section class="apes-ao-chart">${header}<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${safe(title)} graph">${grid}${paths}${labels}</svg>${legend}<small class="apes-ao-chart-foot">${records.length} recorded day${records.length===1?' · More scans will build the trend':'s'}
+       ${hasVillageCoverage?apesHtml_accountOverview`<span class="apes-ao-history-caveat">Merged from village history; last-known troop counts are carried forward between scans.`+
          (partial?' Some dates have partial village coverage.':'')+'</span>':''}</small></section>`;
   }
 
@@ -441,18 +443,18 @@
     const entries=rows.map(v=>{
       const value=v.population;
       const width=value===null?0:100*value/max;
-      return `<div class="apes-ao-rank-row" title="${safe(v.name)}: ${value===null?'No population data':fmt(value)+' population'}">
+      return apesHtml_accountOverview`<div class="apes-ao-rank-row" title="${safe(v.name)}: ${value===null?'No population data':fmt(value)+' population'}">
         <span class="apes-ao-rank-name" data-apes-ao-village="${safe(v.id)}"
           role="button" tabindex="0" title="Open ${safe(v.name)}">${safe(v.name)}</span>
         <span class="apes-ao-rank-track" aria-hidden="true"><i class="apes-ao-population-bar"
           style="width:${width.toFixed(2)}%"></i></span>
         <span class="apes-ao-rank-value">${value===null?'—':safe(fmt(value))}</span></div>`;
     }).join('');
-    return `<section class="apes-ao-chart apes-ao-village-ranking">
+    return apesHtml_accountOverview`<section class="apes-ao-chart apes-ao-village-ranking">
       <div class="apes-ao-chart-head"><div><strong>Village Population</strong>
         <small>Current population by village · alphabetical order</small></div></div>
       <div class="apes-ao-rank-scroll" data-apes-ao-scroll="village-population">
-        ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}</div>
+        ${entries||apesHtml_accountOverview`<div class="apes-ao-empty-list">No villages found.</div>`}</div>
       <small class="apes-ao-chart-foot">${safe(fmt(observed.length))}/${safe(fmt(rows.length))} villages with population data${rows.length>10?' · Scroll for more':''}</small>
     </section>`;
   }
@@ -463,24 +465,24 @@
       const value=v.rate;
       const sign=value===null?'unknown':value<0?'negative':value>0?'positive':'zero';
       const width=value===null?0:Math.min(50,50*Math.abs(value)/max);
-      return `<div class="apes-ao-rank-row" title="${safe(v.name)}: ${value===null?'No crop production reading':(value>0?'+':'')+fmt(value)+'/h'}">
+      return apesHtml_accountOverview`<div class="apes-ao-rank-row" title="${safe(v.name)}: ${value===null?'No crop production reading':(value>0?'+':'')+fmt(value)+'/h'}">
         <span class="apes-ao-rank-name" data-apes-ao-village="${safe(v.id)}"
           role="button" tabindex="0" title="Open ${safe(v.name)}">${safe(v.name)}</span>
         <span class="apes-ao-crop-track" aria-hidden="true"><i class="apes-ao-crop-bar"
           data-sign="${sign}" style="width:${width.toFixed(2)}%"></i></span>
         <span class="apes-ao-rank-value" data-sign="${sign}">${value===null?'—':safe((value>0?'+':'')+fmt(value)+'/h')}</span></div>`;
     }).join('');
-    return `<section class="apes-ao-chart apes-ao-village-ranking apes-ao-crop-balance">
+    return apesHtml_accountOverview`<section class="apes-ao-chart apes-ao-village-ranking apes-ao-crop-balance">
       <div class="apes-ao-chart-head"><div><strong>Crop Balance</strong>
         <small>Net crop production by village · alphabetical order</small></div></div>
       <div class="apes-ao-rank-scroll" data-apes-ao-scroll="crop-balance">
-        ${entries||'<div class="apes-ao-empty-list">No villages found.</div>'}</div>
+        ${entries||apesHtml_accountOverview`<div class="apes-ao-empty-list">No villages found.</div>`}</div>
       <small class="apes-ao-chart-foot">${safe(fmt(observed.length))}/${safe(fmt(rows.length))} villages with crop readings${rows.length>10?' · Scroll for more':''}. Trade routes not included.</small>
     </section>`;
   }
 
   function villageRow(row,info,details=''){
-    return `<div class="apes-ao-village-link" data-apes-ao-village="${safe(row.id)}" role="button" tabindex="0" title="Open ${safe(row.name)}"><span>${safe(row.name)}</span><em>${info}</em>${details}</div>`;
+    return apesHtml_accountOverview`<div class="apes-ao-village-link" data-apes-ao-village="${safe(row.id)}" role="button" tabindex="0" title="Open ${safe(row.name)}"><span>${safe(row.name)}</span><em>${info}</em>${details}</div>`;
   }
   function render(data=snapshot){
     if(data)snapshot=data;
@@ -508,7 +510,7 @@
       ['Own troops',units.scanned?fmt(units.total):'—',
         units.scanned===villages.length?'Latest saved village scans':units.scanned+'/'+villages.length+' villages scanned'],
       ['Training',fmt(q.total),'Troops in training queues'],['Celebrations',fmt(c.active.length),fmt(c.idle.length)+' villages idle']]
-      .map(([title,value,note])=>`<div class="apes-ao-stat"><span>${safe(title)}</span><strong>${safe(value)}</strong><small>${safe(note)}</small></div>`).join('');
+      .map(([title,value,note])=>apesHtml_accountOverview`<div class="apes-ao-stat"><span>${safe(title)}</span><strong>${safe(value)}</strong><small>${safe(note)}</small></div>`).join('');
     const populationDevelopment=graph('Population Development','Daily account population',
       pop,[{name:'Population',color:'#a5d76b',values:pop.map(x=>Number(x.population))}],
       'Population tracking starts with your first dashboard snapshot.');
@@ -520,15 +522,15 @@
         {name:'Defense',color:'#73b3db',values:army.map(x=>x.defense)}
       ],'No saved village power history yet. Scan Army from a village.')
     ].join('');
-    const celebrating=c.active.map(v=>villageRow(v,`${safe(v.label)} · <span class="apes-vd-countdown" data-finish-ms="${v.end}">—</span>`)).join('');
+    const celebrating=c.active.map(v=>villageRow(v,apesHtml_accountOverview`${safe(v.label)} · <span class="apes-vd-countdown" data-finish-ms="${v.end}">—</span>`)).join('');
     const idle=c.idle.map(v=>villageRow(v,'Idle')).join('');
-    const training=q.rows.map(v=>villageRow(v,fmt(v.count)+' queued',`<small>${safe(v.details)}</small>`)).join('');
+    const training=q.rows.map(v=>villageRow(v,fmt(v.count)+' queued',apesHtml_accountOverview`<small>${safe(v.details)}</small>`)).join('');
     // Preserve scrolling when live village snapshots cause a new render.
     const scrollPositions=Object.fromEntries(
       [...panel.querySelectorAll('[data-apes-ao-scroll]')]
         .map(element=>[element.dataset.apesAoScroll,element.scrollTop])
     );
-    panel.innerHTML=`
+    panel.innerHTML=apesHtml_accountOverview`
       <div class="apes-ao-topline"><div><strong>Account at a glance</strong><small>Latest village cache · Scan Now refreshes villages</small></div></div>
       <div class="apes-ao-stats">${stats}</div>
       <div class="apes-ao-row-primary">
@@ -543,13 +545,13 @@
           <div class="apes-ao-counters"><span>Celebrating <b>${fmt(c.active.length)}</b></span><span>Idle <b>${fmt(c.idle.length)}</b></span></div>
           <div class="apes-ao-manager-split apes-ao-celebration-split">
             <div><h4>Active celebrations</h4><div class="apes-ao-celebration-rows" data-apes-ao-scroll="celebrations-active">
-              ${celebrating||'<p class="apes-ao-empty-list">No active celebrations</p>'}</div></div>
+              ${celebrating||apesHtml_accountOverview`<p class="apes-ao-empty-list">No active celebrations</p>`}</div></div>
             <div><h4>Idle villages</h4><div class="apes-ao-celebration-rows" data-apes-ao-scroll="celebrations-idle">
-              ${idle||'<p class="apes-ao-empty-list">All villages celebrating</p>'}</div></div>
+              ${idle||apesHtml_accountOverview`<p class="apes-ao-empty-list">All villages celebrating</p>`}</div></div>
           </div></section>
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Training Overview</strong><small>${fmt(q.total)} troops queued in ${fmt(q.rows.length)} villages</small></div>
           <div class="apes-ao-counters"><span>Total queued <b>${fmt(q.total)}</b></span><span>Active villages <b>${fmt(q.rows.length)}</b></span></div>
-          <div class="apes-ao-training-list">${training||'<p class="apes-ao-empty-list">No active training found</p>'}</div>
+          <div class="apes-ao-training-list">${training||apesHtml_accountOverview`<p class="apes-ao-empty-list">No active training found</p>`}</div>
           <small class="apes-ao-caveat">Barracks, Stable, Workshop and Great variants. Healing excluded.</small></section>
       </div>
       <div class="apes-ao-charts">${charts}</div>

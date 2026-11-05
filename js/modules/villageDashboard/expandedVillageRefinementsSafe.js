@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_expandedVillageRefinementsSafe = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const OVERLAY_ID = 'apes-v2-village-overlay';
   const UNIT_COLORS = Object.freeze([
@@ -139,7 +141,7 @@
   }
 
   function seriesLegend(series) {
-    return `<div class="apes-vd-dev-legend">${series.map(item => `<span><i style="background:${item.color}"></i><b>${esc(item.name)}</b><em>${esc(formatCompact(item.values[item.values.length - 1] || 0).replace('+',''))}</em></span>`).join('')}</div>`;
+    return apesHtml_expandedVillageRefinementsSafe`<div class="apes-vd-dev-legend">${series.map(item => apesHtml_expandedVillageRefinementsSafe`<span><i style="background:${item.color}"></i><b>${esc(item.name)}</b><em>${esc(formatCompact(item.values[item.values.length - 1] || 0).replace('+',''))}</em></span>`).join('')}</div>`;
   }
 
   function patchArmyGraph(detail) {
@@ -163,18 +165,18 @@
         : 'Support composition · combat, scout and siege units';
 
     let body;
-    if (!scans.length) body = '<div class="apes-vd-dev-empty">No army history yet. Run Scan Army to create the first daily snapshot.</div>';
-    else if (!series.length) body = `<div class="apes-vd-dev-empty">No ${esc(role.toLowerCase())}-relevant troops to graph.</div>`;
+    if (!scans.length) body = apesHtml_expandedVillageRefinementsSafe`<div class="apes-vd-dev-empty">No army history yet. Run Scan Army to create the first daily snapshot.</div>`;
+    else if (!series.length) body = apesHtml_expandedVillageRefinementsSafe`<div class="apes-vd-dev-empty">No ${esc(role.toLowerCase())}-relevant troops to graph.</div>`;
     else body = `${lineChartSvg(scans, series)}${seriesLegend(series)}`;
 
-    card.innerHTML = `<div class="apes-vd-dev-title"><strong>Army Development</strong><span>${esc(subtitle)}</span></div>${body}`;
+    card.innerHTML = apesHtml_expandedVillageRefinementsSafe`<div class="apes-vd-dev-title"><strong>Army Development</strong><span>${esc(subtitle)}</span></div>${body}`;
   }
 
   function resourceRowsHtml(villageId) {
     const api = window.APES?.villageResourceProduction;
     const currentSaved = api?.get?.(villageId) || null;
     const current = currentSaved?.production && typeof currentSaved.production === 'object' ? currentSaved.production : null;
-    if (!current) return '<div class="apes-vd-resource-empty">Run Scan Army to collect resource production.</div>';
+    if (!current) return apesHtml_expandedVillageRefinementsSafe`<div class="apes-vd-resource-empty">Run Scan Army to collect resource production.</div>`;
 
     const all = api?.all?.() || {};
     const totals = Object.fromEntries(RESOURCES.map(resource => [resource.key, 0]));
@@ -194,7 +196,7 @@
       const pct = total > 0 ? Math.max(0, Math.min(100, positive / total * 100)) : 0;
       const pctText = total > 0 ? `${pct < 0.1 && pct > 0 ? '<0.1' : pct.toFixed(pct >= 10 ? 0 : 1)}%` : '—';
       const productionText = finite ? `${formatCompact(value)}/h` : '—';
-      return `<div class="apes-vd-resource-row" title="${esc(resource.label)}: ${esc(productionText)} · ${esc(pctText)} of positive scanned account production"><span class="apes-vd-resource-icon ${resource.key}" aria-label="${esc(resource.label)}">${esc(resource.short)}</span><span class="apes-vd-resource-bar"><i style="width:${pct.toFixed(2)}%"></i></span><span class="apes-vd-resource-values"><strong>${pctText}</strong><em>${esc(productionText)}</em></span></div>`;
+      return apesHtml_expandedVillageRefinementsSafe`<div class="apes-vd-resource-row" title="${esc(resource.label)}: ${esc(productionText)} · ${esc(pctText)} of positive scanned account production"><span class="apes-vd-resource-icon ${resource.key}" aria-label="${esc(resource.label)}">${esc(resource.short)}</span><span class="apes-vd-resource-bar"><i style="width:${pct.toFixed(2)}%"></i></span><span class="apes-vd-resource-values"><strong>${pctText}</strong><em>${esc(productionText)}</em></span></div>`;
     }).join('');
   }
 
@@ -219,7 +221,7 @@
 
       resourceCard = document.createElement('section');
       resourceCard.className = 'apes-vd-side-card apes-vd-resource-card';
-      resourceCard.innerHTML = `<div class="apes-vd-resource-title"><strong>Resource Production</strong><span>Village share of scanned account production</span></div><div class="apes-vd-resource-list"></div>`;
+      resourceCard.innerHTML = apesHtml_expandedVillageRefinementsSafe`<div class="apes-vd-resource-title"><strong>Resource Production</strong><span>Village share of scanned account production</span></div><div class="apes-vd-resource-list"></div>`;
       aside.replaceChildren(accountCard, resourceCard);
     }
 

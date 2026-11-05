@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_buildingSteps = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const DIALOG_ID = 'qol-roadmaps-dialog-layer';
   const CUSTOM_STORAGE_KEY = 'qol_roadmap_profiles_v1';
@@ -220,7 +222,7 @@
 
     const range = document.createElement('div');
     range.className = 'qol-rmec-range';
-    range.innerHTML = `
+    range.innerHTML = apesHtml_buildingSteps`
       <div class="qol-rmec-range-field">
         <label for="qol-rmec-target">Build through level</label>
         <input id="qol-rmec-target" data-rmec-target type="number" min="1" value="1">

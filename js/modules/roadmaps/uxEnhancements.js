@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_uxEnhancements = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const CUSTOM_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
@@ -150,7 +152,7 @@
       : step.text || '';
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_uxEnhancements`
       <div class="qol-rmux-dialog" role="dialog" aria-modal="true" aria-label="Step comment">
         <div class="qol-rmux-dialog-head">Step ${index + 1} Comment</div>
         <div class="qol-rmux-dialog-body">
@@ -264,7 +266,7 @@
     if (!controls) {
       controls = document.createElement('span');
       controls.className = 'qol-rmux-order-controls';
-      controls.innerHTML = '<span class="qol-rmux-sort" data-rmux-sort="manual" role="button" tabindex="0" title="Drag custom roadmaps to reorder">Manual</span><span class="qol-rmux-sort" data-rmux-sort="alpha" role="button" tabindex="0" title="Sort custom roadmaps alphabetically">A–Z</span>';
+      controls.innerHTML = apesHtml_uxEnhancements`<span class="qol-rmux-sort" data-rmux-sort="manual" role="button" tabindex="0" title="Drag custom roadmaps to reorder">Manual</span><span class="qol-rmux-sort" data-rmux-sort="alpha" role="button" tabindex="0" title="Sort custom roadmaps alphabetically">A–Z</span>`;
       groupTitle.appendChild(controls);
       controls.querySelectorAll('[data-rmux-sort]').forEach(control => wirePress(control, () => {
         setSortMode(control.dataset.rmuxSort);
@@ -377,7 +379,7 @@
     if (!note) {
       note = document.createElement('div');
       note.className = 'qol-rmux-runner-comment';
-      note.innerHTML = '<strong>Note</strong><span></span>';
+      note.innerHTML = apesHtml_uxEnhancements`<strong>Note</strong><span></span>`;
       card.appendChild(note);
     } else if (note.parentElement !== card) {
       card.appendChild(note);

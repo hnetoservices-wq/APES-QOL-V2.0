@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_resourcePlannerImports = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const CUSTOM_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
@@ -557,10 +559,10 @@
         const buildings = roadmap.steps.filter(step => step?.type === 'building').length;
         const resources = roadmap.steps.filter(step => step?.type === 'instruction' && (parseImportedFieldText(step.text) || groupParser?.(step.text))).length;
         const instructions = Math.max(0, total - buildings - resources);
-        spans[0].innerHTML = `<strong>${total}</strong>Total steps`;
-        spans[1].innerHTML = `<strong>${buildings}</strong>Building steps`;
-        spans[2].innerHTML = `<strong>${resources}</strong>Resource steps`;
-        spans[3].innerHTML = `<strong>${instructions}</strong>Instructions`;
+        spans[0].innerHTML = apesHtml_resourcePlannerImports`<strong>${total}</strong>Total steps`;
+        spans[1].innerHTML = apesHtml_resourcePlannerImports`<strong>${buildings}</strong>Building steps`;
+        spans[2].innerHTML = apesHtml_resourcePlannerImports`<strong>${resources}</strong>Resource steps`;
+        spans[3].innerHTML = apesHtml_resourcePlannerImports`<strong>${instructions}</strong>Instructions`;
       }
     }
   }

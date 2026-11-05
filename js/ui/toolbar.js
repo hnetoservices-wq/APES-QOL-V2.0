@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_toolbar = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const HOST_ID = 'qol-responsive-toolbar';
   const DEPOT_ID = 'qol-toolbar-source-depot';
@@ -354,7 +356,7 @@
       host.appendChild(proxy);
     }
     const sourceMarkup = String(source?.innerHTML || '').trim();
-    const markup = sourceMarkup || `<span>${abbreviation(label)}</span>`;
+    const markup = sourceMarkup || apesHtml_toolbar`<span>${abbreviation(label)}</span>`;
     if (proxy.dataset.qolMarkup !== markup) {
       proxy.innerHTML = markup;
       proxy.dataset.qolMarkup = markup;
@@ -362,6 +364,8 @@
     }
     proxy.title = source?.title || label;
     proxy.setAttribute('aria-label', source?.getAttribute('aria-label') || label);
+    window.APES?.i18n?.setAttribute(proxy, 'title', label);
+    window.APES?.i18n?.setAttribute(proxy, 'aria-label', label);
     proxy.classList.toggle('qol-toolbar-text-icon', !proxy.querySelector('svg,i,img'));
     return proxy;
   }
@@ -430,11 +434,11 @@
   function openOverflowMenu() {
     const menu = ensureMenu();
     const items = activeItems();
-    menu.innerHTML = `
+    menu.innerHTML = apesHtml_toolbar`
             <div class="qol-responsive-toolbar-title">Enabled APES tools</div>
-            ${items.map(item => `
+            ${items.map(item => apesHtml_toolbar`
                 <div class="qol-responsive-toolbar-item" data-qol-source-id="${item.id}" role="menuitem" tabindex="0">
-                    <span>${item.label}</span><span class="qol-responsive-toolbar-arrow">›</span>
+                    <span data-apes-i18n="${item.label}">${item.label}</span><span class="qol-responsive-toolbar-arrow">›</span>
                 </div>
             `).join('')}
             <div class="qol-responsive-toolbar-item settings" data-qol-settings="true" role="menuitem" tabindex="0">

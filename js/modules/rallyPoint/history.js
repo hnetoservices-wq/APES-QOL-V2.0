@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_history = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'rallyPointParser';
   const STORAGE_FEATURE = 'rallyPointHistory';
@@ -396,7 +398,7 @@
       section.className = 'qol-rally-tab-panel';
       section.setAttribute('data-qol-rally-panel', HISTORY_TAB);
       section.setAttribute('role', 'tabpanel');
-      section.innerHTML = '<div class="qol-rp-history-body"><div class="qol-rp-history-empty">Loading Rally Point history…</div></div>';
+      section.innerHTML = apesHtml_history`<div class="qol-rp-history-body"><div class="qol-rp-history-empty">Loading Rally Point history…</div></div>`;
       content.appendChild(section);
     }
     Object.keys(KINDS).forEach(updateDeltaBar);
@@ -423,20 +425,20 @@
     };
   }
   function optionHtml(list, selectedId) {
-    return list.map(snapshot => `<option value="${escapeHtml(snapshot.id)}"${snapshot.id === selectedId ? ' selected' : ''}>${escapeHtml(formatSnapshotLabel(snapshot))}</option>`).join('');
+    return list.map(snapshot => apesHtml_history`<option value="${escapeHtml(snapshot.id)}"${snapshot.id === selectedId ? ' selected' : ''}>${escapeHtml(formatSnapshotLabel(snapshot))}</option>`).join('');
   }
   function comparisonRowHtml(row, kind) {
     const config = KINDS[kind];
     const remaining = row.status === 'unchanged' ? `${escapeHtml(row.previous?.remaining || '-')} → ${escapeHtml(row.item.remaining || '-')}` : escapeHtml(row.item.remaining || '-');
     const statusLabel = row.status === 'new' ? 'NEW' : row.status === 'removed' ? 'REMOVED' : 'UNCHANGED';
-    return `<tr><td><span class="qol-rp-delta-status ${row.status}">${statusLabel}</span></td><td title="${escapeHtml(row.item.subject)}">${escapeHtml(row.item.subject)}</td><td title="${escapeHtml(row.item.village)}">${escapeHtml(row.item.village)}</td><td>${escapeHtml(row.item.type)}</td><td>${escapeHtml(row.item.landing)}</td><td title="${config.label} remaining time">${remaining}</td></tr>`;
+    return apesHtml_history`<tr><td><span class="qol-rp-delta-status ${row.status}">${statusLabel}</span></td><td title="${escapeHtml(row.item.subject)}">${escapeHtml(row.item.subject)}</td><td title="${escapeHtml(row.item.village)}">${escapeHtml(row.item.village)}</td><td>${escapeHtml(row.item.type)}</td><td>${escapeHtml(row.item.landing)}</td><td title="${config.label} remaining time">${remaining}</td></tr>`;
   }
   function renderHistory() {
     const section = ensureHistoryUI();
     const body = section?.querySelector('.qol-rp-history-body');
     if (!body) return;
     if (!loaded) {
-      body.innerHTML = '<div class="qol-rp-history-empty">Loading Rally Point history…</div>';
+      body.innerHTML = apesHtml_history`<div class="qol-rp-history-empty">Loading Rally Point history…</div>`;
       void loadSnapshots().then(renderHistory);
       return;
     }
@@ -453,11 +455,11 @@
       unchangedItems: []
     };
     const config = KINDS[selectedKind];
-    body.innerHTML = `
+    body.innerHTML = apesHtml_history`
             <div class="qol-rp-history-controls">
                 <div class="qol-rp-history-control"><label>Scan type</label><select class="qol-rp-history-select" data-qol-history-kind><option value="incoming"${selectedKind === 'incoming' ? ' selected' : ''}>Incomings</option><option value="outgoing"${selectedKind === 'outgoing' ? ' selected' : ''}>Outgoings</option></select></div>
-                <div class="qol-rp-history-control"><label>Scan A · older</label><select class="qol-rp-history-select" data-qol-history-a ${list.length < 2 ? 'disabled' : ''}>${a ? optionHtml(list, a.id) : '<option>No older scan</option>'}</select></div>
-                <div class="qol-rp-history-control"><label>Scan B · newer</label><select class="qol-rp-history-select" data-qol-history-b ${list.length < 1 ? 'disabled' : ''}>${b ? optionHtml(list, b.id) : '<option>No scans saved</option>'}</select></div>
+                <div class="qol-rp-history-control"><label>Scan A · older</label><select class="qol-rp-history-select" data-qol-history-a ${list.length < 2 ? 'disabled' : ''}>${a ? optionHtml(list, a.id) : apesHtml_history`<option>No older scan</option>`}</select></div>
+                <div class="qol-rp-history-control"><label>Scan B · newer</label><select class="qol-rp-history-select" data-qol-history-b ${list.length < 1 ? 'disabled' : ''}>${b ? optionHtml(list, b.id) : apesHtml_history`<option>No scans saved</option>`}</select></div>
                 <div class="qol-rp-history-action${comparison.newItems.length ? '' : ' disabled'}" data-qol-history-copy>Copy New Only</div>
                 <div class="qol-rp-history-action danger${list.length ? '' : ' disabled'}" data-qol-history-clear>Clear ${escapeHtml(config.label)}</div>
             </div>
@@ -467,7 +469,7 @@
                 <div class="qol-rp-history-stat unchanged"><span>Unchanged</span><strong>${comparison.unchangedItems.length}</strong></div>
             </div>
             <div class="qol-rp-history-message">${list.length < 2 ? `Save at least two successful ${escapeHtml(config.label.toLowerCase())} scans to compare them.` : `Comparing ${escapeHtml(formatSnapshotLabel(a))} → ${escapeHtml(formatSnapshotLabel(b))}. Remaining time is not part of movement identity.`}</div>
-            <div class="qol-rp-history-table-wrap">${canCompare ? `<table class="qol-rp-history-table"><thead><tr><th>Status</th><th>${escapeHtml(config.subjectLabel)}</th><th>Village</th><th>Type</th><th>Landing</th><th>Remaining A → B</th></tr></thead><tbody>${comparison.rows.map(row => comparisonRowHtml(row, selectedKind)).join('') || '<tr><td colspan="6">No movements in either selected scan.</td></tr>'}</tbody></table>` : '<div class="qol-rp-history-empty">Run another successful scan to create a delta.</div>'}</div>
+            <div class="qol-rp-history-table-wrap">${canCompare ? apesHtml_history`<table class="qol-rp-history-table"><thead><tr><th>Status</th><th>${escapeHtml(config.subjectLabel)}</th><th>Village</th><th>Type</th><th>Landing</th><th>Remaining A → B</th></tr></thead><tbody>${comparison.rows.map(row => comparisonRowHtml(row, selectedKind)).join('') || apesHtml_history`<tr><td colspan="6">No movements in either selected scan.</td></tr>`}</tbody></table>` : apesHtml_history`<div class="qol-rp-history-empty">Run another successful scan to create a delta.</div>`}</div>
         `;
     body.querySelector('[data-qol-history-kind]')?.addEventListener('change', event => {
       selectedKind = event.target.value === 'outgoing' ? 'outgoing' : 'incoming';
@@ -525,7 +527,7 @@
       bar.dataset.kind = kind;
       statusLine.insertAdjacentElement('afterend', bar);
     }
-    bar.innerHTML = `<span>${escapeHtml(deltaText(kind, delta, current))}</span><div class="qol-rp-history-delta-actions">${!delta.baseline && delta.newItems.length ? '<div class="qol-rp-history-mini-btn" data-copy-new>Copy New Only</div>' : ''}<div class="qol-rp-history-mini-btn" data-view-history>View History</div></div>`;
+    bar.innerHTML = apesHtml_history`<span>${escapeHtml(deltaText(kind, delta, current))}</span><div class="qol-rp-history-delta-actions">${!delta.baseline && delta.newItems.length ? apesHtml_history`<div class="qol-rp-history-mini-btn" data-copy-new>Copy New Only</div>` : ''}<div class="qol-rp-history-mini-btn" data-view-history>View History</div></div>`;
     bar.querySelector('[data-view-history]')?.addEventListener('click', event => {
       event.preventDefault();
       selectedKind = kind;

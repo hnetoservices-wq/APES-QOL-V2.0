@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_commandPalette = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const APES = window.APES;
   if (!APES?.actions || !APES.ui) {
@@ -185,7 +187,7 @@
     overlay = document.createElement('div');
     overlay.id = OVERLAY_ID;
     overlay.setAttribute('aria-hidden', 'true');
-    overlay.innerHTML = `
+    overlay.innerHTML = apesHtml_commandPalette`
             <div class="apes-v2-radial" role="dialog" aria-modal="true" aria-label="APES feature wheel">
                 <div class="apes-v2-radial-center">
                     <span class="apes-v2-radial-logo">APES</span>
@@ -237,7 +239,7 @@
     const size = furthestRadius * 2 + 130;
     radial.style.setProperty('--apes-radial-size', `${size}px`);
     if (!features.length) {
-      items.innerHTML = `
+      items.innerHTML = apesHtml_commandPalette`
                 <div class="apes-v2-radial-empty">
                     No eligible APES features are enabled.
                 </div>
@@ -246,7 +248,7 @@
     }
     items.innerHTML = features.map((feature, index) => {
       const position = getPosition(index, features);
-      return `
+      return apesHtml_commandPalette`
                 <div
                     class="apes-v2-radial-item"
                     data-apes-action-id="${escapeHtml(feature.id)}"
@@ -260,7 +262,7 @@
                         ${feature.icon}
                     </span>
                     <span class="apes-v2-radial-label">
-                        ${escapeHtml(feature.label)}
+                        <span data-apes-i18n="${escapeHtml(feature.label)}">${escapeHtml(feature.label)}</span>
                     </span>
                 </div>
             `;

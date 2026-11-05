@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_roadmapsExpertPlacement = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'roadmaps';
   const STORAGE_KEY = `qol_${FEATURE_KEY}`;
@@ -37,7 +39,7 @@
     card.className = 'qol-feature-card';
     card.dataset.featureKey = FEATURE_KEY;
     card.dataset.qolRoadmapsExpertCard = '1';
-    card.innerHTML = `
+    card.innerHTML = apesHtml_roadmapsExpertPlacement`
       <span class="qol-feature-icon" aria-hidden="true"><svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/></svg></span>
       <div class="qol-feature-copy">
         <h3 class="qol-feature-name">Roadmaps</h3>

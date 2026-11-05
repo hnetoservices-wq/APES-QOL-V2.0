@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_sharing = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const PANEL_ID = 'qol-roadmaps-container';
   const DIALOG_ID = 'qol-roadmap-sharing-dialog';
@@ -177,7 +179,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_sharing`
       <div class="qol-rms-dialog" role="dialog" aria-modal="true">
         <div class="qol-rms-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rms-dialog-body">${bodyHtml}</div>
@@ -230,7 +232,7 @@
       return;
     }
 
-    const layer = buildDialog('Export Roadmap', `
+    const layer = buildDialog('Export Roadmap', apesHtml_sharing`
       <p class="qol-rms-copy">This exports the guide only. Village assignments and progress are not included.</p>
       <textarea class="qol-rms-textarea" data-rms-export readonly spellcheck="false"></textarea>
       <div class="qol-rms-status" data-rms-status></div>
@@ -254,7 +256,7 @@
   }
 
   function openImport() {
-    const layer = buildDialog('Import Roadmap', `
+    const layer = buildDialog('Import Roadmap', apesHtml_sharing`
       <p class="qol-rms-copy">Paste an APES Roadmap export. Imported guides are added to <strong>My Roadmaps</strong> with fresh progress.</p>
       <textarea class="qol-rms-textarea" data-rms-import spellcheck="false" placeholder="Paste Roadmap JSON here..."></textarea>
       <div class="qol-rms-status" data-rms-status></div>

@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_csvInterop = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const MIN_COORD = -69;
   const MAX_COORD = 69;
@@ -233,7 +235,7 @@
     const sections = getSections(config.teamSize);
     const sectionSelect = panel.querySelector('#qol-tag-team-section');
     if (sectionSelect) {
-      const desired = ['<option value="ALL">All</option>', ...sections.map(section => `<option value="${section.id}">${section.id}</option>`)].join('');
+      const desired = [apesHtml_csvInterop`<option value="ALL">All</option>`, ...sections.map(section => apesHtml_csvInterop`<option value="${section.id}">${section.id}</option>`)].join('');
       if (sectionSelect.innerHTML !== desired) {
         const selected = config.selectedSection;
         sectionSelect.innerHTML = desired;

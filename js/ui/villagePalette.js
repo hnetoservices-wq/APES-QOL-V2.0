@@ -9,6 +9,8 @@
 
 (() => {
     'use strict';
+const apesHtml_villagePalette = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
     const APES = window.APES;
     if (!APES?.ui) return;
@@ -518,7 +520,7 @@
 
     function constructionHtml(village) {
         const entries = constructionEntries(village);
-        if (!entries.length) return '<span class="apes-vd-idle">Idle</span>';
+        if (!entries.length) return apesHtml_villagePalette`<span class="apes-vd-idle">Idle</span>`;
 
         const tooltip = entries.map(entry => {
             const level = entry.level !== null ? ` → ${entry.level}` : '';
@@ -530,15 +532,15 @@
             const level = entry.level !== null ? ` → ${entry.level}` : '';
             const finishMs = asTimestamp(entry.end);
             const remaining = finishMs ? remainingText(finishMs) : '';
-            return `
+            return apesHtml_villagePalette`
                 <span class="apes-vd-line apes-vd-construction-line">
                     <strong>${escapeHtml(entry.label + level)}</strong>
-                    ${remaining ? `<small class="apes-vd-countdown" data-finish-ms="${finishMs}">${escapeHtml(remaining)}</small>` : ''}
+                    ${remaining ? apesHtml_villagePalette`<small class="apes-vd-countdown" data-finish-ms="${finishMs}">${escapeHtml(remaining)}</small>` : ''}
                 </span>
             `;
         }).join('');
 
-        return `<div class="apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">${visible}</div>`;
+        return apesHtml_villagePalette`<div class="apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">${visible}</div>`;
     }
 
     function addUnitCount(map, tribeId, rawId, amount) {
@@ -686,14 +688,14 @@
     function trainingCompletionHtml(village) {
         const rows = trainingCompletionRows(village);
         if (!rows.length) return '';
-        return `<div class="apes-vd-training-queues">${rows.map(row => {
+        return apesHtml_villagePalette`<div class="apes-vd-training-queues">${rows.map(row => {
             const time = row.status === 'active'
-                ? `<small class="apes-vd-countdown apes-vd-training-countdown"
+                ? apesHtml_villagePalette`<small class="apes-vd-countdown apes-vd-training-countdown"
                           data-finish-ms="${row.finishMs}">${escapeHtml(remainingText(row.finishMs))}</small>`
-                : `<small>${escapeHtml(row.status)}</small>`;
+                : apesHtml_villagePalette`<small>${escapeHtml(row.status)}</small>`;
             const tooltip = `${row.label}: ${row.troopDescription} — ${row.status === 'active'
                 ? remainingText(row.finishMs) + ' remaining' : row.status}`;
-            return `<span class="apes-vd-training-queue apes-vd-tooltip-target"
+            return apesHtml_villagePalette`<span class="apes-vd-training-queue apes-vd-tooltip-target"
                          title="${escapeHtml(tooltip)}">
                         <span>${escapeHtml(row.label)}</span>${time}
                     </span>`;
@@ -703,7 +705,7 @@
     function trainingHtml(village) {
         const entries = unitQueueEntries(village);
         const completionHtml = trainingCompletionHtml(village);
-        if (!entries.length) return completionHtml || '<span class="apes-vd-idle">Idle</span>';
+        if (!entries.length) return completionHtml || apesHtml_villagePalette`<span class="apes-vd-idle">Idle</span>`;
 
         const total = entries.reduce((sum, entry) => sum + (entry.amount || 0), 0);
         const details = entries.map(entry => {
@@ -717,10 +719,10 @@
         if (entries.length === 1) {
             const entry = entries[0];
             const amount = entry.amount !== null ? `${formatInteger(entry.amount)} ` : '';
-            return `
+            return apesHtml_villagePalette`
                 <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(title)}">
                     <strong>${escapeHtml(amount + entry.label)}</strong>
-                    ${entry.building ? `<small>${escapeHtml(entry.building)}</small>` : ''}
+                    ${entry.building ? apesHtml_villagePalette`<small>${escapeHtml(entry.building)}</small>` : ''}
                 </span>
                 ${completionHtml}
             `;
@@ -730,7 +732,7 @@
             .map(entry => `${entry.amount !== null ? formatInteger(entry.amount) + ' ' : ''}${entry.label}`)
             .join(' · ');
 
-        return `
+        return apesHtml_villagePalette`
             <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(title)}">
                 <strong>${escapeHtml(total > 0 ? `${formatInteger(total)} queued` : 'Training active')}</strong>
                 <small>${escapeHtml(primary)}</small>
@@ -742,7 +744,7 @@
     function smithyHtml(village) {
         const queue = village?.smithyQueue;
         if (!queue || !hasMeaningfulData(queue?.buildingTypes ?? queue)) {
-            return '<span class="apes-vd-idle">Idle</span>';
+            return apesHtml_villagePalette`<span class="apes-vd-idle">Idle</span>`;
         }
 
         const candidates = collectObjects(queue?.buildingTypes ?? queue, item => {
@@ -753,7 +755,7 @@
         }, 6);
 
         if (!candidates.length) {
-            return '<span class="apes-vd-line"><strong>Upgrade active</strong></span>';
+            return apesHtml_villagePalette`<span class="apes-vd-line"><strong>Upgrade active</strong></span>`;
         }
 
         const item = candidates[0];
@@ -777,10 +779,10 @@
         const display = `${label}${level !== null ? ` → ${level}` : ''}`;
         const tooltip = `${display}${end ? ` — ${remainingText(end)}` : ''}`;
 
-        return `
+        return apesHtml_villagePalette`
             <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">
                 <strong>${escapeHtml(display)}</strong>
-                ${end ? `<small>${escapeHtml(remainingText(end))}</small>` : ''}
+                ${end ? apesHtml_villagePalette`<small>${escapeHtml(remainingText(end))}</small>` : ''}
             </span>
         `;
     }
@@ -791,7 +793,7 @@
         const active = end && end > Date.now();
 
         if (!active && !hasMeaningfulData(village?.celebrations)) {
-            return '<span class="apes-vd-idle">None</span>';
+            return apesHtml_villagePalette`<span class="apes-vd-idle">None</span>`;
         }
 
         const name = type === 1
@@ -800,10 +802,10 @@
                 ? 'Great celebration'
                 : 'Celebration';
 
-        return `
+        return apesHtml_villagePalette`
             <span class="apes-vd-line">
                 <strong>${escapeHtml(name)}</strong>
-                ${end ? `<small>${escapeHtml(remainingText(end))}</small>` : ''}
+                ${end ? apesHtml_villagePalette`<small>${escapeHtml(remainingText(end))}</small>` : ''}
             </span>
         `;
     }
@@ -869,7 +871,7 @@
             }).join('\n')
             : 'No troops stationed here';
 
-        return `
+        return apesHtml_villagePalette`
             <span class="apes-vd-line apes-vd-tooltip-target" title="${escapeHtml(tooltip)}">
                 <strong>${escapeHtml(formatInteger(summary.total))} Troops</strong>
                 <small>${escapeHtml(formatInteger(summary.cropPerHour))} Crop/h</small>
@@ -898,9 +900,9 @@
 
     function buildingsHtml(village) {
         const entries = dashboardBuildingEntries(village);
-        if (!entries.length) return '<span class="apes-vd-idle">None</span>';
+        if (!entries.length) return apesHtml_villagePalette`<span class="apes-vd-idle">None</span>`;
         const villageId = String(village?.villageId || '');
-        return `<ul class="apes-vd-building-list">${entries.map(entry => `
+        return `<ul class="apes-vd-building-list">${entries.map(entry => apesHtml_villagePalette`
             <li>
                 <span class="apes-vd-building-link" role="button" tabindex="0"
                       data-building-village-id="${escapeHtml(villageId)}"
@@ -969,7 +971,7 @@
         overlay = document.createElement('div');
         overlay.id = OVERLAY_ID;
         overlay.setAttribute('aria-hidden', 'true');
-        overlay.innerHTML = `
+        overlay.innerHTML = apesHtml_villagePalette`
             <div class="apes-v2-village-dashboard" role="dialog" aria-modal="true" aria-label="Village dashboard">
                 <div class="apes-vd-heading">
                     <div class="apes-vd-brand">
@@ -1094,7 +1096,7 @@
 
         const villages = Array.isArray(snapshot?.villages) ? snapshot.villages : [];
         if (!villages.length) {
-            body.innerHTML = `
+            body.innerHTML = apesHtml_villagePalette`
                 <div class="apes-vd-loading">
                     ${snapshot?.error ? escapeHtml(snapshot.error) : 'Waiting for Travian village cache…'}
                 </div>
@@ -1107,22 +1109,22 @@
             const villageId = String(village.villageId || '');
             const isActive = villageId === activeId || village.isActive;
             const badges = [
-                village.isMainVillage ? '<span class="apes-vd-badge">Capital</span>' : '',
-                village.isTown ? '<span class="apes-vd-badge">City</span>' : ''
+                village.isMainVillage ? apesHtml_villagePalette`<span class="apes-vd-badge">Capital</span>` : '',
+                village.isTown ? apesHtml_villagePalette`<span class="apes-vd-badge">City</span>` : ''
             ].filter(Boolean).join('');
             const coordinates = Number.isFinite(Number(village.x)) && Number.isFinite(Number(village.y))
                 ? `(${village.x}|${village.y})`
                 : '';
 
-            return `
+            return apesHtml_villagePalette`
                 <div class="apes-vd-row${isActive ? ' current' : ''}">
                     <div class="apes-vd-village" role="button" tabindex="0"
                          data-village-id="${escapeHtml(villageId)}"
                          title="Switch to ${escapeHtml(village.name)}">
                         <span class="apes-vd-village-name">${escapeHtml(village.name)}</span>
                         <span class="apes-vd-village-meta">
-                            ${coordinates ? `<small>${escapeHtml(coordinates)}</small>` : ''}
-                            ${Number.isFinite(Number(village.population)) ? `<small>${escapeHtml(formatInteger(village.population))} pop</small>` : ''}
+                            ${coordinates ? apesHtml_villagePalette`<small>${escapeHtml(coordinates)}</small>` : ''}
+                            ${Number.isFinite(Number(village.population)) ? apesHtml_villagePalette`<small>${escapeHtml(formatInteger(village.population))} pop</small>` : ''}
                             ${badges}
                         </span>
                     </div>

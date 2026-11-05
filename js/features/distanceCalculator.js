@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_distanceCalculator = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'distanceCalculator';
   const BUTTON_ID = 'qol-distance-calc-toggle-btn';
@@ -460,7 +462,7 @@
     });
     return [...groups.entries()].map(([group, items]) => `
             <optgroup label="${escapeHtml(group)}">
-                ${items.map(item => `
+                ${items.map(item => apesHtml_distanceCalculator`
                     <option value="${escapeHtml(item.key)}">${escapeHtml(item.label)} · ${item.speed} fields/h at x1</option>
                 `).join('')}
             </optgroup>
@@ -748,7 +750,7 @@
       panel = document.createElement('div');
       panel.id = PANEL_ID;
       panel.className = 'qol-invalid';
-      panel.innerHTML = `
+      panel.innerHTML = apesHtml_distanceCalculator`
                 <div class="qol-distance-header">
                     <div class="qol-distance-title">
                         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="18" r="2"></circle><circle cx="18" cy="6" r="2"></circle><path d="M8 16L16 8M10 18h8v-8"></path></svg>

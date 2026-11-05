@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_backupManager = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const OVERLAY_ID = 'apes-backup-manager-overlay';
   const STYLE_ID = 'apes-backup-manager-styles';
@@ -312,7 +314,7 @@
     overlay = document.createElement('div');
     overlay.id = OVERLAY_ID;
     overlay.setAttribute('aria-hidden', 'true');
-    overlay.innerHTML = `
+    overlay.innerHTML = apesHtml_backupManager`
             <div class="apes-backup-dialog" role="dialog" aria-modal="true" aria-labelledby="apes-backup-title">
                 <div class="apes-backup-head"><strong id="apes-backup-title">APES Backup &amp; Device Transfer</strong><div class="apes-backup-close" role="button" tabindex="0">&times;</div></div>
                 <div class="apes-backup-body">

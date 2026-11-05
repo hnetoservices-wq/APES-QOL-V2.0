@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_checkpointsAndDetection = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const CUSTOM_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
@@ -136,7 +138,7 @@
     closeEditorDialog();
     const layer = document.createElement('div');
     layer.id = EDIT_DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_checkpointsAndDetection`
       <div class="qol-rm-dialog qol-rme-dialog qol-rms6-checkpoint-dialog" role="dialog" aria-modal="true">
         <div class="qol-rm-dialog-head">${editing ? 'Edit Checkpoint' : 'Add Checkpoint'}</div>
         <div class="qol-rm-dialog-body">
@@ -328,7 +330,7 @@
     if (!status) return;
     const block = document.createElement('div');
     block.className = 'qol-rms6-detection-block';
-    block.innerHTML = `
+    block.innerHTML = apesHtml_checkpointsAndDetection`
       <div class="qol-rms6-section-title">Progress Detection</div>
       <div class="qol-rms6-detection-list" role="radiogroup" aria-label="Progress detection">
         <div class="qol-rms6-detection" data-rms6-detection="manual" role="radio" tabindex="0" aria-checked="false">

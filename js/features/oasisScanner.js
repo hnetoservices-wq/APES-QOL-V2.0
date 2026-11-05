@@ -1,3 +1,4 @@
+const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
 (function initOasisScannerModule() {
   "use strict";
 
@@ -426,7 +427,7 @@
     }
     const sectionSelect = document.getElementById("qol-tag-team-section");
     if (sectionSelect) {
-      sectionSelect.innerHTML = [`<option value="ALL">All</option>`, ...getTagTeamSections().map(section => `<option value="${section.id}">${section.id} — ${section.position}</option>`)].join("");
+      sectionSelect.innerHTML = [apesHtml_oasisScanner`<option value="ALL">All</option>`, ...getTagTeamSections().map(section => apesHtml_oasisScanner`<option value="${section.id}">${section.id} — ${section.position}</option>`)].join("");
       sectionSelect.value = tagTeamConfig.selectedSection;
     }
     const setupSummary = document.getElementById("qol-tag-team-setup-summary");
@@ -437,7 +438,7 @@
     const legend = document.getElementById("qol-tag-team-legend");
     if (legend) {
       const showAll = isAllTagTeamSectionsVisible();
-      legend.innerHTML = getTagTeamSections().map(section => `
+      legend.innerHTML = getTagTeamSections().map(section => apesHtml_oasisScanner`
               <span
                 class="qol-tag-team-legend-item ${showAll || section.id === tagTeamConfig.selectedSection ? "is-selected" : ""}"
               >
@@ -1763,7 +1764,7 @@
   function renderSelectedOasesDetails(entry) {
     const evaluation = entry.source.evaluation;
     if (!evaluation.selectedOases.length) {
-      return `
+      return apesHtml_oasisScanner`
         <tr class="qol-cropper-details-row">
           <td colspan="7">
             <div class="qol-cropper-details">
@@ -1773,7 +1774,7 @@
         </tr>
       `;
     }
-    const lines = evaluation.selectedOases.map(oasis => `
+    const lines = evaluation.selectedOases.map(oasis => apesHtml_oasisScanner`
             <div class="qol-cropper-oasis-line">
               <span
                 class="qol-oasis-coordinate-link"
@@ -1789,7 +1790,7 @@
               </span>
             </div>
           `).join("");
-    return `
+    return apesHtml_oasisScanner`
       <tr class="qol-cropper-details-row">
         <td colspan="7">
           <div class="qol-cropper-details">
@@ -1810,7 +1811,7 @@
     }
     const entries = createDisplayEntries();
     if (!entries.length) {
-      tableBody.innerHTML = `
+      tableBody.innerHTML = apesHtml_oasisScanner`
         <tr>
           <td
             colspan="7"
@@ -1829,7 +1830,7 @@
     entries.forEach(entry => {
       if (entry.resultType === "oasis") {
         const oasis = entry.source;
-        html += `
+        html += apesHtml_oasisScanner`
           <tr>
             <td>
               <span
@@ -1883,7 +1884,7 @@
       const selectedCount = evaluation.selectedOases.length;
       const nearbyCount = evaluation.nearbyOases.length;
       const isExpanded = expandedCropperIds.has(cropper.id);
-      html += `
+      html += apesHtml_oasisScanner`
         <tr>
           <td>
             <span
@@ -3453,7 +3454,7 @@
     }
     oasisContainer = document.createElement("div");
     oasisContainer.id = "qol-oasis-container";
-    oasisContainer.innerHTML = `
+    oasisContainer.innerHTML = apesHtml_oasisScanner`
       <div class="qol-oasis-header">
         <span>
           Oasis & Cropper Scanner

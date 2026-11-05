@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_officialGuides = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
   const HUB_ID = 'qol-roadmaps-container';
@@ -375,14 +377,14 @@
       clean(meta.villageType)
     ].filter(Boolean);
     const details = [];
-    if (clean(meta.author)) details.push(`<strong>Author:</strong> ${escapeHtml(meta.author)}`);
+    if (clean(meta.author)) details.push(apesHtml_officialGuides`<strong>Author:</strong> ${escapeHtml(meta.author)}`);
     if (Array.isArray(meta.contributors) && meta.contributors.length) {
-      details.push(`<strong>Contributors:</strong> ${meta.contributors.map(escapeHtml).join(', ')}`);
+      details.push(apesHtml_officialGuides`<strong>Contributors:</strong> ${meta.contributors.map(escapeHtml).join(', ')}`);
     }
-    if (clean(meta.goal)) details.push(`<strong>Goal:</strong> ${escapeHtml(meta.goal)}`);
-    return `
-      <div class="qol-rmog-chips">${chips.map(chip => `<span>${escapeHtml(chip)}</span>`).join('')}</div>
-      <div class="qol-rmog-details">${details.join('<span class="qol-rmog-sep">·</span>')}</div>`;
+    if (clean(meta.goal)) details.push(apesHtml_officialGuides`<strong>Goal:</strong> ${escapeHtml(meta.goal)}`);
+    return apesHtml_officialGuides`
+      <div class="qol-rmog-chips">${chips.map(chip => apesHtml_officialGuides`<span>${escapeHtml(chip)}</span>`).join('')}</div>
+      <div class="qol-rmog-details">${details.join(apesHtml_officialGuides`<span class="qol-rmog-sep">·</span>`)}</div>`;
   }
 
   function metadataSignature(id, meta) {

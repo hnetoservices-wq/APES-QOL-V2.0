@@ -1,5 +1,7 @@
 (function initNpcCalculatorModule() {
   'use strict';
+const apesHtml_npcCalculator = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'npcCalculator';
   const PANEL_ID = 'qol-calc-container';
@@ -389,8 +391,8 @@
   }
   function buildResourceCards(prefix, stockMode) {
     return RESOURCE_KEYS.map(key => {
-      const meta = stockMode ? `<div class="qol-npc-resource-meta"><span id="${prefix}-${key}-capacity">Cap —</span><span id="${prefix}-${key}-percent">—</span></div>` : `<div class="qol-npc-resource-meta"><span id="${prefix}-${key}-required">Need 0</span><span id="${prefix}-${key}-overflow">Leaves 0</span></div>`;
-      return `<div class="qol-npc-resource-card" data-resource="${key}">
+      const meta = stockMode ? apesHtml_npcCalculator`<div class="qol-npc-resource-meta"><span id="${prefix}-${key}-capacity">Cap —</span><span id="${prefix}-${key}-percent">—</span></div>` : apesHtml_npcCalculator`<div class="qol-npc-resource-meta"><span id="${prefix}-${key}-required">Need 0</span><span id="${prefix}-${key}-overflow">Leaves 0</span></div>`;
+      return apesHtml_npcCalculator`<div class="qol-npc-resource-card" data-resource="${key}">
                 <div class="qol-npc-resource-head">${resourceIcon(key)}<span>${RESOURCE_META[key].label}</span></div>
                 <strong id="${prefix}-${key}">0</strong>${meta}
                 <div class="qol-npc-meter"><span id="${prefix}-${key}-meter"></span></div>
@@ -595,8 +597,8 @@
     const row = document.createElement('tr');
     row.className = 'qol-npc-row';
     row.dataset.great = 'false';
-    row.innerHTML = `
-            <td><select class="qol-npc-unit-select">${units.map(unit => `<option value="${unit.name}">${unit.name}</option>`).join('')}</select></td>
+    row.innerHTML = apesHtml_npcCalculator`
+            <td><select class="qol-npc-unit-select">${units.map(unit => apesHtml_npcCalculator`<option value="${unit.name}">${unit.name}</option>`).join('')}</select></td>
             <td><span class="qol-npc-mode" role="button" tabindex="0" aria-pressed="false">Normal</span></td>
             <td class="num qol-npc-max">0</td>
             <td class="center"><input class="qol-npc-count" type="number" min="0" value="0" inputmode="numeric"></td>
@@ -838,7 +840,7 @@
       return;
     }
     selectedPassIndex = Math.max(0, Math.min(selectedPassIndex, passes.length - 1));
-    tabs.innerHTML = passes.map((pass, index) => `<span class="qol-npc-pass-tab ${index === selectedPassIndex ? 'active' : ''}" role="button" tabindex="0" data-pass-index="${index}">Pass ${index + 1}</span>`).join('');
+    tabs.innerHTML = passes.map((pass, index) => apesHtml_npcCalculator`<span class="qol-npc-pass-tab ${index === selectedPassIndex ? 'active' : ''}" role="button" tabindex="0" data-pass-index="${index}">Pass ${index + 1}</span>`).join('');
     tabs.querySelectorAll('.qol-npc-pass-tab').forEach(control => {
       bindActivation(control, () => {
         selectedPassIndex = Number(control.dataset.passIndex) || 0;
@@ -848,8 +850,8 @@
     });
     const pass = passes[selectedPassIndex];
     const trainText = pass.allocations.map(item => `${formatNumber(item.count)} ${item.label}${item.mode !== 'Normal' && item.mode !== 'Siege' ? ` (${item.mode})` : ''}`).join(' · ');
-    const resources = RESOURCE_KEYS.map(key => `<span class="qol-npc-pass-resource">${resourceIcon(key)}<strong>${formatNumber(pass.target[key])}</strong></span>`).join('');
-    detail.innerHTML = `<div class="qol-npc-pass-train"><strong>Train:</strong> ${trainText || '—'}<br><span>Consumes ${formatNumber(pass.cost)} resources in this pass.</span></div><div class="qol-npc-pass-resource-line">${resources}</div>`;
+    const resources = RESOURCE_KEYS.map(key => apesHtml_npcCalculator`<span class="qol-npc-pass-resource">${resourceIcon(key)}<strong>${formatNumber(pass.target[key])}</strong></span>`).join('');
+    detail.innerHTML = apesHtml_npcCalculator`<div class="qol-npc-pass-train"><strong>Train:</strong> ${trainText || '—'}<br><span>Consumes ${formatNumber(pass.cost)} resources in this pass.</span></div><div class="qol-npc-pass-resource-line">${resources}</div>`;
   }
   function renderSelectedPass() {
     const passes = latestCalculation?.execution?.passes || [];
@@ -937,7 +939,7 @@
     overlay.setAttribute('aria-label', 'Preparing NPC distribution');
     overlay.setAttribute('aria-busy', 'true');
     overlay.style.cssText = 'position:fixed!important;inset:0!important;z-index:2147483647!important;display:flex!important;align-items:center!important;justify-content:center!important;background:rgba(0,0,0,.76)!important;cursor:wait!important;pointer-events:auto!important;font-family:Arial,sans-serif!important';
-    overlay.innerHTML = `<div style="max-width:440px;padding:24px;border:1px solid #b99a50;border-radius:7px;background:#252c20;color:#f5e8bf;text-align:center">
+    overlay.innerHTML = apesHtml_npcCalculator`<div style="max-width:440px;padding:24px;border:1px solid #b99a50;border-radius:7px;background:#252c20;color:#f5e8bf;text-align:center">
       <strong>Preparing NPC distribution</strong>
       <p class="qol-npc-fill-progress" aria-live="polite">Opening Marketplace…</p>
       <button type="button" class="qol-npc-fill-cancel">Cancel</button>
@@ -1283,7 +1285,7 @@
     }
     panel = document.createElement('div');
     panel.id = PANEL_ID;
-    panel.innerHTML = `
+    panel.innerHTML = apesHtml_npcCalculator`
 <div class="qol-npc-header">
   <div class="qol-npc-title"><span>NPC Calculator</span><small>Storage-aware</small></div>
   <span class="qol-npc-close" role="button" tabindex="0" title="Close">×</span>

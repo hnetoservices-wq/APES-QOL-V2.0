@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_runner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const ASSIGNMENT_PREFIX = 'qol_roadmap_assignments_v1';
   const LEGACY_STATE_KEY = 'qol_roadmap_runner_v1';
@@ -232,7 +234,7 @@
     closeDialog(CONFIRM_DIALOG_ID);
     const layer = document.createElement('div');
     layer.id = CONFIRM_DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_runner`
       <div class="qol-rmr-dialog" role="alertdialog" aria-modal="true">
         <div class="qol-rmr-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rmr-dialog-body">${escapeHtml(message)}</div>
@@ -269,7 +271,7 @@
     let chosen = current?.roadmapId === roadmapId ? current.scope : 'village';
     const layer = document.createElement('div');
     layer.id = ASSIGN_DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_runner`
       <div class="qol-rma-dialog" role="dialog" aria-modal="true">
         <div class="qol-rma-dialog-head">Load Roadmap</div>
         <div class="qol-rma-dialog-body">
@@ -422,7 +424,7 @@
     panel = document.createElement('div');
     panel.id = PANEL_ID;
     panel.setAttribute('aria-hidden', 'true');
-    panel.innerHTML = `
+    panel.innerHTML = apesHtml_runner`
       <div class="qol-rmr-header">
         <div class="qol-rmr-header-copy"><span>↪</span><strong>Roadmap</strong></div>
         <div class="qol-rmr-close" data-action="close" role="button" tabindex="0" aria-label="Close Roadmap Runner">×</div>
@@ -470,7 +472,7 @@
       : `${ctx.villageName} · ${assignment.scope === 'every' ? 'Every Village' : 'This Village'}`;
 
     if (!total) {
-      body.innerHTML = `
+      body.innerHTML = apesHtml_runner`
         <div class="qol-rma-runner-scope">${escapeHtml(contextLine)}</div>
         <div class="qol-rmr-empty">This roadmap has no steps yet.</div>
         <div class="qol-rmr-footer"><div class="qol-rmr-action secondary" data-action="hub" role="button" tabindex="0">Open Hub</div></div>`;
@@ -478,7 +480,7 @@
     }
 
     if (progress.currentStep >= total) {
-      body.innerHTML = `
+      body.innerHTML = apesHtml_runner`
         <div class="qol-rma-runner-scope">${escapeHtml(contextLine)}</div>
         <div class="qol-rmr-complete-mark">✓</div>
         <div class="qol-rmr-complete-title">Roadmap complete</div>
@@ -496,12 +498,12 @@
     const next = roadmap.steps[progress.currentStep + 1];
     const percent = Math.round((progress.currentStep / total) * 100);
     const wasSkipped = progress.skipped.includes(progress.currentStep);
-    body.innerHTML = `
+    body.innerHTML = apesHtml_runner`
       <div class="qol-rma-runner-scope">${escapeHtml(contextLine)}</div>
       <div class="qol-rmr-meta"><span>Step ${progress.currentStep + 1} of ${total}</span><strong>${percent}%</strong></div>
       <div class="qol-rmr-progress"><span style="width:${percent}%"></span></div>
       <div class="qol-rmr-step-card${wasSkipped ? ' skipped' : ''}">
-        <div class="qol-rmr-step-top"><span class="qol-rmr-type ${step.type === 'building' ? 'building' : ''}">${step.type === 'building' ? 'Building' : 'Instruction'}</span>${wasSkipped ? '<span class="qol-rmr-skipped">Previously skipped</span>' : ''}</div>
+        <div class="qol-rmr-step-top"><span class="qol-rmr-type ${step.type === 'building' ? 'building' : ''}">${step.type === 'building' ? 'Building' : 'Instruction'}</span>${wasSkipped ? apesHtml_runner`<span class="qol-rmr-skipped">Previously skipped</span>` : ''}</div>
         <div class="qol-rmr-step-text">${escapeHtml(stepLabel(step))}</div>
       </div>
       <div class="qol-rmr-next"><span>Next</span><strong>${next ? escapeHtml(stepLabel(next)) : 'Final step'}</strong></div>
@@ -618,7 +620,7 @@
 
     const contextName = validVillage(ctx) ? ctx.villageName : 'Resolving current village…';
     if (!assignment || !roadmap) {
-      card.innerHTML = `
+      card.innerHTML = apesHtml_runner`
         <div class="qol-rma-context-copy">
           <span class="qol-rma-kicker">Current Village</span>
           <strong>${escapeHtml(contextName)}</strong>
@@ -629,7 +631,7 @@
 
     const total = roadmap.steps.length;
     const done = Math.min(progress.currentStep, total);
-    card.innerHTML = `
+    card.innerHTML = apesHtml_runner`
       <div class="qol-rma-context-copy">
         <span class="qol-rma-kicker">Current Village</span>
         <strong>${escapeHtml(contextName)}</strong>
