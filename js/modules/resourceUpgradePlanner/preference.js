@@ -203,13 +203,13 @@
     const status = panel()?.querySelector('[data-scan-status]');
     if (!status || !entry) return;
     const ageMinutes = Math.max(0, Math.floor((Date.now() - Number(entry.scannedAt || 0)) / 60000));
-    status.textContent = `Loaded saved scan for ${identity.villageName}${ageMinutes ? ` · ${ageMinutes}m old` : ''}.`;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Loaded saved scan for {v0}{v1}.",{v0:(identity.villageName),v1:(ageMinutes ? ` · ${ageMinutes}m old` : '')});})(status);
     status.dataset.tone = 'success';
   }
   function updateUnscannedStatus(identity) {
     const status = panel()?.querySelector('[data-scan-status]');
     if (!status) return;
-    status.textContent = `${identity.villageName} has not been scanned yet.`;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} has not been scanned yet.",{v0:(identity.villageName)});})(status);
     status.dataset.tone = 'neutral';
   }
   function ensureCurrentVillageResults() {

@@ -23,7 +23,7 @@ const graphStart=js.indexOf('  function resourceDevelopmentHtml(history) {');
 const graphEnd=js.indexOf('  function resourceHtml(summary){',graphStart);
 assert.ok(start>=0 && end>start && graphStart>0 && graphEnd>graphStart);
 const makeGraph=new Function(
-  js.slice(start,end)+
+  "const apesHtml_accountOverview = (s,...v) => String.raw({raw:s},...v);\n" + js.slice(start,end)+
   'const num=v=>v==null||v===""?null:Number.isFinite(Number(v))?Number(v):null;\n'+
   'const safe=v=>String(v??"");\n'+
   'const fmt=v=>Math.round(Number(v)||0).toLocaleString("en-US");\n'+

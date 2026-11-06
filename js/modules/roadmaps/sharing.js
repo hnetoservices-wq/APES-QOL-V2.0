@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_sharing = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const PANEL_ID = 'qol-roadmaps-container';
   const DIALOG_ID = 'qol-roadmap-sharing-dialog';
@@ -154,7 +156,7 @@
     document.querySelector('.qol-rms-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = `qol-rms-toast ${type}`;
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2600);
   }
@@ -177,7 +179,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_sharing`
       <div class="qol-rms-dialog" role="dialog" aria-modal="true">
         <div class="qol-rms-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rms-dialog-body">${bodyHtml}</div>
@@ -230,7 +232,7 @@
       return;
     }
 
-    const layer = buildDialog('Export Roadmap', `
+    const layer = buildDialog('Export Roadmap', apesHtml_sharing`
       <p class="qol-rms-copy">This exports the guide only. Village assignments and progress are not included.</p>
       <textarea class="qol-rms-textarea" data-rms-export readonly spellcheck="false"></textarea>
       <div class="qol-rms-status" data-rms-status></div>
@@ -248,13 +250,13 @@
     wireControl(layer.querySelector('[data-rms-close]'), closeDialog);
     wireControl(layer.querySelector('[data-rms-copy]'), async () => {
       const ok = await copyText(json);
-      status.textContent = ok ? 'Copied. Paste this into Discord or send it to another APES user.' : 'Copy failed. Select the text and copy it manually.';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (ok)?(write("Copied. Paste this into Discord or send it to another APES user.")):(write("Copy failed. Select the text and copy it manually."));})(status);
       status.classList.toggle('error', !ok);
     });
   }
 
   function openImport() {
-    const layer = buildDialog('Import Roadmap', `
+    const layer = buildDialog('Import Roadmap', apesHtml_sharing`
       <p class="qol-rms-copy">Paste an APES Roadmap export. Imported guides are added to <strong>My Roadmaps</strong> with fresh progress.</p>
       <textarea class="qol-rms-textarea" data-rms-import spellcheck="false" placeholder="Paste Roadmap JSON here..."></textarea>
       <div class="qol-rms-status" data-rms-status></div>
@@ -285,7 +287,7 @@
       store[id] = roadmap;
 
       if (!writeJson(CUSTOM_STORAGE_KEY, store)) {
-        status.textContent = 'Could not save the imported roadmap.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Could not save the imported roadmap.");})(status);
         status.classList.add('error');
         return;
       }
@@ -315,7 +317,7 @@
         exportControl.setAttribute('data-rms-export-action', '1');
         exportControl.setAttribute('role', 'button');
         exportControl.setAttribute('tabindex', '0');
-        exportControl.textContent = 'Export';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Export");})(exportControl);
         actions.appendChild(exportControl);
         wireControl(exportControl, openExport);
       }
@@ -328,7 +330,7 @@
       importControl.setAttribute('data-rms-import-action', '1');
       importControl.setAttribute('role', 'button');
       importControl.setAttribute('tabindex', '0');
-      importControl.textContent = '+ Import';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("+ Import");})(importControl);
       sidebarTitle.appendChild(importControl);
       wireControl(importControl, openImport);
     }

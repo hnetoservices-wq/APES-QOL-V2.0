@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_expandedVillageIntelLayout = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const OVERLAY_ID = 'apes-v2-village-overlay';
   let observer = null;
@@ -90,7 +92,7 @@
       const [tribeClass, localIndex, absoluteId] = meta;
       if (cell.dataset.apesUnitIcon !== String(absoluteId)) {
         cell.dataset.apesUnitIcon = String(absoluteId);
-        cell.innerHTML = `<span class="apes-vd-unit-icon-wrap" title="${name}" aria-label="${name}"><i class="unitSmall ${tribeClass} unitType${localIndex}" data-unit-id="${absoluteId}" aria-hidden="true"></i></span>`;
+        cell.innerHTML = apesHtml_expandedVillageIntelLayout`<span class="apes-vd-unit-icon-wrap" title="${name}" aria-label="${name}"><i class="unitSmall ${tribeClass} unitType${localIndex}" data-unit-id="${absoluteId}" aria-hidden="true"></i></span>`;
       }
     });
 
@@ -115,7 +117,7 @@
       proxy.tabIndex = 0;
       proxy.title = 'Expand village information';
       proxy.setAttribute('aria-label', 'Expand village information');
-      proxy.innerHTML = '<span class="apes-vd-expand-toggle-proxy-label">Info</span><span class="apes-vd-expand-toggle-proxy-arrow">⌄</span>';
+      proxy.innerHTML = apesHtml_expandedVillageIntelLayout`<span class="apes-vd-expand-toggle-proxy-label">Info</span><span class="apes-vd-expand-toggle-proxy-arrow">⌄</span>`;
       villageCell.appendChild(proxy);
     }
 

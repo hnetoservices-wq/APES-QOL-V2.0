@@ -1,5 +1,7 @@
 (function initCpManagerModule() {
   'use strict';
+const apesHtml_cpManager = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'cpManager';
   const PANEL_ID = 'qol-cp-manager-panel';
@@ -432,7 +434,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     const overlay = document.createElement('div');
     overlay.id = SCAN_OVERLAY_ID;
     overlay.style.cssText = 'position:fixed!important;top:0!important;left:0!important;width:100vw!important;height:100vh!important;background:rgba(0,0,0,.7)!important;z-index:2147483646!important;display:flex!important;align-items:center!important;justify-content:center!important;color:white!important;font:700 15px Arial!important;flex-direction:column!important;gap:8px!important;text-align:center!important;cursor:wait!important;user-select:none!important;pointer-events:auto!important';
-    overlay.innerHTML = '<div>Scanning CP...</div><div class="qol-cp-scan-overlay-status" style="max-width:min(520px,80vw)!important;font-size:11px!important;font-weight:normal!important;color:#ddd!important;line-height:1.45!important">Starting CP scan...</div><div style="font-size:10px!important;font-weight:normal!important;color:#aaa!important">Please wait while APES checks your villages, Town Halls and celebrations.</div>';
+    overlay.innerHTML = apesHtml_cpManager`<div>Scanning CP...</div><div class="qol-cp-scan-overlay-status" style="max-width:min(520px,80vw)!important;font-size:11px!important;font-weight:normal!important;color:#ddd!important;line-height:1.45!important">Starting CP scan...</div><div style="font-size:10px!important;font-weight:normal!important;color:#aaa!important">Please wait while APES checks your villages, Town Halls and celebrations.</div>`;
     document.body.appendChild(overlay);
   }
   function updateScanOverlay(message) {
@@ -445,7 +447,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
   function setStatus(message, tone = 'neutral') {
     const element = document.querySelector(`#${PANEL_ID} .qol-cp-status`);
     if (element) {
-      element.textContent = message;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(element);
       element.dataset.tone = tone;
     }
     if (isScanning) updateScanOverlay(message);
@@ -455,7 +457,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (!button) return;
     button.classList.toggle('disabled', disabled);
     button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
-    if (text) button.textContent = text;
+    if (text) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(button);
   }
   function setPlanButtonVisible(visible) {
     document.querySelector(`#${PANEL_ID} .qol-cp-plan-btn`)?.classList.toggle('hidden', !visible);
@@ -833,19 +835,19 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     const section = document.querySelector(`#${PANEL_ID} .qol-cp-townhalls`);
     if (!section) return;
     const halls = scan.villages.filter(village => village.hasTownHall);
-    const rows = halls.map(village => `<tr><td title="${escapeHtml(village.villageName)}">${escapeHtml(village.villageName)}${village.stale?' (cached)':''}</td><td>Town Hall ${village.level}</td></tr>`).join('');
-    section.innerHTML = `<div class="qol-cp-box-heading"><span>Town Halls Detected</span><span class="qol-cp-count">${halls.length}</span></div><div class="qol-cp-table-wrap"><table><thead><tr><th>Village Name</th><th>Town Hall</th></tr></thead><tbody>${rows || '<tr><td colspan="2">No Town Halls detected.</td></tr>'}</tbody></table></div><div class="qol-cp-box-meta">Scanned ${scan.scannedCount}/${scan.expectedCount||scan.scannedCount} villages.${scan.complete?'':` ${scan.failures?.length||0} failed; ${scan.reusedCount||0} previous Town Hall readings retained. ${(scan.failures||[]).slice(0,3).map(v=>escapeHtml(v.name)+': '+escapeHtml(v.reason)).join('; ')}`}</div>`;
+    const rows = halls.map(village => apesHtml_cpManager`<tr><td title="${escapeHtml(village.villageName)}">${escapeHtml(village.villageName)}${village.stale?(window.APES?.i18n?.label(' (cached)') ?? ' (cached)'):''}</td><td>Town Hall ${village.level}</td></tr>`).join('');
+    section.innerHTML = apesHtml_cpManager`<div class="qol-cp-box-heading"><span>Town Halls Detected</span><span class="qol-cp-count">${halls.length}</span></div><div class="qol-cp-table-wrap"><table><thead><tr><th>Village Name</th><th>Town Hall</th></tr></thead><tbody>${rows || apesHtml_cpManager`<tr><td colspan="2">No Town Halls detected.</td></tr>`}</tbody></table></div><div class="qol-cp-box-meta">Scanned ${scan.scannedCount}/${scan.expectedCount||scan.scannedCount} villages.${scan.complete?'':` ${scan.failures?.length||0} failed; ${scan.reusedCount||0} previous Town Hall readings retained. ${(scan.failures||[]).slice(0,3).map(v=>escapeHtml(v.name)+': '+escapeHtml(v.reason)).join('; ')}`}</div>`;
     section.style.setProperty('display', 'block', 'important');
   }
   function renderCelebrations(scan) {
     const section = document.querySelector(`#${PANEL_ID} .qol-cp-celebrations`);
     if (!section) return;
     if (!scan.celebrationEvents.length) {
-      section.innerHTML = '<strong>Upcoming celebrations:</strong> None detected. Celebrations already started are included in Current CP.';
+      section.innerHTML = apesHtml_cpManager`<strong>Upcoming celebrations:</strong> None detected. Celebrations already started are included in Current CP.`;
     } else {
       const total = scan.celebrationEvents.reduce((sum, event) => sum + event.reward, 0);
-      const lines = scan.celebrationEvents.map(event => `${escapeHtml(event.villageName)}: ${event.type === 'small' ? 'Small' : 'Big'} +${formatNumber(event.reward)} CP on ${formatTargetDate(new Date(event.startMs))}`).join('<br>');
-      section.innerHTML = `<strong>Upcoming celebrations:</strong> ${scan.celebrationEvents.length} queued, +${formatNumber(total)} CP scheduled.<br>${lines}`;
+      const lines = scan.celebrationEvents.map(event => `${escapeHtml(event.villageName)}: ${event.type === 'small' ? 'Small' : 'Big'} +${formatNumber(event.reward)} CP on ${formatTargetDate(new Date(event.startMs))}`).join(apesHtml_cpManager`<br>`);
+      section.innerHTML = apesHtml_cpManager`<strong>Upcoming celebrations:</strong> ${scan.celebrationEvents.length} queued, +${formatNumber(total)} CP scheduled.<br>${lines}`;
     }
     section.style.setProperty('display', 'block', 'important');
   }
@@ -856,10 +858,10 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     const progress = result.target > 0 ? Math.max(0, Math.min(100, result.current / result.target * 100)) : 0;
     const nextSlot = getNextExpansionSlot(result);
     const results = panel.querySelector('.qol-cp-results');
-    results.innerHTML = `<div class="qol-cp-card"><span class="qol-cp-card-label">Current CP</span><span class="qol-cp-card-value">${formatNumber(result.current)}</span></div><div class="qol-cp-card"><span class="qol-cp-card-label">Next Expansion</span><span class="qol-cp-card-value">Slot ${nextSlot} · ${formatNumber(result.target)} CP</span></div><div class="qol-cp-card"><span class="qol-cp-card-label">Remaining CP</span><span class="qol-cp-card-value">${formatNumber(remaining)}</span></div><div class="qol-cp-card highlight"><span class="qol-cp-card-label">Total CP / Day</span><span class="qol-cp-card-value">${formatNumber(result.cpPerDay)}</span></div><div class="qol-cp-card highlight full-width"><span class="qol-cp-card-label">Slot ${nextSlot} Prediction</span><span class="qol-cp-card-value">${escapeHtml(result.prediction.text)}</span></div>`;
+    results.innerHTML = apesHtml_cpManager`<div class="qol-cp-card"><span class="qol-cp-card-label">Current CP</span><span class="qol-cp-card-value">${formatNumber(result.current)}</span></div><div class="qol-cp-card"><span class="qol-cp-card-label">Next Expansion</span><span class="qol-cp-card-value">Slot ${nextSlot} · ${formatNumber(result.target)} CP</span></div><div class="qol-cp-card"><span class="qol-cp-card-label">Remaining CP</span><span class="qol-cp-card-value">${formatNumber(remaining)}</span></div><div class="qol-cp-card highlight"><span class="qol-cp-card-label">Total CP / Day</span><span class="qol-cp-card-value">${formatNumber(result.cpPerDay)}</span></div><div class="qol-cp-card highlight full-width"><span class="qol-cp-card-label">Slot ${nextSlot} Prediction</span><span class="qol-cp-card-value">${escapeHtml(result.prediction.text)}</span></div>`;
     results.style.setProperty('display', 'grid', 'important');
     const box = panel.querySelector('.qol-cp-progress-box');
-    box.querySelector('.qol-cp-progress-head').innerHTML = `<span>Slot ${nextSlot}: ${formatNumber(result.current)} / ${formatNumber(result.target)}</span><span>${progress.toFixed(1)}%</span>`;
+    box.querySelector('.qol-cp-progress-head').innerHTML = apesHtml_cpManager`<span>Slot ${nextSlot}: ${formatNumber(result.current)} / ${formatNumber(result.target)}</span><span>${progress.toFixed(1)}%</span>`;
     box.querySelector('.qol-cp-progress-bar').style.setProperty('width', `${progress.toFixed(2)}%`, 'important');
     box.style.setProperty('display', 'block', 'important');
     renderTownHalls(result.townHalls);
@@ -905,7 +907,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
   function buildTargetSlotOptions(result) {
     const start = getNextExpansionSlot(result);
     const options = [];
-    for (let slot = start; slot <= CP_SLOT_TARGETS.length; slot += 1) options.push(`<option value="${slot}"${slot === start ? ' selected' : ''}>${formatSlotOption(slot)}</option>`);
+    for (let slot = start; slot <= CP_SLOT_TARGETS.length; slot += 1) options.push(apesHtml_cpManager`<option value="${slot}"${slot === start ? (' selected') : ''}>${formatSlotOption(slot)}</option>`);
     return options.join('');
   }
   function count247StartsInPeriod(duration, busyUntil, periodDays, now = Date.now()) {
@@ -1010,7 +1012,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       const remaining = Math.max(0, target - lastScanResult.current);
       const prediction = buildPlannerPrediction(lastScanResult, plans, periodDays, target, artworkCount);
       const eta = target <= lastScanResult.current ? 'Unlocked' : prediction.targetDate ? formatRoadmapDate(prediction.targetDate) : '-';
-      rows.push(`<tr class="qol-cp-roadmap-row${slot === selectedSlot ? ' selected' : ''}"><td>Slot ${slot}</td><td>${formatNumber(target)}</td><td>${formatNumber(remaining)}</td><td title="${escapeHtml(prediction.text || '')}">${escapeHtml(eta)}</td></tr>`);
+      rows.push(apesHtml_cpManager`<tr class="qol-cp-roadmap-row${slot === selectedSlot ? ' selected' : ''}"><td>Slot ${slot}</td><td>${formatNumber(target)}</td><td>${formatNumber(remaining)}</td><td title="${escapeHtml(prediction.text || '')}">${escapeHtml(eta)}</td></tr>`);
     }
     body.innerHTML = rows.join('');
   }
@@ -1069,15 +1071,15 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     planner.querySelector('.qol-cp-plan-oneoff').textContent = formatNumber(oneOff);
     planner.querySelector('.qol-cp-plan-artworks').textContent = formatNumber(artworkReward * artworkCount);
     planner.querySelector('.qol-cp-plan-eta').textContent = prediction.text;
-    planner.querySelector('.qol-cp-target-remaining').textContent = `${formatNumber(remaining)} CP remaining`;
-    planner.querySelector('.qol-cp-artwork-hint').textContent = `${formatNumber(artworkReward)} CP each · 1/day`;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} CP remaining",{v0:(formatNumber(remaining))});})(planner.querySelector('.qol-cp-target-remaining'));
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} CP each · 1/day",{v0:(formatNumber(artworkReward))});})(planner.querySelector('.qol-cp-artwork-hint'));
     planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
     updateRoadmap(planner, plans, periodDays, targetSlot, artworkCount);
   }
   function buildLevelOptions(village) {
     const start = village.hasTownHall ? Math.max(1, village.level) : 0;
     const options = [];
-    for (let level = start; level <= 20; level += 1) options.push(`<option value="${level}"${level === start ? ' selected' : ''}>${level}</option>`);
+    for (let level = start; level <= 20; level += 1) options.push(apesHtml_cpManager`<option value="${level}"${level === start ? (' selected') : ''}>${level}</option>`);
     return options.join('');
   }
   function renderPlanner() {
@@ -1088,9 +1090,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     const artworkReward = getArtworkReward(lastScanResult);
     const rows = lastScanResult.townHalls.villages.map((village, index) => {
       const start = village.hasTownHall ? Math.max(1, village.level) : 0;
-      return `<tr class="qol-cp-plan-row" data-index="${index}"><td>${escapeHtml(village.villageName)}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
+      return apesHtml_cpManager`<tr class="qol-cp-plan-row" data-index="${index}"><td>${escapeHtml(village.villageName)}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
     }).join('');
-    planner.querySelector('.qol-cp-planner-body').innerHTML = `<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th>24/7</th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
+    planner.querySelector('.qol-cp-planner-body').innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th>24/7</th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
     planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
     planner.querySelectorAll('select,input').forEach(control => control.addEventListener('change', updatePlanner));
     planner.querySelector('.qol-cp-period-input')?.addEventListener('input', updatePlanner);
@@ -1175,7 +1177,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (planner) return planner;
     planner = document.createElement('div');
     planner.id = PLANNER_ID;
-    planner.innerHTML = '<div class="qol-cp-planner-head"><div class="qol-cp-planner-title-wrap"><span>CP Planner</span><span class="qol-cp-speed"></span></div><span class="qol-cp-planner-close" title="Close">&times;</span></div><div class="qol-cp-planner-body"></div>';
+    planner.innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-head"><div class="qol-cp-planner-title-wrap"><span>CP Planner</span><span class="qol-cp-speed"></span></div><span class="qol-cp-planner-close" title="Close">&times;</span></div><div class="qol-cp-planner-body"></div>`;
     planner.querySelector('.qol-cp-planner-close').addEventListener('click', event => {
       event.stopPropagation();
       planner.style.setProperty('display', 'none', 'important');
@@ -1189,7 +1191,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (panel) return panel;
     panel = document.createElement('div');
     panel.id = PANEL_ID;
-    panel.innerHTML = `<div class="qol-cp-header"><span>CP Manager</span><span class="qol-cp-close" title="Close">&times;</span></div><div class="qol-cp-body"><div class="qol-cp-description">Scan CP progress, daily Culture Point production, Town Halls and celebrations. <strong>Plan CP</strong> projects future expansion slots and celebration schedules.</div><div class="qol-cp-controls"><div class="qol-cp-action-btn qol-cp-scan-btn" role="button" tabindex="0">Scan CP</div><div class="qol-cp-action-btn secondary qol-cp-plan-btn hidden" role="button" tabindex="0">Plan CP</div><div class="qol-cp-status" data-tone="neutral">Ready to scan.</div></div><div class="qol-cp-results"></div><div class="qol-cp-progress-box"><div class="qol-cp-progress-head"></div><div class="qol-cp-progress-track"><div class="qol-cp-progress-bar"></div></div></div><div class="qol-cp-townhalls qol-cp-box"></div><div class="qol-cp-celebrations"></div></div>`;
+    panel.innerHTML = apesHtml_cpManager`<div class="qol-cp-header"><span>CP Manager</span><span class="qol-cp-close" title="Close">&times;</span></div><div class="qol-cp-body"><div class="qol-cp-description">Scan CP progress, daily Culture Point production, Town Halls and celebrations. <strong>Plan CP</strong> projects future expansion slots and celebration schedules.</div><div class="qol-cp-controls"><div class="qol-cp-action-btn qol-cp-scan-btn" role="button" tabindex="0">Scan CP</div><div class="qol-cp-action-btn secondary qol-cp-plan-btn hidden" role="button" tabindex="0">Plan CP</div><div class="qol-cp-status" data-tone="neutral">Ready to scan.</div></div><div class="qol-cp-results"></div><div class="qol-cp-progress-box"><div class="qol-cp-progress-head"></div><div class="qol-cp-progress-track"><div class="qol-cp-progress-bar"></div></div></div><div class="qol-cp-townhalls qol-cp-box"></div><div class="qol-cp-celebrations"></div></div>`;
     panel.querySelector('.qol-cp-close').addEventListener('click', event => {
       event.stopPropagation();
       panel.style.setProperty('display', 'none', 'important');

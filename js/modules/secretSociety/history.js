@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_history = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'secretSocietyScanner';
   const CURRENT_STORAGE_KEY = 'apes_secret_society_scans_v1';
@@ -262,16 +264,16 @@
     const a = numericValue(before);
     const b = numericValue(after);
     if (a == null || b == null) {
-      return '<span class="qol-ss-compare-change qol-stationary">—</span>';
+      return apesHtml_history`<span class="qol-ss-compare-change qol-stationary">—</span>`;
     }
     const change = changeDescriptor(b - a);
-    return `<span class="qol-ss-compare-change qol-${change.tone}"><strong>${change.arrow}</strong> ${escapeHtml(change.text)}</span>`;
+    return apesHtml_history`<span class="qol-ss-compare-change qol-${change.tone}"><strong>${change.arrow}</strong> ${escapeHtml(change.text)}</span>`;
   }
   function percentageChangeHtml(before, after) {
     const a = numericValue(before);
     const b = numericValue(after);
     if (a == null || b == null || a === 0) {
-      return '<span class="qol-ss-compare-change qol-stationary">—</span>';
+      return apesHtml_history`<span class="qol-ss-compare-change qol-stationary">—</span>`;
     }
     const percent = (b - a) / a * 100;
     const tone = percent > 0 ? 'positive' : percent < 0 ? 'negative' : 'stationary';
@@ -281,7 +283,7 @@
       minimumFractionDigits: 0,
       maximumFractionDigits: 2
     })}%`;
-    return `<span class="qol-ss-compare-change qol-${tone}"><strong>${arrow}</strong> ${escapeHtml(text)}</span>`;
+    return apesHtml_history`<span class="qol-ss-compare-change qol-${tone}"><strong>${arrow}</strong> ${escapeHtml(text)}</span>`;
   }
   function rankHtml(row) {
     const before = numericValue(row.before?.rank);
@@ -289,19 +291,19 @@
     const displayed = after ?? before;
     if (displayed == null) return '—';
     if (before == null || after == null) {
-      return `<span class="qol-ss-rank-change qol-stationary"><strong>—</strong> ${displayed.toLocaleString()}</span>`;
+      return apesHtml_history`<span class="qol-ss-rank-change qol-stationary"><strong>—</strong> ${displayed.toLocaleString()}</span>`;
     }
     if (after < before) {
-      return `<span class="qol-ss-rank-change qol-positive" title="Rank ${before} → ${after}"><strong>↑</strong> ${after.toLocaleString()}</span>`;
+      return apesHtml_history`<span class="qol-ss-rank-change qol-positive" title="Rank ${before} → ${after}"><strong>↑</strong> ${after.toLocaleString()}</span>`;
     }
     if (after > before) {
-      return `<span class="qol-ss-rank-change qol-negative" title="Rank ${before} → ${after}"><strong>↓</strong> ${after.toLocaleString()}</span>`;
+      return apesHtml_history`<span class="qol-ss-rank-change qol-negative" title="Rank ${before} → ${after}"><strong>↓</strong> ${after.toLocaleString()}</span>`;
     }
-    return `<span class="qol-ss-rank-change qol-stationary" title="Rank unchanged"><strong>→</strong> ${after.toLocaleString()}</span>`;
+    return apesHtml_history`<span class="qol-ss-rank-change qol-stationary" title="Rank unchanged"><strong>→</strong> ${after.toLocaleString()}</span>`;
   }
   function statusHtml(status) {
     const label = status === 'joined' ? 'Joined' : status === 'left' ? 'Left' : 'Stayed';
-    return `<span class="qol-ss-status-badge qol-ss-status-${status}">${label}</span>`;
+    return apesHtml_history`<span class="qol-ss-status-badge qol-ss-status-${status}">${label}</span>`;
   }
   function setNativeValue(element, value) {
     const prototype = element instanceof HTMLTextAreaElement ? HTMLTextAreaElement.prototype : HTMLInputElement.prototype;
@@ -415,7 +417,7 @@
     }
   }
   function mailIconHtml(playerName) {
-    return `
+    return apesHtml_history`
             <div class="qol-ss-compare-mail"
                  data-compare-mail="${escapeHtml(playerName)}"
                  role="button"
@@ -491,9 +493,9 @@
   function resetComparisonResult(dialog) {
     const summary = dialog.querySelector('.qol-ss-compare-summary');
     const wrap = dialog.querySelector('.qol-ss-compare-table-wrap');
-    if (summary) summary.textContent = 'Select an earlier Scan A and a later Scan B.';
+    if (summary) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Select an earlier Scan A and a later Scan B.");})(summary);
     if (wrap) {
-      wrap.innerHTML = '<div class="qol-ss-compare-empty">Choose two dated scans, then select Compare.</div>';
+      wrap.innerHTML = apesHtml_history`<div class="qol-ss-compare-empty">Choose two dated scans, then select Compare.</div>`;
     }
   }
   function renderComparison(dialog, societyId) {
@@ -517,7 +519,7 @@
     const changes = memberChanges(snapshotA, snapshotB);
     const rows = comparisonRows(snapshotA, snapshotB);
     const stayedCount = rows.filter(row => row.status === 'stayed').length;
-    summary.innerHTML = `
+    summary.innerHTML = apesHtml_history`
             <span><strong>Scan A:</strong> ${escapeHtml(formatScanDate(aTime))}</span>
             <span><strong>Scan B:</strong> ${escapeHtml(formatScanDate(bTime))}</span>
             <span class="qol-positive"><strong>${changes.joined.length}</strong> joined</span>
@@ -529,7 +531,7 @@
       const afterVillages = row.after?.villages;
       const beforePopulation = row.before?.population;
       const afterPopulation = row.after?.population;
-      return `
+      return apesHtml_history`
                 <tr>
                     <td>${statusHtml(row.status)}</td>
                     <td>${rankHtml(row)}</td>
@@ -545,7 +547,7 @@
                 </tr>
             `;
     }).join('');
-    wrap.innerHTML = `
+    wrap.innerHTML = apesHtml_history`
             <table>
                 <colgroup>
                     <col style="width:70px">
@@ -593,7 +595,7 @@
     if (!selectA || !selectB || !run) return;
     const aTime = Number(selectA.value);
     const later = selectA.value ? snapshots.filter(snapshot => Number(snapshot.scannedAt) > aTime) : [];
-    selectB.innerHTML = ['<option value="">Select Scan B…</option>', ...later.map(snapshot => `<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`)].join('');
+    selectB.innerHTML = [apesHtml_history`<option value="">Select Scan B…</option>`, ...later.map(snapshot => apesHtml_history`<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`)].join('');
     selectB.value = '';
     run.setAttribute('aria-disabled', 'true');
     resetComparisonResult(dialog);
@@ -604,7 +606,7 @@
     document.getElementById(DIALOG_ID)?.remove();
     const dialog = document.createElement('div');
     dialog.id = DIALOG_ID;
-    dialog.innerHTML = `
+    dialog.innerHTML = apesHtml_history`
             <div class="qol-ss-compare-card" role="dialog" aria-modal="true" aria-label="Compare Secret Society scans">
                 <div class="qol-ss-compare-head">
                     <span class="qol-ss-compare-title">Compare SS Scan · ${escapeHtml(societyName(societyId))}</span>
@@ -630,7 +632,7 @@
     const selectA = dialog.querySelector('[data-compare-a]');
     const selectB = dialog.querySelector('[data-compare-b]');
     const run = dialog.querySelector('[data-compare-run]');
-    selectA.innerHTML = ['<option value="">Select Scan A…</option>', ...snapshots.slice(0, -1).map(snapshot => `<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`)].join('');
+    selectA.innerHTML = [apesHtml_history`<option value="">Select Scan A…</option>`, ...snapshots.slice(0, -1).map(snapshot => apesHtml_history`<option value="${Number(snapshot.scannedAt)}">${escapeHtml(formatScanDate(snapshot.scannedAt))}</option>`)].join('');
     selectA.value = '';
     populateLaterSelect(dialog, societyId);
     const close = () => dialog.remove();
@@ -665,7 +667,7 @@
   }
   function noticeHtml(snapshots) {
     if (snapshots.length < 2) {
-      return `
+      return apesHtml_history`
                 <div class="qol-ss-history-notice-title">Membership notifications</div>
                 <span class="qol-ss-history-none">A second scan is needed before APES can detect players joining or leaving.</span>
                 <span class="qol-ss-history-meta">${snapshots.length} stored scan${snapshots.length === 1 ? '' : 's'}</span>
@@ -676,7 +678,7 @@
     const changes = memberChanges(before, after);
     const lines = [];
     if (changes.joined.length) {
-      lines.push(`
+      lines.push(apesHtml_history`
                 <div class="qol-ss-history-line qol-ss-history-joined">
                     <strong>+ Joined:</strong>
                     <span>${escapeHtml(changes.joined.map(member => member.name).join(', '))}</span>
@@ -684,7 +686,7 @@
             `);
     }
     if (changes.left.length) {
-      lines.push(`
+      lines.push(apesHtml_history`
                 <div class="qol-ss-history-line qol-ss-history-left">
                     <strong>− Left:</strong>
                     <span>${escapeHtml(changes.left.map(member => member.name).join(', '))}</span>
@@ -692,9 +694,9 @@
             `);
     }
     if (!lines.length) {
-      lines.push('<span class="qol-ss-history-none">No players joined or left since the previous scan.</span>');
+      lines.push(apesHtml_history`<span class="qol-ss-history-none">No players joined or left since the previous scan.</span>`);
     }
-    return `
+    return apesHtml_history`
             <div class="qol-ss-history-notice-title">Membership notifications</div>
             ${lines.join('')}
             <span class="qol-ss-history-meta">${escapeHtml(formatScanDate(before.scannedAt))} → ${escapeHtml(formatScanDate(after.scannedAt))} · ${snapshots.length} stored</span>
@@ -731,7 +733,7 @@
       compare.dataset.ssCompareHistory = 'true';
       compare.setAttribute('role', 'button');
       compare.setAttribute('tabindex', '0');
-      compare.textContent = 'Compare SS Scan';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Compare SS Scan");})(compare);
       const deleteButton = toolbar.querySelector('[data-ss-delete]');
       toolbar.insertBefore(compare, deleteButton || null);
       const open = event => {

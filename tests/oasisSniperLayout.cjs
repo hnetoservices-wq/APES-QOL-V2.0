@@ -100,7 +100,7 @@ const contentFragment=[
  const b=ui.indexOf('  function render(box,rows){',a);
  assert.ok(a>=0 && b>a);
  const findings=new Function('math','html',
-   ui.slice(a,b)+'return resultsTable;')(
+   "const apesHtml_oasisSniperChecker = (s,...v) => String.raw({raw:s},...v);\n" + ui.slice(a,b)+'return resultsTable;')(
    window.APES_OASIS_SNIPER_MATH,v=>v
  );
  const table=findings([

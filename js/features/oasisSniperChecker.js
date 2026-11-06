@@ -4,6 +4,8 @@
  */
 (() => {
   'use strict';
+const apesHtml_oasisSniperChecker = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
   const FEATURE='oasisSniperChecker';
   const UI='APES_QOL_OASIS_SNIPER_UI';
   const BRIDGE='APES_QOL_OASIS_SNIPER_BRIDGE';
@@ -75,11 +77,11 @@
       // 'Unproven' deliberately also covers missing readings: it does not
       // claim that the oasis is empty or troops are absent.
       const finding=row.proof
-        ? '<strong class="apes-sniper-confirmed">'+
-          row.strictOvertake.toLocaleString('en-US')+' units minimum</strong>'
-        : '<span class="apes-sniper-unproven">Unproven</span>';
-      return '<tr><td>'+row.rank+'</td><td>'+html(row.name)+'</td><td>'+base+
-        '</td><td>'+finding+'</td></tr>';
+        ? apesHtml_oasisSniperChecker`<strong class="apes-sniper-confirmed">`+
+          row.strictOvertake.toLocaleString('en-US')+apesHtml_oasisSniperChecker` units minimum</strong>`
+        : apesHtml_oasisSniperChecker`<span class="apes-sniper-unproven">Unproven</span>`;
+      return apesHtml_oasisSniperChecker`<tr><td>`+row.rank+apesHtml_oasisSniperChecker`</td><td>`+html(row.name)+apesHtml_oasisSniperChecker`</td><td>`+base+
+        apesHtml_oasisSniperChecker`</td><td>`+finding+'</td></tr>';
     }).join('');
   }
   // No extra headings, status lines or summaries: the native title dropdown
@@ -91,9 +93,9 @@
       target.innerHTML='';
       return;
     }
-    target.innerHTML='<div class="apes-sniper-scroll"><table class="apes-sniper-table"><thead><tr>'+
-      '<th>#</th><th>Player</th><th>Village influence</th>'+
-      '<th>Finding</th></tr></thead><tbody>'+resultsTable(rows)+
+    target.innerHTML=apesHtml_oasisSniperChecker`<div class="apes-sniper-scroll"><table class="apes-sniper-table"><thead><tr>`+
+      apesHtml_oasisSniperChecker`<th>#</th><th>Player</th><th>Village influence</th>`+
+      apesHtml_oasisSniperChecker`<th>Finding</th></tr></thead><tbody>`+resultsTable(rows)+
       '</tbody></table></div>';
   }
   // The first frame of an oasis may contain all the influence rows but not
@@ -249,8 +251,8 @@
       selector.className='apes-sniper-selector';
       selector.innerHTML='<select class="apes-sniper-view-select" '+
         'aria-label="Oasis information view">'+
-        '<option value="production">Production</option>'+
-        '<option value="sniper">Oasis Sniper</option></select>';
+        apesHtml_oasisSniperChecker`<option value="production">Production</option>`+
+        apesHtml_oasisSniperChecker`<option value="sniper">Oasis Sniper</option></select>`;
       const dropdown=selector.querySelector('select');
       dropdown.value=selectedView;
       dropdown.addEventListener('click',event=>event.stopPropagation());
@@ -289,7 +291,7 @@
     if(!right.querySelector('.'+CLASS)){
       const div=document.createElement('div');
       div.className='contentBoxBody '+CLASS;
-      div.innerHTML='<div class="apes-sniper-results"></div>';
+      div.innerHTML=apesHtml_oasisSniperChecker`<div class="apes-sniper-results"></div>`;
       production.insertAdjacentElement('afterend',div);
     }
     right.classList.add('apes-sniper-enhanced');

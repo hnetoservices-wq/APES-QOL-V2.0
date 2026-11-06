@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_expandedVillageIntel = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const OVERLAY_ID = 'apes-v2-village-overlay';
   const UI_SOURCE = 'APES_QOL_VILLAGE_DASHBOARD_UI';
@@ -423,7 +425,7 @@
     const tribe = Number(village?.tribeId);
     const tribeClass = TRIBE_CLASS[tribe] || '';
     const absoluteId = absoluteUnitId(tribe, index + 1);
-    return `<span class="apes-vd-unit-icon-wrap" title="${esc(name)}" aria-label="${esc(name)}"><i class="unitSmall ${tribeClass} unitType${index + 1}" data-unit-id="${absoluteId}" aria-hidden="true"></i></span>`;
+    return apesHtml_expandedVillageIntel`<span class="apes-vd-unit-icon-wrap" title="${esc(name)}" aria-label="${esc(name)}"><i class="unitSmall ${tribeClass} unitType${index + 1}" data-unit-id="${absoluteId}" aria-hidden="true"></i></span>`;
   }
 
   function unitRowsHtml(village, counts) {
@@ -431,9 +433,9 @@
     const rows = counts.map((count, index) => ({ count: Number(count) || 0, index, name: data[index]?.[0] || `Unit ${index + 1}` }))
       .filter(item => item.count > 0)
       .sort((a, b) => b.count - a.count || a.index - b.index)
-      .map(item => `<tr data-apes-unit-name="${esc(item.name)}"><td>${unitIconHtml(village, item.index, item.name)}</td><td>${esc(formatInt(item.count))}</td></tr>`)
+      .map(item => apesHtml_expandedVillageIntel`<tr data-apes-unit-name="${esc(item.name)}"><td>${unitIconHtml(village, item.index, item.name)}</td><td>${esc(formatInt(item.count))}</td></tr>`)
       .join('');
-    return rows || '<tr><td colspan="2" class="apes-vd-intel-empty">No own troops found.</td></tr>';
+    return rows || apesHtml_expandedVillageIntel`<tr><td colspan="2" class="apes-vd-intel-empty">No own troops found.</td></tr>`;
   }
 
   function niceMaximum(value) {
@@ -486,7 +488,7 @@
   }
 
   function seriesLegend(series) {
-    return `<div class="apes-vd-dev-legend">${series.map(item => `<span><i style="background:${item.color}"></i><b>${esc(item.name)}</b><em>${esc(formatCompact(item.values[item.values.length - 1] || 0))}</em></span>`).join('')}</div>`;
+    return apesHtml_expandedVillageIntel`<div class="apes-vd-dev-legend">${series.map(item => apesHtml_expandedVillageIntel`<span><i style="background:${item.color}"></i><b>${esc(item.name)}</b><em>${esc(formatCompact(item.values[item.values.length - 1] || 0))}</em></span>`).join('')}</div>`;
   }
 
   function armySeries(village, scans) {
@@ -512,12 +514,12 @@
 
   function developmentCard(title, subtitle, scans, series, emptyText = '') {
     if (!scans.length) {
-      return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">No army history yet. Run a troop scan to create the first daily snapshot.</div></section>`;
+      return apesHtml_expandedVillageIntel`<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">No army history yet. Run a troop scan to create the first daily snapshot.</div></section>`;
     }
     if (!series.length) {
-      return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">${esc(emptyText || 'No units to graph yet.')}</div></section>`;
+      return apesHtml_expandedVillageIntel`<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div><div class="apes-vd-dev-empty">${esc(emptyText || 'No units to graph yet.')}</div></section>`;
     }
-    return `<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div>${lineChartSvg(scans, series)}${seriesLegend(series)}</section>`;
+    return apesHtml_expandedVillageIntel`<section class="apes-vd-dev-card"><div class="apes-vd-dev-title"><strong>${esc(title)}</strong><span>${esc(subtitle)}</span></div>${lineChartSvg(scans, series)}${seriesLegend(series)}</section>`;
   }
 
   function categoryCount(counts, indexes) {
@@ -530,7 +532,7 @@
       const power = powerSummary(village, counts || []);
       const total = power.defInf + power.defCav;
       const p1 = total > 0 ? power.defInf / total * 100 : 50;
-      return `
+      return apesHtml_expandedVillageIntel`
         <section class="apes-vd-defense-donut-card">
           <div class="apes-vd-defense-donut-title">Defensive Power by Type</div>
           <div class="apes-vd-defense-donut-body">
@@ -561,13 +563,13 @@
     const c2 = c1 + values[1] / total * 100;
     const c3 = c2 + values[2] / total * 100;
 
-    return `
+    return apesHtml_expandedVillageIntel`
       <section class="apes-vd-defense-donut-card">
         <div class="apes-vd-defense-donut-title">${role === 'Offense' ? 'Offensive Army Composition' : 'Support Army Composition'}</div>
         <div class="apes-vd-defense-donut-body">
           <div class="apes-vd-defense-donut composition" style="--p1:${c1.toFixed(2)}%;--p2:${c2.toFixed(2)}%;--p3:${c3.toFixed(2)}%"></div>
           <div class="apes-vd-defense-donut-legend">
-            ${labels.map((label, index) => `<div><i class="${classes[index]}"></i><span>${esc(label)}</span><strong>${esc(formatInt(values[index]))}</strong></div>`).join('')}
+            ${labels.map((label, index) => apesHtml_expandedVillageIntel`<div><i class="${classes[index]}"></i><span>${esc(label)}</span><strong>${esc(formatInt(values[index]))}</strong></div>`).join('')}
           </div>
         </div>
       </section>`;
@@ -583,8 +585,8 @@
       return { index, current, total, pct, name: data[index]?.[0] || `Unit ${index + 1}` };
     }).filter(item => item.current > 0).sort((a, b) => b.current - a.current || a.index - b.index);
 
-    if (!items.length) return '<div class="apes-vd-contribution-empty">No troops to compare.</div>';
-    return items.map(item => `
+    if (!items.length) return apesHtml_expandedVillageIntel`<div class="apes-vd-contribution-empty">No troops to compare.</div>`;
+    return items.map(item => apesHtml_expandedVillageIntel`
       <div class="apes-vd-contribution-row" title="${esc(item.name)} · ${esc(formatInt(item.current))} of ${esc(formatInt(item.total))} account-wide">
         <span class="apes-vd-contribution-icon">${unitIconHtml(village, item.index, item.name)}</span>
         <span class="apes-vd-contribution-bar"><i style="width:${item.pct.toFixed(2)}%"></i></span>
@@ -617,16 +619,16 @@
       ['Defense', 'Defense'],
       ['Offense', 'Offense'],
       ['Support', 'Support']
-    ].map(([value, label]) => `<option value="${value}" ${(override || 'auto') === value ? 'selected' : ''}>${esc(label)}</option>`).join('');
+    ].map(([value, label]) => apesHtml_expandedVillageIntel`<option value="${value}" ${(override || 'auto') === value ? 'selected' : ''}>${esc(label)}</option>`).join('');
 
-    return `
+    return apesHtml_expandedVillageIntel`
       <div class="apes-vd-intel-head">
         <div>
           <strong>${esc(village?.name || 'Village')}</strong>
           <span>${esc([coordinates, Number.isFinite(Number(village?.population)) ? `${formatInt(village.population)} pop` : ''].filter(Boolean).join(' · '))}</span>
         </div>
         <div class="apes-vd-intel-actions">
-          <div class="apes-vd-intel-badges">${badges.map(badge => `<span>${esc(badge)}</span>`).join('')}</div>
+          <div class="apes-vd-intel-badges">${badges.map(badge => apesHtml_expandedVillageIntel`<span>${esc(badge)}</span>`).join('')}</div>
           <span class="apes-vd-army-scan ${scanState === 'scanning' ? 'busy' : ''}" role="button" tabindex="0" data-apes-vd-army-scan="1">${esc(scanButtonText())}</span>
         </div>
       </div>
@@ -689,7 +691,7 @@
           detail.dataset.villageId = villageId;
           row.insertAdjacentElement('afterend', detail);
         }
-        const html = village ? detailHtml(village) : '<div class="apes-vd-intel-loading">Loading village information…</div>';
+        const html = village ? detailHtml(village) : apesHtml_expandedVillageIntel`<div class="apes-vd-intel-loading">Loading village information…</div>`;
         if (force || detail.__apesVdHtml !== html) {
           detail.__apesVdHtml = html;
           detail.innerHTML = html;

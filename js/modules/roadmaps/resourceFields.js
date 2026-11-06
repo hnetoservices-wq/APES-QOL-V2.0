@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_resourceFields = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const CUSTOM_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
@@ -224,7 +226,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_resourceFields`
       <div class="qol-rm-dialog qol-rme-dialog qol-rmrf-dialog" role="dialog" aria-modal="true">
         <div class="qol-rm-dialog-head">${escapeHtml(title)}</div>
         <div class="qol-rm-dialog-body">
@@ -252,13 +254,13 @@
 
   function pickerHtml(selectedId) {
     const selected = groupById(selectedId);
-    return `
+    return apesHtml_resourceFields`
       <div class="qol-rmrf-picker-shell">
         <div class="qol-rmrf-picker" data-rmrf-picker data-value="${selected.id}" role="button" tabindex="0" aria-expanded="false">
           <span data-rmrf-picker-label>${escapeHtml(selected.label)}</span><span>▾</span>
         </div>
         <div class="qol-rmrf-picker-menu" data-rmrf-menu>
-          ${GROUPS.map(group => `<div class="qol-rmrf-picker-option${group.id === selected.id ? ' active' : ''}" data-rmrf-option="${group.id}" role="button" tabindex="0"><strong>${escapeHtml(group.label)}</strong><small>${group.id === 'all' ? 'All 18 resource fields' : 'Every field of this resource type'}</small></div>`).join('')}
+          ${GROUPS.map(group => apesHtml_resourceFields`<div class="qol-rmrf-picker-option${group.id === selected.id ? ' active' : ''}" data-rmrf-option="${group.id}" role="button" tabindex="0"><strong>${escapeHtml(group.label)}</strong><small>${group.id === 'all' ? 'All 18 resource fields' : 'Every field of this resource type'}</small></div>`).join('')}
         </div>
       </div>`;
   }
@@ -305,7 +307,7 @@
 
     const layer = createDialog(
       editing ? 'Edit Resource Fields Step' : 'Add Resource Fields',
-      `<div class="qol-rmrf-grid">
+      apesHtml_resourceFields`<div class="qol-rmrf-grid">
          <div class="qol-rmrf-field">
            <label>Resource fields</label>
            ${pickerHtml(initialGroup.id)}
@@ -337,11 +339,9 @@
       if (editing) {
         levelInput.value = next;
         levelInput.disabled = true;
-        note.textContent = earlier
-          ? `${selectedGroup.label} previously reaches Level ${earlier}, so this exact step is Level ${next}.`
-          : `${selectedGroup.label} has no earlier resource step, so this exact step is Level 1.`;
-        confirm.textContent = 'Save Step';
-        status.textContent = earlier >= MAX_FIELD_LEVEL ? `${selectedGroup.label} is already at the roadmap maximum.` : '';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (earlier)?(write("{v0} previously reaches Level {v1}, so this exact step is Level {v2}.",{v0:(selectedGroup.label),v1:(earlier),v2:(next)})):(write("{v0} has no earlier resource step, so this exact step is Level 1.",{v0:(selectedGroup.label)}));})(note);
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Save Step");})(confirm);
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (earlier >= MAX_FIELD_LEVEL)?(write("{v0} is already at the roadmap maximum.",{v0:(selectedGroup.label)})):(element.textContent=(''));})(status);
         return { earlier, target: next, count: 1 };
       }
 
@@ -349,11 +349,9 @@
       let target = Math.max(1, Math.min(MAX_FIELD_LEVEL, Number(levelInput.value) || next));
       levelInput.value = target;
       const count = Math.max(0, target - earlier);
-      note.textContent = earlier
-        ? `${selectedGroup.label} already reaches Level ${earlier} in this roadmap. This will add Level ${earlier + 1}${count > 1 ? ` through Level ${target}` : ''}.`
-        : `This will add ${selectedGroup.label} Level 1${target > 1 ? ` through Level ${target}` : ''}.`;
-      confirm.textContent = count === 1 ? 'Add 1 Step' : `Add ${count} Steps`;
-      status.textContent = count === 0 ? `${selectedGroup.label} already reaches Level ${earlier}. Choose a higher target.` : '';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (earlier)?(write("{v0} already reaches Level {v1} in this roadmap. This will add Level {v2}{v3}.",{v0:(selectedGroup.label),v1:(earlier),v2:(earlier + 1),v3:(count > 1 ? ` through Level ${target}` : '')})):(write("This will add {v0} Level 1{v1}.",{v0:(selectedGroup.label),v1:(target > 1 ? ` through Level ${target}` : '')}));})(note);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 1)?(write("Add 1 Step")):(write("Add {v0} Steps",{v0:(count)}));})(confirm);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 0)?(write("{v0} already reaches Level {v1}. Choose a higher target.",{v0:(selectedGroup.label),v1:(earlier)})):(element.textContent=(''));})(status);
       return { earlier, target, count };
     };
 
@@ -462,7 +460,7 @@
       resource.dataset.rmrfAdd = '1';
       resource.setAttribute('role', 'button');
       resource.setAttribute('tabindex', '0');
-      resource.textContent = '+ Resource Fields';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("+ Resource Fields");})(resource);
       const instruction = add.querySelector('[data-rme-add="instruction"]');
       if (instruction) add.insertBefore(resource, instruction);
       else add.appendChild(resource);
@@ -477,7 +475,7 @@
       resourceCount += 1;
       const badge = row.querySelector('.qol-rm-step-type');
       if (badge) {
-        badge.textContent = 'Resource';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Resource");})(badge);
         badge.classList.remove('instruction');
         badge.classList.add('resource');
       }
@@ -493,15 +491,15 @@
         const buildings = Array.isArray(roadmap?.steps) ? roadmap.steps.filter(step => step.type === 'building').length : 0;
         const resources = Array.isArray(roadmap?.steps) ? roadmap.steps.filter(step => resourceInfo(step)).length : resourceCount;
         const instructions = Math.max(0, total - buildings - resources);
-        spans[0].innerHTML = `<strong>${total}</strong>Total steps`;
-        spans[1].innerHTML = `<strong>${buildings}</strong>Building steps`;
-        spans[2].innerHTML = `<strong>${resources}</strong>Resource steps`;
-        spans[3].innerHTML = `<strong>${instructions}</strong>Instructions`;
+        spans[0].innerHTML = apesHtml_resourceFields`<strong>${total}</strong>Total steps`;
+        spans[1].innerHTML = apesHtml_resourceFields`<strong>${buildings}</strong>Building steps`;
+        spans[2].innerHTML = apesHtml_resourceFields`<strong>${resources}</strong>Resource steps`;
+        spans[3].innerHTML = apesHtml_resourceFields`<strong>${instructions}</strong>Instructions`;
       }
     }
 
     const routeHint = hub.querySelector('.qol-rm-route-head > span');
-    if (routeHint) routeHint.textContent = 'Exact order followed by the runner.';
+    if (routeHint) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Exact order followed by the runner.");})(routeHint);
   }
 
   function ensureResourceDetectionNode() {
@@ -520,7 +518,7 @@
     const node = ensureResourceDetectionNode();
     if (!node) return;
     node.className = `qol-rmrf-detection ${tone}`;
-    node.textContent = text;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(node);
   }
 
   function enhanceRunner() {
@@ -535,7 +533,7 @@
 
     const type = panel.querySelector('.qol-rmr-type');
     if (type) {
-      type.textContent = 'Resource Fields';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Resource Fields");})(type);
       type.classList.remove('building');
       type.classList.add('resource');
     }

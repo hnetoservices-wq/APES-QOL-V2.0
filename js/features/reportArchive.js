@@ -1,5 +1,7 @@
 (function () {
   'use strict';
+const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'reportArchive';
   const STORAGE_KEY = `qol_report_archive_${window.location.hostname}`;
@@ -1540,7 +1542,7 @@
     }
     archivePanel = document.createElement('div');
     archivePanel.id = 'qol-report-archive-panel';
-    archivePanel.innerHTML = `
+    archivePanel.innerHTML = apesHtml_reportArchive`
             <div class="qol-ra-header">
                 <div class="qol-ra-header-title">
                     ${toolbarIcon()}
@@ -1884,14 +1886,14 @@
       custom: true
     }))];
     list.innerHTML = rows.map(row => {
-      return `
+      return apesHtml_reportArchive`
                     <div
                         class="
                             qol-ra-folder-row
                             ${row.id === activeFolderId ? 'qol-ra-active' : ''}
                         "
                         data-folder-id="${escapeHtml(row.id)}"
-                        data-custom-folder="${row.custom ? 'true' : 'false'}"
+                        data-custom-folder="${row.custom ? ('true') : ('false')}"
                         ${row.custom ? 'draggable="true" ' + 'title="Drag to reorder"' : ''}
                     >
                         <span class="qol-ra-folder-icon">
@@ -1905,7 +1907,7 @@
                             ${escapeHtml(row.name)}
                         </span>
 
-                        ${row.custom ? `
+                        ${row.custom ? apesHtml_reportArchive`
                                     <span class="qol-ra-folder-tools">
                                         <span
                                             class="qol-ra-folder-tool"
@@ -2037,13 +2039,14 @@
     const folderReports = getVisibleReports();
     const reports = getSortedVisibleReports();
     title.textContent = getFolderName(activeFolderId);
-    subtitle.textContent = searchQuery ? `${reports.length} of ` + `${folderReports.length} ` + 'archived reports' : `${reports.length} ` + `archived report${reports.length === 1 ? '' : 's'}`;
+    if (window.APES?.i18n) window.APES.i18n.setText(subtitle, searchQuery ? '{count} of {total} archived reports' : reports.length === 1 ? '{count} archived report' : '{count} archived reports', { count: reports.length, total: folderReports.length });
+    else subtitle.textContent = searchQuery ? `${reports.length} of ` + `${folderReports.length} ` + 'archived reports' : `${reports.length} ` + `archived report${reports.length === 1 ? '' : 's'}`;
     if (!reports.length) {
-      list.innerHTML = `
+      list.innerHTML = apesHtml_reportArchive`
                 <div class="qol-ra-empty">
                     <div>
                         <strong>
-                            ${searchQuery ? 'No matching reports found.' : 'No reports saved here yet.'}
+                            ${searchQuery ? (window.APES?.i18n?.label('No matching reports found.') ?? 'No matching reports found.') : (window.APES?.i18n?.label('No reports saved here yet.') ?? 'No reports saved here yet.')}
                         </strong>
                     </div>
 
@@ -2056,7 +2059,7 @@
     }
     list.innerHTML = reports.map(report => {
       const titleText = report.title || report.headline || 'Report';
-      return `
+      return apesHtml_reportArchive`
                     <div
                         class="qol-ra-report-row"
                         data-report-id="${escapeHtml(report.id)}"
@@ -2248,7 +2251,7 @@
     const result = report.resultText || headline;
     const sourcePlayer = report.sourcePlayer || 'Unknown attacker';
     const destPlayer = report.destPlayer || 'Unknown defender';
-    return `
+    return apesHtml_reportArchive`
             <article class="qol-ra-compact-report">
                 <header class="qol-ra-compact-top">
                     <div>
@@ -2346,7 +2349,7 @@
                     </div>
 
                     <div class="qol-ra-compact-body">
-                        ${bodyHtml || `
+                        ${bodyHtml || apesHtml_reportArchive`
                                 <div class="qol-ra-compact-empty">
                                     This older archived report does
                                     not contain a reusable troop-and-loss
@@ -2435,7 +2438,7 @@
     closeDialogs();
     const layer = document.createElement('div');
     layer.className = 'qol-ra-dialog-layer';
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_reportArchive`
             <div
                 class="qol-ra-dialog"
                 role="dialog"
@@ -2479,9 +2482,9 @@
     const existing = folderId ? archive.folders.find(folder => {
       return folder.id === folderId;
     }) : null;
-    const layer = createDialog(existing ? 'Rename Folder' : 'Create Folder', `
+    const layer = createDialog(existing ? 'Rename Folder' : 'Create Folder', apesHtml_reportArchive`
                     <label>
-                        ${existing ? 'Folder name' : 'Name the new report folder'}
+                        ${existing ? (window.APES?.i18n?.label('Folder name') ?? 'Folder name') : (window.APES?.i18n?.label('Name the new report folder') ?? 'Name the new report folder')}
 
                         <input
                             class="qol-ra-input"
@@ -2499,7 +2502,7 @@
     const submit = async () => {
       const name = normalizeText(input.value);
       if (!name) {
-        errorBox.textContent = 'Enter a folder name.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Enter a folder name.");})(errorBox);
         input.focus();
         return;
       }
@@ -2507,7 +2510,7 @@
         return folder.id !== folderId && folder.name.toLowerCase() === name.toLowerCase();
       });
       if (duplicate) {
-        errorBox.textContent = 'A folder with this name already exists.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("A folder with this name already exists.");})(errorBox);
         input.focus();
         return;
       }
@@ -2533,7 +2536,7 @@
           afterCreate(savedFolder);
         }
       } catch (error) {
-        errorBox.textContent = `Could not save: ${error.message}`;
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Could not save: {v0}",{v0:(error.message)});})(errorBox);
       }
     };
     addDialogControl(layer, 'Cancel', 'qol-ra-secondary', closeDialogs);
@@ -2555,7 +2558,7 @@
     if (!folder) return;
     const count = countFolderReports(folderId);
     const message = count ? `Delete “${escapeHtml(folder.name)}”? ` + `Its ${count} report${count === 1 ? '' : 's'} will be moved to Default.` : `Delete “${escapeHtml(folder.name)}”?`;
-    const layer = createDialog('Delete Folder', `<div>${message}</div>`);
+    const layer = createDialog('Delete Folder', apesHtml_reportArchive`<div>${message}</div>`);
     addDialogControl(layer, 'Cancel', 'qol-ra-secondary', closeDialogs);
     addDialogControl(layer, 'Delete', 'qol-ra-danger', async () => {
       archive.reports.forEach(report => {
@@ -2581,7 +2584,7 @@
   }
   function requestReportDeletion(report) {
     const title = report.title || report.headline || 'Report';
-    const layer = createDialog('Delete Archived Report', `
+    const layer = createDialog('Delete Archived Report', apesHtml_reportArchive`
                     <div>
                         Delete
                         <strong>
@@ -2619,7 +2622,7 @@
   function openFolderChooser(capturedReport, existingReport = null) {
     const report = existingReport || capturedReport;
     if (!report) return;
-    const layer = createDialog(existingReport ? 'Move or Refresh Report' : 'Save Report', `
+    const layer = createDialog(existingReport ? 'Move or Refresh Report' : 'Save Report', apesHtml_reportArchive`
                     <div>
                         ${existingReport ? 'Choose the destination folder. ' + 'Selecting a folder also refreshes ' + 'the saved report.' : 'Choose where this report ' + 'should be archived.'}
                     </div>
@@ -2636,7 +2639,7 @@
       name: folder.name
     }))];
     choiceList.innerHTML = choices.map(folder => {
-      return `
+      return apesHtml_reportArchive`
                     <div
                         class="
                             qol-ra-choice
@@ -2715,7 +2718,7 @@
     });
     const toast = document.createElement('div');
     toast.className = `qol-ra-toast ${type === 'error' ? 'qol-ra-toast-error' : ''}`.trim();
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2800);
   }

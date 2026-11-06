@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_checklists = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'checklists';
   const PROGRESS_STORAGE_KEY = 'qol_checklist_progress';
@@ -250,7 +252,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_checklists`
             <div class="qol-cl-dialog" role="alertdialog" aria-modal="true">
                 <div class="qol-cl-dialog-head"></div>
                 <div class="qol-cl-dialog-body"><div class="qol-cl-dialog-message"></div></div>
@@ -304,7 +306,7 @@
     closeDialog();
     const layer = document.createElement('div');
     layer.id = DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_checklists`
             <div class="qol-cl-dialog" role="dialog" aria-modal="true">
                 <div class="qol-cl-dialog-head">${editing ? 'Edit Checklist' : creatingCopy ? 'Copy Checklist' : 'Create Checklist'}</div>
                 <div class="qol-cl-dialog-body">
@@ -386,11 +388,11 @@
     const custom = getCustomChecklists();
     const itemHtml = (id, checklist) => {
       const stats = progressStats(id, checklist);
-      return `<div class="qol-cl-nav-item${id === selectedChecklistId ? ' qol-active' : ''}" data-action="select" data-checklist-id="${escapeHtml(id)}" role="button" tabindex="0"><div class="qol-cl-nav-top"><span class="qol-cl-nav-name">${escapeHtml(checklist.name)}</span><span class="qol-cl-nav-count">${stats.done}/${stats.total}</span></div><div class="qol-cl-mini-progress"><span style="width:${stats.percent}%"></span></div></div>`;
+      return apesHtml_checklists`<div class="qol-cl-nav-item${id === selectedChecklistId ? ' qol-active' : ''}" data-action="select" data-checklist-id="${escapeHtml(id)}" role="button" tabindex="0"><div class="qol-cl-nav-top"><span class="qol-cl-nav-name">${escapeHtml(checklist.name)}</span><span class="qol-cl-nav-count">${stats.done}/${stats.total}</span></div><div class="qol-cl-mini-progress"><span style="width:${stats.percent}%"></span></div></div>`;
     };
     const builtinHtml = Object.entries(BUILTIN_CHECKLISTS).map(([id, checklist]) => itemHtml(id, checklist)).join('');
     const customHtml = Object.entries(custom).map(([id, checklist]) => itemHtml(id, checklist)).join('');
-    library.innerHTML = `<div class="qol-cl-group-title">APES Guides</div>${builtinHtml || '<div class="qol-cl-library-empty">No built-in guides.</div>'}<div class="qol-cl-group-title">My Checklists</div>${customHtml || '<div class="qol-cl-library-empty">Create a checklist for daily tasks, launches or personal goals.</div>'}`;
+    library.innerHTML = apesHtml_checklists`<div class="qol-cl-group-title">APES Guides</div>${builtinHtml || apesHtml_checklists`<div class="qol-cl-library-empty">No built-in guides.</div>`}<div class="qol-cl-group-title">My Checklists</div>${customHtml || apesHtml_checklists`<div class="qol-cl-library-empty">Create a checklist for daily tasks, launches or personal goals.</div>`}`;
   }
   function taskMatchesFilter(index, step, completed) {
     const isDone = completed.has(index);
@@ -412,33 +414,33 @@
     list.innerHTML = visible.length ? visible.map(({
       step,
       index
-    }) => `
+    }) => apesHtml_checklists`
             <div class="qol-cl-task${completed.has(index) ? ' qol-completed' : ''}" data-task-index="${index}">
                 <div class="qol-cl-check" data-action="toggle-task" data-index="${index}" role="checkbox" tabindex="0" aria-label="Toggle task ${index + 1}" aria-checked="${completed.has(index)}"></div>
                 <div class="qol-cl-task-copy"><span class="qol-cl-task-number">${index + 1}.</span><span class="qol-cl-task-text">${escapeHtml(step)}</span></div>
-                ${custom ? `<div class="qol-cl-task-actions"><div class="qol-cl-icon-action" data-action="move-up" data-index="${index}" role="button" tabindex="0" title="Move up">↑</div><div class="qol-cl-icon-action" data-action="move-down" data-index="${index}" role="button" tabindex="0" title="Move down">↓</div><div class="qol-cl-icon-action qol-danger" data-action="delete-task" data-index="${index}" role="button" tabindex="0" title="Delete task">×</div></div>` : '<span></span>'}
+                ${custom ? apesHtml_checklists`<div class="qol-cl-task-actions"><div class="qol-cl-icon-action" data-action="move-up" data-index="${index}" role="button" tabindex="0" title="Move up">↑</div><div class="qol-cl-icon-action" data-action="move-down" data-index="${index}" role="button" tabindex="0" title="Move down">↓</div><div class="qol-cl-icon-action qol-danger" data-action="delete-task" data-index="${index}" role="button" tabindex="0" title="Delete task">×</div></div>` : apesHtml_checklists`<span></span>`}
             </div>
-        `).join('') : '<div class="qol-cl-empty">No tasks match this view.<br>Try another filter or clear the search.</div>';
+        `).join('') : apesHtml_checklists`<div class="qol-cl-empty">No tasks match this view.<br>Try another filter or clear the search.</div>`;
   }
   function renderMain() {
     if (!panel) return;
     const main = panel.querySelector('.qol-cl-main');
     const checklist = getAllChecklists()[selectedChecklistId];
     if (!checklist) {
-      main.innerHTML = '<div class="qol-cl-empty" style="margin:14px!important">No checklist is available.</div>';
+      main.innerHTML = apesHtml_checklists`<div class="qol-cl-empty" style="margin:14px!important">No checklist is available.</div>`;
       return;
     }
     const custom = isCustomChecklist(selectedChecklistId);
     const stats = progressStats(selectedChecklistId, checklist);
-    main.innerHTML = `
-            <div class="qol-cl-main-head"><div class="qol-cl-title-wrap"><div class="qol-cl-title-row"><h2 class="qol-cl-title">${escapeHtml(checklist.name)}</h2><span class="qol-cl-badge">${custom ? 'Custom' : 'APES Guide'}</span></div>${checklist.pretext ? `<p class="qol-cl-description">${escapeHtml(checklist.pretext)}</p>` : ''}</div><div class="qol-cl-progress-summary"><div class="qol-cl-progress-value">${stats.percent}%</div><div class="qol-cl-progress-label">${stats.done} of ${stats.total} complete</div></div></div>
+    main.innerHTML = apesHtml_checklists`
+            <div class="qol-cl-main-head"><div class="qol-cl-title-wrap"><div class="qol-cl-title-row"><h2 class="qol-cl-title">${escapeHtml(checklist.name)}</h2><span class="qol-cl-badge">${custom ? 'Custom' : 'APES Guide'}</span></div>${checklist.pretext ? apesHtml_checklists`<p class="qol-cl-description">${escapeHtml(checklist.pretext)}</p>` : ''}</div><div class="qol-cl-progress-summary"><div class="qol-cl-progress-value">${stats.percent}%</div><div class="qol-cl-progress-label">${stats.done} of ${stats.total} complete</div></div></div>
             <div class="qol-cl-progress-track"><span style="width:${stats.percent}%"></span></div>
             <div class="qol-cl-tools">
                 <input class="qol-cl-search" type="search" value="${escapeHtml(taskSearch)}" placeholder="Search tasks…" aria-label="Search checklist tasks">
-                <div class="qol-cl-filters" aria-label="Task filter">${['all', 'open', 'done'].map(filter => `<div class="qol-cl-filter${taskFilter === filter ? ' qol-active' : ''}" data-action="filter" data-filter="${filter}" role="button" tabindex="0">${filter[0].toUpperCase() + filter.slice(1)}</div>`).join('')}</div>
-                <div class="qol-cl-actions">${stats.open ? '<div class="qol-cl-action qol-secondary qol-compact" data-action="complete-all" role="button" tabindex="0">Complete All</div>' : ''}${stats.done ? '<div class="qol-cl-action qol-secondary qol-compact" data-action="reset" role="button" tabindex="0">Reset</div>' : ''}<div class="qol-cl-action qol-secondary qol-compact" data-action="duplicate" role="button" tabindex="0">Duplicate</div>${custom ? '<div class="qol-cl-action qol-secondary qol-compact" data-action="edit" role="button" tabindex="0">Edit</div><div class="qol-cl-action qol-danger qol-compact" data-action="delete-list" role="button" tabindex="0">Delete</div>' : ''}</div>
+                <div class="qol-cl-filters" aria-label="Task filter">${['all', 'open', 'done'].map(filter => apesHtml_checklists`<div class="qol-cl-filter${taskFilter === filter ? ' qol-active' : ''}" data-action="filter" data-filter="${filter}" role="button" tabindex="0">${filter[0].toUpperCase() + filter.slice(1)}</div>`).join('')}</div>
+                <div class="qol-cl-actions">${stats.open ? apesHtml_checklists`<div class="qol-cl-action qol-secondary qol-compact" data-action="complete-all" role="button" tabindex="0">Complete All</div>` : ''}${stats.done ? apesHtml_checklists`<div class="qol-cl-action qol-secondary qol-compact" data-action="reset" role="button" tabindex="0">Reset</div>` : ''}<div class="qol-cl-action qol-secondary qol-compact" data-action="duplicate" role="button" tabindex="0">Duplicate</div>${custom ? apesHtml_checklists`<div class="qol-cl-action qol-secondary qol-compact" data-action="edit" role="button" tabindex="0">Edit</div><div class="qol-cl-action qol-danger qol-compact" data-action="delete-list" role="button" tabindex="0">Delete</div>` : ''}</div>
             </div>
-            <div class="qol-cl-task-scroll">${stats.total && stats.done === stats.total ? '<div class="qol-cl-complete-banner"><span>✓</span><span>Checklist complete — nicely done.</span></div>' : ''}<div class="qol-cl-task-list"></div>${custom ? '<div class="qol-cl-add-row"><input class="qol-cl-add-input" type="text" maxlength="300" placeholder="Add another task…" aria-label="New checklist task"><div class="qol-cl-action qol-compact" data-action="add-task" role="button" tabindex="0">Add Task</div></div>' : ''}</div>
+            <div class="qol-cl-task-scroll">${stats.total && stats.done === stats.total ? apesHtml_checklists`<div class="qol-cl-complete-banner"><span>✓</span><span>Checklist complete — nicely done.</span></div>` : ''}<div class="qol-cl-task-list"></div>${custom ? apesHtml_checklists`<div class="qol-cl-add-row"><input class="qol-cl-add-input" type="text" maxlength="300" placeholder="Add another task…" aria-label="New checklist task"><div class="qol-cl-action qol-compact" data-action="add-task" role="button" tabindex="0">Add Task</div></div>` : ''}</div>
         `;
     renderTaskList();
   }
@@ -700,7 +702,7 @@
     if (!panel) {
       panel = document.createElement('div');
       panel.id = PANEL_ID;
-      panel.innerHTML = `
+      panel.innerHTML = apesHtml_checklists`
                 <div class="qol-cl-header"><div class="qol-cl-header-copy"><span class="qol-cl-header-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 3h14v18H5z"></path><path d="m8 8 1.5 1.5L12 7M8 14h8M8 18h6"></path></svg></span><span class="qol-cl-header-title">Checklists <span class="qol-cl-header-subtitle">Guides, routines and personal plans</span></span></div><div class="qol-cl-close" role="button" tabindex="0" aria-label="Close Checklists">×</div></div>
                 <div class="qol-cl-workspace"><aside class="qol-cl-sidebar"><div class="qol-cl-sidebar-head"><span class="qol-cl-sidebar-title">Checklist Library</span><div class="qol-cl-action qol-compact" data-action="new" role="button" tabindex="0">+ New</div></div><div class="qol-cl-library"></div></aside><main class="qol-cl-main"></main></div>
                 <div class="qol-cl-resize-grip" aria-hidden="true"></div>

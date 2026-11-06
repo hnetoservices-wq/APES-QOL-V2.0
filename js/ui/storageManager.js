@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_storageManager = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const OVERLAY_ID = 'apes-storage-manager-overlay';
   const STYLE_ID = 'apes-storage-manager-styles';
@@ -144,18 +146,18 @@
   function renderInventory() {
     const overlay = document.getElementById(OVERLAY_ID);
     const totalBytes = inventory.reduce((sum, entry) => sum + entry.bytes, 0);
-    overlay.querySelector('.apes-storage-total').innerHTML = `<strong>${formatBytes(totalBytes)}</strong> across ${inventory.length} saved ${inventory.length === 1 ? 'entry' : 'entries'}`;
+    overlay.querySelector('.apes-storage-total').innerHTML = apesHtml_storageManager`<strong>${formatBytes(totalBytes)}</strong> across ${inventory.length} saved ${inventory.length === 1 ? 'entry' : 'entries'}`;
     const summaries = CATEGORIES.map(categorySummary).filter(summary => summary.entries.length || summary.id === 'preferences');
     overlay.querySelector('.apes-storage-list').innerHTML = summaries.map(summary => {
       const keys = summary.entries.map(entry => `<code>${escapeHtml(entry.key)}</code>`).join('');
-      return `
+      return apesHtml_storageManager`
                 <div class="apes-storage-row" data-storage-category="${summary.id}">
                     <div class="apes-storage-checkbox" role="checkbox" tabindex="0" aria-checked="false"><span>✓</span></div>
                     <div class="apes-storage-copy">
-                        <div class="apes-storage-title"><strong>${escapeHtml(summary.name)}</strong>${summary.protectedData ? '<em>Protected</em>' : ''}</div>
+                        <div class="apes-storage-title"><strong>${escapeHtml(summary.name)}</strong>${summary.protectedData ? apesHtml_storageManager`<em>Protected</em>` : ''}</div>
                         <span>${escapeHtml(summary.description)}</span>
                         <small>${escapeHtml(summary.sourceText || 'No saved entries')}</small>
-                        <div class="apes-storage-keys">${keys || '<i>No saved keys</i>'}</div>
+                        <div class="apes-storage-keys">${keys || apesHtml_storageManager`<i>No saved keys</i>`}</div>
                     </div>
                     <div class="apes-storage-usage">
                         <strong>${formatBytes(summary.bytes)}</strong>
@@ -246,7 +248,7 @@
     overlay = document.createElement('div');
     overlay.id = OVERLAY_ID;
     overlay.setAttribute('aria-hidden', 'true');
-    overlay.innerHTML = `
+    overlay.innerHTML = apesHtml_storageManager`
             <div class="apes-storage-dialog" role="dialog" aria-modal="true" aria-labelledby="apes-storage-title">
                 <div class="apes-storage-header"><strong id="apes-storage-title">Storage Cleanup Manager</strong><div class="apes-storage-close" role="button" tabindex="0">&times;</div></div>
                 <div class="apes-storage-summary"><div class="apes-storage-total">Calculating storage usage...</div><div class="apes-storage-refresh" role="button" tabindex="0">Refresh</div></div>

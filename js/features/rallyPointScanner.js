@@ -1,5 +1,7 @@
 function initUnifiedRallyPointScanner() {
   'use strict';
+const apesHtml_rallyPointScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'rallyPointParser';
   const PANEL_ID = 'qol-rally-point-scanner';
@@ -74,7 +76,7 @@ function initUnifiedRallyPointScanner() {
             pointer-events: auto !important;
             touch-action: none !important;
         `;
-    lock.innerHTML = `
+    lock.innerHTML = apesHtml_rallyPointScanner`
             <div class="qol-rally-scan-lock-title"></div>
             <div
                 class="qol-rally-scan-lock-status"
@@ -760,7 +762,7 @@ function initUnifiedRallyPointScanner() {
       button?.style.setProperty('display', outgoingResults.length > 0 ? 'inline-flex' : 'none', 'important');
     });
     if (outgoingResults.length === 0) {
-      target.innerHTML = `
+      target.innerHTML = apesHtml_rallyPointScanner`
                 <div class="qol-rp-empty">
                     <strong>No outgoing results yet.</strong>
                     <span>Choose the outgoing types, then select “Scan Outgoings”.</span>
@@ -768,7 +770,7 @@ function initUnifiedRallyPointScanner() {
             `;
       return;
     }
-    target.innerHTML = `
+    target.innerHTML = apesHtml_rallyPointScanner`
             <table class="qol-rp-table">
                 <thead>
                     <tr>
@@ -780,7 +782,7 @@ function initUnifiedRallyPointScanner() {
                     </tr>
                 </thead>
                 <tbody>
-                    ${outgoingResults.map(movement => `
+                    ${outgoingResults.map(movement => apesHtml_rallyPointScanner`
                         <tr>
                             <td>${escapeHtml(movement.target)}</td>
                             <td>${escapeHtml(movement.targetVillage)}</td>
@@ -925,14 +927,14 @@ function initUnifiedRallyPointScanner() {
       return;
     }
     const selectedTypes = readOutgoingTypes();
-    target.innerHTML = `
+    target.innerHTML = apesHtml_rallyPointScanner`
             <div id="qol-rally-outgoing-view" class="qol-rp-body">
                 <div class="qol-rp-description">
                     Open and scan every outgoing Rally Point page for the selected movement types, then copy the results in a share-ready format.
                 </div>
                 <div class="qol-rally-movement-picker">
                     <span class="qol-rally-movement-picker-title">Scan for</span>
-                    ${[['attack', 'Attack'], ['siege', 'Siege'], ['reinforcement', 'Reinforcements'], ['merchant', 'Merchants']].map(([type, label]) => `
+                    ${[['attack', 'Attack'], ['siege', 'Siege'], ['reinforcement', 'Reinforcements'], ['merchant', 'Merchants']].map(([type, label]) => apesHtml_rallyPointScanner`
                         <div
                             class="qol-rally-movement-option"
                             data-qol-outgoing-type="${type}"
@@ -1054,11 +1056,11 @@ function initUnifiedRallyPointScanner() {
     const selectedTypes = readMovementTypes();
     const picker = document.createElement('div');
     picker.className = 'qol-rally-movement-picker';
-    picker.innerHTML = `
+    picker.innerHTML = apesHtml_rallyPointScanner`
             <span class="qol-rally-movement-picker-title">
                 Scan for
             </span>
-            ${[['attack', 'Attack'], ['siege', 'Siege'], ['raid', 'Raid'], ['reinforcement', 'Reinforcements']].map(([type, label]) => `
+            ${[['attack', 'Attack'], ['siege', 'Siege'], ['raid', 'Raid'], ['reinforcement', 'Reinforcements']].map(([type, label]) => apesHtml_rallyPointScanner`
                 <div
                     class="qol-rally-movement-option"
                     data-qol-rally-movement-type="${type}"
@@ -1200,7 +1202,7 @@ function initUnifiedRallyPointScanner() {
     panel.id = PANEL_ID;
     panel.setAttribute('role', 'dialog');
     panel.setAttribute('aria-label', 'Rally Point Scanner');
-    panel.innerHTML = `
+    panel.innerHTML = apesHtml_rallyPointScanner`
             <div class="qol-rally-scanner-header">
                 <span class="qol-rally-scanner-title">
                     <span class="qol-rally-scanner-mark">⚔</span>

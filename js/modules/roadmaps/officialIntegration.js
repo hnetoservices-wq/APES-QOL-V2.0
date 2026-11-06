@@ -133,7 +133,7 @@
     const entry = menu.querySelector(`[data-qol-source-id="${LEGACY_TOOLBAR_ID}"]`);
     if (!entry) return;
     const label = entry.querySelector('span');
-    if (label && label.textContent !== 'Roadmaps') label.textContent = 'Roadmaps';
+    if (label && label.textContent !== 'Roadmaps') ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Roadmaps");})(label);
     if (entry.getAttribute('aria-label') !== 'Roadmaps') entry.setAttribute('aria-label', 'Roadmaps');
     if (entry.title !== 'Roadmaps') entry.title = 'Roadmaps';
   }
@@ -183,7 +183,7 @@
       item.dataset.label = 'Roadmaps';
       item.title = 'Roadmaps';
       const label = item.querySelector('.apes-v2-radial-label');
-      if (label && label.textContent !== 'Roadmaps') label.textContent = 'Roadmaps';
+      if (label && label.textContent !== 'Roadmaps') ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Roadmaps");})(label);
       const icon = item.querySelector('.apes-v2-radial-icon');
       const roadmapIcon = '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="m16 8-3 5-5 3 3-5z"/></svg>';
       if (icon && icon.innerHTML !== roadmapIcon) icon.innerHTML = roadmapIcon;

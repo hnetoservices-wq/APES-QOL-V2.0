@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_armySmithyScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const OVERLAY_ID = 'apes-v2-village-overlay';
   const STORE_PREFIX = 'apes_qol_village_smithy_levels_v1';
@@ -235,8 +237,8 @@
       if (cell.dataset.apesSmithyState !== stateKey) {
         cell.dataset.apesSmithyState = stateKey;
         cell.innerHTML = known
-          ? `<span class="apes-vd-smithy-level" title="Smithy level ${level}">Lv. ${level}</span>`
-          : `<span class="apes-vd-smithy-level unknown" title="${saved?.scannedAt ? 'No Smithy level applies to this unit' : 'Run Scan Army to collect Smithy levels'}">—</span>`;
+          ? apesHtml_armySmithyScanner`<span class="apes-vd-smithy-level" title="Smithy level ${level}">Lv. ${level}</span>`
+          : apesHtml_armySmithyScanner`<span class="apes-vd-smithy-level unknown" title="${saved?.scannedAt ? 'No Smithy level applies to this unit' : 'Run Scan Army to collect Smithy levels'}">—</span>`;
       }
     });
 

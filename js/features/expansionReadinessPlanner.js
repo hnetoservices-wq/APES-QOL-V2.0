@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_expansionReadinessPlanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'cpManager';
   const CP_PANEL_ID = 'qol-cp-manager-panel';
@@ -390,31 +392,31 @@
     return 4;
   }
   function badge(label, tone, title = '') {
-    return `<span class="qol-exp-badge ${tone}"${title ? ` title="${escapeHtml(title)}"` : ''}>${escapeHtml(label)}</span>`;
+    return apesHtml_expansionReadinessPlanner`<span class="qol-exp-badge ${tone}"${title ? ` title="${escapeHtml(title)}"` : ''}>${escapeHtml(label)}</span>`;
   }
   function buildingHtml(row) {
-    if (!row.building) return '<span class="qol-exp-muted">None</span>';
+    if (!row.building) return apesHtml_expansionReadinessPlanner`<span class="qol-exp-muted">None</span>`;
     const next = row.slots.nextLevel ? ` · next slot L${row.slots.nextLevel}` : '';
-    return `<div class="qol-exp-stack"><strong>${escapeHtml(row.building.name)} ${row.building.level}</strong><small>${row.slots.unlocked}/${row.slots.levels.length} level slots unlocked${escapeHtml(next)}</small></div>`;
+    return apesHtml_expansionReadinessPlanner`<div class="qol-exp-stack"><strong>${escapeHtml(row.building.name)} ${row.building.level}</strong><small>${row.slots.unlocked}/${row.slots.levels.length} level slots unlocked${escapeHtml(next)}</small></div>`;
   }
   function unitsHtml(row) {
     const adminName = ADMIN_NAMES[Number(row.village?.tribeId)] || 'Administrator';
-    return `<div class="qol-exp-stack"><strong>${row.settlers}/3 Settlers</strong><small>${row.stationed.settlers} stationed${row.queued.settlers ? ` · ${row.queued.settlers} queued` : ''}</small><strong class="qol-exp-admin-line">${row.admins} ${escapeHtml(adminName)}</strong><small>${row.stationed.admin} stationed${row.queued.admin ? ` · ${row.queued.admin} queued` : ''}</small></div>`;
+    return apesHtml_expansionReadinessPlanner`<div class="qol-exp-stack"><strong>${row.settlers}/3 Settlers</strong><small>${row.stationed.settlers} stationed${row.queued.settlers ? ` · ${row.queued.settlers} queued` : ''}</small><strong class="qol-exp-admin-line">${row.admins} ${escapeHtml(adminName)}</strong><small>${row.stationed.admin} stationed${row.queued.admin ? ` · ${row.queued.admin} queued` : ''}</small></div>`;
   }
   function resourceHtml(row) {
     const scanned = row.scan.scannedAt ? `Scanned ${formatAge(row.scan.scannedAt)}` : 'No resource scan';
-    return `<div class="qol-exp-stack"><strong>Settle: <span class="${row.settleResources.ready ? 'good' : 'warn'}">${escapeHtml(deficitText(row.settleResources))}</span></strong><small>Need ${row.missingSettlers} more settler${row.missingSettlers === 1 ? '' : 's'}</small><strong>Chief: <span class="${row.chiefResources.ready ? 'good' : 'warn'}">${escapeHtml(deficitText(row.chiefResources))}</span></strong><small>${escapeHtml(scanned)}</small></div>`;
+    return apesHtml_expansionReadinessPlanner`<div class="qol-exp-stack"><strong>Settle: <span class="${row.settleResources.ready ? 'good' : 'warn'}">${escapeHtml(deficitText(row.settleResources))}</span></strong><small>Need ${row.missingSettlers} more settler${row.missingSettlers === 1 ? '' : 's'}</small><strong>Chief: <span class="${row.chiefResources.ready ? 'good' : 'warn'}">${escapeHtml(deficitText(row.chiefResources))}</span></strong><small>${escapeHtml(scanned)}</small></div>`;
   }
   function cpHtml(cp) {
-    if (!cp) return '<span class="qol-exp-muted">Run Scan CP</span>';
-    if (cp.ready) return `<div class="qol-exp-stack"><strong class="good">CP Ready</strong><small>Slot ${cp.slot || '-'} unlocked by CP</small></div>`;
-    return `<div class="qol-exp-stack"><strong class="warn">${formatNumber(cp.remaining)} CP needed</strong><small>Next: Slot ${cp.slot || '-'}</small></div>`;
+    if (!cp) return apesHtml_expansionReadinessPlanner`<span class="qol-exp-muted">Run Scan CP</span>`;
+    if (cp.ready) return apesHtml_expansionReadinessPlanner`<div class="qol-exp-stack"><strong class="good">CP Ready</strong><small>Slot ${cp.slot || '-'} unlocked by CP</small></div>`;
+    return apesHtml_expansionReadinessPlanner`<div class="qol-exp-stack"><strong class="warn">${formatNumber(cp.remaining)} CP needed</strong><small>Next: Slot ${cp.slot || '-'}</small></div>`;
   }
   function statusHtml(row) {
     const labels = [];
     if (row.settleCandidate) labels.push(badge('SETTLERS READY*', 'good', 'CP, level-based slot and 3 settlers are ready. Verify that an unlocked expansion slot is still free.'));else if (row.settleTrainable) labels.push(badge('CAN TRAIN SETTLERS*', 'amber', 'CP, level-based slot and resources are ready. Verify that an unlocked expansion slot is still free.'));else labels.push(badge('SETTLE NOT READY', 'bad'));
     if (row.chiefCandidate) labels.push(badge('CHIEF READY*', 'good', 'CP, level-based slot and an administrator are ready. Verify that an unlocked expansion slot is still free.'));else if (row.chiefTrainable) labels.push(badge('CAN TRAIN CHIEF*', 'amber', 'CP, level-based slot and resources are ready. Administrator research is not verified.'));else labels.push(badge('CHIEF NOT READY', 'bad'));
-    return `<div class="qol-exp-statuses">${labels.join('')}</div>`;
+    return apesHtml_expansionReadinessPlanner`<div class="qol-exp-statuses">${labels.join('')}</div>`;
   }
   function openAdminBuilding(villageId, location) {
     if (!/^\d+$/.test(String(villageId || '')) || !Number.isFinite(Number(location))) return;
@@ -463,7 +465,7 @@
     injectStyles();
     panel = document.createElement('div');
     panel.id = PANEL_ID;
-    panel.innerHTML = `<div class="qol-exp-head"><span>Expansion Readiness Planner</span><span class="qol-exp-close" title="Close">&times;</span></div><div class="qol-exp-body"></div>`;
+    panel.innerHTML = apesHtml_expansionReadinessPlanner`<div class="qol-exp-head"><span>Expansion Readiness Planner</span><span class="qol-exp-close" title="Close">&times;</span></div><div class="qol-exp-body"></div>`;
     document.body.appendChild(panel);
     panel.querySelector('.qol-exp-close').addEventListener('click', closePlanner);
     makeDraggable(panel, panel.querySelector('.qol-exp-head'));
@@ -528,10 +530,10 @@
     const htmlRows = rows.map(row => {
       const village = row.village || {};
       const name = village.name || `Village ${village.villageId || ''}`;
-      const open = row.building && Number.isFinite(row.building.location) ? `<div class="qol-exp-open" data-village-id="${escapeHtml(village.villageId)}" data-location="${row.building.location}">Open ${escapeHtml(row.building.name)}</div>` : '<span class="qol-exp-muted">No Residence/Palace</span>';
-      return `<tr><td><div class="qol-exp-stack"><strong>${escapeHtml(name)}</strong><small>${Number.isFinite(Number(village.x)) && Number.isFinite(Number(village.y)) ? `(${village.x}|${village.y}) · ` : ''}${escapeHtml(village.isMainVillage ? 'Capital' : '')}</small></div></td><td>${cpHtml(cp)}</td><td>${buildingHtml(row)}</td><td>${unitsHtml(row)}</td><td>${resourceHtml(row)}</td><td>${statusHtml(row)}</td><td>${open}</td></tr>`;
+      const open = row.building && Number.isFinite(row.building.location) ? apesHtml_expansionReadinessPlanner`<div class="qol-exp-open" data-village-id="${escapeHtml(village.villageId)}" data-location="${row.building.location}">Open ${escapeHtml(row.building.name)}</div>` : apesHtml_expansionReadinessPlanner`<span class="qol-exp-muted">No Residence/Palace</span>`;
+      return apesHtml_expansionReadinessPlanner`<tr><td><div class="qol-exp-stack"><strong>${escapeHtml(name)}</strong><small>${Number.isFinite(Number(village.x)) && Number.isFinite(Number(village.y)) ? `(${village.x}|${village.y}) · ` : ''}${escapeHtml(village.isMainVillage ? 'Capital' : '')}</small></div></td><td>${cpHtml(cp)}</td><td>${buildingHtml(row)}</td><td>${unitsHtml(row)}</td><td>${resourceHtml(row)}</td><td>${statusHtml(row)}</td><td>${open}</td></tr>`;
     }).join('');
-    body.innerHTML = `
+    body.innerHTML = apesHtml_expansionReadinessPlanner`
             <div class="qol-exp-top">
                 <div class="qol-exp-stat"><span>CP Expansion</span><strong>${cp ? cp.ready ? `Slot ${cp.slot || '-'} Ready` : `${formatNumber(cp.remaining)} CP Needed` : 'Run Scan CP'}</strong></div>
                 <div class="qol-exp-stat"><span>Settlers Ready*</span><strong>${settleReady}</strong></div>
@@ -539,11 +541,11 @@
                 <div class="qol-exp-stat"><span>Admin Buildings</span><strong>${adminBuildings}/${rows.length || 0}</strong></div>
                 <div class="qol-exp-refresh${refreshingVillages ? ' busy' : ''}">${refreshingVillages ? 'Refreshing…' : 'Refresh Villages'}</div>
             </div>
-            <div class="qol-exp-note"><strong>* Expansion-slot usage is not yet confirmed automatically.</strong> Residence unlocks slots at levels 10/20; Palace at 10/15/20. “Ready” means CP + level-based slot + required unit are ready. Use <strong>Open Residence/Palace</strong> to verify that one of the unlocked slots is still free. Resource checks use the latest Account Operations Center scan${freshest ? ` (${escapeHtml(formatAge(freshest))})` : ''}. ${isMayhem2026() ? '<strong>Summer Mayhem 2026 settler costs detected.</strong>' : 'Standard Travian Kingdoms settler costs are used.'}</div>
+            <div class="qol-exp-note"><strong>* Expansion-slot usage is not yet confirmed automatically.</strong> Residence unlocks slots at levels 10/20; Palace at 10/15/20. “Ready” means CP + level-based slot + required unit are ready. Use <strong>Open Residence/Palace</strong> to verify that one of the unlocked slots is still free. Resource checks use the latest Account Operations Center scan${freshest ? ` (${escapeHtml(formatAge(freshest))})` : ''}. ${isMayhem2026() ? apesHtml_expansionReadinessPlanner`<strong>Summer Mayhem 2026 settler costs detected.</strong>` : 'Standard Travian Kingdoms settler costs are used.'}</div>
             <div class="qol-exp-table-wrap">
                 <table>
                     <thead><tr><th>Village</th><th>CP Slot</th><th>Residence / Palace</th><th>Settlers / Chief</th><th>Resources</th><th>Status</th><th>Action</th></tr></thead>
-                    <tbody>${htmlRows || '<tr><td colspan="7">Village cache unavailable. Click Refresh Villages or open the Account Operations Center once.</td></tr>'}</tbody>
+                    <tbody>${htmlRows || apesHtml_expansionReadinessPlanner`<tr><td colspan="7">Village cache unavailable. Click Refresh Villages or open the Account Operations Center once.</td></tr>`}</tbody>
                 </table>
             </div>`;
   }

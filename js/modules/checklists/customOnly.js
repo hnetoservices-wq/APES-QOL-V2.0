@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_customOnly = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const PANEL_ID = 'qol-checklist-container';
   const BUILTIN_IDS = new Set(['x3_speedsettle', 'x1_support_500cp']);
@@ -19,7 +21,7 @@
   function emptyMain(panel) {
     const main = panel.querySelector('.qol-cl-main');
     if (!main) return;
-    main.innerHTML = `
+    main.innerHTML = apesHtml_customOnly`
       <div class="qol-cl-empty" style="margin:14px!important">
         No custom checklists yet.<br>
         Use <strong>+ New</strong> to create one.

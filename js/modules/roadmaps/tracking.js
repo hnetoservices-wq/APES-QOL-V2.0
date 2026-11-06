@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_tracking = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const TRACKING_PREFIX = 'qol_roadmap_tracking_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
@@ -181,7 +183,7 @@
     document.querySelector('.qol-rmt-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = 'qol-rmt-toast';
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2200);
   }
@@ -322,7 +324,7 @@
     const block = document.createElement('div');
     block.className = 'qol-rmt-load-block';
     block.dataset.rmtLoadBlock = '1';
-    block.innerHTML = `
+    block.innerHTML = apesHtml_tracking`
       <div class="qol-rms6-section-title">Automatic Tracking</div>
       <div class="qol-rmt-load-toggle" data-rmt-load-toggle role="checkbox" tabindex="0" aria-checked="false">
         <span class="qol-rmt-switch" aria-hidden="true"><i></i></span>

@@ -1,5 +1,7 @@
 function initIgmEnhancer() {
   'use strict';
+const apesHtml_igmEnhancer = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'igmEnhanced';
   const CONV_STORAGE_KEY = 'qol_conversation_tags_v3';
@@ -882,7 +884,7 @@ function initIgmEnhancer() {
     if (!toolbar) {
       toolbar = document.createElement('div');
       toolbar.id = TOOLBAR_ID;
-      toolbar.innerHTML = `
+      toolbar.innerHTML = apesHtml_igmEnhancer`
                 <div class="qol-igm-toolbar-header">
                     <span>
                         Conversation Folders
@@ -1044,7 +1046,7 @@ function initIgmEnhancer() {
     const overlay = document.createElement('div');
     overlay.className = 'qol-igm-modal-overlay';
     overlay.tabIndex = -1;
-    overlay.innerHTML = `
+    overlay.innerHTML = apesHtml_igmEnhancer`
             <div
                 class="qol-igm-modal"
                 role="dialog"
@@ -1059,7 +1061,7 @@ function initIgmEnhancer() {
                         ${escapeHtml(message)}
                     </div>
 
-                    ${withInput ? `
+                    ${withInput ? apesHtml_igmEnhancer`
                                 <input
                                     type="text"
                                     class="qol-igm-modal-input"

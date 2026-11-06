@@ -1,3 +1,4 @@
+const apesHtml_navigationKeys = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
 function navigateToRoute(routeParam) {
   let currentHash = window.location.hash;
   if (!currentHash.startsWith('#/')) currentHash = '#/';
@@ -260,7 +261,7 @@ function ensureInstantFinishKeybindMenuEntry() {
   const row = document.createElement('div');
   row.id = 'qol-keybind-instant-finish';
   row.className = 'qol-keybind-item';
-  row.innerHTML = `
+  row.innerHTML = apesHtml_navigationKeys`
         <div class="qol-key-combo"><span class="qol-kbd">B</span></div>
         <span class="qol-keybind-action">Instant Finish Building / Queue</span>
         <label class="qol-switch" title="Toggle Instant Finish Building / Queue shortcut">

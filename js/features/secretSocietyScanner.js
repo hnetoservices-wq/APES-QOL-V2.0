@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_secretSocietyScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'secretSocietyScanner';
   const STORAGE_KEY = 'apes_secret_society_scans_v1';
@@ -316,7 +318,7 @@
   function scanButtonState(text, working) {
     const button = document.getElementById(NATIVE_SCAN_ID);
     if (!button) return;
-    button.textContent = text;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(button);
     button.classList.toggle('qol-ss-working', Boolean(working));
     button.setAttribute('aria-busy', String(Boolean(working)));
   }
@@ -330,21 +332,21 @@
     lock.setAttribute('aria-live', 'polite');
     lock.setAttribute('aria-busy', 'true');
     if (cancellable) lock.classList.add('qol-ss-cancellable');
-    lock.innerHTML = `
+    lock.innerHTML = apesHtml_secretSocietyScanner`
             <div class="qol-ss-lock-card">
                 <div class="qol-ss-lock-title"></div>
                 <div class="qol-ss-lock-status"></div>
                 <div class="qol-ss-lock-stop" role="button" tabindex="0">Stop after current message</div>
             </div>
         `;
-    lock.querySelector('.qol-ss-lock-title').textContent = title;
-    lock.querySelector('.qol-ss-lock-status').textContent = message;
+    window.APES?.i18n ? window.APES.i18n.setText(lock.querySelector('.qol-ss-lock-title'), title) : (lock.querySelector('.qol-ss-lock-title').textContent = title);
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(lock.querySelector('.qol-ss-lock-status'));
     const stop = lock.querySelector('.qol-ss-lock-stop');
     const requestStop = event => {
       event?.preventDefault();
       event?.stopPropagation();
       cancelMessageRun = true;
-      stop.textContent = 'Stopping…';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Stopping…");})(stop);
       stop.setAttribute('aria-disabled', 'true');
       updateInteractionLock('Finishing the current message, then APES will stop.');
     };
@@ -361,7 +363,7 @@
   }
   function updateInteractionLock(message) {
     const status = document.querySelector(`#${LOCK_ID} .qol-ss-lock-status`);
-    if (status) status.textContent = message;
+    if (status) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(status);
   }
   function hideInteractionLock() {
     document.getElementById(LOCK_ID)?.remove();
@@ -480,7 +482,7 @@
     existing?.remove();
     const actions = document.createElement('div');
     actions.id = NATIVE_ACTION_ID;
-    actions.innerHTML = `
+    actions.innerHTML = apesHtml_secretSocietyScanner`
             <span class="qol-ss-native-label">APES Secret Society tools</span>
             <div id="${NATIVE_SCAN_ID}" role="button" tabindex="0">Scan SS</div>
         `;
@@ -544,10 +546,10 @@
   function iconHtml(kind, label, extraClass = '') {
     const classes = `qol-ss-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
     if (kind === 'crop') {
-      return `<span class="${classes}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><i class="unit_crop_small_illu resType4"></i></span>`;
+      return apesHtml_secretSocietyScanner`<span class="${classes}" title="${(escapeHtml(label))}" aria-label="${(escapeHtml(label))}"><i class="unit_crop_small_illu resType4"></i></span>`;
     }
     const paths = ICON_PATHS[kind] || '';
-    return `<span class="${classes}" title="${escapeHtml(label)}" aria-label="${escapeHtml(label)}"><svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg></span>`;
+    return apesHtml_secretSocietyScanner`<span class="${classes}" title="${(escapeHtml(label))}" aria-label="${(escapeHtml(label))}"><svg viewBox="0 0 24 24" aria-hidden="true">${paths}</svg></span>`;
   }
   function formatMetric(value) {
     const numeric = numericValue(value);
@@ -578,14 +580,14 @@
   }
   function changeMetricHtml(kind, label, value) {
     const change = changeDescriptor(value);
-    return `<span class="qol-ss-change qol-${change.tone}">${iconHtml(kind, label, 'qol-ss-note-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
+    return apesHtml_secretSocietyScanner`<span class="qol-ss-change qol-${change.tone}">${iconHtml(kind, label, 'qol-ss-note-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
   }
   function memberNotesHtml(member) {
-    if (member.isNew) return '<span class="qol-ss-change qol-positive">New member</span>';
+    if (member.isNew) return apesHtml_secretSocietyScanner`<span class="qol-ss-change qol-positive">New member</span>`;
     if (member.villageChange == null && member.populationChange == null) {
-      return '<span class="qol-ss-change qol-stationary">Baseline</span>';
+      return apesHtml_secretSocietyScanner`<span class="qol-ss-change qol-stationary">Baseline</span>`;
     }
-    return `${changeMetricHtml('house', 'Village change', member.villageChange)}<span class="qol-ss-note-divider">|</span>${changeMetricHtml('person', 'Population change', member.populationChange)}`;
+    return apesHtml_secretSocietyScanner`${changeMetricHtml('house', 'Village change', member.villageChange)}<span class="qol-ss-note-divider">|</span>${changeMetricHtml('person', 'Population change', member.populationChange)}`;
   }
   function memberNotesText(member) {
     if (member.isNew) return 'New member';
@@ -600,7 +602,7 @@
   function summaryChangeHtml(value, hasComparison = true) {
     if (!hasComparison) return '';
     const change = changeDescriptor(value);
-    return `<span class="qol-ss-summary-change qol-${change.tone}">${change.arrow} ${change.amount}</span>`;
+    return apesHtml_secretSocietyScanner`<span class="qol-ss-summary-change qol-${change.tone}">${change.arrow} ${change.amount}</span>`;
   }
   function sortedMembers(members) {
     const multiplier = memberSort.direction === 'asc' ? 1 : -1;
@@ -630,7 +632,7 @@
     document.getElementById(DIALOG_ID)?.remove();
     const dialog = document.createElement('div');
     dialog.id = DIALOG_ID;
-    dialog.innerHTML = `
+    dialog.innerHTML = apesHtml_secretSocietyScanner`
             <div class="qol-ss-dialog-card" role="dialog" aria-modal="true">
                 <div class="qol-ss-dialog-title"></div>
                 <div class="qol-ss-dialog-message"></div>
@@ -639,8 +641,8 @@
                 </div>
             </div>
         `;
-    dialog.querySelector('.qol-ss-dialog-title').textContent = title;
-    dialog.querySelector('.qol-ss-dialog-message').textContent = message;
+    window.APES?.i18n ? window.APES.i18n.setText(dialog.querySelector('.qol-ss-dialog-title'), title) : (dialog.querySelector('.qol-ss-dialog-title').textContent = title);
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(dialog.querySelector('.qol-ss-dialog-message'));
     const close = () => dialog.remove();
     const ok = dialog.querySelector('.qol-ss-action');
     ok.addEventListener('click', close);
@@ -655,7 +657,7 @@
       document.getElementById(DIALOG_ID)?.remove();
       const dialog = document.createElement('div');
       dialog.id = DIALOG_ID;
-      dialog.innerHTML = `
+      dialog.innerHTML = apesHtml_secretSocietyScanner`
                 <div class="qol-ss-dialog-card" role="alertdialog" aria-modal="true">
                     <div class="qol-ss-dialog-title"></div>
                     <div class="qol-ss-dialog-message"></div>
@@ -665,9 +667,9 @@
                     </div>
                 </div>
             `;
-      dialog.querySelector('.qol-ss-dialog-title').textContent = title;
-      dialog.querySelector('.qol-ss-dialog-message').textContent = message;
-      dialog.querySelector('[data-confirm]').textContent = confirmLabel;
+      window.APES?.i18n ? window.APES.i18n.setText(dialog.querySelector('.qol-ss-dialog-title'), title) : (dialog.querySelector('.qol-ss-dialog-title').textContent = title);
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(dialog.querySelector('.qol-ss-dialog-message'));
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(confirmLabel);})(dialog.querySelector('[data-confirm]'));
       const finish = value => {
         dialog.remove();
         resolve(value);
@@ -947,7 +949,7 @@
   }
   function roleCheckboxHtml(member, role) {
     const checked = Boolean(member[role]);
-    return `
+    return apesHtml_secretSocietyScanner`
             <div class="qol-ss-role-check"
                  data-member-key="${escapeHtml(memberKey(member))}"
                  data-member-role="${role}"
@@ -964,7 +966,7 @@
     const selected = scans.find(scan => scan.id === selectedId) || scans[0];
     const body = panel.querySelector('.qol-ss-body');
     if (!selected) {
-      body.innerHTML = `
+      body.innerHTML = apesHtml_secretSocietyScanner`
                 <div class="qol-ss-empty">
                     No Secret Society has been scanned yet.<br>
                     Open its Secret Society tab and select <strong>Scan SS</strong> above the member table.
@@ -972,7 +974,7 @@
             `;
       return;
     }
-    const tabs = scans.map(scan => `
+    const tabs = scans.map(scan => apesHtml_secretSocietyScanner`
             <div class="qol-ss-tab${scan.id === selected.id ? ' qol-active' : ''}"
                  data-ss-tab="${escapeHtml(scan.id)}" role="button" tabindex="0">
                 ${escapeHtml(scan.name)}
@@ -986,7 +988,7 @@
     const villageDelta = hasComparison ? summary.villages - earlierSummary.villages : null;
     const populationDelta = hasComparison ? summary.population - earlierSummary.population : null;
     const comparisonText = hasComparison ? `Compared with ${new Date(earlierSummary.scannedAt).toLocaleString()}` : 'First snapshot';
-    body.innerHTML = `
+    body.innerHTML = apesHtml_secretSocietyScanner`
             <div class="qol-ss-tabs">${tabs}</div>
             <section class="qol-ss-composer">
                 <label class="qol-ss-composer-copy">
@@ -1022,9 +1024,9 @@
                         <col style="width:46px"><col style="width:160px"><col style="width:50px"><col style="width:72px"><col style="width:94px"><col style="width:78px"><col style="width:86px"><col style="width:36px"><col style="width:36px"><col style="width:36px"><col style="width:42px"><col style="width:190px">
                     </colgroup>
                     <thead><tr>
-                        ${MEMBER_COLUMNS.map(column => `
+                        ${MEMBER_COLUMNS.map(column => apesHtml_secretSocietyScanner`
                             <th class="qol-ss-sort${column.icon ? ' qol-ss-icon-column' : ''}${memberSort.key === column.key ? ` qol-sort-${memberSort.direction}` : ''}"
-                                data-ss-sort="${column.key}" role="button" tabindex="0" title="${escapeHtml(column.label)}">${column.icon ? iconHtml(column.icon, column.label) : column.label}</th>
+                                data-ss-sort="${column.key}" role="button" tabindex="0" title="${(escapeHtml(column.label))}">${column.icon ? iconHtml(column.icon, column.label) : (window.APES?.i18n?.label(column.label) ?? column.label)}</th>
                         `).join('')}
                         <th class="qol-ss-role-column">Def</th>
                         <th class="qol-ss-role-column">Off</th>
@@ -1044,16 +1046,16 @@
     const refreshRecipientCount = () => {
       const role = recipientSelect.value;
       const count = roleCount(selected, role);
-      recipientCount.textContent = `${count} ${role.toUpperCase()} ${count === 1 ? 'member' : 'members'} selected`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} {v1} {v2} selected",{v0:(count),v1:(role.toUpperCase()),v2:(count === 1 ? 'member' : 'members')});})(recipientCount);
       sendButton.setAttribute('aria-disabled', String(count === 0));
-      sendButton.textContent = count === 0 ? 'No recipients' : `Send to ${count}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (count === 0)?(write("No recipients")):(write("Send to {v0}",{v0:(count)}));})(sendButton);
     };
     const renderRows = () => {
       const query = normalizedText(search.value);
       const members = sortedMembers(selected.members.filter(member => {
         return !query || normalizedText(Object.values(member).join(' ')).includes(query);
       }));
-      body.querySelector('tbody').innerHTML = members.length ? members.map(member => `
+      body.querySelector('tbody').innerHTML = members.length ? members.map(member => apesHtml_secretSocietyScanner`
                     <tr>
                         <td class="qol-ss-number-column">${formatMetric(member.rank)}</td>
                         <td class="qol-ss-name-column" title="${escapeHtml(member.name)}">${escapeHtml(member.name)}</td>
@@ -1068,7 +1070,7 @@
                         <td class="qol-ss-mail-column"><div class="qol-ss-mail" data-ss-mail="${escapeHtml(memberKey(member))}" role="button" tabindex="0" title="Message ${escapeHtml(member.name)}" aria-label="Message ${escapeHtml(member.name)}">${iconHtml('mail', `Message ${member.name}`)}</div></td>
                         <td class="qol-ss-notes-column">${memberNotesHtml(member)}</td>
                     </tr>
-                `).join('') : '<tr><td colspan="12">No matching members.</td></tr>';
+                `).join('') : apesHtml_secretSocietyScanner`<tr><td colspan="12">No matching members.</td></tr>`;
       body.querySelectorAll('[data-member-role]').forEach(control => {
         const toggle = event => {
           event.preventDefault();
@@ -1222,7 +1224,7 @@
     if (!panel) {
       panel = document.createElement('div');
       panel.id = PANEL_ID;
-      panel.innerHTML = `
+      panel.innerHTML = apesHtml_secretSocietyScanner`
                 <div class="qol-ss-head">
                     <span>Secret Society Manager</span>
                     <div class="qol-ss-close" role="button" tabindex="0" aria-label="Close">×</div>

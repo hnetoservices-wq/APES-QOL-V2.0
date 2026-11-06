@@ -1,5 +1,7 @@
 (function () {
   'use strict';
+const apesHtml_auctionHouseScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'auctionHouseScanner';
   const STYLE_ID = 'qol-auction-house-scanner-styles';
@@ -644,7 +646,7 @@
     const panel = document.createElement('section');
     panel.id = PANEL_ID;
     panel.setAttribute('aria-label', 'APES Auction House item finder');
-    panel.innerHTML = `
+    panel.innerHTML = apesHtml_auctionHouseScanner`
             <div class="qol-auction-controls">
                 <label class="qol-auction-field">
                     <span class="qol-auction-label">Type of item</span>

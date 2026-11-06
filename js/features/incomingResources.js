@@ -1,5 +1,7 @@
 function initIncomingResourceEnhancer() {
   'use strict';
+const apesHtml_incomingResources = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'rallyPointParser';
   const PANEL_ID = 'qol-ir-action-bar';
@@ -514,7 +516,7 @@ function initIncomingResourceEnhancer() {
     if (!container) {
       return;
     }
-    container.innerHTML = `
+    container.innerHTML = apesHtml_incomingResources`
             <div class="qol-ir-empty">
                 <strong>
                     ${escapeHtml(title)}
@@ -530,7 +532,7 @@ function initIncomingResourceEnhancer() {
     if (!container) {
       return;
     }
-    container.innerHTML = `
+    container.innerHTML = apesHtml_incomingResources`
             <div class="qol-ir-scanning">
                 <div class="qol-ir-spinner"></div>
 
@@ -934,7 +936,7 @@ function initIncomingResourceEnhancer() {
     }
     const totals = getTotals();
     const rows = compiledShipments.map(shipment => {
-      return `
+      return apesHtml_incomingResources`
                             <tr>
                                 <td class="qol-ir-player">
                                     ${escapeHtml(shipment.senderPlayer || 'Unknown')}
@@ -970,7 +972,7 @@ function initIncomingResourceEnhancer() {
                             </tr>
                         `;
     }).join('');
-    container.innerHTML = `
+    container.innerHTML = apesHtml_incomingResources`
             <div class="qol-ir-results">
                 <div class="qol-ir-summary-grid">
                     <div class="qol-ir-summary-card">
@@ -1080,7 +1082,7 @@ function initIncomingResourceEnhancer() {
     injectStyles();
     const bar = document.createElement('div');
     bar.id = PANEL_ID;
-    bar.innerHTML = `
+    bar.innerHTML = apesHtml_incomingResources`
             <div class="qol-ir-header">
                 <span>
                     Incoming Resources

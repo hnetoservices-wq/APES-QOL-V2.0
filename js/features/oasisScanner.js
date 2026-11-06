@@ -1,3 +1,4 @@
+const apesHtml_oasisScanner = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
 (function initOasisScannerModule() {
   "use strict";
 
@@ -378,7 +379,7 @@
     if (!button) {
       return;
     }
-    button.textContent = visualAidEnabled ? "Visual Aid: On" : "Visual Aid: Off";
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (visualAidEnabled)?(write("Visual Aid: On")):(write("Visual Aid: Off"));})(button);
     button.classList.toggle("is-active", visualAidEnabled);
     button.setAttribute("aria-pressed", String(visualAidEnabled));
     button.title = visualAidEnabled ? "Hide map scan colours" : "Show map scan colours";
@@ -395,10 +396,10 @@
     const assignedBar = document.getElementById("qol-tag-team-assigned-bar");
     const overallBar = document.getElementById("qol-tag-team-overall-bar");
     if (assignedText) {
-      assignedText.textContent = progress.allSections ? `All sections: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()} (${formatPercentage(progress.assignedPercentage)})` : selectedSection ? `Section ${selectedSection.id}: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()} (${formatPercentage(progress.assignedPercentage)})` : "No section selected";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (progress.allSections)?(write("All sections: {v0} / {v1} ({v2})",{v0:(progress.assignedScanned.toLocaleString()),v1:(progress.assignedTotal.toLocaleString()),v2:(formatPercentage(progress.assignedPercentage))})):((selectedSection)?(write("Section {v0}: {v1} / {v2} ({v3})",{v0:(selectedSection.id),v1:(progress.assignedScanned.toLocaleString()),v2:(progress.assignedTotal.toLocaleString()),v3:(formatPercentage(progress.assignedPercentage))})):(write("No section selected")));})(assignedText);
     }
     if (overallText) {
-      overallText.textContent = `Full map: ${progress.overallScanned.toLocaleString()} / ${progress.overallTotal.toLocaleString()} (${formatPercentage(progress.overallPercentage)})`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Full map: {v0} / {v1} ({v2})",{v0:(progress.overallScanned.toLocaleString()),v1:(progress.overallTotal.toLocaleString()),v2:(formatPercentage(progress.overallPercentage))});})(overallText);
     }
     if (assignedBar) {
       assignedBar.style.setProperty("width", formatPercentage(progress.assignedPercentage), "important");
@@ -416,7 +417,7 @@
     card.classList.toggle("is-enabled", tagTeamConfig.enabled);
     const toggleButton = document.getElementById("qol-tag-team-toggle");
     if (toggleButton) {
-      toggleButton.textContent = tagTeamConfig.enabled ? "Tag Team: On" : "Tag Team: Off";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (tagTeamConfig.enabled)?(write("Tag Team: On")):(write("Tag Team: Off"));})(toggleButton);
       toggleButton.classList.toggle("is-active", tagTeamConfig.enabled);
       toggleButton.setAttribute("aria-pressed", String(tagTeamConfig.enabled));
     }
@@ -426,18 +427,18 @@
     }
     const sectionSelect = document.getElementById("qol-tag-team-section");
     if (sectionSelect) {
-      sectionSelect.innerHTML = [`<option value="ALL">All</option>`, ...getTagTeamSections().map(section => `<option value="${section.id}">${section.id} — ${section.position}</option>`)].join("");
+      sectionSelect.innerHTML = [apesHtml_oasisScanner`<option value="ALL">All</option>`, ...getTagTeamSections().map(section => apesHtml_oasisScanner`<option value="${section.id}">${section.id} — ${section.position}</option>`)].join("");
       sectionSelect.value = tagTeamConfig.selectedSection;
     }
     const setupSummary = document.getElementById("qol-tag-team-setup-summary");
     const selectedSection = getSelectedTagTeamSection();
     if (setupSummary) {
-      setupSummary.textContent = tagTeamConfig.enabled ? isAllTagTeamSectionsVisible() ? `All sections · ${tagTeamConfig.teamSize} users` : selectedSection ? `Section ${selectedSection.id} · ${selectedSection.position} · ${selectedSection.name}` : "Manual shared scan sections" : "Manual shared scan sections";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (tagTeamConfig.enabled)?((isAllTagTeamSectionsVisible())?(write("All sections · {v0} users",{v0:(tagTeamConfig.teamSize)})):((selectedSection)?(write("Section {v0} · {v1} · {v2}",{v0:(selectedSection.id),v1:(selectedSection.position),v2:(selectedSection.name)})):(write("Manual shared scan sections")))):(write("Manual shared scan sections"));})(setupSummary);
     }
     const legend = document.getElementById("qol-tag-team-legend");
     if (legend) {
       const showAll = isAllTagTeamSectionsVisible();
-      legend.innerHTML = getTagTeamSections().map(section => `
+      legend.innerHTML = getTagTeamSections().map(section => apesHtml_oasisScanner`
               <span
                 class="qol-tag-team-legend-item ${showAll || section.id === tagTeamConfig.selectedSection ? "is-selected" : ""}"
               >
@@ -451,7 +452,7 @@
     }
     const exportButton = document.getElementById("qol-oasis-export");
     if (exportButton) {
-      exportButton.textContent = tagTeamConfig.enabled ? "Export Session" : "Export CSV";
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (tagTeamConfig.enabled)?(write("Export Session")):(write("Export CSV"));})(exportButton);
     }
     updateTagTeamProgressUI();
   }
@@ -1739,7 +1740,7 @@
   function setStatus(message) {
     const statusElement = document.getElementById("qol-oasis-status-message");
     if (statusElement) {
-      statusElement.textContent = message;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(statusElement);
     }
     updateResultCount();
   }
@@ -1751,11 +1752,11 @@
     if (tagTeamConfig.enabled) {
       const progress = getTagTeamProgress();
       const scope = progress.allSections ? "All sections" : `Section ${tagTeamConfig.selectedSection}`;
-      countElement.textContent = `${createDisplayEntries().length} results / ${scope}: ${progress.assignedScanned.toLocaleString()} / ${progress.assignedTotal.toLocaleString()}`;
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} results / {v1}: {v2} / {v3}",{v0:(createDisplayEntries().length),v1:(scope),v2:(progress.assignedScanned.toLocaleString()),v3:(progress.assignedTotal.toLocaleString())});})(countElement);
       updateTagTeamProgressUI();
       return;
     }
-    countElement.textContent = `${createDisplayEntries().length} results shown / ${getTotalSavedCount()} tiles scanned`;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} results shown / {v1} tiles scanned",{v0:(createDisplayEntries().length),v1:(getTotalSavedCount())});})(countElement);
   }
   function getCropperStatusLabel(cropper) {
     return cropper?.isNatar ? "Conquer Natars" : "Available";
@@ -1763,7 +1764,7 @@
   function renderSelectedOasesDetails(entry) {
     const evaluation = entry.source.evaluation;
     if (!evaluation.selectedOases.length) {
-      return `
+      return apesHtml_oasisScanner`
         <tr class="qol-cropper-details-row">
           <td colspan="7">
             <div class="qol-cropper-details">
@@ -1773,7 +1774,7 @@
         </tr>
       `;
     }
-    const lines = evaluation.selectedOases.map(oasis => `
+    const lines = evaluation.selectedOases.map(oasis => apesHtml_oasisScanner`
             <div class="qol-cropper-oasis-line">
               <span
                 class="qol-oasis-coordinate-link"
@@ -1789,7 +1790,7 @@
               </span>
             </div>
           `).join("");
-    return `
+    return apesHtml_oasisScanner`
       <tr class="qol-cropper-details-row">
         <td colspan="7">
           <div class="qol-cropper-details">
@@ -1810,7 +1811,7 @@
     }
     const entries = createDisplayEntries();
     if (!entries.length) {
-      tableBody.innerHTML = `
+      tableBody.innerHTML = apesHtml_oasisScanner`
         <tr>
           <td
             colspan="7"
@@ -1829,7 +1830,7 @@
     entries.forEach(entry => {
       if (entry.resultType === "oasis") {
         const oasis = entry.source;
-        html += `
+        html += apesHtml_oasisScanner`
           <tr>
             <td>
               <span
@@ -1883,7 +1884,7 @@
       const selectedCount = evaluation.selectedOases.length;
       const nearbyCount = evaluation.nearbyOases.length;
       const isExpanded = expandedCropperIds.has(cropper.id);
-      html += `
+      html += apesHtml_oasisScanner`
         <tr>
           <td>
             <span
@@ -3453,7 +3454,7 @@
     }
     oasisContainer = document.createElement("div");
     oasisContainer.id = "qol-oasis-container";
-    oasisContainer.innerHTML = `
+    oasisContainer.innerHTML = apesHtml_oasisScanner`
       <div class="qol-oasis-header">
         <span>
           Oasis & Cropper Scanner

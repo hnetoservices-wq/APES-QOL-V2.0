@@ -1,4 +1,5 @@
-const QOL_DEFAULT_DISABLED_FEATURES = new Set(['cpManager', 'oasisScanner', 'reportArchive', 'watchlist']);
+const apesHtml_menu = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+const QOL_DEFAULT_DISABLED_FEATURES = new Set();
 const QOL_THEME_STORAGE_KEY = 'qol_theme';
 const QOL_THEMES = Object.freeze([{
   key: 'brown',
@@ -56,11 +57,11 @@ const QOL_BUTTON_SIZE = 30;
 const QOL_BUTTON_GAP = 6;
 const QOL_MAX_EXPANDED_TOOLBAR_ITEMS = 5;
 const BASIC_FEATURES = [{
-  id: 'qol-chk-barracks-24h-planner',
-  key: 'barracks24hPlanner',
-  name: 'Barracks & Stables 24h Planner',
-  icon: '⌛',
-  description: 'Replaces Barracks and Stables unit descriptions with 24-hour troop counts, wood/clay/iron costs, and the average resources per hour.'
+  id: 'qol-chk-daily-reminders',
+  key: 'dailyReminders',
+  name: 'Daily Reminders',
+  icon: '🔔',
+  description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
 }, {
   id: 'qol-chk-auction-house-scanner',
   key: 'auctionHouseScanner',
@@ -116,12 +117,6 @@ const BASIC_FEATURES = [{
   icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m4 10 13-6 3 6-13 6zM4 10l-2 1 2 4 3-1M17 4l2-1 3 6-2 1M11 14v4M11 18l-4 4M11 18l4 4"/></svg>',
   description: 'Scans attacks, sieges, raids, reinforcements and incoming resources from one tabbed window.'
 }, {
-  id: 'qol-chk-npc-calc',
-  key: 'npcCalculator',
-  name: 'NPC Calculator',
-  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
-  description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
-}, {
   id: 'qol-chk-send-troops',
   key: 'sendTroopsEnhanced',
   name: 'Send Button Enhancer',
@@ -129,11 +124,17 @@ const BASIC_FEATURES = [{
   description: 'Keeps Continue, Back and Send fixed at the top while preparing multiple troop movements.'
 }];
 const ADVANCED_FEATURES = [{
-  id: 'qol-chk-daily-reminders',
-  key: 'dailyReminders',
-  name: 'Daily Reminders',
-  icon: '🔔',
-  description: 'Schedule daily tasks and recurring reminders, with an alert box, Done and Snooze.'
+  id: 'qol-chk-barracks-24h-planner',
+  key: 'barracks24hPlanner',
+  name: '24h Training Planner',
+  icon: '⌛',
+  description: 'Replaces Barracks and Stables unit descriptions with 24-hour troop counts, wood/clay/iron costs, and the average resources per hour.'
+}, {
+  id: 'qol-chk-npc-calc',
+  key: 'npcCalculator',
+  name: 'NPC Calculator',
+  icon: '<svg class="qol-feature-symbol" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M8 6h8M8 10h1M12 10h1M16 10h.01M8 14h1M12 14h1M16 14v4M8 18h1M12 18h1"/></svg>',
+  description: 'Calculates the resource distribution needed to train troops while minimizing NPC gold cost.'
 }, {
   id: 'qol-chk-distance-calculator',
   key: 'distanceCalculator',
@@ -203,6 +204,9 @@ const COSMETIC_FEATURES = [{
   icon: '♜',
   description: 'Choose tribe artwork and toggle the night appearance on or off on any server.'
 }];
+// Defaults follow the groups; saved choices always take precedence.
+[...ADVANCED_FEATURES, ...KINGDOM_MANAGEMENT_FEATURES, ...COSMETIC_FEATURES].forEach(feature => QOL_DEFAULT_DISABLED_FEATURES.add(feature.key));
+QOL_DEFAULT_DISABLED_FEATURES.add('roadmaps');
 const KEYBINDS = [{
   keys: ['W', 'A', 'S', 'D'],
   label: 'Map Navigation (2x Speed)',
@@ -333,12 +337,12 @@ function escapeHtml(value) {
   return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
 function featureCardHtml(feature) {
-  return `
+  return apesHtml_menu`
         <article class="qol-feature-card" data-feature-key="${escapeHtml(feature.key)}">
             <span class="qol-feature-icon" aria-hidden="true">${String(feature.icon).startsWith('<svg class="qol-feature-symbol"') ? feature.icon : escapeHtml(feature.icon)}</span>
             <div class="qol-feature-copy">
-                <h3 class="qol-feature-name">${escapeHtml(feature.name)}</h3>
-                <p class="qol-feature-desc">${escapeHtml(feature.description)}</p>
+                <h3 class="qol-feature-name" data-apes-i18n="${escapeHtml(feature.name)}">${escapeHtml(feature.name)}</h3>
+                <p class="qol-feature-desc" data-apes-i18n="${escapeHtml(feature.description)}">${escapeHtml(feature.description)}</p>
             </div>
             <label class="qol-switch" title="Toggle ${escapeHtml(feature.name)}">
                 <input type="checkbox" id="${escapeHtml(feature.id)}" class="qol-checkbox">
@@ -349,7 +353,7 @@ function featureCardHtml(feature) {
     `;
 }
 function themePickerHtml() {
-  const options = QOL_THEMES.map(theme => `
+  const options = QOL_THEMES.map(theme => apesHtml_menu`
         <div class="qol-theme-option"
              data-qol-theme-option="${escapeHtml(theme.key)}"
              role="radio"
@@ -360,13 +364,13 @@ function themePickerHtml() {
                 ${theme.swatches.map(color => `<i style="background:${escapeHtml(color)}"></i>`).join('')}
             </span>
             <span class="qol-theme-option-copy">
-                <strong>${escapeHtml(theme.name)}</strong>
-                <small>${escapeHtml(theme.description)}</small>
+                <strong data-apes-i18n="${escapeHtml(theme.name)}">${escapeHtml(theme.name)}</strong>
+                <small data-apes-i18n="${escapeHtml(theme.description)}">${escapeHtml(theme.description)}</small>
             </span>
             <span class="qol-theme-selected" aria-hidden="true">&#10003;</span>
         </div>
     `).join('');
-  return `
+  return apesHtml_menu`
         <section class="qol-theme-card" aria-labelledby="qol-theme-title">
             <div class="qol-theme-card-copy">
                 <h3 id="qol-theme-title">Extension Theme</h3>
@@ -379,18 +383,18 @@ function themePickerHtml() {
     `;
 }
 function keybindHtml(item) {
-  const keys = item.keys.map(key => `<span class="qol-kbd">${escapeHtml(key)}</span>`).join('');
-  const state = item.fixed ? '<span class="qol-fixed-state">Fixed</span>' : `
+  const keys = item.keys.map(key => apesHtml_menu`<span class="qol-kbd">${escapeHtml(key)}</span>`).join('');
+  const state = item.fixed ? apesHtml_menu`<span class="qol-fixed-state">Fixed</span>` : apesHtml_menu`
             <label class="qol-switch" title="Toggle ${escapeHtml(item.label)} shortcut">
                 <input type="checkbox" id="${escapeHtml(item.id)}" class="qol-checkbox">
                 <span class="qol-switch-track" aria-hidden="true"></span>
                 <span class="qol-visually-hidden">Toggle ${escapeHtml(item.label)} shortcut</span>
             </label>
         `;
-  return `
+  return apesHtml_menu`
         <div class="qol-keybind-item">
             <div class="qol-key-combo">${keys}</div>
-            <span class="qol-keybind-action">${escapeHtml(item.label)}</span>
+            <span class="qol-keybind-action" data-apes-i18n="${escapeHtml(item.label)}">${escapeHtml(item.label)}</span>
             ${state}
         </div>
     `;
@@ -773,9 +777,9 @@ function toggleToolbarDropdown() {
     return;
   }
   const items = getEnabledToolbarItems();
-  dropdown.innerHTML = `
+  dropdown.innerHTML = apesHtml_menu`
         <div class="qol-toolbar-menu-title">Enabled APES tools</div>
-        ${items.map(item => `
+        ${items.map(item => apesHtml_menu`
             <div class="qol-toolbar-menu-item" data-toolbar-id="${escapeHtml(item.id)}" role="button" tabindex="0">
                 <span>${escapeHtml(item.label)}</span><span class="qol-toolbar-menu-arrow">›</span>
             </div>
@@ -894,7 +898,7 @@ window.qolRepositionAllButtons = function () {
   }
 };
 function buildSettingsMarkup() {
-  return `
+  return apesHtml_menu`
         <div id="qol-modal" role="dialog" aria-modal="true" aria-labelledby="qol-menu-title">
             <div class="qol-modal-header">
                 <div class="qol-modal-title-group">
@@ -911,6 +915,22 @@ function buildSettingsMarkup() {
             </div>
 
             <div class="qol-modal-body">
+                <section class="qol-language-picker" aria-labelledby="qol-language-title" style="display:block!important;margin:0 0 18px!important">
+                    <div id="qol-language-title">Extension language</div>
+                    <div role="group" aria-labelledby="qol-language-title" style="display:flex!important;flex-wrap:wrap!important;gap:6px!important;margin-top:8px!important">
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="en" lang="en" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">English</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="pt-PT" lang="pt-PT" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Português (Portugal)</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="es-ES" lang="es-ES" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Español (España)</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="fr" lang="fr" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Français</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="ru" lang="ru" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Русский</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="cs" lang="cs" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Čeština</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="de" lang="de" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Deutsch</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="it" lang="it" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Italiano</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="pl" lang="pl" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Polski</div>
+                        <div role="button" tabindex="0" aria-pressed="false" data-apes-language="ro" lang="ro" style="display:inline-flex!important;visibility:visible!important;opacity:1!important;position:static!important;align-items:center!important;min-height:30px!important;padding:5px 10px!important;border:1px solid #9d8768!important;border-radius:4px!important;background:#fffdf8!important;color:#4b3822!important;font-size:12px!important;cursor:pointer!important;pointer-events:auto!important;box-sizing:border-box!important">Română</div>
+                    </div>
+                    <span data-apes-language-status role="status" aria-live="polite"></span>
+                </section>
                 <div class="qol-section-heading qol-keybind-heading">
                     <div class="qol-section-title-group">
                         <h2 class="qol-section-title">Keybinds</h2>
@@ -1065,6 +1085,7 @@ function setupQolMenu() {
     document.body.appendChild(overlay);
     bindMenuControls(overlay);
     bindMenuShell(overlay);
+    bindLanguageSelector(overlay);
   } else {
     bindMenuControls(overlay);
   }
@@ -1083,6 +1104,39 @@ function setupQolMenu() {
   }
   mountToolbarDropdown();
   scheduleReposition();
+}
+function bindLanguageSelector(overlay) {
+  const i18n = window.APES?.i18n;
+  const picker = overlay.querySelector('.qol-language-picker');
+  if (!picker || !i18n || picker.dataset.bound === 'true') return;
+  picker.dataset.bound = 'true';
+  const buttons = [...picker.querySelectorAll('[data-apes-language]')];
+  const status = picker.querySelector('[data-apes-language-status]');
+  let saving = false;
+  const sync = () => buttons.forEach(button => {
+    const selected = button.dataset.apesLanguage === i18n.getLanguage();
+    button.setAttribute('aria-pressed', String(selected));
+    button.style.setProperty('background', selected ? '#6b5030' : '#fffdf8', 'important');
+    button.style.setProperty('color', selected ? '#fffaf0' : '#4b3822', 'important');
+  });
+  sync();
+  i18n.ready.then(sync);
+  window.APES.events?.on?.('languageChanged', sync);
+  const choose = async button => {
+    if (saving) return;
+    saving = true;
+    buttons.forEach(item => item.setAttribute('aria-disabled', 'true'));
+    status.textContent = '';
+    try { await i18n.setLanguage(button.dataset.apesLanguage); }
+    catch (_) { status.textContent = i18n.t('Language preference could not be saved. Please try again.'); }
+    finally { saving = false; buttons.forEach(item => item.removeAttribute('aria-disabled')); sync(); }
+  };
+  buttons.forEach(button => {
+    button.addEventListener('click', () => choose(button));
+    button.addEventListener('keydown', event => {
+      if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(button); }
+    });
+  });
 }
 function bindMenuShell(overlay) {
   const closeModal = () => {

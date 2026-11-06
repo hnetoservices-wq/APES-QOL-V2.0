@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_playerDossier = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'playerDossier';
   const PANEL_ID = 'qol-player-dossier';
@@ -423,7 +425,7 @@
     return number > 0 ? 'positive' : 'negative';
   }
   function badge(text, tone = 'neutral') {
-    return `<span class="qol-pd-badge ${escapeHtml(tone)}">${escapeHtml(text)}</span>`;
+    return apesHtml_playerDossier`<span class="qol-pd-badge ${escapeHtml(tone)}">${escapeHtml(text)}</span>`;
   }
   function injectStyles() {
     if (document.getElementById(STYLE_ID)) return;
@@ -467,7 +469,7 @@
     injectStyles();
     panel = document.createElement('div');
     panel.id = PANEL_ID;
-    panel.innerHTML = `
+    panel.innerHTML = apesHtml_playerDossier`
             <div class="qol-pd-head">
                 <div class="qol-pd-head-title">${dossierIcon()}<span>Player Dossier</span></div>
                 <span class="qol-pd-close" title="Close">&times;</span>
@@ -552,11 +554,11 @@
     panel.style.setProperty('top', `${top}px`, 'important');
   }
   function trendHtml(trend) {
-    if (!trend) return '<strong>—</strong><small>No historical delta</small>';
+    if (!trend) return apesHtml_playerDossier`<strong>—</strong><small>No historical delta</small>`;
     const pop = trend.population == null ? 'Pop —' : `Pop ${formatSigned(trend.population)}`;
     const villages = trend.villages == null ? 'Vill —' : `Vill ${formatSigned(trend.villages)}`;
     const label = trend.spanDays ? `${trend.spanDays}d · ${trend.source}` : trend.source;
-    return `<strong class="${toneForDelta((trend.population || 0) + (trend.villages || 0))}">${escapeHtml(pop)} · ${escapeHtml(villages)}</strong><small>${escapeHtml(label)}</small>`;
+    return apesHtml_playerDossier`<strong class="${toneForDelta((trend.population || 0) + (trend.villages || 0))}">${escapeHtml(pop)} · ${escapeHtml(villages)}</strong><small>${escapeHtml(label)}</small>`;
   }
   function renderHero(model) {
     const panel = ensurePanel();
@@ -565,7 +567,7 @@
     const ss = model.societies[0] || null;
     const tagHtml = [...model.tags.map(tag => badge(tag, 'role')), ...model.watch.map(item => badge(item.tabName, 'neutral')).slice(0, 4)].join('');
     panel.querySelector('.qol-pd-head-title span:last-child').textContent = `Player Dossier — ${model.identity.playerName || 'Unknown player'}`;
-    panel.querySelector('.qol-pd-hero').innerHTML = `
+    panel.querySelector('.qol-pd-hero').innerHTML = apesHtml_playerDossier`
             <div class="qol-pd-identity">
                 <span class="qol-pd-name">${escapeHtml(model.identity.playerName || 'Unknown player')}</span>
                 <span class="qol-pd-id">Player ID: ${escapeHtml(model.identity.playerId || 'Unknown')}</span>
@@ -582,11 +584,11 @@
             </div>`;
   }
   function watchlistOverview(model) {
-    if (!model.watch.length) return '<div class="qol-pd-empty">This player is not currently in a Watchlist.</div>';
+    if (!model.watch.length) return apesHtml_playerDossier`<div class="qol-pd-empty">This player is not currently in a Watchlist.</div>`;
     return model.watch.map(item => {
       const entry = item.entry || {};
       const capital = entry.capital || {};
-      return `
+      return apesHtml_playerDossier`
                 <div class="qol-pd-note">
                     <strong>${escapeHtml(item.tabName)}</strong>
                     <div class="qol-pd-kv">
@@ -595,18 +597,18 @@
                         <b>Capital</b><span>${escapeHtml(clean(capital.name) || '—')} ${escapeHtml(clean(capital.coords) || '')}</span>
                         <b>Last refresh</b><span>${entry.lastUpdatedAt ? escapeHtml(formatDate(entry.lastUpdatedAt)) : '—'}</span>
                     </div>
-                    ${clean(entry.notes) ? `<div style="margin-top:6px"><b>Note:</b> ${escapeHtml(clean(entry.notes))}</div>` : ''}
+                    ${clean(entry.notes) ? apesHtml_playerDossier`<div style="margin-top:6px"><b>Note:</b> ${escapeHtml(clean(entry.notes))}</div>` : ''}
                 </div>`;
     }).join('');
   }
   function societyOverview(model) {
-    if (!model.societies.length) return '<div class="qol-pd-empty">No current Secret Society scan contains this player.</div>';
+    if (!model.societies.length) return apesHtml_playerDossier`<div class="qol-pd-empty">No current Secret Society scan contains this player.</div>`;
     return model.societies.map(({
       scan,
       member
     }) => {
       const roles = ['def', 'off', 'op'].filter(role => member?.[role]).map(role => badge(role.toUpperCase(), 'role')).join('');
-      return `
+      return apesHtml_playerDossier`
                 <div class="qol-pd-ss-block">
                     <div class="qol-pd-ss-title"><span>${escapeHtml(clean(scan?.name) || 'Secret Society')}</span><span>${roles || badge('No roles')}</span></div>
                     <div class="qol-pd-ss-metrics">
@@ -624,16 +626,16 @@
   function reportSummary(model) {
     const groups = [['Attacking', model.reports.filter(report => report.role === 'Attacker').length], ['Defending', model.reports.filter(report => report.role === 'Defender').length], ['Scout', model.reports.filter(report => report.category === 'Scout').length]];
     const recent = model.reports[0];
-    return `
+    return apesHtml_playerDossier`
             <div class="qol-pd-kv">
-                ${groups.map(([label, value]) => `<b>${label}</b><span>${value.toLocaleString()}</span>`).join('')}
+                ${groups.map(([label, value]) => apesHtml_playerDossier`<b>${label}</b><span>${value.toLocaleString()}</span>`).join('')}
                 <b>Most recent</b><span>${recent ? `${escapeHtml(formatDate(recent.timestamp))} · ${escapeHtml(recent.role)} vs ${escapeHtml(recent.opponent)}` : '—'}</span>
                 <b>Archive source</b><span>${model.reports.length ? 'Report Archive' : 'No matching archived reports'}</span>
             </div>`;
   }
   function renderOverview(model) {
     const target = ensurePanel().querySelector('[data-pd-view="overview"]');
-    target.innerHTML = `
+    target.innerHTML = apesHtml_playerDossier`
             <div class="qol-pd-overview-grid">
                 <section class="qol-pd-card"><div class="qol-pd-card-head"><span>Watchlist</span><span>${model.watch.length}</span></div><div class="qol-pd-card-body"><div class="qol-pd-notes">${watchlistOverview(model)}</div></div></section>
                 <section class="qol-pd-card"><div class="qol-pd-card-head"><span>Secret Society</span><span>${model.societies.length}</span></div><div class="qol-pd-card-body">${societyOverview(model)}</div></section>
@@ -642,7 +644,7 @@
   }
   function renderReports(model) {
     const target = ensurePanel().querySelector('[data-pd-view="reports"]');
-    const rows = model.reports.slice(0, MAX_REPORT_ROWS).map(report => `
+    const rows = model.reports.slice(0, MAX_REPORT_ROWS).map(report => apesHtml_playerDossier`
             <tr data-pd-report-id="${escapeHtml(report.id)}">
                 <td>${escapeHtml(formatDate(report.timestamp))}</td>
                 <td><span class="qol-pd-report-role ${escapeHtml(report.role)}">${escapeHtml(report.role)}</span></td>
@@ -652,7 +654,7 @@
                 <td title="${escapeHtml(report.result)}">${escapeHtml(report.result)}</td>
                 <td><div class="qol-pd-report-view" role="button" tabindex="0" data-pd-report-view="${escapeHtml(report.id)}">View</div></td>
             </tr>`).join('');
-    target.innerHTML = model.reports.length ? `<table><thead><tr><th style="width:145px">Date</th><th style="width:75px">Role</th><th style="width:145px">Opponent</th><th style="width:190px">Villages</th><th style="width:125px">Folder</th><th>Result</th><th style="width:65px">View</th></tr></thead><tbody>${rows}</tbody></table>${model.reports.length > MAX_REPORT_ROWS ? `<div class="qol-pd-empty">Showing the newest ${MAX_REPORT_ROWS} of ${model.reports.length} matching reports.</div>` : ''}` : '<div class="qol-pd-empty">No archived reports match this exact player name.</div>';
+    target.innerHTML = model.reports.length ? apesHtml_playerDossier`<table><thead><tr><th style="width:145px">Date</th><th style="width:75px">Role</th><th style="width:145px">Opponent</th><th style="width:190px">Villages</th><th style="width:125px">Folder</th><th>Result</th><th style="width:65px">View</th></tr></thead><tbody>${rows}</tbody></table>${model.reports.length > MAX_REPORT_ROWS ? apesHtml_playerDossier`<div class="qol-pd-empty">Showing the newest ${MAX_REPORT_ROWS} of ${model.reports.length} matching reports.</div>` : ''}` : apesHtml_playerDossier`<div class="qol-pd-empty">No archived reports match this exact player name.</div>`;
     target.querySelectorAll('[data-pd-report-view]').forEach(control => {
       const activate = async event => {
         event.preventDefault();
@@ -696,12 +698,12 @@
   }
   function renderTimeline(model) {
     const target = ensurePanel().querySelector('[data-pd-view="timeline"]');
-    target.innerHTML = model.timeline.length ? `<div class="qol-pd-timeline">${model.timeline.map(event => `
+    target.innerHTML = model.timeline.length ? apesHtml_playerDossier`<div class="qol-pd-timeline">${model.timeline.map(event => apesHtml_playerDossier`
                 <div class="qol-pd-event ${escapeHtml(event.type)}">
                     <div class="qol-pd-event-time">${escapeHtml(formatDate(event.timestamp))}</div>
                     <div class="qol-pd-event-type">${escapeHtml(eventTypeLabel(event.type))}</div>
                     <div class="qol-pd-event-main"><strong>${escapeHtml(event.title)}</strong><span>${escapeHtml(event.detail || '')}</span></div>
-                </div>`).join('')}</div>` : '<div class="qol-pd-empty">No dated Watchlist, Secret Society or Report Archive activity is available for this player yet.</div>';
+                </div>`).join('')}</div>` : apesHtml_playerDossier`<div class="qol-pd-empty">No dated Watchlist, Secret Society or Report Archive activity is available for this player yet.</div>`;
   }
   async function renderActive() {
     if (!activeIdentity) return;

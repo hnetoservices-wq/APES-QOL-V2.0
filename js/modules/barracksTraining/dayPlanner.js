@@ -14,8 +14,8 @@
   window[FLAG] = true;
 
   function enabled() {
-    try { return window.localStorage?.getItem(STORAGE_KEY) !== 'false'; }
-    catch (_) { return true; }
+    try { return window.localStorage?.getItem(STORAGE_KEY) === 'true'; }
+    catch (_) { return false; }
   }
 
   function displayedSeconds(text) {

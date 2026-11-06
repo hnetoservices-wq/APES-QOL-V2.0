@@ -1,5 +1,7 @@
 function initBuildingAlarm() {
   'use strict';
+const apesHtml_buildingAlarm = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const FEATURE_KEY = 'buildingAlarm';
   const STORAGE_KEY = 'qol_building_alarms';
@@ -185,7 +187,8 @@ function initBuildingAlarm() {
       body.qol-building-alarm-enabled .queueContainer .detailsContent .detailsTime > i.symbol_clock_small_flat_black.duration.${CLOCK_CLASS}.active{filter:invert(38%) sepia(28%) saturate(1030%) hue-rotate(46deg) brightness(84%) contrast(86%)!important}
 
       #${STATUS_ID},#${STATUS_ID} *{box-sizing:border-box!important;font-family:Arial,sans-serif!important;text-shadow:none!important}
-      #${STATUS_ID}{position:fixed!important;z-index:9998!important;display:none!important;width:28px!important;height:28px!important;color:#f8f2e7!important;user-select:none!important}
+      /* Native game tooltips use layer 4070; keep the header indicator below them. */
+      #${STATUS_ID}{position:fixed!important;z-index:4060!important;display:none!important;width:28px!important;height:28px!important;color:#f8f2e7!important;user-select:none!important}
       #${STATUS_ID} .qol-building-alarm-status-main{display:flex!important;align-items:center!important;justify-content:center!important;gap:0!important;width:100%!important;height:28px!important;padding:0!important;border:1px solid rgba(255,255,255,.18)!important;border-radius:4px!important;background:linear-gradient(to bottom,#665137,#4b3927)!important;box-shadow:0 2px 5px rgba(0,0,0,.28)!important;cursor:default!important;outline:none!important}
       #${STATUS_ID}.idle .qol-building-alarm-status-main{background:linear-gradient(to bottom,#554a3c,#40382f)!important;color:#d7ccbd!important}
       #${STATUS_ID}.upcoming .qol-building-alarm-status-main{background:linear-gradient(to bottom,#766038,#594724)!important;color:#fff4cf!important}
@@ -235,7 +238,7 @@ function initBuildingAlarm() {
     root = document.createElement('div');
     root.id = STATUS_ID;
     root.className = 'idle';
-    root.innerHTML = `
+    root.innerHTML = apesHtml_buildingAlarm`
       <div class="qol-building-alarm-status-main" tabindex="0" role="status" aria-live="polite">
         <span class="qol-building-alarm-status-icon" aria-hidden="true">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"></circle><path d="M12 9v4l2.7 1.6M7 3 4 6m13-3 3 3M9 21h6"></path></svg>
@@ -300,7 +303,7 @@ function initBuildingAlarm() {
 
   function renderHoverRows(alarms, now, ready) {
     if (!alarms.length) {
-      return `<div class="qol-building-alarm-hover-empty">${ready ? 'No buildings are currently ready for free instant finish.' : 'No upcoming building alarms are set.'}</div>`;
+      return apesHtml_buildingAlarm`<div class="qol-building-alarm-hover-empty">${ready ? 'No buildings are currently ready for free instant finish.' : 'No upcoming building alarms are set.'}</div>`;
     }
     return alarms.map(alarm => {
       const transition = getLevelTransition(alarm);
@@ -309,7 +312,7 @@ function initBuildingAlarm() {
         : now >= Number(alarm.alarmAt)
           ? `Free in ${escapeHtml(formatCountdown(Number(alarm.finishAt) - FREE_FINISH_SECONDS - now))}`
           : `Alarm in ${escapeHtml(formatCountdown(Number(alarm.alarmAt) - now))}`;
-      return `
+      return apesHtml_buildingAlarm`
         <div class="qol-building-alarm-hover-row${ready ? ' ready' : ''}" data-alarm-id="${escapeHtml(alarm.id)}">
           <span class="qol-building-alarm-hover-village" data-village-id="${escapeHtml(alarm.villageId)}" title="Open ${escapeHtml(alarm.villageName)}">${escapeHtml(alarm.villageName)}</span>
           <span class="qol-building-alarm-hover-building" title="${escapeHtml(transition.from)} → ${escapeHtml(transition.to)}">${escapeHtml(transition.from)} → ${escapeHtml(transition.to)}</span>
@@ -352,7 +355,7 @@ function initBuildingAlarm() {
       ? `${alarms.length} active · ${readyAlarms.length} ready`
       : 'No alarms set';
 
-    body.innerHTML = `
+    body.innerHTML = apesHtml_buildingAlarm`
       <div class="qol-building-alarm-group-title ready">
         <span>Ready for Free Finish</span>
         <span class="qol-building-alarm-badge">${readyAlarms.length}</span>

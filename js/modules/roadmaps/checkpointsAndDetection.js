@@ -1,5 +1,7 @@
 (() => {
   'use strict';
+const apesHtml_checkpointsAndDetection = window.APES?.i18n?.html || ((s, ...v) => String.raw({ raw: s }, ...v));
+
 
   const CUSTOM_KEY = 'qol_roadmap_profiles_v1';
   const SELECTED_KEY = 'qol_roadmap_selected_v1';
@@ -98,7 +100,7 @@
     document.querySelector('.qol-rms6-toast')?.remove();
     const toast = document.createElement('div');
     toast.className = `qol-rms6-toast ${type}`;
-    toast.textContent = message;
+    ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(message);})(toast);
     document.body.appendChild(toast);
     setTimeout(() => toast.remove(), 2400);
   }
@@ -136,7 +138,7 @@
     closeEditorDialog();
     const layer = document.createElement('div');
     layer.id = EDIT_DIALOG_ID;
-    layer.innerHTML = `
+    layer.innerHTML = apesHtml_checkpointsAndDetection`
       <div class="qol-rm-dialog qol-rme-dialog qol-rms6-checkpoint-dialog" role="dialog" aria-modal="true">
         <div class="qol-rm-dialog-head">${editing ? 'Edit Checkpoint' : 'Add Checkpoint'}</div>
         <div class="qol-rm-dialog-body">
@@ -160,7 +162,7 @@
     wireButton(layer.querySelector('[data-rms6-save]'), () => {
       const text = clean(input.value);
       if (!text) {
-        status.textContent = 'Enter a checkpoint instruction.';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Enter a checkpoint instruction.");})(status);
         input.focus();
         return;
       }
@@ -239,7 +241,7 @@
       button.dataset.rms6CheckpointAdd = '1';
       button.setAttribute('role', 'button');
       button.setAttribute('tabindex', '0');
-      button.textContent = '+ Checkpoint';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("+ Checkpoint");})(button);
       const instruction = add.querySelector('[data-rme-add="instruction"]');
       if (instruction) add.insertBefore(button, instruction);
       else add.appendChild(button);
@@ -253,12 +255,12 @@
       row.classList.add('qol-rms6-checkpoint-row');
       const badge = row.querySelector('.qol-rm-step-type');
       if (badge) {
-        badge.textContent = 'Checkpoint';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Checkpoint");})(badge);
         badge.classList.remove('building', 'resource', 'instruction');
         badge.classList.add('checkpoint');
       }
       const stepText = row.querySelector('.qol-rm-step-text');
-      if (stepText) stepText.textContent = text;
+      if (stepText) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(stepText);
     });
   }
 
@@ -279,18 +281,18 @@
 
     const badge = panel.querySelector('.qol-rmr-type');
     if (badge) {
-      badge.textContent = 'Checkpoint';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Checkpoint");})(badge);
       badge.classList.remove('building', 'resource');
       badge.classList.add('checkpoint');
     }
     const stepText = panel.querySelector('.qol-rmr-step-text');
-    if (stepText) stepText.textContent = text;
+    if (stepText) ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write(text);})(stepText);
 
     const card = panel.querySelector('.qol-rmr-step-card');
     if (card && !card.querySelector('.qol-rms6-checkpoint-note')) {
       const note = document.createElement('div');
       note.className = 'qol-rms6-checkpoint-note';
-      note.textContent = 'Manual checkpoint — confirm this yourself before continuing.';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("Manual checkpoint — confirm this yourself before continuing.");})(note);
       card.appendChild(note);
     }
 
@@ -328,7 +330,7 @@
     if (!status) return;
     const block = document.createElement('div');
     block.className = 'qol-rms6-detection-block';
-    block.innerHTML = `
+    block.innerHTML = apesHtml_checkpointsAndDetection`
       <div class="qol-rms6-section-title">Progress Detection</div>
       <div class="qol-rms6-detection-list" role="radiogroup" aria-label="Progress detection">
         <div class="qol-rms6-detection" data-rms6-detection="manual" role="radio" tabindex="0" aria-checked="false">
@@ -435,7 +437,7 @@
       }
       if (badge) {
         badge.className = `qol-rms6-detection-mode ${mode}`;
-        badge.textContent = mode === 'manual' ? 'Manual Detection' : 'Automatic Detection';
+        ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return (mode === 'manual')?(write("Manual Detection")):(write("Automatic Detection"));})(badge);
       }
     }
 
