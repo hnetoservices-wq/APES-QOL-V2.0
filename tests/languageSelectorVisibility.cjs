@@ -13,7 +13,7 @@ const {JSDOM}=require('jsdom');
  w.eval(source.slice(a,b));w.document.body.innerHTML=w.buildSettingsMarkup();
  const c=source.indexOf('function bindLanguageSelector(overlay) {'),d=source.indexOf('function bindMenuShell(overlay)',c);w.eval(source.slice(c,d));w.bindLanguageSelector(w.document.body);
  const buttons=[...w.document.querySelectorAll('[data-apes-language]')];
- assert.deepEqual(buttons.map(x=>x.dataset.apesLanguage),['en','pt-PT','es-ES','fr','ru','cs','de','it']);
+ assert.deepEqual(buttons.map(x=>x.dataset.apesLanguage),['en','pt-PT','es-ES','fr','ru','cs','de','it','pl']);
  for(const button of buttons){
   const css=w.getComputedStyle(button);assert.equal(css.display,'inline-flex');assert.equal(css.visibility,'visible');assert.equal(css.pointerEvents,'auto');
   button.click();await new Promise(r=>w.setTimeout(r,0));
@@ -22,5 +22,5 @@ const {JSDOM}=require('jsdom');
  }
  buttons[1].dispatchEvent(new w.KeyboardEvent('keydown',{key:'Enter',bubbles:true}));await new Promise(r=>w.setTimeout(r,0));assert.equal(w.APES.i18n.getLanguage(),'pt-PT');
  fail=true;buttons[3].click();await new Promise(r=>w.setTimeout(r,0));assert.equal(w.APES.i18n.getLanguage(),'pt-PT');assert.ok(w.document.querySelector('[data-apes-language-status]').textContent);assert.equal(buttons[1].getAttribute('aria-pressed'),'true');
- dom.window.close();console.log('Actual localized settings: all eight visible choices, mouse selection, keyboard selection, persistence, selected state and save failure passed.');
+ dom.window.close();console.log('Actual localized settings: all nine visible choices, mouse selection, keyboard selection, persistence, selected state and save failure passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;});

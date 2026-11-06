@@ -4,7 +4,7 @@
   if (!APES || APES.i18n) return;
   const languages = Object.freeze([
     ['en', 'English'], ['pt-PT', 'Português (Portugal)'], ['es-ES', 'Español (España)'],
-    ['fr', 'Français'], ['ru', 'Русский'], ['cs', 'Čeština'], ['de', 'Deutsch'], ['it', 'Italiano']
+    ['fr', 'Français'], ['ru', 'Русский'], ['cs', 'Čeština'], ['de', 'Deutsch'], ['it', 'Italiano'], ['pl', 'Polski']
   ].map(([code, name]) => Object.freeze({ code, name })));
   const STORAGE_KEY = 'apes:v2:global:i18n:language';
   const valid = value => languages.some(language => language.code === value);
