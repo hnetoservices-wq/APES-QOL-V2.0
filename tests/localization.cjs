@@ -10,8 +10,8 @@ const assert = require('node:assert/strict');
  }, onChanged: {addListener() {}} } };
  for (const file of ['js/locales/catalogs.js','js/core/i18n.js']) w.eval(fs.readFileSync(require('node:path').join(__dirname,'..',file),'utf8'));
  const i = w.APES.i18n; await i.ready;
- assert.deepEqual(Array.from(i.languages, language=>language.code),['en','pt-PT','es-ES','fr','ru','cs','de','it','pl']);
- assert.equal(Object.keys(w.APES.localeCatalogs.pl).length,Object.keys(w.APES.localeCatalogs['pt-PT']).length);
+ assert.deepEqual(Array.from(i.languages, language=>language.code),['en','pt-PT','es-ES','fr','ru','cs','de','it','pl','ro']);
+ for(const code of ['pl','ro']) assert.equal(Object.keys(w.APES.localeCatalogs[code]).length,Object.keys(w.APES.localeCatalogs['pt-PT']).length);
  const ui = w.document.querySelector('#ui');
  const fragment = w.document.createElement('div');
  fragment.innerHTML = i.html`<a href="` + '/map' + '">Open map</a>';
@@ -26,21 +26,27 @@ const assert = require('node:assert/strict');
   assert.equal(w.document.querySelector('#player').textContent,'Settings');
  }
  await assert.rejects(i.setLanguage('xx'));
- fail = true; await assert.rejects(i.setLanguage('fr')); assert.equal(i.getLanguage(),'pl');
+ fail = true; await assert.rejects(i.setLanguage('fr')); assert.equal(i.getLanguage(),'ro');
  fail = false; await i.setLanguage('pt-PT');
  const dynamic = w.document.createElement('div'); dynamic.innerHTML = i.html`<b>Language</b>`; ui.append(dynamic);
  await new Promise(resolve => w.setTimeout(resolve,0)); assert.equal(dynamic.textContent,'Idioma');
  for (const catalog of Object.values(w.APES.localeCatalogs)) { assert.ok(Object.keys(catalog).length >= 870); assert.ok(Object.values(catalog).every(value=>value.trim())); }
- await i.setLanguage('pl');
- assert.equal(i.t('Extension language'),'Język rozszerzenia');
- assert.equal(i.t('Update current watchlist'),'Aktualizuj bieżącą listę obserwowanych');
- assert.equal(i.t('Open map'),'Otwórz mapę');
- assert.equal(i.number(1234.5),new Intl.NumberFormat('pl').format(1234.5));
- const reload=new JSDOM('<!doctype html><body></body>',{runScripts:'outside-only'});
- reload.window.APES={};reload.window.chrome=w.chrome;
- for(const file of ['js/locales/catalogs.js','js/core/i18n.js'])reload.window.eval(fs.readFileSync(require('node:path').join(__dirname,'..',file),'utf8'));
- await reload.window.APES.i18n.ready;
- assert.equal(reload.window.APES.i18n.getLanguage(),'pl','Saved Polish preference survives reload');
- reload.window.close();
- dom.window.close(); console.log('Localization: nine languages, persistence, switching, attributes, dynamic UI, data isolation and save failures passed.');
+ for(const [code,heading,update,map] of [
+  ['pl','Język rozszerzenia','Aktualizuj bieżącą listę obserwowanych','Otwórz mapę'],
+  ['ro','Limba extensiei','Actualizează lista de urmărire curentă','Deschide harta']
+ ]){
+  await i.setLanguage(code);
+  assert.equal(i.t('Extension language'),heading);
+  assert.equal(i.t('Update current watchlist'),update);
+  assert.equal(i.t('Open map'),map);
+  assert.equal(i.number(1234.5),new Intl.NumberFormat(code).format(1234.5));
+  const reload=new JSDOM('<!doctype html><body></body>',{runScripts:'outside-only'});
+  reload.window.APES={};reload.window.chrome=w.chrome;
+  for(const file of ['js/locales/catalogs.js','js/core/i18n.js'])reload.window.eval(fs.readFileSync(require('node:path').join(__dirname,'..',file),'utf8'));
+  await reload.window.APES.i18n.ready;
+  assert.equal(reload.window.APES.i18n.getLanguage(),code,'Saved language preference survives reload');
+  reload.window.close();
+ }
+
+ dom.window.close(); console.log('Localization: ten languages, persistence, switching, attributes, dynamic UI, data isolation and save failures passed.');
 })();
