@@ -19,7 +19,7 @@ assert.match(js, /<b>\$\{safe\(item\.label\)\}<\/b>\s*\n\s*<em>\$\{current>0\?'\
 // take part in axis scaling and show its sum in the tooltip and legend.
 const start=js.indexOf('  const RESOURCE_TYPES=[');
 const end=js.indexOf('  const TRIBES=',start);
-const graphStart=js.indexOf('  function resourceDevelopmentHtml(history) {');
+const graphStart=js.indexOf('  function resourceDevelopmentHtml(');
 const graphEnd=js.indexOf('  function resourceHtml(summary){',graphStart);
 assert.ok(start>=0 && end>start && graphStart>0 && graphEnd>graphStart);
 const makeGraph=new Function(
@@ -28,6 +28,7 @@ const makeGraph=new Function(
   'const safe=v=>String(v??"");\n'+
   'const fmt=v=>Math.round(Number(v)||0).toLocaleString("en-US");\n'+
   'const compact=v=>Math.abs(v)>=1000?(v/1000).toFixed(1)+"k":String(v);\n'+
+  js.match(/^  const day=.+$/m)[0]+'\n'+
   js.slice(graphStart,graphEnd)+
   'return resourceDevelopmentHtml;'
 )();
@@ -87,3 +88,17 @@ assert.equal(fullHistory[0].timestamp, storedHistory[0].timestamp);
 const fullGraph = makeGraph(fullHistory);
 assert.match(fullGraph, /181 complete scans/);
 assert.match(fullGraph, /<title>Wood: 1\/h/, 'The oldest saved production point appears on the chart');
+
+const datedHistory = [
+  [8, 23, 81], [9, 0, 91], [9, 12, 92], [10, 9, 101], [10, 23, 102], [11, 0, 111]
+].map(([date, hour, wood]) => ({
+  ...history[0],
+  timestamp: new Date(2026, 10, date, hour, 59).getTime(),
+  totals: { ...history[0].totals, wood }
+}));
+const rangeGraph = makeGraph(datedHistory, {start: '2026-11-09', end: '2026-11-10'});
+assert.match(rangeGraph, /4 complete scans/);
+assert.deepEqual([...rangeGraph.matchAll(/<title>Wood: (\d+)\/h/g)].map(match => Number(match[1])), [91, 92, 101, 102]);
+assert.match(makeGraph(datedHistory, {start: '2026-11-09', end: '2026-11-09'}), /2 complete scans/);
+assert.match(makeGraph(datedHistory, {start: '2026-11-12'}), /No complete scans in this date range/);
+assert.match(makeGraph(datedHistory, {start: '2026-11-10', end: '2026-11-09'}), /Start date must be on or before end date/);
