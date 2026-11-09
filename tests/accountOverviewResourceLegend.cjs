@@ -60,3 +60,30 @@ assert.match(js, /window\.addEventListener\('apes_vd_dashboard_scan_complete',\(
   'Chart is repainted after all village, Smithy and Troop passes finish');
 
 console.log('Account Overview production graph has five wrapped legend entries and a correct Total series.');
+
+const { runInNewContext } = require('node:vm');
+const storeKey = 'apes_qol_account_resource_production_history_v1:history.kingdoms.com:7';
+const storedHistory = Array.from({ length: 180 }, (_, index) => ({
+  ...history[0],
+  timestamp: history[0].timestamp + index * 60_000,
+  totals: { wood: index + 1, clay: 200, iron: 300, crop: 400 }
+}));
+const store = new Map([[storeKey, JSON.stringify(storedHistory)]]);
+const window = {
+  location: { hostname: 'history.kingdoms.com' },
+  APES_VILLAGE_PALETTE: { getVillages: () => [{ playerId: 7 }] },
+  addEventListener() {}, dispatchEvent() {}, setInterval() {}, setTimeout() {}, clearTimeout() {}
+};
+runInNewContext(fs.readFileSync(path.join(root, 'js/modules/villageDashboard/resourceProduction.js'), 'utf8'), {
+  window,
+  localStorage: { getItem: key => store.get(key), setItem: (key, value) => store.set(key, value) },
+  CustomEvent: class {}
+});
+const production = window.APES.villageResourceProduction;
+assert.equal(production.recordScan(['10'], { '10': { villageId: '10', production: history[2].totals } }), true);
+const fullHistory = production.scanHistory();
+assert.equal(fullHistory.length, 181, 'Saving a new scan retains older history beyond the former storage limit');
+assert.equal(fullHistory[0].timestamp, storedHistory[0].timestamp);
+const fullGraph = makeGraph(fullHistory);
+assert.match(fullGraph, /181 complete scans/);
+assert.match(fullGraph, /<title>Wood: 1\/h/, 'The oldest saved production point appears on the chart');

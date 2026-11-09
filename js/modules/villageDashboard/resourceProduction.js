@@ -3,7 +3,6 @@
 
   const STORE_PREFIX = 'apes_qol_village_resource_production_v1';
   const HISTORY_PREFIX = 'apes_qol_account_resource_production_history_v1';
-  const MAX_SCAN_SNAPSHOTS = 180;
   const RESOURCE_DEFS = Object.freeze([
     { key: 'wood', label: 'Wood' },
     { key: 'clay', label: 'Clay' },
@@ -191,7 +190,7 @@
       return Array.isArray(data) ? data.filter(row=>
         Number.isFinite(Number(row?.timestamp))&&row?.totals&&typeof row.totals==='object'&&
         Number.isInteger(Number(row?.captured))&&Number.isInteger(Number(row?.villages))
-      ).sort((a,b)=>Number(a.timestamp)-Number(b.timestamp)).slice(-MAX_SCAN_SNAPSHOTS) : [];
+      ).sort((a,b)=>Number(a.timestamp)-Number(b.timestamp)) : [];
     }catch(_error){return [];}
   }
 
@@ -212,11 +211,11 @@
       resource.key,Object.values(perVillage).reduce((sum,village)=>sum+village[resource.key],0)
     ]));
     const captured=Object.keys(perVillage).length;
-    const item={timestamp:Date.now(),villages:expected.length,captured,complete:captured===expected.length,totals,perVillage};
+    const item={timestamp:Date.now(),villages:expected.length,captured,complete:captured===expected.length,totals};
     try{
       const records=scanHistory();
       records.push(item);
-      localStorage.setItem(key,JSON.stringify(records.slice(-MAX_SCAN_SNAPSHOTS)));
+      localStorage.setItem(key,JSON.stringify(records));
       window.dispatchEvent(new CustomEvent('apes_vd_resource_history_updated',{
         detail:{timestamp:item.timestamp,captured,villages:expected.length,complete:item.complete}
       }));

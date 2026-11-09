@@ -145,7 +145,7 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
     const all=Array.isArray(history)?history:[];
     const records=all.filter(row=>row?.complete===true &&
       Number(row?.captured)>0 && Number(row.captured)===Number(row.villages) &&
-      RESOURCE_TYPES.every(resource=>num(row?.totals?.[resource.key])!==null)).slice(-30);
+      RESOURCE_TYPES.every(resource=>num(row?.totals?.[resource.key])!==null));
     const last=all.at(-1);
     const note=last && !last.complete ? `Latest scan partial: ${fmt(last.captured)}/${fmt(last.villages)} villages; excluded from graph.` : '';
     const heading=apesHtml_accountOverview`<div class="apes-ao-resource-trend-head">
@@ -155,11 +155,19 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
       <div class="apes-ao-resource-empty">No complete production scans yet. Use Scan Now to record the first snapshot.</div>
       ${note?apesHtml_accountOverview`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
     const W=700,H=150,L=55,R=13,T=13,B=26,PW=W-L-R,PH=H-T-B;
-    const amounts=records.flatMap(row=>RESOURCE_CHART_TYPES.map(item=>productionValue(row,item)));
-    let minimum=Math.min(0,...amounts),maximum=Math.max(0,...amounts);
+    let minimum=0,maximum=0;
+    for(const row of records){
+      for(const resource of RESOURCE_CHART_TYPES){
+        const value=productionValue(row,resource);
+        minimum=Math.min(minimum,value);
+        maximum=Math.max(maximum,value);
+      }
+    }
     if(maximum===minimum){maximum+=1;minimum-=1;}
     const range=maximum-minimum;
-    const x=i=>records.length===1?L+PW/2:L+PW*i/(records.length-1);
+    const firstTimestamp=Number(records[0].timestamp);
+    const duration=Number(records.at(-1).timestamp)-firstTimestamp;
+    const x=i=>duration>0?L+PW*(Number(records[i].timestamp)-firstTimestamp)/duration:L+PW/2;
     const y=n=>T+PH*(maximum-n)/range;
     const grid=[0,.25,.5,.75,1].map(frac=>{
       const value=minimum+frac*range, yy=y(value);
@@ -178,7 +186,8 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
       }).join('');
       return path+dots;
     }).join('');
-    const labelIndexes=[...new Set([0,Math.floor((records.length-1)/2),records.length-1])];
+    // Keep endpoint labels readable even when many scans occur on one day.
+    const labelIndexes=[...new Set([0,records.length-1])];
     const labels=labelIndexes.map(i=>{
       const d=new Date(Number(records[i].timestamp));
       const stamp=d.toLocaleDateString(undefined,{day:'2-digit',month:'2-digit'})+' '+d.toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'});
