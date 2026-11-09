@@ -24,7 +24,6 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
     3:['Phalanx','Swordsman','Pathfinder','Theutates Thunder','Druidrider','Haeduan','Ram','Trebuchet','Chieftain','Settler']
   };
   let snapshot=null,lastPopulation='',lastRender='';
-  const productionRange={start:'',end:''};
   const safe=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const num=v=>v===''||v==null?null:Number.isFinite(Number(v))?Number(v):null;
   const fmt=v=>Math.round(Number(v)||0).toLocaleString();
@@ -142,26 +141,18 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
     return {rows,total,scanned,villages:villages.length,oldest,latest};
   }
 
-  function resourceDevelopmentHtml(history,{start='',end=''}={}) {
+  function resourceDevelopmentHtml(history) {
     const all=Array.isArray(history)?history:[];
-    const complete=all.filter(row=>row?.complete===true &&
+    const records=all.filter(row=>row?.complete===true &&
       Number(row?.captured)>0 && Number(row.captured)===Number(row.villages) &&
       RESOURCE_TYPES.every(resource=>num(row?.totals?.[resource.key])!==null));
-    const records=complete.filter(row=>{
-      const scanDay=day(Number(row.timestamp));
-      return (!start||scanDay>=start)&&(!end||scanDay<=end);
-    });
     const last=all.at(-1);
     const note=last && !last.complete ? `Latest scan partial: ${fmt(last.captured)}/${fmt(last.villages)} villages; excluded from graph.` : '';
     const heading=apesHtml_accountOverview`<div class="apes-ao-resource-trend-head">
       <strong>Resource Production Development</strong>
       <small>Account totals per hour · ${records.length} complete scan${records.length===1?'':'s'}</small></div>`;
     if(!records.length) return apesHtml_accountOverview`<div class="apes-ao-resource-trend">${heading}
-      <div class="apes-ao-resource-empty">${start&&end&&start>end
-        ?apesHtml_accountOverview`Start date must be on or before end date.`
-        :complete.length
-          ?apesHtml_accountOverview`No complete scans in this date range.`
-          :apesHtml_accountOverview`No complete production scans yet. Use Scan Now to record the first snapshot.`}</div>
+      <div class="apes-ao-resource-empty">No complete production scans yet. Use Scan Now to record the first snapshot.</div>
       ${note?apesHtml_accountOverview`<small class="apes-ao-caveat">${safe(note)}</small>`:''}</div>`;
     const W=700,H=150,L=55,R=13,T=13,B=26,PW=W-L-R,PH=H-T-B;
     let minimum=0,maximum=0;
@@ -555,13 +546,7 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
       <div class="apes-ao-row-primary">
         <div class="apes-ao-resource-stack">
           ${resourceHtml(resources)}
-          <section class="apes-ao-chart apes-ao-production-development">
-            <div class="apes-ao-production-range">
-              <label>Start date <input type="date" data-apes-ao-production-date="start" value="${safe(productionRange.start)}"></label>
-              <label>End date <input type="date" data-apes-ao-production-date="end" value="${safe(productionRange.end)}"></label>
-            </div>
-            <div data-apes-ao-production-graph>${resourceDevelopmentHtml(resourceHistory,productionRange)}</div>
-          </section>
+          <section class="apes-ao-chart apes-ao-production-development">${resourceDevelopmentHtml(resourceHistory)}</section>
         </div>
         ${storageForecastHtml(storage)}
       </div>
@@ -589,16 +574,6 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
       element.scrollTop=scrollPositions[element.dataset.apesAoScroll]||0;
     });
   }
-  document.addEventListener('change',event=>{
-    const input=event.target;
-    const boundary=input?.dataset?.apesAoProductionDate;
-    if(boundary!=='start'&&boundary!=='end')return;
-    const graph=input.closest('.apes-ao-production-development')?.querySelector('[data-apes-ao-production-graph]');
-    if(!graph)return;
-    productionRange[boundary]=input.value;
-    const history=window.APES?.villageResourceProduction?.scanHistory?.()||[];
-    graph.innerHTML=resourceDevelopmentHtml(history,productionRange);
-  });
   document.addEventListener('click',event=>{
     const target=event.target?.closest?.('[data-apes-ao-village]');
     if(!target?.closest?.('.apes-vd-account-overview'))return;

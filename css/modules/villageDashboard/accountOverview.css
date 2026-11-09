@@ -330,29 +330,6 @@
 }
 
 /* Production development: native Scan Now snapshots (not estimates). */
-#apes-v2-village-overlay .apes-ao-production-range {
-  display: flex !important;
-  flex-wrap: wrap !important;
-  gap: 8px 14px !important;
-  margin-bottom: 8px !important;
-}
-#apes-v2-village-overlay .apes-ao-production-range label {
-  display: flex !important;
-  align-items: center !important;
-  gap: 6px !important;
-  color: #f4e7ca !important;
-  font-size: 11px !important;
-}
-#apes-v2-village-overlay .apes-ao-production-range input[type="date"] {
-  display: inline-block !important;
-  appearance: auto !important;
-  color-scheme: dark;
-  background: #29271f !important;
-  color: #f4e7ca !important;
-  border: 1px solid #75674a !important;
-  border-radius: 4px !important;
-  padding: 3px 6px !important;
-}
 #apes-v2-village-overlay .apes-ao-resource-trend {
   display: flex !important;
   flex-direction: column !important;

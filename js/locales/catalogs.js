@@ -1037,10 +1037,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "A analisar Câmaras Municipais e celebrações: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "A verificar PC de fundação da cidade em {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Análise de PC concluída ({v0}). Próxima expansão no espaço {v1}. {v2} Câmara Municipal detetada.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Análise de PC concluída ({v0}). Próxima expansão no espaço {v1}. {v2} Câmaras Municipais detetadas.",
-    "End date": "Data de fim",
-    "Start date must be on or before end date.": "A data de início deve ser igual ou anterior à data de fim.",
-    "No complete scans in this date range.": "Não há análises completas neste intervalo de datas."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Análise de PC concluída ({v0}). Próxima expansão no espaço {v1}. {v2} Câmaras Municipais detetadas."
   },
   "es-ES": {
     "Language": "Idioma",
@@ -2078,10 +2075,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Analizando Ayuntamientos y celebraciones: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Comprobando PC de fundación de ciudad en {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Análisis de PC completado ({v0}). Próxima expansión en espacio {v1}. {v2} Ayuntamiento detectado.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Análisis de PC completado ({v0}). Próxima expansión en espacio {v1}. {v2} Ayuntamientos detectados.",
-    "End date": "Fecha de fin",
-    "Start date must be on or before end date.": "La fecha de inicio debe ser igual o anterior a la fecha de fin.",
-    "No complete scans in this date range.": "No hay escaneos completos en este intervalo de fechas."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Análisis de PC completado ({v0}). Próxima expansión en espacio {v1}. {v2} Ayuntamientos detectados."
   },
   "fr": {
     "Language": "Langue",
@@ -3119,10 +3113,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Analyse des hôtels de ville et fêtes : {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Vérification des PC de fondation de ville dans {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Analyse des PC terminée ({v0}). Prochaine expansion : emplacement {v1}. {v2} hôtel de ville détecté.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Analyse des PC terminée ({v0}). Prochaine expansion : emplacement {v1}. {v2} hôtels de ville détectés.",
-    "End date": "Date de fin",
-    "Start date must be on or before end date.": "La date de début doit être antérieure ou égale à la date de fin.",
-    "No complete scans in this date range.": "Aucune analyse complète dans cette période."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Analyse des PC terminée ({v0}). Prochaine expansion : emplacement {v1}. {v2} hôtels de ville détectés."
   },
   "ru": {
     "Language": "Язык",
@@ -4160,10 +4151,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Проверка ратуш и праздников: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Проверка ПК основания города в {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Проверка ПК завершена ({v0}). Следующее расширение: слот {v1}. Обнаружена {v2} ратуша.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Проверка ПК завершена ({v0}). Следующее расширение: слот {v1}. Обнаружено {v2} ратуш.",
-    "End date": "Дата окончания",
-    "Start date must be on or before end date.": "Дата начала должна быть не позже даты окончания.",
-    "No complete scans in this date range.": "За этот период нет полных сканирований."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Проверка ПК завершена ({v0}). Следующее расширение: слот {v1}. Обнаружено {v2} ратуш."
   },
   "cs": {
     "Language": "Jazyk",
@@ -5201,10 +5189,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Skenování radnic a oslav: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Kontrola KB založení města v {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Skenování KB dokončeno ({v0}). Další expanze: slot {v1}. Zjištěna {v2} radnice.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Skenování KB dokončeno ({v0}). Další expanze: slot {v1}. Zjištěno {v2} radnic.",
-    "End date": "Datum konce",
-    "Start date must be on or before end date.": "Datum zahájení nesmí být pozdější než datum konce.",
-    "No complete scans in this date range.": "V tomto období nejsou žádná úplná skenování."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Skenování KB dokončeno ({v0}). Další expanze: slot {v1}. Zjištěno {v2} radnic."
   },
   "de": {
     "Language": "Sprache",
@@ -6242,10 +6227,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Rathäuser und Feste werden gescannt: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Stadtgründungs-KP werden geprüft in {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "KP-Scan abgeschlossen ({v0}). Nächste Erweiterung: Platz {v1}. {v2} Rathaus erkannt.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "KP-Scan abgeschlossen ({v0}). Nächste Erweiterung: Platz {v1}. {v2} Rathäuser erkannt.",
-    "End date": "Enddatum",
-    "Start date must be on or before end date.": "Das Startdatum darf nicht nach dem Enddatum liegen.",
-    "No complete scans in this date range.": "In diesem Zeitraum gibt es keine vollständigen Scans."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "KP-Scan abgeschlossen ({v0}). Nächste Erweiterung: Platz {v1}. {v2} Rathäuser erkannt."
   },
   "it": {
     "Language": "Lingua",
@@ -7283,10 +7265,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Analisi municipi e feste: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Controllo PC fondazione città in {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Analisi PC completata ({v0}). Prossima espansione: slot {v1}. {v2} municipio rilevato.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Analisi PC completata ({v0}). Prossima espansione: slot {v1}. {v2} municipi rilevati.",
-    "End date": "Data di fine",
-    "Start date must be on or before end date.": "La data di inizio deve essere uguale o precedente alla data di fine.",
-    "No complete scans in this date range.": "Non ci sono scansioni complete in questo intervallo di date."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Analisi PC completata ({v0}). Prossima espansione: slot {v1}. {v2} municipi rilevati."
   },
   "pl": {
     "Language": "Język",
@@ -8324,10 +8303,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Skanowanie ratuszy i świąt: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Sprawdzanie punktów kultury za założenie miasta w {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Skan punktów kultury ukończony ({v0}). Następna ekspansja: miejsce {v1}. Wykryto {v2} ratusz.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Skan punktów kultury ukończony ({v0}). Następna ekspansja: miejsce {v1}. Wykryto {v2} ratuszy.",
-    "End date": "Data zakończenia",
-    "Start date must be on or before end date.": "Data rozpoczęcia nie może być późniejsza niż data zakończenia.",
-    "No complete scans in this date range.": "Brak pełnych skanów w tym zakresie dat."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Skan punktów kultury ukończony ({v0}). Następna ekspansja: miejsce {v1}. Wykryto {v2} ratuszy."
   },
   "ro": {
     "Language": "Limbă",
@@ -9365,10 +9341,7 @@
     "Scanning Town Halls and celebrations: {v0} ({v1}/{v2})...": "Se scanează primăriile și sărbătorile: {v0} ({v1}/{v2})...",
     "Checking city-founding CP in {v0} ({v1}/{v2})...": "Se verifică punctele de cultură pentru fondarea orașului în {v0} ({v1}/{v2})...",
     "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Hall detected.": "Scanarea punctelor de cultură s-a încheiat ({v0}). Următoarea extindere: locul {v1}. {v2} primărie detectată.",
-    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Scanarea punctelor de cultură s-a încheiat ({v0}). Următoarea extindere: locul {v1}. Primării detectate: {v2}.",
-    "End date": "Data de sfârșit",
-    "Start date must be on or before end date.": "Data de început trebuie să fie cel târziu la data de sfârșit.",
-    "No complete scans in this date range.": "Nu există scanări complete în acest interval."
+    "CP scan complete ({v0}). Next expansion is Slot {v1}. {v2} Town Halls detected.": "Scanarea punctelor de cultură s-a încheiat ({v0}). Următoarea extindere: locul {v1}. Primării detectate: {v2}."
   }
 };
 })();
