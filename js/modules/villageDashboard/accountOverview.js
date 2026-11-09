@@ -178,13 +178,14 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
       const values=records.map(row=>productionValue(row,resource));
       const points=values.map((value,i)=>`${x(i).toFixed(2)},${y(value).toFixed(2)}`).join(' ');
       const path=records.length>1?`<polyline points="${points}" fill="none" stroke="${resource.color}"
-        stroke-width="${resource.key==='total'?'3.5':'2.6'}" stroke-linecap="round" stroke-linejoin="round"/>`:'';
-      const dots=values.map((value,i)=>{
+        stroke-width="${resource.key==='total'?'3.5':'2.6'}" stroke-linecap="round" stroke-linejoin="round"/>`:
+        `<line x1="${x(0)-5}" x2="${x(0)+5}" y1="${y(values[0])}" y2="${y(values[0])}" stroke="${resource.color}" stroke-width="2.6" stroke-linecap="round"/>`;
+      const hoverTargets=values.map((value,i)=>{
         const stamp=new Date(Number(records[i].timestamp)).toLocaleString();
         return `<circle r="${resource.key==='total'?'4':'3.4'}" cx="${x(i).toFixed(2)}" cy="${y(value).toFixed(2)}"
-          fill="${resource.color}"><title>${safe(resource.label)}: ${safe(fmt(value))}/h · ${safe(stamp)}</title></circle>`;
+          fill="transparent"><title>${safe(resource.label)}: ${safe(fmt(value))}/h · ${safe(stamp)}</title></circle>`;
       }).join('');
-      return path+dots;
+      return path+hoverTargets;
     }).join('');
     // Keep endpoint labels readable even when many scans occur on one day.
     const labelIndexes=[...new Set([0,records.length-1])];
