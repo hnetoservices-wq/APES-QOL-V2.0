@@ -6,6 +6,8 @@ on:
       - 'js/features/watchlist.js'
       - 'js/modules/watchlist/**'
       - 'css/features/watchlistIntelligence.css'
+      - 'js/locales/catalogs.js'
+      - 'tools/translations.tsv'
       - 'tests/watchlist.cjs'
       - 'tests/watchlistIntelligence.cjs'
       - 'tests/package*.json'
@@ -36,3 +38,9 @@ jobs:
           node tests/localization.cjs
           node tests/oasisSniperChecker.cjs
           node tests/oasisSniperLayout.cjs
+      - name: Verify localized extension and message catalog
+        run: |
+          node tests/featureLocalization.cjs
+          node tools/audit-feature-localization.cjs
+      - name: Full APES QoL regression suite
+        run: npm test --prefix tests
