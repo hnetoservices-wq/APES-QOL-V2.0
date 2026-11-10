@@ -65,10 +65,11 @@
     return `<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
   }
   function changesHtml(entry) {
+    const scanIssue = entry.lastScanError ? `<span class="qol-wl-scan-issue" title="${escapeHtml('Last scan failed: ' + entry.lastScanError)}" aria-label="Last scan failed">!</span> ` : '';
     if (entry.villageChange == null && entry.populationChange == null) {
-      return '<span class="qol-wl-change qol-stationary">Baseline</span>';
+      return scanIssue + '<span class="qol-wl-change qol-stationary">Baseline</span>';
     }
-    return `${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
+    return `${scanIssue}${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
   }
   function navigateToGameRoute(route) {
     let currentHash = window.location.hash || '#/';
@@ -436,6 +437,7 @@
             .qol-wl-change-icon { width:13px!important;height:13px!important; }
             .qol-wl-change-icon svg { width:12px!important;height:12px!important;stroke-width:2!important; }
             .qol-wl-change-divider { display:inline-block!important;margin:0 5px!important;color:#b7a98f!important; }
+            .qol-wl-scan-issue { display:inline-flex!important;align-items:center!important;justify-content:center!important;width:14px!important;height:14px!important;border-radius:50%!important;color:#fff!important;background:#a83228!important;font-size:10px!important;font-weight:900!important;cursor:help!important; }
             #qol-watchlist-container .qol-positive { color:#35651f!important; }
             #qol-watchlist-container .qol-negative { color:#8b2922!important; }
             #qol-watchlist-container .qol-stationary { color:#967016!important; }
@@ -996,6 +998,7 @@
     const deadline = Date.now() + 8000;
     let stableSignature = '';
     let stableSince = 0;
+    let lastIssue = 'Waiting for the target profile.';
     while (Date.now() < deadline) {
       if (scanState?.cancelled) return { cancelled: true };
       if (getOpenProfileId() === String(playerId)) {
@@ -1007,6 +1010,8 @@
         // the prior player's DOM as the next player's completed profile.
         const freshProfile = beforePlayerId === String(playerId) ||
           !beforeSignature || signature !== beforeSignature;
+        lastIssue = problem || (domId && domId !== String(playerId) ? 'Rendered profile belongs to a different player.' :
+          !freshProfile ? 'The previous player profile is still displayed.' : 'Waiting for the profile to settle.');
         if (!problem && freshProfile && (!domId || domId === String(playerId))) {
           if (signature !== stableSignature) {
             stableSignature = signature;
@@ -1024,7 +1029,7 @@
       }
       await delay(120);
     }
-    return { error: 'Profile did not finish loading or was incomplete (8s timeout).' };
+    return { error: `Profile load timed out after 8 seconds: ${lastIssue}` };
   }
 
   async function runWatchlistScan(allTabs = false) {
@@ -1082,12 +1087,26 @@
           if (result.cancelled || scanState.cancelled) break;
           if (result.profile) {
             scanLogic.synchronizePlayer(watchlistTabs, playerId, result.profile);
+            watchlistTabs.forEach(tab => (tab.entries || []).filter(item => String(item.playerId) === playerId).forEach(item => {
+              delete item.lastScanError;
+              item.lastScanAttemptAt = Date.now();
+            }));
             updatedIds.add(playerId);
           } else {
-            failures.push({ playerId, playerName: entry.playerName, reason: result.error || 'Profile unavailable.' });
+            const reason = result.error || 'Profile unavailable.';
+            failures.push({ playerId, playerName: entry.playerName, reason });
+            watchlistTabs.forEach(tab => (tab.entries || []).filter(item => String(item.playerId) === playerId).forEach(item => {
+              item.lastScanError = reason;
+              item.lastScanAttemptAt = Date.now();
+            }));
           }
         } catch (error) {
-          failures.push({ playerId, playerName: entry.playerName, reason: error?.message || 'Unexpected error.' });
+          const reason = error?.message || 'Unexpected error.';
+          failures.push({ playerId, playerName: entry.playerName, reason });
+          watchlistTabs.forEach(tab => (tab.entries || []).filter(item => String(item.playerId) === playerId).forEach(item => {
+            item.lastScanError = reason;
+            item.lastScanAttemptAt = Date.now();
+          }));
         }
         progress.textContent = `${i + 1} / ${targets.length}`;
         detail.textContent = `${updatedIds.size} updated · ${failures.length} failed`;
@@ -1386,6 +1405,7 @@
     }
   }
   function destroyWatchlistUI() {
+    if (scanState) scanState.cancelled = true;
     if (profileCheckInterval) {
       clearInterval(profileCheckInterval);
       profileCheckInterval = null;
