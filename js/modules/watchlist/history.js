@@ -5,6 +5,7 @@
   const MAX_AGE_MS = 60 * 86400000;
   const MAX_SNAPSHOTS = 96;
   const MAX_EVENTS = 180;
+  const MAX_PLAYERS = 650;
   const UNCHANGED_INTERVAL_MS = 6 * 3600000;
   const scan = window.APES_WATCHLIST_SCAN;
   let cache = null;
@@ -159,13 +160,32 @@
       entry.snapshots.push(snapshot);
     }
     entry.name = snapshot.name;
+    entry.lastScannedAt = snapshot.at;
     trim(entry, snapshot.at);
     dirty = true;
     return { ok: true, events: changes };
   }
+  function pruneAll(now = Date.now()) {
+    const store = load();
+    const sorted = Object.entries(store.players);
+    for (const [id, record] of sorted) {
+      const previousCount = (record.snapshots || []).length + (record.events || []).length;
+      trim(record, now);
+      if (!record.snapshots.length && !record.events.length) delete store.players[id];
+      if (previousCount !== (record.snapshots || []).length + (record.events || []).length) dirty = true;
+    }
+    const remaining = Object.entries(store.players).sort((a, b) =>
+      (Number(b[1].lastScannedAt) || Number(b[1].snapshots?.at?.(-1)?.at) || 0) -
+      (Number(a[1].lastScannedAt) || Number(a[1].snapshots?.at?.(-1)?.at) || 0));
+    if (remaining.length > MAX_PLAYERS) {
+      for (const [id] of remaining.slice(MAX_PLAYERS)) delete store.players[id];
+      dirty = true;
+    }
+  }
   function save() {
     if (!dirty) return true;
     try {
+      pruneAll();
       const raw = JSON.stringify(load());
       localStorage.setItem(key(), raw);
       cachedRaw = raw;
@@ -190,6 +210,7 @@
     if (!beginning || beginning.at >= end.at) return null;
     return {
       delta: end.population - beginning.population,
+      villageDelta: end.villages.length - beginning.villages.length,
       baselineAt: beginning.at,
       finalAt: end.at,
       complete: Boolean(before),
@@ -204,31 +225,37 @@
     const inside = list.filter(s => s.at >= start && s.at <= now);
     return anchor ? [anchor, ...inside] : inside;
   }
-  function latestVillages(record) {
+  function latestVillages(record, now = Date.now()) {
     const snapshots = record.snapshots || [];
     const latest = snapshots[snapshots.length - 1];
     if (!latest) return [];
     const previous = snapshots[snapshots.length - 2];
-    const known = new Map((previous?.villages || []).map(v => [position(v), v]));
     const current = new Set(latest.villages.map(position));
+    const recentAdditions = new Set((record.events || []).filter(event =>
+      event.kind === 'village-added' && event.at > now - 7 * 86400000).map(event => event.coords));
     const villages = latest.villages.map(village => ({
       ...village,
       coords: position(village),
-      status: previous && !known.has(position(village)) ? 'new' : 'current',
+      status: recentAdditions.has(position(village)) ? 'new' : 'current',
       capital: latest.capitalConfirmed && latest.capital === position(village)
     }));
-    // Missing villages remain visible separately until pruned with the history.
-    if (previous) for (const village of previous.villages) {
-      if (!current.has(position(village))) {
-        const missing = [...record.events].reverse().find(event => event.kind === 'village-missing' && event.coords === position(village));
-        villages.push({ ...village, coords: position(village), status: missing?.status === 'confirmed' ? 'missing' : 'unverified', capital: false });
-      }
+    const lastMissing = new Map();
+    for (const event of record.events || []) {
+      if (event.kind === 'village-missing') lastMissing.set(event.coords, event);
+    }
+    for (const [coords, missing] of lastMissing) {
+      if (current.has(coords) || missing.status === 'resolved') continue;
+      const [x, y] = coords.split('|');
+      villages.push({
+        x, y, name: missing.name, coords,
+        status: missing.status === 'confirmed' ? 'missing' : 'unverified', capital: false
+      });
     }
     return villages;
   }
   window.APES_WATCHLIST_HISTORY = Object.freeze({
     key, load, read, seed, seedExisting, record, save, timeline, trend, chart, latestVillages,
-    compareSnapshots, normalize,
-    MAX_SNAPSHOTS, MAX_EVENTS, MAX_AGE_MS
+    compareSnapshots, normalize, pruneAll,
+    MAX_SNAPSHOTS, MAX_EVENTS, MAX_AGE_MS, MAX_PLAYERS
   });
 })();
