@@ -98,16 +98,17 @@
   function updatePending(record, next) {
     const current = new Set(next.villages.map(position));
     for (const event of record.events) {
-      if (event.kind !== 'village-missing' || event.status !== 'pending') continue;
+      if (event.kind !== 'village-missing' || !['pending', 'confirmed'].includes(event.status)) continue;
       if (event.at >= next.at) continue; // First sighting cannot confirm itself.
       if (current.has(event.coords)) {
         event.status = 'resolved';
         event.resolvedAt = next.at;
-      } else {
+        dirty = true;
+      } else if (event.status === 'pending') {
         event.status = 'confirmed';
         event.confirmedAt = next.at;
+        dirty = true;
       }
-      dirty = true;
     }
   }
   function trim(record, now) {
