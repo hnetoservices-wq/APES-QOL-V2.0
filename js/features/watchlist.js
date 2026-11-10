@@ -1078,8 +1078,9 @@
         const playerId = String(entry.playerId);
         const previousId = getOpenProfileId();
         const previous = scrapeOpenProfileData(previousId);
-        const previousSignature = scanLogic.validateProfile(previous, previousId) ?
-          '' : scanLogic.profileSignature(previous);
+        // Even an incomplete previous profile can be identified by its
+        // fingerprint; don't let it be mistaken for the next player's data.
+        const previousSignature = scanLogic.profileSignature(previous);
         detail.textContent = `Checking ${entry.playerName || playerId} (${i + 1}/${targets.length})…`;
         try {
           navigateToGameRoute(`playerId:${playerId}/profileTab:playerProfile/window:profile`);
