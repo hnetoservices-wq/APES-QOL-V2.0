@@ -1,0 +1,34 @@
+name: Watchlist regression tests
+
+on:
+  pull_request:
+    paths:
+      - 'js/features/watchlist.js'
+      - 'js/modules/watchlist/**'
+      - 'tests/watchlist.cjs'
+      - 'tests/package*.json'
+      - '.github/workflows/watchlist.yml'
+  push:
+    branches:
+      - 'feature/watchlist-*'
+
+jobs:
+  watchlist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Install test dependencies
+        run: npm ci --prefix tests
+      - name: Run Watchlist regression tests
+        run: node tests/watchlist.cjs
+      - name: Check localization and Oasis Sniper integration
+        run: |
+          node tests/languageSelectorVisibility.cjs
+          node tests/localization.cjs
+          node tests/oasisSniperChecker.cjs
+          node tests/oasisSniperLayout.cjs

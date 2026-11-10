@@ -62,6 +62,7 @@
         "js/features/chatSilencer.js",
         "js/features/chatLinks.js",
         "js/features/incomingResources.js",
+        "js/modules/watchlist/scanReliability.js",
         "js/features/watchlist.js",
         "js/modules/watchlist/highlights.js",
         "js/features/reportArchive.js",
