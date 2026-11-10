@@ -1073,7 +1073,9 @@
     "Village renamed": "Aldeia renomeada",
     "No players in any Watchlist to update.": "Não há jogadores em nenhuma lista de observação para atualizar.",
     "Update all tabs": "Atualizar todos os separadores",
-    "Updating": "A atualizar"
+    "Updating": "A atualizar",
+    "Saved Reports": "Relatórios guardados",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "O Arquivo de Relatórios não está disponível. Ativa-o nas definições do APES QoL."
   },
   "es-ES": {
     "Language": "Idioma",
@@ -2147,7 +2149,9 @@
     "Village renamed": "Aldea renombrada",
     "No players in any Watchlist to update.": "No hay jugadores en ninguna lista de seguimiento para actualizar.",
     "Update all tabs": "Actualizar todas las pestañas",
-    "Updating": "Actualizando"
+    "Updating": "Actualizando",
+    "Saved Reports": "Informes guardados",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "El Archivo de Informes no está disponible. Actívalo en los ajustes de APES QoL."
   },
   "fr": {
     "Language": "Langue",
@@ -3221,7 +3225,9 @@
     "Village renamed": "Village renommé",
     "No players in any Watchlist to update.": "Aucun joueur à mettre à jour dans les listes de suivi.",
     "Update all tabs": "Mettre à jour tous les onglets",
-    "Updating": "Mise à jour"
+    "Updating": "Mise à jour",
+    "Saved Reports": "Rapports enregistrés",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Les archives de rapports ne sont pas disponibles. Activez-les dans les paramètres d’APES QoL."
   },
   "ru": {
     "Language": "Язык",
@@ -4295,7 +4301,9 @@
     "Village renamed": "Деревня переименована",
     "No players in any Watchlist to update.": "Нет игроков для обновления ни в одном списке наблюдения.",
     "Update all tabs": "Обновить все вкладки",
-    "Updating": "Обновление"
+    "Updating": "Обновление",
+    "Saved Reports": "Сохранённые отчёты",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Архив отчётов недоступен. Включите его в настройках APES QoL."
   },
   "cs": {
     "Language": "Jazyk",
@@ -5369,7 +5377,9 @@
     "Village renamed": "Vesnice přejmenována",
     "No players in any Watchlist to update.": "V žádném sledovacím seznamu nejsou hráči k aktualizaci.",
     "Update all tabs": "Aktualizovat všechny karty",
-    "Updating": "Aktualizace"
+    "Updating": "Aktualizace",
+    "Saved Reports": "Uložené reporty",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiv reportů není dostupný. Zapněte jej v nastavení APES QoL."
   },
   "de": {
     "Language": "Sprache",
@@ -6443,7 +6453,9 @@
     "Village renamed": "Dorf umbenannt",
     "No players in any Watchlist to update.": "In keiner Beobachtungsliste sind Spieler zum Aktualisieren vorhanden.",
     "Update all tabs": "Alle Tabs aktualisieren",
-    "Updating": "Aktualisierung"
+    "Updating": "Aktualisierung",
+    "Saved Reports": "Gespeicherte Berichte",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Das Berichtsarchiv ist nicht verfügbar. Aktiviere es in den APES-QoL-Einstellungen."
   },
   "it": {
     "Language": "Lingua",
@@ -7517,7 +7529,9 @@
     "Village renamed": "Villaggio rinominato",
     "No players in any Watchlist to update.": "Nessun giocatore da aggiornare in nessuna lista di controllo.",
     "Update all tabs": "Aggiorna tutte le schede",
-    "Updating": "Aggiornamento"
+    "Updating": "Aggiornamento",
+    "Saved Reports": "Report salvati",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "L’archivio dei report non è disponibile. Attivalo nelle impostazioni di APES QoL."
   },
   "pl": {
     "Language": "Język",
@@ -8591,7 +8605,9 @@
     "Village renamed": "Zmieniono nazwę wioski",
     "No players in any Watchlist to update.": "Na żadnej liście obserwowanych nie ma graczy do aktualizacji.",
     "Update all tabs": "Aktualizuj wszystkie karty",
-    "Updating": "Aktualizowanie"
+    "Updating": "Aktualizowanie",
+    "Saved Reports": "Zapisane raporty",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiwum raportów jest niedostępne. Włącz je w ustawieniach APES QoL."
   },
   "ro": {
     "Language": "Limbă",
@@ -9665,7 +9681,9 @@
     "Village renamed": "Sat redenumit",
     "No players in any Watchlist to update.": "Nu există jucători de actualizat în nicio listă de urmărire.",
     "Update all tabs": "Actualizează toate filele",
-    "Updating": "Se actualizează"
+    "Updating": "Se actualizează",
+    "Saved Reports": "Rapoarte salvate",
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Arhiva de rapoarte nu este disponibilă. Activeaz-o în setările APES QoL."
   }
 };
 })();

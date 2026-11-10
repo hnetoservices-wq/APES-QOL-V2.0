@@ -1799,6 +1799,23 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
     archivePanel.style.setProperty('z-index', '1000007', 'important');
     archivePanel.style.setProperty('display', 'flex', 'important');
   }
+  // Used by Watchlist Player Intelligence to open the existing Archive with
+  // the selected player's name already applied. The search is intentionally
+  // the same name search used when typing manually into Report Archive.
+  async function openForPlayer(playerName) {
+    const name = normalizeText(playerName).trim();
+    if (!name || !isEnabled()) return false;
+    if (!archivePanel) await startFeature();
+    if (!archivePanel) return false;
+    searchMode = 'name';
+    searchQuery = name;
+    activeFolderId = ALL_FOLDER_ID;
+    archivePanel.querySelector('.qol-ra-search-mode').value = 'name';
+    updateSearchControl();
+    openArchivePanel();
+    archivePanel.querySelector('.qol-ra-search-input')?.focus();
+    return true;
+  }
   function closeArchivePanel() {
     if (archivePanel) {
       archivePanel.style.setProperty('display', 'none', 'important');
@@ -3154,6 +3171,7 @@ const apesHtml_reportArchive = window.APES?.i18n?.html || ((s, ...v) => String.r
   }
   window.APES_REPORT_ARCHIVE = Object.freeze({
     open: openArchivePanel,
+    openForPlayer,
     openReport: openArchivedReport,
     close: closeArchivePanel
   });

@@ -10,6 +10,8 @@ on:
       - 'tools/translations.tsv'
       - 'tests/watchlist.cjs'
       - 'tests/watchlistIntelligence.cjs'
+      - 'tests/watchlistSavedReports.cjs'
+      - 'js/features/reportArchive.js'
       - 'tests/package*.json'
       - '.github/workflows/watchlist.yml'
   push:
@@ -32,6 +34,7 @@ jobs:
         run: |
           node tests/watchlist.cjs
           node tests/watchlistIntelligence.cjs
+          node tests/watchlistSavedReports.cjs
       - name: Check localization and Oasis Sniper integration
         run: |
           node tests/languageSelectorVisibility.cjs
