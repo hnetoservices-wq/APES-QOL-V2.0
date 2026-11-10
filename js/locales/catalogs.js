@@ -1070,7 +1070,8 @@
     "Village change": "Variação de aldeias",
     "Village count": "Número de aldeias",
     "Village no longer detected": "Aldeia deixou de ser detetada",
-    "Village renamed": "Aldeia renomeada"
+    "Village renamed": "Aldeia renomeada",
+    "No players in any Watchlist to update.": "Não há jogadores em nenhuma lista de observação para atualizar."
   },
   "es-ES": {
     "Language": "Idioma",
@@ -2141,7 +2142,8 @@
     "Village change": "Cambio de aldeas",
     "Village count": "Número de aldeas",
     "Village no longer detected": "Aldea ya no detectada",
-    "Village renamed": "Aldea renombrada"
+    "Village renamed": "Aldea renombrada",
+    "No players in any Watchlist to update.": "No hay jugadores en ninguna lista de seguimiento para actualizar."
   },
   "fr": {
     "Language": "Langue",
@@ -3212,7 +3214,8 @@
     "Village change": "Variation du nombre de villages",
     "Village count": "Nombre de villages",
     "Village no longer detected": "Village non détecté",
-    "Village renamed": "Village renommé"
+    "Village renamed": "Village renommé",
+    "No players in any Watchlist to update.": "Aucun joueur à mettre à jour dans les listes de suivi."
   },
   "ru": {
     "Language": "Язык",
@@ -4283,7 +4286,8 @@
     "Village change": "Изменение числа деревень",
     "Village count": "Число деревень",
     "Village no longer detected": "Деревня больше не обнаружена",
-    "Village renamed": "Деревня переименована"
+    "Village renamed": "Деревня переименована",
+    "No players in any Watchlist to update.": "Нет игроков для обновления ни в одном списке наблюдения."
   },
   "cs": {
     "Language": "Jazyk",
@@ -5354,7 +5358,8 @@
     "Village change": "Změna počtu vesnic",
     "Village count": "Počet vesnic",
     "Village no longer detected": "Vesnice již nebyla zjištěna",
-    "Village renamed": "Vesnice přejmenována"
+    "Village renamed": "Vesnice přejmenována",
+    "No players in any Watchlist to update.": "V žádném sledovacím seznamu nejsou hráči k aktualizaci."
   },
   "de": {
     "Language": "Sprache",
@@ -6425,7 +6430,8 @@
     "Village change": "Dorfanzahländerung",
     "Village count": "Anzahl Dörfer",
     "Village no longer detected": "Dorf nicht mehr erkannt",
-    "Village renamed": "Dorf umbenannt"
+    "Village renamed": "Dorf umbenannt",
+    "No players in any Watchlist to update.": "In keiner Beobachtungsliste sind Spieler zum Aktualisieren vorhanden."
   },
   "it": {
     "Language": "Lingua",
@@ -7496,7 +7502,8 @@
     "Village change": "Variazione dei villaggi",
     "Village count": "Numero di villaggi",
     "Village no longer detected": "Villaggio non più rilevato",
-    "Village renamed": "Villaggio rinominato"
+    "Village renamed": "Villaggio rinominato",
+    "No players in any Watchlist to update.": "Nessun giocatore da aggiornare in nessuna lista di controllo."
   },
   "pl": {
     "Language": "Język",
@@ -8567,7 +8574,8 @@
     "Village change": "Zmiana liczby wiosek",
     "Village count": "Liczba wiosek",
     "Village no longer detected": "Nie wykryto już wioski",
-    "Village renamed": "Zmieniono nazwę wioski"
+    "Village renamed": "Zmieniono nazwę wioski",
+    "No players in any Watchlist to update.": "Na żadnej liście obserwowanych nie ma graczy do aktualizacji."
   },
   "ro": {
     "Language": "Limbă",
@@ -9638,7 +9646,8 @@
     "Village change": "Schimbarea numărului de sate",
     "Village count": "Număr de sate",
     "Village no longer detected": "Satul nu mai este detectat",
-    "Village renamed": "Sat redenumit"
+    "Village renamed": "Sat redenumit",
+    "No players in any Watchlist to update.": "Nu există jucători de actualizat în nicio listă de urmărire."
   }
 };
 })();
