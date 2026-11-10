@@ -14,6 +14,7 @@
   function label(text) {
     return window.APES?.i18n ? window.APES.i18n.label(text) : escape(text);
   }
+  function translate(text) { return window.APES?.i18n?.t(text) || String(text); }
   function number(value) {
     return Number(value).toLocaleString();
   }
@@ -89,7 +90,7 @@
       escape(datetime(p.point.at) + ' · ' + number(p.point.population)) + '</title></circle>'
     ).join('');
     const chart = '<svg class="qol-wl-intel-chart" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 150" role="img" aria-label="' +
-      escape('Population history') + '">' +
+      escape(translate('Population history')) + '">' +
       '<line x1="20" y1="25" x2="680" y2="25" stroke="#eee1ca" stroke-width="1"/>' +
       '<line x1="20" y1="78" x2="680" y2="78" stroke="#eee1ca" stroke-width="1"/>' +
       '<line x1="20" y1="130" x2="680" y2="130" stroke="#eee1ca" stroke-width="1"/>' +
@@ -111,7 +112,7 @@
       const canSend = village.status === 'new' || village.status === 'current';
       const coordLink = canSend ? '<a href="#" class="qol-wl-intel-coords" data-wl-intel-route="window:sendTroops/x:' +
         encodeURIComponent(village.x) + '/y:' + encodeURIComponent(village.y) + '" title="' +
-        escape('Send troops to village') + '">' + coords + '</a>' : '<span>' + coords + '</span>';
+        escape(translate('Send troops to village')) + '">' + coords + '</a>' : '<span>' + coords + '</span>';
       const capital = village.capital ? ' <span class="qol-wl-intel-state">' + label('Capital') + '</span>' : '';
       return '<tr><td>' + escape(village.name) + capital + '</td><td>' + coordLink + '</td><td>' + badge + '</td></tr>';
     }).join('');
@@ -134,7 +135,7 @@
       label('Player Intelligence') + ' — ' + escape(playerName) +
       '</div><div class="qol-wl-intel-sub">' + label('Historical changes and village tracking') +
       '</div></div><div class="qol-wl-intel-close" role="button" tabindex="0" data-wl-intel-action="close" aria-label="' +
-      escape('Close') + '">×</div></div>';
+      escape(translate('Close')) + '">×</div></div>';
     const actions = '<div class="qol-wl-intel-actions"><div class="qol-wl-intel-action-group">' +
       control('History', 'view', 'history', context.view === 'history') +
       control('Villages', 'view', 'villages', context.view === 'villages') +
@@ -157,7 +158,7 @@
         label('Change history') + '</span><span class="qol-wl-intel-section-meta">' + escape(context.period) +
         '</span></div>' + eventsHtml(record, windowMs) + '</div>';
     overlay.innerHTML = '<div class="qol-wl-intel-panel" role="dialog" aria-modal="true" aria-label="' +
-      escape('Player Intelligence') + '"><div>' + top + '</div><div class="qol-wl-intel-body">' +
+      escape(translate('Player Intelligence')) + '"><div>' + top + '</div><div class="qol-wl-intel-body">' +
       actions + metrics + content + '</div></div>';
     window.APES?.i18n?.apply(overlay);
   }
