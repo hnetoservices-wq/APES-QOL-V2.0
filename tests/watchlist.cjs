@@ -120,7 +120,14 @@ async function testImmediateCancellation() {
   doc.getElementById('qol-wl-update-btn').click();
   const cancel = doc.querySelector('.qol-wl-scan-cancel');
   assert.ok(cancel);
-  cancel.click();
+  assert.equal(cancel.tagName, 'DIV', 'APES control must not inherit Travian native button styling');
+  assert.ok(cancel.classList.contains('qol-wl-action-control'), 'Cancel uses the shared APES action-control styling');
+  assert.equal(cancel.getAttribute('role'), 'button');
+  assert.equal(cancel.tabIndex, 0);
+  assert.ok(doc.getElementById('qol-watchlist-styles').textContent.includes('#qol-watchlist-overlay .qol-wl-scan-cancel'));
+  cancel.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+  assert.equal(cancel.getAttribute('aria-disabled'), 'true');
+  assert.equal(cancel.tabIndex, -1);
   const started = Date.now();
   while (doc.getElementById('qol-watchlist-overlay') && Date.now() - started < 2000) await pause(25);
   assert.equal(doc.getElementById('qol-watchlist-overlay'), null);
