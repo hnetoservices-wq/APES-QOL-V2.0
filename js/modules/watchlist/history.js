@@ -253,19 +253,31 @@
     };
   }
   function villageTrend(record, coords, rangeMs, now = Date.now()) {
-    const pair = baseline(record, rangeMs, now);
-    if (!pair) return null;
-    const first = pair.beginning.villages.find(v => position(v) === String(coords));
-    const current = pair.end.villages.find(v => position(v) === String(coords));
-    if (!first || !current || !Number.isFinite(first.population) ||
-      !Number.isFinite(current.population)) return null;
+    const list = (record.snapshots || []).filter(snapshot => snapshot.at <= now);
+    if (list.length < 2) return null;
+    const end = list[list.length - 1];
+    const cutoff = now - rangeMs;
+    if (end.at < cutoff) return null;
+    const key = String(coords);
+    const current = end.villages.find(v => position(v) === key);
+    if (!current || !Number.isFinite(current.population)) return null;
+    // Older Watchlist snapshots had no village populations. Start comparisons
+    // at the first actual observation for this specific village, not at a
+    // player-wide snapshot whose village population was unknown.
+    const observed = list.map(snapshot => ({
+      at: snapshot.at,
+      village: snapshot.villages.find(v => position(v) === key)
+    })).filter(item => item.village && Number.isFinite(item.village.population));
+    const before = rangeMs > SIX_HOURS_MS ? observed.filter(item => item.at <= cutoff).pop() : null;
+    const beginning = before || observed.find(item => item.at >= cutoff);
+    if (!beginning || beginning.at >= end.at) return null;
     return {
-      delta: current.population - first.population,
-      from: first.population,
+      delta: current.population - beginning.village.population,
+      from: beginning.village.population,
       to: current.population,
-      baselineAt: pair.beginning.at,
-      finalAt: pair.end.at,
-      complete: pair.complete
+      baselineAt: beginning.at,
+      finalAt: end.at,
+      complete: Boolean(before)
     };
   }
   function chart(record, rangeMs, now = Date.now()) {
