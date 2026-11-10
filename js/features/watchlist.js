@@ -314,6 +314,39 @@
                 box-shadow: 0 1px 2px rgba(0,0,0,.18) !important;
             }
             .qol-wl-action-control:hover { filter: brightness(1.08) !important; }
+            .qol-wl-action-control:focus-visible {
+                outline: 2px solid #f9d891 !important;
+                outline-offset: 2px !important;
+            }
+            /* Travian applies its own green button styles. Use the APES action
+               control design for scanner controls, never a raw game button. */
+            #qol-watchlist-overlay .qol-wl-scan-cancel {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 120px !important;
+                min-height: 28px !important;
+                padding: 6px 14px !important;
+                border: 1px solid var(--qol-action-border, #523d24) !important;
+                border-radius: 4px !important;
+                background: linear-gradient(to bottom, var(--qol-accent, #84653f), var(--qol-accent-gradient-end, #5a4328)) !important;
+                color: #fff8eb !important;
+                font-family: Arial, sans-serif !important;
+                font-size: 11px !important;
+                font-weight: 800 !important;
+                line-height: 1.2 !important;
+                text-shadow: none !important;
+                cursor: pointer !important;
+                box-shadow: 0 1px 2px rgba(0,0,0,.18) !important;
+                user-select: none !important;
+                box-sizing: border-box !important;
+            }
+            #qol-watchlist-overlay .qol-wl-scan-cancel[aria-disabled="true"] {
+                opacity: .55 !important;
+                filter: grayscale(.4) !important;
+                pointer-events: none !important;
+                cursor: default !important;
+            }
 
             .qol-wl-tabs {
                 display: flex !important;
@@ -1059,16 +1092,24 @@
     overlay.innerHTML = `
       <div>Updating ${allTabs ? 'all Watchlists' : 'current Watchlist'}: <span class="qol-wl-scan-progress">0 / ${targets.length}</span></div>
       <div class="qol-wl-scan-detail" style="font:normal 12px Arial,sans-serif;color:#eee">Preparing scan…</div>
-      <button type="button" class="qol-wl-scan-cancel" style="padding:7px 18px;border-radius:4px;border:1px solid #ba9f70;background:#eadcc3;color:#342a1c;cursor:pointer">Cancel scan</button>
+      <div class="qol-wl-action-control qol-wl-scan-cancel" role="button" tabindex="0" aria-disabled="false">Cancel scan</div>
     `;
     const progress = overlay.querySelector('.qol-wl-scan-progress');
     const detail = overlay.querySelector('.qol-wl-scan-detail');
     const cancelBtn = overlay.querySelector('.qol-wl-scan-cancel');
     scanState = { cancelled: false };
-    cancelBtn.addEventListener('click', () => {
+    const cancelScan = () => {
+      if (!scanState || scanState.cancelled) return;
       scanState.cancelled = true;
-      cancelBtn.disabled = true;
+      cancelBtn.setAttribute('aria-disabled', 'true');
+      cancelBtn.tabIndex = -1;
       cancelBtn.textContent = 'Cancelling…';
+    };
+    cancelBtn.addEventListener('click', cancelScan);
+    cancelBtn.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      cancelScan();
     });
     document.body.appendChild(overlay);
     try {
