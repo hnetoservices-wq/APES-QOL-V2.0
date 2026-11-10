@@ -204,6 +204,7 @@
     if (snapshots.length < 2) return null;
     const end = snapshots[snapshots.length - 1];
     const startOfRange = now - rangeMs;
+    if (end.at < startOfRange) return null; // No scans in this period.
     const before = snapshots.filter(item => item.at <= startOfRange).pop();
     const firstInside = snapshots.find(item => item.at >= startOfRange);
     const beginning = before || firstInside;
@@ -223,7 +224,9 @@
     const start = now - rangeMs;
     const anchor = list.filter(s => s.at <= start).pop();
     const inside = list.filter(s => s.at >= start && s.at <= now);
-    return anchor ? [anchor, ...inside] : inside;
+    // Draw only the requested period; the earlier baseline is carried to the
+    // period boundary rather than stretching the axis back for many weeks.
+    return anchor && inside.length ? [{ ...anchor, at: start }, ...inside] : inside;
   }
   function latestVillages(record, now = Date.now()) {
     const snapshots = record.snapshots || [];
