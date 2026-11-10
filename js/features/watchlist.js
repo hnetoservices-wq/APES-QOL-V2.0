@@ -7,6 +7,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
   let profileCheckInterval = null;
   let watchlistTabs = [];
   let activeTabId = 'tab_1';
+  const scanLogic = window.APES_WATCHLIST_SCAN;
+  let scanState = null;
   function getStorageKey() {
     return 'qol_watchlist_' + window.location.hostname;
   }
@@ -64,10 +66,11 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     return apesHtml_watchlist`<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
   }
   function changesHtml(entry) {
+    const scanIssue = entry.lastScanError ? `<span class="qol-wl-scan-issue" title="${escapeHtml('Last scan failed: ' + entry.lastScanError)}" aria-label="Last scan failed">!</span> ` : '';
     if (entry.villageChange == null && entry.populationChange == null) {
-      return apesHtml_watchlist`<span class="qol-wl-change qol-stationary">Baseline</span>`;
+      return scanIssue + apesHtml_watchlist`<span class="qol-wl-change qol-stationary">Baseline</span>`;
     }
-    return apesHtml_watchlist`${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
+    return scanIssue + apesHtml_watchlist`${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
   }
   function navigateToGameRoute(route) {
     let currentHash = window.location.hash || '#/';
@@ -96,6 +99,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           watchlistTabs = parsed;
+          scanLogic?.synchronizeExistingDuplicates(watchlistTabs);
           activeTabId = watchlistTabs[0].id;
           return;
         }
@@ -311,6 +315,39 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
                 box-shadow: 0 1px 2px rgba(0,0,0,.18) !important;
             }
             .qol-wl-action-control:hover { filter: brightness(1.08) !important; }
+            .qol-wl-action-control:focus-visible {
+                outline: 2px solid #f9d891 !important;
+                outline-offset: 2px !important;
+            }
+            /* Travian applies its own green button styles. Use the APES action
+               control design for scanner controls, never a raw game button. */
+            #qol-watchlist-overlay .qol-wl-scan-cancel {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                min-width: 120px !important;
+                min-height: 28px !important;
+                padding: 6px 14px !important;
+                border: 1px solid var(--qol-action-border, #523d24) !important;
+                border-radius: 4px !important;
+                background: linear-gradient(to bottom, var(--qol-accent, #84653f), var(--qol-accent-gradient-end, #5a4328)) !important;
+                color: #fff8eb !important;
+                font-family: Arial, sans-serif !important;
+                font-size: 11px !important;
+                font-weight: 800 !important;
+                line-height: 1.2 !important;
+                text-shadow: none !important;
+                cursor: pointer !important;
+                box-shadow: 0 1px 2px rgba(0,0,0,.18) !important;
+                user-select: none !important;
+                box-sizing: border-box !important;
+            }
+            #qol-watchlist-overlay .qol-wl-scan-cancel[aria-disabled="true"] {
+                opacity: .55 !important;
+                filter: grayscale(.4) !important;
+                pointer-events: none !important;
+                cursor: default !important;
+            }
 
             .qol-wl-tabs {
                 display: flex !important;
@@ -434,6 +471,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
             .qol-wl-change-icon { width:13px!important;height:13px!important; }
             .qol-wl-change-icon svg { width:12px!important;height:12px!important;stroke-width:2!important; }
             .qol-wl-change-divider { display:inline-block!important;margin:0 5px!important;color:#b7a98f!important; }
+            .qol-wl-scan-issue { display:inline-flex!important;align-items:center!important;justify-content:center!important;width:14px!important;height:14px!important;border-radius:50%!important;color:#fff!important;background:#a83228!important;font-size:10px!important;font-weight:900!important;cursor:help!important; }
             #qol-watchlist-container .qol-positive { color:#35651f!important; }
             #qol-watchlist-container .qol-negative { color:#8b2922!important; }
             #qol-watchlist-container .qol-stationary { color:#967016!important; }
@@ -871,24 +909,30 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       return;
     }
     const scrapedData = scrapeOpenProfileData(playerId);
-    if (scrapedData.playerName && scrapedData.villages.length > 0) {
+    const existing = scanLogic.existingPlayer(watchlistTabs, playerId);
+    const complete = !scanLogic.validateProfile(scrapedData, playerId);
+    // Reuse validated, previously recorded intelligence when adding a player
+    // already tracked in another tab, but keep notes independent per tab.
+    const source = existing || (complete ? scrapedData : null);
+    if (source && Array.isArray(source.villages) && source.villages.length > 0) {
       targetTab.entries.push({
         id: 'entry_' + Date.now(),
-        playerId: scrapedData.playerId,
-        playerName: scrapedData.playerName,
-        population: scrapedData.population || 'N/A',
-        capital: scrapedData.capital,
-        villages: scrapedData.villages,
+        playerId: playerId,
+        playerName: source.playerName,
+        population: source.population || 'N/A',
+        capital: source.capital ? { ...source.capital } : null,
+        villages: source.villages.map(village => ({ ...village })),
         selected2ndId: '',
         selected2ndCoords: '',
         selected2ndX: '',
         selected2ndY: '',
-        villageChange: null,
-        populationChange: null,
+        villageChange: existing?.villageChange ?? null,
+        populationChange: existing?.populationChange ?? null,
+        lastUpdatedAt: existing?.lastUpdatedAt || null,
         notes: ''
       });
       saveWatchlist();
-      showToast(`Added ${scrapedData.playerName} to "${targetTab.name}"`, "success");
+      showToast(`Added ${source.playerName} to "${targetTab.name}"`, "success");
       openWatchlistMenu(targetTab.id);
     } else {
       showToast("Error: Profile detected, but could not parse villages or player name.", "error");
@@ -969,83 +1013,181 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       header.appendChild(wrapper);
     }
   }
-  async function updateCurrentWatchlist() {
-    const activeTab = watchlistTabs.find(t => t.id === activeTabId);
-    if (!activeTab || activeTab.entries.length === 0) {
-      showToast("No players in the current tab to update.", "warning");
+  function getOpenProfileId() {
+    return (window.location.hash.match(/(?:^|\/)playerId:(\d+)(?:\/|$)/) || [])[1] || '';
+  }
+
+  function detectedProfileId() {
+    const root = document.querySelector('.contentBox.playerDescription, .playerProfile');
+    if (!root) return '';
+    const candidates = [root, ...root.querySelectorAll('[data-player-id], [data-playerid], [playerid]')];
+    for (const element of candidates) {
+      const id = element.getAttribute('data-player-id') || element.getAttribute('data-playerid') || element.getAttribute('playerid');
+      if (id && /^\d+$/.test(id)) return id;
+    }
+    return '';
+  }
+
+  async function waitForLoadedProfile(playerId, beforeSignature, beforePlayerId) {
+    const deadline = Date.now() + 8000;
+    let stableSignature = '';
+    let stableSince = 0;
+    let lastIssue = 'Waiting for the target profile.';
+    while (Date.now() < deadline) {
+      if (scanState?.cancelled) return { cancelled: true };
+      if (getOpenProfileId() === String(playerId)) {
+        const candidate = scrapeOpenProfileData(playerId);
+        const problem = scanLogic.validateProfile(candidate, playerId);
+        const signature = scanLogic.profileSignature(candidate);
+        const domId = detectedProfileId();
+        // The URL changes before Angular finishes rendering. Never accept
+        // the prior player's DOM as the next player's completed profile.
+        const freshProfile = beforePlayerId === String(playerId) ||
+          !beforeSignature || signature !== beforeSignature;
+        lastIssue = problem || (domId && domId !== String(playerId) ? 'Rendered profile belongs to a different player.' :
+          !freshProfile ? 'The previous player profile is still displayed.' : 'Waiting for the profile to settle.');
+        if (!problem && freshProfile && (!domId || domId === String(playerId))) {
+          if (signature !== stableSignature) {
+            stableSignature = signature;
+            stableSince = Date.now();
+          } else if (Date.now() - stableSince >= 300) {
+            return { profile: candidate };
+          }
+        } else {
+          stableSignature = '';
+          stableSince = 0;
+        }
+      } else {
+        stableSignature = '';
+        stableSince = 0;
+      }
+      await delay(120);
+    }
+    return { error: `Profile load timed out after 8 seconds: ${lastIssue}` };
+  }
+
+  async function runWatchlistScan(allTabs = false) {
+    if (scanState) {
+      showToast('A Watchlist scan is already running.', 'warning');
       return;
     }
-    const entries = activeTab.entries;
-    const total = entries.length;
+    const tabId = activeTabId;
+    const targets = scanLogic.entriesInScope(watchlistTabs, tabId, allTabs);
+    if (!targets.length) {
+      showToast('No players to update.', 'warning');
+      return;
+    }
     const originalHash = window.location.hash;
-    let updatedCount = 0;
+    const updatedIds = new Set();
+    const failures = [];
+    const targetTabs = allTabs ? watchlistTabs.slice() : watchlistTabs.filter(tab => tab.id === tabId);
     const overlay = document.createElement('div');
     overlay.id = 'qol-watchlist-overlay';
-    overlay.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background-color: rgba(0, 0, 0, 0.7) !important;
-            z-index: 99999 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: white !important;
-            font-family: Arial, sans-serif !important;
-            font-size: 15px !important;
-            font-weight: bold !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-        `;
+    overlay.style.cssText = [
+      'position:fixed!important','inset:0!important','width:100vw!important',
+      'height:100vh!important','background:rgba(0,0,0,.78)!important',
+      'z-index:99999!important','display:flex!important','align-items:center!important',
+      'justify-content:center!important','flex-direction:column!important',
+      'gap:12px!important','color:white!important','font:600 14px Arial,sans-serif!important'
+    ].join(';');
     overlay.innerHTML = apesHtml_watchlist`
-            <div>Updating Watchlist... (<span id="qol-update-progress">0</span> / ${total})</div>
-            <div style="font-size: 11px; font-weight: normal; color: #ccc;">Please wait, this may take a few seconds...</div>
-        `;
+      <div>Updating ${allTabs ? 'all Watchlists' : 'current Watchlist'}: <span class="qol-wl-scan-progress">0 / ${targets.length}</span></div>
+      <div class="qol-wl-scan-detail" style="font:normal 12px Arial,sans-serif;color:#eee">Preparing scan…</div>
+      <div class="qol-wl-action-control qol-wl-scan-cancel" role="button" tabindex="0" aria-disabled="false">Cancel scan</div>
+    `;
+    const progress = overlay.querySelector('.qol-wl-scan-progress');
+    const detail = overlay.querySelector('.qol-wl-scan-detail');
+    const cancelBtn = overlay.querySelector('.qol-wl-scan-cancel');
+    scanState = { cancelled: false };
+    const cancelScan = () => {
+      if (!scanState || scanState.cancelled) return;
+      scanState.cancelled = true;
+      cancelBtn.setAttribute('aria-disabled', 'true');
+      cancelBtn.tabIndex = -1;
+      cancelBtn.textContent = 'Cancelling…';
+    };
+    cancelBtn.addEventListener('click', cancelScan);
+    cancelBtn.addEventListener('keydown', event => {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      cancelScan();
+    });
     document.body.appendChild(overlay);
-    const progressEl = document.getElementById('qol-update-progress');
-    for (let i = 0; i < total; i++) {
-      const entry = entries[i];
-      if (progressEl) progressEl.textContent = (i + 1).toString();
-      navigateToGameRoute(`playerId:${entry.playerId}/profileTab:playerProfile/window:profile`);
-      await delay(1200);
-      const scrapedData = scrapeOpenProfileData(entry.playerId);
-      if (scrapedData && scrapedData.playerName && scrapedData.playerName !== 'Unknown' && scrapedData.villages.length > 0) {
-        const previousVillageCount = Array.isArray(entry.villages) ? entry.villages.length : null;
-        const previousPopulation = numericValue(entry.population);
-        const nextVillageCount = scrapedData.villages.length;
-        const nextPopulation = numericValue(scrapedData.population);
-        entry.villageChange = previousVillageCount == null ? null : nextVillageCount - previousVillageCount;
-        entry.populationChange = previousPopulation == null || nextPopulation == null ? null : nextPopulation - previousPopulation;
-        entry.playerName = scrapedData.playerName;
-        entry.population = scrapedData.population || 'N/A';
-        entry.capital = scrapedData.capital;
-        entry.villages = scrapedData.villages;
-        entry.lastUpdatedAt = Date.now();
-        updatedCount += 1;
-        if (entry.selected2ndId) {
-          const stillExists = entry.villages.find(v => v.id === entry.selected2ndId);
-          if (!stillExists) {
-            entry.selected2ndId = '';
-            entry.selected2ndCoords = '';
-            entry.selected2ndX = '';
-            entry.selected2ndY = '';
+    try {
+      for (let i = 0; i < targets.length; i++) {
+        if (scanState.cancelled) break;
+        const entry = targets[i];
+        const playerId = String(entry.playerId);
+        const previousId = getOpenProfileId();
+        const previous = scrapeOpenProfileData(previousId);
+        // Even an incomplete previous profile can be identified by its
+        // fingerprint; don't let it be mistaken for the next player's data.
+        const previousSignature = scanLogic.profileSignature(previous);
+        detail.textContent = `Checking ${entry.playerName || playerId} (${i + 1}/${targets.length})…`;
+        try {
+          navigateToGameRoute(`playerId:${playerId}/profileTab:playerProfile/window:profile`);
+          const result = await waitForLoadedProfile(playerId, previousSignature, previousId);
+          if (result.cancelled || scanState.cancelled) break;
+          if (result.profile) {
+            scanLogic.synchronizePlayer(watchlistTabs, playerId, result.profile);
+            watchlistTabs.forEach(tab => (tab.entries || []).filter(item => String(item.playerId) === playerId).forEach(item => {
+              delete item.lastScanError;
+              item.lastScanAttemptAt = Date.now();
+            }));
+            updatedIds.add(playerId);
           } else {
-            entry.selected2ndCoords = stillExists.coords;
-            entry.selected2ndX = stillExists.x;
-            entry.selected2ndY = stillExists.y;
+            const reason = result.error || 'Profile unavailable.';
+            failures.push({ playerId, playerName: entry.playerName, reason });
+            watchlistTabs.forEach(tab => (tab.entries || []).filter(item => String(item.playerId) === playerId).forEach(item => {
+              item.lastScanError = reason;
+              item.lastScanAttemptAt = Date.now();
+            }));
           }
+        } catch (error) {
+          const reason = error?.message || 'Unexpected error.';
+          failures.push({ playerId, playerName: entry.playerName, reason });
+          watchlistTabs.forEach(tab => (tab.entries || []).filter(item => String(item.playerId) === playerId).forEach(item => {
+            item.lastScanError = reason;
+            item.lastScanAttemptAt = Date.now();
+          }));
         }
+        progress.textContent = `${i + 1} / ${targets.length}`;
+        detail.textContent = `${updatedIds.size} updated · ${failures.length} failed`;
       }
+    } finally {
+      const cancelled = Boolean(scanState?.cancelled);
+      const now = Date.now();
+      targetTabs.forEach(tab => {
+        const tabIds = new Set((tab.entries || []).map(entry => String(entry.playerId)));
+        const success = [...tabIds].filter(id => updatedIds.has(id)).length;
+        // A partial scan is not reported as a completed update.
+        tab.lastScanResult = { at: now, updated: success, total: tabIds.size, cancelled };
+        if (!cancelled && success === tabIds.size && tabIds.size > 0) tab.updatedAt = now;
+      });
+      try {
+        saveWatchlist();
+        renderTableUI();
+      } finally {
+        window.location.hash = originalHash;
+        overlay.remove();
+        scanState = null;
+      }
+      const remaining = targets.length - updatedIds.size - failures.length;
+      const status = cancelled ? `cancelled; ${remaining} skipped` : failures.length ? `${failures.length} failed` : 'complete';
+      showToast(`Watchlist scan ${status}: ${updatedIds.size}/${targets.length} updated.`,
+        cancelled || failures.length ? 'warning' : 'success');
+      if (failures.length) console.warn('[APES Watchlist] Profiles left unchanged:', failures);
     }
-    activeTab.updatedAt = Date.now();
-    saveWatchlist();
-    renderTableUI();
-    window.location.hash = originalHash;
-    overlay.remove();
-    showToast(`Updated ${updatedCount}/${total} players in "${activeTab.name}".`, updatedCount === total ? "success" : "warning");
   }
+
+  function updateCurrentWatchlist() {
+    return runWatchlistScan(false);
+  }
+
+  function updateAllWatchlists() {
+    return runWatchlistScan(true);
+  }
+
   function renderTabsUI() {
     const tabsContainer = document.querySelector('.qol-wl-tabs');
     if (!tabsContainer) return;
@@ -1128,7 +1270,9 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     const activeTab = watchlistTabs.find(t => t.id === activeTabId) || watchlistTabs[0];
     if (statusEl) {
       const updated = activeTab.updatedAt ? ` · Updated ${new Date(activeTab.updatedAt).toLocaleString()}` : '';
-      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} · {v1}/{v2} players{v3}",{v0:(activeTab.name),v1:(activeTab.entries.length),v2:(MAX_PLAYERS_PER_TAB),v3:(updated)});})(statusEl);
+      const lastScan = activeTab.lastScanResult;
+      const partial = lastScan && (lastScan.cancelled || lastScan.updated < lastScan.total) ? ` · Last scan ${lastScan.updated}/${lastScan.total}${lastScan.cancelled ? ' (cancelled)' : ' (partial)'}` : '';
+      ((element)=>{const write=(key,values={})=>window.APES?.i18n ? window.APES.i18n.setText(element,key,values) : (element.textContent=String(key).replace(/\{(\w+)\}/g,(m,k)=>Object.hasOwn(values,k)?String(values[k]):m));return write("{v0} · {v1}/{v2} players{v3}",{v0:(activeTab.name),v1:(activeTab.entries.length),v2:(MAX_PLAYERS_PER_TAB),v3:(updated + partial)});})(statusEl);
     }
     tbody.innerHTML = '';
     if (activeTab.entries.length === 0) {
@@ -1241,6 +1385,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
             <div class="qol-wl-body">
                 <div class="qol-wl-controls">
                     <div id="qol-wl-update-btn" class="qol-wl-action-control" role="button" tabindex="0">Update current watchlist</div>
+                    <div id="qol-wl-update-all-btn" class="qol-wl-action-control" role="button" tabindex="0">Update all tabs</div>
                 </div>
                 
                 <div class="qol-wl-tabs"></div>
@@ -1291,16 +1436,19 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     renderTabsUI();
     renderTableUI();
     const updateBtn = watchlistContainer.querySelector('#qol-wl-update-btn');
-    if (updateBtn) {
-      updateBtn.addEventListener('click', updateCurrentWatchlist);
-      updateBtn.addEventListener('keydown', event => {
+    const allBtn = watchlistContainer.querySelector('#qol-wl-update-all-btn');
+    for (const [button, action] of [[updateBtn, updateCurrentWatchlist], [allBtn, updateAllWatchlists]]) {
+      if (!button) continue;
+      button.addEventListener('click', action);
+      button.addEventListener('keydown', event => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        void updateCurrentWatchlist();
+        void action();
       });
     }
   }
   function destroyWatchlistUI() {
+    if (scanState) scanState.cancelled = true;
     if (profileCheckInterval) {
       clearInterval(profileCheckInterval);
       profileCheckInterval = null;
