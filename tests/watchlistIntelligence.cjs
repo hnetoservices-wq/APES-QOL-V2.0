@@ -96,8 +96,8 @@ function checks() {
     village('Old Village', 12, -3)
   ]);
   assert.equal(h.record('12', returned, now + 3 * hour).ok, true);
-  assert.equal(data.events.find(e => e.kind === 'village-missing').status, 'confirmed',
-    'confirmed historical event remains after return');
+  assert.equal(data.events.find(e => e.kind === 'village-missing').status, 'resolved',
+    'confirmed historical disappearance remains in the timeline but is marked resolved after return');
   assert.equal(h.latestVillages(data).some(v => v.status === 'missing'), false,
     'returned village no longer listed as missing');
 
