@@ -31,4 +31,4 @@ jobs:
           node tests/languageSelectorVisibility.cjs
           node tests/localization.cjs
           node tests/oasisSniperChecker.cjs
-          node tests/oasisSniperAutoScan.cjs
+          node tests/oasisSniperLayout.cjs
