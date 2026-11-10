@@ -1084,7 +1084,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     const tabId = activeTabId;
     const targets = scanLogic.entriesInScope(watchlistTabs, tabId, allTabs);
     if (!targets.length) {
-      showToast('No players to update.', 'warning');
+      showToast(allTabs ? 'No players in any Watchlist to update.' : 'No players in the current tab to update.', 'warning');
       return;
     }
     intelligenceUI?.close();
