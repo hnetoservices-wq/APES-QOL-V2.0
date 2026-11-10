@@ -5,6 +5,7 @@ const root=path.resolve(__dirname,'..');
  w.APES={};w.isQolEnabled=()=>true;w.chrome={runtime:{},storage:{local:{get:(k,cb)=>cb({}),set:(v,cb)=>cb()},onChanged:{addListener(){}}}};
  const load=file=>w.eval(fs.readFileSync(path.join(root,file),'utf8'));
  load('js/locales/catalogs.js');load('js/core/i18n.js');const i=w.APES.i18n;await i.ready;
+ load('js/modules/watchlist/scanReliability.js');load('js/modules/watchlist/history.js');load('js/modules/watchlist/intelligenceUI.js');
  load('js/features/watchlist.js');w.document.dispatchEvent(new w.Event('DOMContentLoaded'));await new Promise(r=>w.setTimeout(r,0));
  const update=w.document.querySelector('#qol-wl-update-btn');assert.ok(update,'Actual watchlist update button exists');
  const status=w.document.createElement('div');w.document.body.append(status);

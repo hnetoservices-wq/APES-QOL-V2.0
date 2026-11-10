@@ -63,6 +63,8 @@
         "js/features/chatLinks.js",
         "js/features/incomingResources.js",
         "js/modules/watchlist/scanReliability.js",
+        "js/modules/watchlist/history.js",
+        "js/modules/watchlist/intelligenceUI.js",
         "js/features/watchlist.js",
         "js/modules/watchlist/highlights.js",
         "js/features/reportArchive.js",
@@ -170,7 +172,8 @@
         "css/features/royalTributeCountdown.css",
         "css/features/barracksTrainingDayPlanner.css",
         "css/features/poopScanner.css",
-        "css/features/oasisSniperChecker.css"
+        "css/features/oasisSniperChecker.css",
+        "css/features/watchlistIntelligence.css"
       ],
       "run_at": "document_idle"
     }

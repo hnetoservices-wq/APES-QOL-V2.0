@@ -113,7 +113,7 @@
     return null;
   }
   function isApesInterface(element) {
-    return Boolean(element.closest('#qol-watchlist-container, #qol-modal, ' + '#apes-v2-command-overlay, .qol-modal-overlay, ' + '.qol-wl-dropdown-menu'));
+    return Boolean(element.closest('#qol-watchlist-container, #qol-modal, ' + '#apes-v2-command-overlay, .qol-modal-overlay, ' + '.qol-wl-dropdown-menu, #qol-wl-intel-overlay'));
   }
   function restoreTitle(element) {
     if (!element.hasAttribute('data-apes-watch-original-title')) {

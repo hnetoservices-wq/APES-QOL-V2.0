@@ -5,7 +5,11 @@ on:
     paths:
       - 'js/features/watchlist.js'
       - 'js/modules/watchlist/**'
+      - 'css/features/watchlistIntelligence.css'
+      - 'js/locales/catalogs.js'
+      - 'tools/translations.tsv'
       - 'tests/watchlist.cjs'
+      - 'tests/watchlistIntelligence.cjs'
       - 'tests/package*.json'
       - '.github/workflows/watchlist.yml'
   push:
@@ -25,10 +29,16 @@ jobs:
       - name: Install test dependencies
         run: npm ci --prefix tests
       - name: Run Watchlist regression tests
-        run: node tests/watchlist.cjs
+        run: |
+          node tests/watchlist.cjs
+          node tests/watchlistIntelligence.cjs
       - name: Check localization and Oasis Sniper integration
         run: |
           node tests/languageSelectorVisibility.cjs
           node tests/localization.cjs
           node tests/oasisSniperChecker.cjs
           node tests/oasisSniperLayout.cjs
+      - name: Verify localized extension and message catalog
+        run: |
+          node tests/featureLocalization.cjs
+          node tools/audit-feature-localization.cjs
