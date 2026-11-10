@@ -1075,7 +1075,9 @@
     "Update all tabs": "Atualizar todos os separadores",
     "Updating": "A atualizar",
     "Saved Reports": "Relatórios guardados",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "O Arquivo de Relatórios não está disponível. Ativa-o nas definições do APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "O Arquivo de Relatórios não está disponível. Ativa-o nas definições do APES QoL.",
+    "6h": "6 h",
+    "Village population changed": "População da aldeia alterada"
   },
   "es-ES": {
     "Language": "Idioma",
@@ -2151,7 +2153,9 @@
     "Update all tabs": "Actualizar todas las pestañas",
     "Updating": "Actualizando",
     "Saved Reports": "Informes guardados",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "El Archivo de Informes no está disponible. Actívalo en los ajustes de APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "El Archivo de Informes no está disponible. Actívalo en los ajustes de APES QoL.",
+    "6h": "6 h",
+    "Village population changed": "Población de la aldea modificada"
   },
   "fr": {
     "Language": "Langue",
@@ -3227,7 +3231,9 @@
     "Update all tabs": "Mettre à jour tous les onglets",
     "Updating": "Mise à jour",
     "Saved Reports": "Rapports enregistrés",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "Les archives de rapports ne sont pas disponibles. Activez-les dans les paramètres d’APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Les archives de rapports ne sont pas disponibles. Activez-les dans les paramètres d’APES QoL.",
+    "6h": "6 h",
+    "Village population changed": "Population du village modifiée"
   },
   "ru": {
     "Language": "Язык",
@@ -4303,7 +4309,9 @@
     "Update all tabs": "Обновить все вкладки",
     "Updating": "Обновление",
     "Saved Reports": "Сохранённые отчёты",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "Архив отчётов недоступен. Включите его в настройках APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Архив отчётов недоступен. Включите его в настройках APES QoL.",
+    "6h": "6 ч",
+    "Village population changed": "Население деревни изменилось"
   },
   "cs": {
     "Language": "Jazyk",
@@ -5379,7 +5387,9 @@
     "Update all tabs": "Aktualizovat všechny karty",
     "Updating": "Aktualizace",
     "Saved Reports": "Uložené reporty",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiv reportů není dostupný. Zapněte jej v nastavení APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiv reportů není dostupný. Zapněte jej v nastavení APES QoL.",
+    "6h": "6 h",
+    "Village population changed": "Změna populace vesnice"
   },
   "de": {
     "Language": "Sprache",
@@ -6455,7 +6465,9 @@
     "Update all tabs": "Alle Tabs aktualisieren",
     "Updating": "Aktualisierung",
     "Saved Reports": "Gespeicherte Berichte",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "Das Berichtsarchiv ist nicht verfügbar. Aktiviere es in den APES-QoL-Einstellungen."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Das Berichtsarchiv ist nicht verfügbar. Aktiviere es in den APES-QoL-Einstellungen.",
+    "6h": "6 Std.",
+    "Village population changed": "Dorfbevölkerung geändert"
   },
   "it": {
     "Language": "Lingua",
@@ -7531,7 +7543,9 @@
     "Update all tabs": "Aggiorna tutte le schede",
     "Updating": "Aggiornamento",
     "Saved Reports": "Report salvati",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "L’archivio dei report non è disponibile. Attivalo nelle impostazioni di APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "L’archivio dei report non è disponibile. Attivalo nelle impostazioni di APES QoL.",
+    "6h": "6 h",
+    "Village population changed": "Popolazione del villaggio modificata"
   },
   "pl": {
     "Language": "Język",
@@ -8607,7 +8621,9 @@
     "Update all tabs": "Aktualizuj wszystkie karty",
     "Updating": "Aktualizowanie",
     "Saved Reports": "Zapisane raporty",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiwum raportów jest niedostępne. Włącz je w ustawieniach APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiwum raportów jest niedostępne. Włącz je w ustawieniach APES QoL.",
+    "6h": "6 godz.",
+    "Village population changed": "Zmiana populacji wioski"
   },
   "ro": {
     "Language": "Limbă",
@@ -9683,7 +9699,9 @@
     "Update all tabs": "Actualizează toate filele",
     "Updating": "Se actualizează",
     "Saved Reports": "Rapoarte salvate",
-    "Report Archive is unavailable. Enable it in APES QoL settings.": "Arhiva de rapoarte nu este disponibilă. Activeaz-o în setările APES QoL."
+    "Report Archive is unavailable. Enable it in APES QoL settings.": "Arhiva de rapoarte nu este disponibilă. Activeaz-o în setările APES QoL.",
+    "6h": "6 h",
+    "Village population changed": "Populația satului s-a schimbat"
   }
 };
 })();

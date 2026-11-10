@@ -6,7 +6,10 @@
   const MAX_SNAPSHOTS = 96;
   const MAX_EVENTS = 180;
   const MAX_PLAYERS = 650;
-  const UNCHANGED_INTERVAL_MS = 6 * 3600000;
+  // Preserve useful observations inside a six-hour view without storing an
+  // unlimited snapshot for every unchanged refresh.
+  const UNCHANGED_INTERVAL_MS = 15 * 60000;
+  const SIX_HOURS_MS = 6 * 3600000;
   const scan = window.APES_WATCHLIST_SCAN;
   let cache = null;
   let cachedRaw = null;
@@ -22,7 +25,8 @@
     const villages = profile.villages.map(village => ({
       x: String(village.x).trim(),
       y: String(village.y).trim(),
-      name: String(village.name).trim()
+      name: String(village.name).trim(),
+      population: numeric(village.population)
     })).sort((a, b) => position(a).localeCompare(position(b)));
     const confirmed = profile.capitalConfirmed === true;
     const capital = confirmed && profile.capital ? position(profile.capital) : null;
@@ -78,13 +82,23 @@
     for (const [coords, village] of currentVillages) {
       const old = previousVillages.get(coords);
       if (!old) events.push(eventAt(at, 'village-added', { coords, name: village.name }));
-      else if (old.name !== village.name) {
-        events.push(eventAt(at, 'village-renamed', { coords, from: old.name, to: village.name }));
+      else {
+        if (old.name !== village.name) {
+          events.push(eventAt(at, 'village-renamed', { coords, from: old.name, to: village.name }));
+        }
+        // Do not manufacture a delta when either snapshot lacks village
+        // population; older Watchlists had no such field.
+        if (Number.isFinite(old.population) && Number.isFinite(village.population) && old.population !== village.population) {
+          events.push(eventAt(at, 'village-population-changed', {
+            coords, name: village.name, from: old.population, to: village.population,
+            delta: village.population - old.population
+          }));
+        }
       }
     }
     for (const [coords, village] of previousVillages) {
       if (!currentVillages.has(coords)) {
-        events.push(eventAt(at, 'village-missing', { coords, name: village.name, status: 'pending' }));
+        events.push(eventAt(at, 'village-missing', { coords, name: village.name, population: village.population, status: 'pending' }));
       }
     }
     if (previous.capitalConfirmed && next.capitalConfirmed && previous.capital !== next.capital && previous.capital && next.capital) {
@@ -156,7 +170,12 @@
     updatePending(entry, snapshot);
     const changes = compareSnapshots(previous, snapshot);
     entry.events.push(...changes);
-    if (!previous || changes.length || snapshot.at - previous.at >= UNCHANGED_INTERVAL_MS ||
+    // A newly available (or now unavailable) village population reading must
+    // be retained even when the player's total population did not change.
+    const previousPopulation = new Map((previous?.villages || []).map(v => [position(v), v.population ?? null]));
+    const villageReadingsChanged = snapshot.villages.some(v => previousPopulation.has(position(v)) &&
+      (v.population ?? null) !== previousPopulation.get(position(v)));
+    if (!previous || changes.length || villageReadingsChanged || snapshot.at - previous.at >= UNCHANGED_INTERVAL_MS ||
       previous.capitalConfirmed !== snapshot.capitalConfirmed) {
       entry.snapshots.push(snapshot);
     }
@@ -200,33 +219,73 @@
   function timeline(record, rangeMs = 7 * 86400000, now = Date.now()) {
     return (record.events || []).filter(event => event.at >= now - rangeMs && event.at <= now).slice().reverse();
   }
-  function trend(record, rangeMs, now = Date.now()) {
-    const snapshots = record.snapshots || [];
-    if (snapshots.length < 2) return null;
-    const end = snapshots[snapshots.length - 1];
-    const startOfRange = now - rangeMs;
-    if (end.at < startOfRange) return null; // No scans in this period.
-    const before = snapshots.filter(item => item.at <= startOfRange).pop();
-    const firstInside = snapshots.find(item => item.at >= startOfRange);
+  function baseline(record, rangeMs, now = Date.now()) {
+    const list = (record.snapshots || []).filter(s => s.at <= now);
+    if (list.length < 2) return null;
+    const end = list[list.length - 1];
+    const start = now - rangeMs;
+    if (end.at < start) return null;
+    // The short view is strictly built from actual observations taken within
+    // the last six hours. Older observations must not leak into it.
+    if (rangeMs <= SIX_HOURS_MS) {
+      const inside = list.filter(s => s.at >= start);
+      if (inside.length < 2) return null;
+      return { beginning: inside[0], end, complete: inside[0].at <= start };
+    }
+    const before = list.filter(s => s.at <= start).pop();
+    const firstInside = list.find(s => s.at >= start);
     const beginning = before || firstInside;
-    if (!beginning || beginning.at >= end.at) return null;
+    return beginning && beginning.at < end.at ?
+      { beginning, end, complete: Boolean(before) } : null;
+  }
+  function trend(record, rangeMs, now = Date.now()) {
+    const pair = baseline(record, rangeMs, now);
+    if (!pair) return null;
+    const { beginning, end, complete } = pair;
     return {
       delta: end.population - beginning.population,
       villageDelta: end.villages.length - beginning.villages.length,
       baselineAt: beginning.at,
       finalAt: end.at,
-      complete: Boolean(before),
+      complete,
       from: beginning.population,
       to: end.population
+    };
+  }
+  function villageTrend(record, coords, rangeMs, now = Date.now()) {
+    const list = (record.snapshots || []).filter(snapshot => snapshot.at <= now);
+    if (list.length < 2) return null;
+    const end = list[list.length - 1];
+    const cutoff = now - rangeMs;
+    if (end.at < cutoff) return null;
+    const key = String(coords);
+    const current = end.villages.find(v => position(v) === key);
+    if (!current || !Number.isFinite(current.population)) return null;
+    // Older Watchlist snapshots had no village populations. Start comparisons
+    // at the first actual observation for this specific village, not at a
+    // player-wide snapshot whose village population was unknown.
+    const observed = list.map(snapshot => ({
+      at: snapshot.at,
+      village: snapshot.villages.find(v => position(v) === key)
+    })).filter(item => item.village && Number.isFinite(item.village.population));
+    const before = rangeMs > SIX_HOURS_MS ? observed.filter(item => item.at <= cutoff).pop() : null;
+    const beginning = before || observed.find(item => item.at >= cutoff);
+    if (!beginning || beginning.at >= end.at) return null;
+    return {
+      delta: current.population - beginning.village.population,
+      from: beginning.village.population,
+      to: current.population,
+      baselineAt: beginning.at,
+      finalAt: end.at,
+      complete: Boolean(before)
     };
   }
   function chart(record, rangeMs, now = Date.now()) {
     const list = record.snapshots || [];
     const start = now - rangeMs;
-    const anchor = list.filter(s => s.at <= start).pop();
     const inside = list.filter(s => s.at >= start && s.at <= now);
-    // Draw only the requested period; the earlier baseline is carried to the
-    // period boundary rather than stretching the axis back for many weeks.
+    if (rangeMs <= SIX_HOURS_MS) return inside;
+    const anchor = list.filter(s => s.at <= start).pop();
     return anchor && inside.length ? [{ ...anchor, at: start }, ...inside] : inside;
   }
   function latestVillages(record, now = Date.now()) {
@@ -252,13 +311,14 @@
       const [x, y] = coords.split('|');
       villages.push({
         x, y, name: missing.name, coords,
+        population: numeric(missing.population),
         status: missing.status === 'confirmed' ? 'missing' : 'unverified', capital: false
       });
     }
     return villages;
   }
   window.APES_WATCHLIST_HISTORY = Object.freeze({
-    key, load, read, seed, seedExisting, record, save, timeline, trend, chart, latestVillages,
+    key, load, read, seed, seedExisting, record, save, timeline, trend, villageTrend, chart, latestVillages,
     compareSnapshots, normalize, pruneAll,
     MAX_SNAPSHOTS, MAX_EVENTS, MAX_AGE_MS, MAX_PLAYERS
   });

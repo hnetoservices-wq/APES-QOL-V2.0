@@ -3,7 +3,7 @@
 
   const PANEL_ID = 'qol-wl-intel-overlay';
   const MS_DAY = 86400000;
-  const PERIODS = Object.freeze({ '24h': MS_DAY, '7d': 7 * MS_DAY, '30d': 30 * MS_DAY });
+  const PERIODS = Object.freeze({ '6h': 6 * 3600000, '24h': MS_DAY, '7d': 7 * MS_DAY, '30d': 30 * MS_DAY });
   const history = window.APES_WATCHLIST_HISTORY;
   let context = null;
   let overlay = null;
@@ -49,6 +49,9 @@
       }
       case 'village-renamed': return { tone:'', title:label('Village renamed'), detail:escape(event.from) + ' → ' + escape(event.to) + ' · (' + escape(event.coords) + ')' };
       case 'capital-changed': return { tone:'', title:label('Capital changed'), detail:'(' + escape(event.from) + ') → (' + escape(event.to) + ')' };
+      case 'village-population-changed': return { tone:event.delta > 0 ? 'positive' : 'negative',
+        title:label('Village population changed') + ' ' + escape(signed(event.delta)),
+        detail:escape(event.name) + ' · (' + escape(event.coords) + ') · ' + number(event.from) + ' → ' + number(event.to) };
       case 'population-changed': return { tone:event.delta > 0 ? 'positive' : 'negative',
         title:label('Population changed') + ' ' + escape(signed(event.delta)),
         detail:number(event.from) + ' → ' + number(event.to) };
@@ -100,7 +103,7 @@
       '<div class="qol-wl-intel-chart-legend"><span>' + escape(dateOnly(firstTime)) + ' · ' + number(points[0].population) +
       '</span><span>' + escape(dateOnly(lastTime)) + ' · ' + number(points[points.length - 1].population) + '</span></div></div>';
   }
-  function villagesHtml(record) {
+  function villagesHtml(record, rangeMs) {
     const villages = history.latestVillages(record);
     if (!villages.length) return '<div class="qol-wl-intel-empty">' + label('No village history available yet.') + '</div>';
     const order = { new:0, current:1, unverified:2, missing:3 };
@@ -114,10 +117,19 @@
         encodeURIComponent(village.x) + '/y:' + encodeURIComponent(village.y) + '" title="' +
         escape(translate('Send troops to village')) + '">' + coords + '</a>' : '<span>' + coords + '</span>';
       const capital = village.capital ? ' <span class="qol-wl-intel-state">' + label('Capital') + '</span>' : '';
-      return '<tr><td>' + escape(village.name) + capital + '</td><td>' + coordLink + '</td><td>' + badge + '</td></tr>';
+      const available = Number.isFinite(village.population);
+      const trend = canSend && available ? history.villageTrend(record, village.coords, rangeMs) : null;
+      const delta = trend ? signed(trend.delta) : '—';
+      const deltaTitle = translate('Population change') + ' (' + context.period + '): ' + delta;
+      const pop = '<div class="qol-wl-village-pop"><strong>' + (available ? escape(number(village.population)) : '—') +
+        '</strong><small class="qol-wl-village-pop-change ' + tone(trend?.delta) + '" title="' +
+        escape(deltaTitle) + '" aria-label="' + escape(deltaTitle) + '">' + escape(delta) + '</small></div>';
+      return '<tr><td>' + escape(village.name) + capital + '</td><td>' + coordLink + '</td><td>' +
+        pop + '</td><td>' + badge + '</td></tr>';
     }).join('');
     return '<table class="qol-wl-intel-villages"><thead><tr><th>' + label('Village') + '</th><th>' +
-      label('Coordinates') + '</th><th>' + label('Status') + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+      label('Coordinates') + '</th><th>' + label('Population') + '</th><th>' +
+      label('Status') + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
   }
   function render() {
     if (!context || !overlay) return;
@@ -151,7 +163,7 @@
     const content = context.view === 'villages'
       ? '<div class="qol-wl-intel-section"><div class="qol-wl-intel-section-head"><span>' +
         label('Known villages') + '</span><span class="qol-wl-intel-section-meta">' +
-        escape(latest ? String(latest.villages.length) : '0') + '</span></div>' + villagesHtml(record) + '</div>'
+        escape(latest ? String(latest.villages.length) : '0') + '</span></div>' + villagesHtml(record, windowMs) + '</div>'
       : '<div class="qol-wl-intel-section"><div class="qol-wl-intel-section-head"><span>' +
         label('Population trend') + '</span><span class="qol-wl-intel-section-meta">' + escape(context.period) +
         '</span></div>' + chartHtml(record, windowMs) + '</div>' +

@@ -771,6 +771,31 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       }
     });
   }
+  // Only use a village-specific population cell. Never derive individual
+  // village populations from the player's total population.
+  function readVillagePopulation(row) {
+    const numberFrom = value => {
+      const text = String(value ?? '').replace(/[\u200E\u200F\u202A-\u202E\u2066-\u2069]/g, '').trim();
+      if (!/^\d+(?:[., \u00a0\u202f]\d{3})*$/.test(text)) return null;
+      const number = Number(text.replace(/[., \u00a0\u202f]/g, ''));
+      return Number.isSafeInteger(number) ? number : null;
+    };
+    const cell = row.querySelector('[data-population], td.population, td.inhabitants, td.villagePopulation, td[class*="populat" i], td[class*="inhabitant" i], .villagePopulation');
+    if (cell) {
+      const explicit = numberFrom(cell.getAttribute('data-population'));
+      if (explicit !== null) return explicit;
+      const attribute = numberFrom(cell.getAttribute('data-value'));
+      if (attribute !== null) return attribute;
+      const visible = numberFrom(cell.textContent);
+      if (visible !== null) return visible;
+    }
+    // Some game versions use plain <td> cells with only a localized header.
+    const table = row.closest('table');
+    const headers = [...(table?.querySelectorAll('thead th') || [])];
+    const column = headers.findIndex(header => /\b(population|população|población|popolazione|einwohner|inhabitants|habitants|populace|ludność|populație|obyvatel|населени)/i.test(header.textContent));
+    if (column !== -1) return numberFrom(row.querySelectorAll('td')[column]?.textContent);
+    return null;
+  }
   function scrapeOpenProfileData(playerId) {
     const nameElement = document.querySelector('div.content[ng-if="!kingdomProfile"]') || document.querySelector('.playerProfile .playerName') || document.querySelector('.playerName');
     const playerName = nameElement ? nameElement.textContent.trim() : 'Unknown';
@@ -844,6 +869,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
         x: x,
         y: y,
         coords: coordsFormatted,
+        population: readVillagePopulation(row),
         isCapital: isCapital
       };
       villages.push(villageObj);

@@ -22,6 +22,7 @@
     const names = (profile.villages || []).map(village => [
       villageKey(village),
       String(village.name || '').trim(),
+      String(village.population ?? ''),
       Boolean(village.isCapital)
     ].join(':')).sort();
     return [String(profile.playerName || '').trim(), String(profile.population || '').trim(), ...names].join('||');
