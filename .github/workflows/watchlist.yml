@@ -11,6 +11,7 @@ on:
       - 'tests/watchlist.cjs'
       - 'tests/watchlistIntelligence.cjs'
       - 'tests/watchlistSavedReports.cjs'
+      - 'tests/watchlistVillagePopulation.cjs'
       - 'js/features/reportArchive.js'
       - 'tests/package*.json'
       - '.github/workflows/watchlist.yml'
@@ -35,6 +36,7 @@ jobs:
           node tests/watchlist.cjs
           node tests/watchlistIntelligence.cjs
           node tests/watchlistSavedReports.cjs
+          node tests/watchlistVillagePopulation.cjs
       - name: Check localization and Oasis Sniper integration
         run: |
           node tests/languageSelectorVisibility.cjs
