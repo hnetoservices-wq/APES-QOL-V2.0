@@ -5,8 +5,9 @@
   const HIGHLIGHT_CLASS = 'apes-watched-player';
   const TEXT_HIGHLIGHT_NAME = 'apes-watched-player-text';
   const STORAGE_PREFIX = 'qol_watchlist_';
-  const SCAN_DELAY = 90;
-  const INDEX_CHECK_INTERVAL = 1000;
+  const SCAN_DELAY = 250;
+  const INDEX_CHECK_INTERVAL = 5000;
+  const MAX_TEXT_RANGES = 1200;
   const CANDIDATE_SELECTOR = ['a', '[data-player-id]', '[data-playerid]', '[href*="playerId:"]', '[ng-href*="playerId:"]', '[data-route*="playerId:"]', '[clickable*="playerId"]', '[ng-click*="playerId"]', '.playerName', '.player-name', '.player', '.ownerName', '.attacker', '.defender', 'td.player'].join(',');
   let observer = null;
   let scanTimer = null;
@@ -171,47 +172,38 @@
   function refreshTextHighlights() {
     clearTextHighlights();
     const watchedNames = Array.from(byPlayerName.keys()).filter(Boolean).sort((a, b) => b.length - a.length);
-    if (!watchedNames.length || !document.body) {
-      return;
-    }
+    if (!watchedNames.length || !document.body) return;
+
     const supportsTextHighlights = typeof window.Highlight === 'function' && Boolean(window.CSS?.highlights);
     const ranges = [];
+    // A single compiled alternation avoids comparing every DOM text node with
+    // every watched player name (up to 500 names on a full Watchlist).
+    const escapeRegExp = value => value.split('').map(char => '.^$*+?()[]{}|\\'.includes(char) ? '\\' + char : char).join('');
+    const matcher = supportsTextHighlights
+      ? new RegExp(watchedNames.map(escapeRegExp).join('|'), 'g')
+      : null;
     const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
     let node = walker.nextNode();
     while (node) {
       if (!isExcludedTextNode(node)) {
         const parent = node.parentElement;
         const nodeName = normalizeName(node.nodeValue);
-        const parentName = normalizeName(parent.textContent);
         const exactInfo = byPlayerName.get(nodeName);
-        if (exactInfo && nodeName === parentName && !parent.classList.contains(HIGHLIGHT_CLASS)) {
+        if (exactInfo && nodeName === normalizeName(parent.textContent) && !parent.classList.contains(HIGHLIGHT_CLASS)) {
           applyHighlight(parent, exactInfo);
-        } else if (supportsTextHighlights && !parent.closest('.' + HIGHLIGHT_CLASS)) {
-          const rawText = String(node.nodeValue || '');
-          const lowerText = rawText.toLocaleLowerCase();
-          const occupied = [];
-          watchedNames.forEach(name => {
-            let start = 0;
-            let index = lowerText.indexOf(name, start);
-            while (index !== -1) {
-              const end = index + name.length;
-              const overlaps = occupied.some(range => {
-                return index < range.end && end > range.start;
-              });
-              if (!overlaps && isNameBoundary(lowerText[index - 1]) && isNameBoundary(lowerText[end])) {
-                const range = document.createRange();
-                range.setStart(node, index);
-                range.setEnd(node, end);
-                ranges.push(range);
-                occupied.push({
-                  start: index,
-                  end
-                });
-              }
-              start = Math.max(end, index + 1);
-              index = lowerText.indexOf(name, start);
-            }
-          });
+        } else if (matcher && !parent.closest('.' + HIGHLIGHT_CLASS) && ranges.length < MAX_TEXT_RANGES) {
+          const lowerText = String(node.nodeValue || '').toLocaleLowerCase();
+          matcher.lastIndex = 0;
+          let match;
+          while ((match = matcher.exec(lowerText)) && ranges.length < MAX_TEXT_RANGES) {
+            const index = match.index;
+            const end = index + match[0].length;
+            if (!isNameBoundary(lowerText[index - 1]) || !isNameBoundary(lowerText[end])) continue;
+            const range = document.createRange();
+            range.setStart(node, index);
+            range.setEnd(node, end);
+            ranges.push(range);
+          }
         }
       }
       node = walker.nextNode();
@@ -306,6 +298,12 @@
     }
     clearHighlights();
   }
+  window.addEventListener('storage', event => {
+    if (enabled() && event.key === storageKey() && rebuildIndex()) {
+      clearHighlights();
+      scheduleScan(document);
+    }
+  });
   window.addEventListener('qol_watchlist_changed', () => {
     if (enabled()) {
       rebuildIndex(true);
