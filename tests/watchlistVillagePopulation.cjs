@@ -118,7 +118,8 @@ function testUI() {
 
   intel.open({ playerId:'44', playerName:'Tester' }, 'villages');
   assert.equal(doc.querySelector('.qol-wl-village-pop strong').textContent, '780');
-  assert.equal(doc.querySelector('.qol-wl-village-pop-change').textContent, '—');
+  assert.equal(doc.querySelector('.qol-wl-village-pop-change').textContent, '+3',
+    'UI uses two valid readings even when an older legacy snapshot has unknown village population');
   intel.close();
 }
 try {
