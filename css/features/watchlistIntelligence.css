@@ -62,3 +62,13 @@
 #qol-wl-intel-overlay .qol-wl-intel-btn[aria-disabled="true"] { opacity:.55!important; cursor:wait!important; pointer-events:none!important; }
 #qol-wl-intel-overlay .qol-wl-intel-notice:empty { display:none!important; }
 #qol-wl-intel-overlay .qol-wl-intel-notice:not(:empty) { margin:-3px 0 10px!important; font-size:11px!important; color:#a3342d!important; font-weight:700!important; }
+
+/* One compact village-population column: latest value and change for the
+   selected six-hour, daily, weekly or monthly window. */
+#qol-wl-intel-overlay .qol-wl-intel-villages th:nth-child(3),
+#qol-wl-intel-overlay .qol-wl-intel-villages td:nth-child(3) { text-align:center!important; min-width:95px!important; }
+#qol-wl-intel-overlay .qol-wl-village-pop { display:flex!important; align-items:center!important; justify-content:center!important; flex-direction:column!important; gap:3px!important; line-height:1.15!important; }
+#qol-wl-intel-overlay .qol-wl-village-pop strong { font-size:12px!important; font-weight:800!important; color:#463822!important; }
+#qol-wl-intel-overlay .qol-wl-village-pop-change { display:block!important; font-size:10px!important; font-weight:800!important; color:#847765!important; }
+#qol-wl-intel-overlay .qol-wl-village-pop-change.qol-positive { color:#35651f!important; }
+#qol-wl-intel-overlay .qol-wl-village-pop-change.qol-negative { color:#a3342d!important; }
