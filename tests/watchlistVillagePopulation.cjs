@@ -127,7 +127,8 @@ try {
   testUI();
   browser.window.close();
   console.log('Watchlist six-hour and village population tests passed.');
-} catch (error) {
+ } catch (error) {
+  browser.window.close();
   console.error(error);
   process.exitCode = 1;
 }
