@@ -6,6 +6,8 @@
   let profileCheckInterval = null;
   let watchlistTabs = [];
   let activeTabId = 'tab_1';
+  const scanLogic = window.APES_WATCHLIST_SCAN;
+  let scanState = null;
   function getStorageKey() {
     return 'qol_watchlist_' + window.location.hostname;
   }
@@ -95,6 +97,7 @@
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
           watchlistTabs = parsed;
+          scanLogic?.synchronizeExistingDuplicates(watchlistTabs);
           activeTabId = watchlistTabs[0].id;
           return;
         }
@@ -870,24 +873,30 @@
       return;
     }
     const scrapedData = scrapeOpenProfileData(playerId);
-    if (scrapedData.playerName && scrapedData.villages.length > 0) {
+    const existing = scanLogic.existingPlayer(watchlistTabs, playerId);
+    const complete = !scanLogic.validateProfile(scrapedData, playerId);
+    // Reuse validated, previously recorded intelligence when adding a player
+    // already tracked in another tab, but keep notes independent per tab.
+    const source = existing || (complete ? scrapedData : null);
+    if (source && Array.isArray(source.villages) && source.villages.length > 0) {
       targetTab.entries.push({
         id: 'entry_' + Date.now(),
-        playerId: scrapedData.playerId,
-        playerName: scrapedData.playerName,
-        population: scrapedData.population || 'N/A',
-        capital: scrapedData.capital,
-        villages: scrapedData.villages,
+        playerId: playerId,
+        playerName: source.playerName,
+        population: source.population || 'N/A',
+        capital: source.capital ? { ...source.capital } : null,
+        villages: source.villages.map(village => ({ ...village })),
         selected2ndId: '',
         selected2ndCoords: '',
         selected2ndX: '',
         selected2ndY: '',
-        villageChange: null,
-        populationChange: null,
+        villageChange: existing?.villageChange ?? null,
+        populationChange: existing?.populationChange ?? null,
+        lastUpdatedAt: existing?.lastUpdatedAt || null,
         notes: ''
       });
       saveWatchlist();
-      showToast(`Added ${scrapedData.playerName} to "${targetTab.name}"`, "success");
+      showToast(`Added ${source.playerName} to "${targetTab.name}"`, "success");
       openWatchlistMenu(targetTab.id);
     } else {
       showToast("Error: Profile detected, but could not parse villages or player name.", "error");
@@ -968,83 +977,155 @@
       header.appendChild(wrapper);
     }
   }
-  async function updateCurrentWatchlist() {
-    const activeTab = watchlistTabs.find(t => t.id === activeTabId);
-    if (!activeTab || activeTab.entries.length === 0) {
-      showToast("No players in the current tab to update.", "warning");
+  function getOpenProfileId() {
+    return (window.location.hash.match(/(?:^|\/)playerId:(\d+)(?:\/|$)/) || [])[1] || '';
+  }
+
+  function detectedProfileId() {
+    const root = document.querySelector('.contentBox.playerDescription, .playerProfile');
+    if (!root) return '';
+    const candidates = [root, ...root.querySelectorAll('[data-player-id], [data-playerid], [playerid]')];
+    for (const element of candidates) {
+      const id = element.getAttribute('data-player-id') || element.getAttribute('data-playerid') || element.getAttribute('playerid');
+      if (id && /^\d+$/.test(id)) return id;
+    }
+    return '';
+  }
+
+  async function waitForLoadedProfile(playerId, beforeSignature, beforePlayerId) {
+    const deadline = Date.now() + 8000;
+    let stableSignature = '';
+    let stableSince = 0;
+    while (Date.now() < deadline) {
+      if (scanState?.cancelled) return { cancelled: true };
+      if (getOpenProfileId() === String(playerId)) {
+        const candidate = scrapeOpenProfileData(playerId);
+        const problem = scanLogic.validateProfile(candidate, playerId);
+        const signature = scanLogic.profileSignature(candidate);
+        const domId = detectedProfileId();
+        // The URL changes before Angular finishes rendering. Never accept
+        // the prior player's DOM as the next player's completed profile.
+        const freshProfile = beforePlayerId === String(playerId) ||
+          !beforeSignature || signature !== beforeSignature;
+        if (!problem && freshProfile && (!domId || domId === String(playerId))) {
+          if (signature !== stableSignature) {
+            stableSignature = signature;
+            stableSince = Date.now();
+          } else if (Date.now() - stableSince >= 300) {
+            return { profile: candidate };
+          }
+        } else {
+          stableSignature = '';
+          stableSince = 0;
+        }
+      } else {
+        stableSignature = '';
+        stableSince = 0;
+      }
+      await delay(120);
+    }
+    return { error: 'Profile did not finish loading or was incomplete (8s timeout).' };
+  }
+
+  async function runWatchlistScan(allTabs = false) {
+    if (scanState) {
+      showToast('A Watchlist scan is already running.', 'warning');
       return;
     }
-    const entries = activeTab.entries;
-    const total = entries.length;
+    const tabId = activeTabId;
+    const targets = scanLogic.entriesInScope(watchlistTabs, tabId, allTabs);
+    if (!targets.length) {
+      showToast('No players to update.', 'warning');
+      return;
+    }
     const originalHash = window.location.hash;
-    let updatedCount = 0;
+    const updatedIds = new Set();
+    const failures = [];
+    const targetTabs = allTabs ? watchlistTabs.slice() : watchlistTabs.filter(tab => tab.id === tabId);
     const overlay = document.createElement('div');
     overlay.id = 'qol-watchlist-overlay';
-    overlay.style.cssText = `
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            width: 100vw !important;
-            height: 100vh !important;
-            background-color: rgba(0, 0, 0, 0.7) !important;
-            z-index: 99999 !important;
-            display: flex !important;
-            align-items: center !important;
-            justify-content: center !important;
-            color: white !important;
-            font-family: Arial, sans-serif !important;
-            font-size: 15px !important;
-            font-weight: bold !important;
-            flex-direction: column !important;
-            gap: 8px !important;
-        `;
+    overlay.style.cssText = [
+      'position:fixed!important','inset:0!important','width:100vw!important',
+      'height:100vh!important','background:rgba(0,0,0,.78)!important',
+      'z-index:99999!important','display:flex!important','align-items:center!important',
+      'justify-content:center!important','flex-direction:column!important',
+      'gap:12px!important','color:white!important','font:600 14px Arial,sans-serif!important'
+    ].join(';');
     overlay.innerHTML = `
-            <div>Updating Watchlist... (<span id="qol-update-progress">0</span> / ${total})</div>
-            <div style="font-size: 11px; font-weight: normal; color: #ccc;">Please wait, this may take a few seconds...</div>
-        `;
+      <div>Updating ${allTabs ? 'all Watchlists' : 'current Watchlist'}: <span class="qol-wl-scan-progress">0 / ${targets.length}</span></div>
+      <div class="qol-wl-scan-detail" style="font:normal 12px Arial,sans-serif;color:#eee">Preparing scan…</div>
+      <button type="button" class="qol-wl-scan-cancel" style="padding:7px 18px;border-radius:4px;border:1px solid #ba9f70;background:#eadcc3;color:#342a1c;cursor:pointer">Cancel scan</button>
+    `;
+    const progress = overlay.querySelector('.qol-wl-scan-progress');
+    const detail = overlay.querySelector('.qol-wl-scan-detail');
+    const cancelBtn = overlay.querySelector('.qol-wl-scan-cancel');
+    scanState = { cancelled: false };
+    cancelBtn.addEventListener('click', () => {
+      scanState.cancelled = true;
+      cancelBtn.disabled = true;
+      cancelBtn.textContent = 'Cancelling…';
+    });
     document.body.appendChild(overlay);
-    const progressEl = document.getElementById('qol-update-progress');
-    for (let i = 0; i < total; i++) {
-      const entry = entries[i];
-      if (progressEl) progressEl.textContent = (i + 1).toString();
-      navigateToGameRoute(`playerId:${entry.playerId}/profileTab:playerProfile/window:profile`);
-      await delay(1200);
-      const scrapedData = scrapeOpenProfileData(entry.playerId);
-      if (scrapedData && scrapedData.playerName && scrapedData.playerName !== 'Unknown' && scrapedData.villages.length > 0) {
-        const previousVillageCount = Array.isArray(entry.villages) ? entry.villages.length : null;
-        const previousPopulation = numericValue(entry.population);
-        const nextVillageCount = scrapedData.villages.length;
-        const nextPopulation = numericValue(scrapedData.population);
-        entry.villageChange = previousVillageCount == null ? null : nextVillageCount - previousVillageCount;
-        entry.populationChange = previousPopulation == null || nextPopulation == null ? null : nextPopulation - previousPopulation;
-        entry.playerName = scrapedData.playerName;
-        entry.population = scrapedData.population || 'N/A';
-        entry.capital = scrapedData.capital;
-        entry.villages = scrapedData.villages;
-        entry.lastUpdatedAt = Date.now();
-        updatedCount += 1;
-        if (entry.selected2ndId) {
-          const stillExists = entry.villages.find(v => v.id === entry.selected2ndId);
-          if (!stillExists) {
-            entry.selected2ndId = '';
-            entry.selected2ndCoords = '';
-            entry.selected2ndX = '';
-            entry.selected2ndY = '';
+    try {
+      for (let i = 0; i < targets.length; i++) {
+        if (scanState.cancelled) break;
+        const entry = targets[i];
+        const playerId = String(entry.playerId);
+        const previousId = getOpenProfileId();
+        const previous = scrapeOpenProfileData(previousId);
+        const previousSignature = scanLogic.validateProfile(previous, previousId) ?
+          '' : scanLogic.profileSignature(previous);
+        detail.textContent = `Checking ${entry.playerName || playerId} (${i + 1}/${targets.length})…`;
+        try {
+          navigateToGameRoute(`playerId:${playerId}/profileTab:playerProfile/window:profile`);
+          const result = await waitForLoadedProfile(playerId, previousSignature, previousId);
+          if (result.cancelled || scanState.cancelled) break;
+          if (result.profile) {
+            scanLogic.synchronizePlayer(watchlistTabs, playerId, result.profile);
+            updatedIds.add(playerId);
           } else {
-            entry.selected2ndCoords = stillExists.coords;
-            entry.selected2ndX = stillExists.x;
-            entry.selected2ndY = stillExists.y;
+            failures.push({ playerId, playerName: entry.playerName, reason: result.error || 'Profile unavailable.' });
           }
+        } catch (error) {
+          failures.push({ playerId, playerName: entry.playerName, reason: error?.message || 'Unexpected error.' });
         }
+        progress.textContent = `${i + 1} / ${targets.length}`;
+        detail.textContent = `${updatedIds.size} updated · ${failures.length} failed`;
       }
+    } finally {
+      const cancelled = Boolean(scanState?.cancelled);
+      const now = Date.now();
+      targetTabs.forEach(tab => {
+        const tabIds = new Set((tab.entries || []).map(entry => String(entry.playerId)));
+        const success = [...tabIds].filter(id => updatedIds.has(id)).length;
+        // A partial scan is not reported as a completed update.
+        tab.lastScanResult = { at: now, updated: success, total: tabIds.size, cancelled };
+        if (!cancelled && success === tabIds.size && tabIds.size > 0) tab.updatedAt = now;
+      });
+      try {
+        saveWatchlist();
+        renderTableUI();
+      } finally {
+        window.location.hash = originalHash;
+        overlay.remove();
+        scanState = null;
+      }
+      const remaining = targets.length - updatedIds.size - failures.length;
+      const status = cancelled ? `cancelled; ${remaining} skipped` : failures.length ? `${failures.length} failed` : 'complete';
+      showToast(`Watchlist scan ${status}: ${updatedIds.size}/${targets.length} updated.`,
+        cancelled || failures.length ? 'warning' : 'success');
+      if (failures.length) console.warn('[APES Watchlist] Profiles left unchanged:', failures);
     }
-    activeTab.updatedAt = Date.now();
-    saveWatchlist();
-    renderTableUI();
-    window.location.hash = originalHash;
-    overlay.remove();
-    showToast(`Updated ${updatedCount}/${total} players in "${activeTab.name}".`, updatedCount === total ? "success" : "warning");
   }
+
+  function updateCurrentWatchlist() {
+    return runWatchlistScan(false);
+  }
+
+  function updateAllWatchlists() {
+    return runWatchlistScan(true);
+  }
+
   function renderTabsUI() {
     const tabsContainer = document.querySelector('.qol-wl-tabs');
     if (!tabsContainer) return;
@@ -1127,7 +1208,9 @@
     const activeTab = watchlistTabs.find(t => t.id === activeTabId) || watchlistTabs[0];
     if (statusEl) {
       const updated = activeTab.updatedAt ? ` · Updated ${new Date(activeTab.updatedAt).toLocaleString()}` : '';
-      statusEl.textContent = `${activeTab.name} · ${activeTab.entries.length}/${MAX_PLAYERS_PER_TAB} players${updated}`;
+      const lastScan = activeTab.lastScanResult;
+      const partial = lastScan && (lastScan.cancelled || lastScan.updated < lastScan.total) ? ` · Last scan ${lastScan.updated}/${lastScan.total}${lastScan.cancelled ? ' (cancelled)' : ' (partial)'}` : '';
+      statusEl.textContent = `${activeTab.name} · ${activeTab.entries.length}/${MAX_PLAYERS_PER_TAB} players${updated}${partial}`;
     }
     tbody.innerHTML = '';
     if (activeTab.entries.length === 0) {
@@ -1240,6 +1323,7 @@
             <div class="qol-wl-body">
                 <div class="qol-wl-controls">
                     <div id="qol-wl-update-btn" class="qol-wl-action-control" role="button" tabindex="0">Update current watchlist</div>
+                    <div id="qol-wl-update-all-btn" class="qol-wl-action-control" role="button" tabindex="0">Update all tabs</div>
                 </div>
                 
                 <div class="qol-wl-tabs"></div>
@@ -1290,12 +1374,14 @@
     renderTabsUI();
     renderTableUI();
     const updateBtn = watchlistContainer.querySelector('#qol-wl-update-btn');
-    if (updateBtn) {
-      updateBtn.addEventListener('click', updateCurrentWatchlist);
-      updateBtn.addEventListener('keydown', event => {
+    const allBtn = watchlistContainer.querySelector('#qol-wl-update-all-btn');
+    for (const [button, action] of [[updateBtn, updateCurrentWatchlist], [allBtn, updateAllWatchlists]]) {
+      if (!button) continue;
+      button.addEventListener('click', action);
+      button.addEventListener('keydown', event => {
         if (event.key !== 'Enter' && event.key !== ' ') return;
         event.preventDefault();
-        void updateCurrentWatchlist();
+        void action();
       });
     }
   }
