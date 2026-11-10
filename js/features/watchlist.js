@@ -8,6 +8,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
   let watchlistTabs = [];
   let activeTabId = 'tab_1';
   const scanLogic = window.APES_WATCHLIST_SCAN;
+  const historyLogic = window.APES_WATCHLIST_HISTORY;
+  const intelligenceUI = window.APES_WATCHLIST_INTELLIGENCE;
   let scanState = null;
   function getStorageKey() {
     return 'qol_watchlist_' + window.location.hostname;
@@ -67,10 +69,10 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
   }
   function changesHtml(entry) {
     const scanIssue = entry.lastScanError ? `<span class="qol-wl-scan-issue" title="${escapeHtml('Last scan failed: ' + entry.lastScanError)}" aria-label="Last scan failed">!</span> ` : '';
-    if (entry.villageChange == null && entry.populationChange == null) {
-      return scanIssue + apesHtml_watchlist`<span class="qol-wl-change qol-stationary">Baseline</span>`;
-    }
-    return scanIssue + apesHtml_watchlist`${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
+    const details = entry.villageChange == null && entry.populationChange == null
+      ? apesHtml_watchlist`<span class="qol-wl-change qol-stationary">Baseline</span>`
+      : apesHtml_watchlist`${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
+    return apesHtml_watchlist`<span class="qol-wl-intelligence-link qol-wl-history-link" role="button" tabindex="0" data-wl-intel="history" data-player-id="${escapeHtml(entry.playerId)}" title="View player intelligence">${scanIssue}${details}</span>`;
   }
   function navigateToGameRoute(route) {
     let currentHash = window.location.hash || '#/';
@@ -100,6 +102,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
         if (Array.isArray(parsed) && parsed.length > 0) {
           watchlistTabs = parsed;
           scanLogic?.synchronizeExistingDuplicates(watchlistTabs);
+          historyLogic?.seedExisting(watchlistTabs);
+          historyLogic?.save();
           activeTabId = watchlistTabs[0].id;
           return;
         }
@@ -451,7 +455,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
             }
             .qol-wl-table tr:hover td { background:#fff8e7 !important; }
             .qol-wl-table th.qol-wl-icon-column, .qol-wl-table td.qol-wl-centered { text-align:center !important; }
-            .qol-wl-table .qol-wl-col-player{width:145px!important}.qol-wl-table .qol-wl-col-population{width:76px!important}.qol-wl-table .qol-wl-col-capital{width:130px!important}.qol-wl-table .qol-wl-col-secondary{width:150px!important}.qol-wl-table .qol-wl-col-send{width:95px!important}.qol-wl-table .qol-wl-col-changes{width:180px!important}.qol-wl-table .qol-wl-col-notes{width:180px!important}
+            .qol-wl-table .qol-wl-col-player{width:145px!important}.qol-wl-table .qol-wl-col-population{width:76px!important}.qol-wl-table .qol-wl-col-villages{width:65px!important}.qol-wl-table .qol-wl-col-capital{width:130px!important}.qol-wl-table .qol-wl-col-secondary{width:150px!important}.qol-wl-table .qol-wl-col-send{width:95px!important}.qol-wl-table .qol-wl-col-changes{width:180px!important}.qol-wl-table .qol-wl-col-notes{width:180px!important}
             .qol-wl-table td a.qol-route-link {
                 color: #005580 !important;
                 text-decoration: none !important;
@@ -846,6 +850,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
         capital = villageObj;
       }
     });
+    const capitalConfirmed = Boolean(capital);
     if (!capital && villages.length > 0) {
       capital = villages[0];
       capital.isCapital = true;
@@ -860,7 +865,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       population: population,
       tribe: tribe,
       villages: villages,
-      capital: capital
+      capital: capital,
+      capitalConfirmed: capitalConfirmed
     };
   }
   function openWatchlistMenu(tabId) {
@@ -921,6 +927,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
         playerName: source.playerName,
         population: source.population || 'N/A',
         capital: source.capital ? { ...source.capital } : null,
+        capitalConfirmed: source.capitalConfirmed === true,
         villages: source.villages.map(village => ({ ...village })),
         selected2ndId: '',
         selected2ndCoords: '',
@@ -931,6 +938,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
         lastUpdatedAt: existing?.lastUpdatedAt || null,
         notes: ''
       });
+      historyLogic?.seed(playerId, source);
+      historyLogic?.save();
       saveWatchlist();
       showToast(`Added ${source.playerName} to "${targetTab.name}"`, "success");
       openWatchlistMenu(targetTab.id);
@@ -1077,6 +1086,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       showToast('No players to update.', 'warning');
       return;
     }
+    intelligenceUI?.close();
     const originalHash = window.location.hash;
     const updatedIds = new Set();
     const failures = [];
@@ -1129,7 +1139,9 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
           const result = await waitForLoadedProfile(playerId, previousSignature, previousId);
           if (result.cancelled || scanState.cancelled) break;
           if (result.profile) {
-            scanLogic.synchronizePlayer(watchlistTabs, playerId, result.profile);
+            const scanAt = Date.now();
+            historyLogic?.record(playerId, result.profile, scanAt);
+            scanLogic.synchronizePlayer(watchlistTabs, playerId, result.profile, scanAt);
             watchlistTabs.forEach(tab => (tab.entries || []).filter(item => String(item.playerId) === playerId).forEach(item => {
               delete item.lastScanError;
               item.lastScanAttemptAt = Date.now();
@@ -1165,8 +1177,11 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
         if (!cancelled && success === tabIds.size && tabIds.size > 0) tab.updatedAt = now;
       });
       try {
+        const historySaved = historyLogic?.save();
+        if (historySaved === false) console.warn('[APES Watchlist] Failed to store history. Check browser storage capacity.');
         saveWatchlist();
         renderTableUI();
+        intelligenceUI?.refresh();
       } finally {
         window.location.hash = originalHash;
         overlay.remove();
@@ -1277,7 +1292,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     tbody.innerHTML = '';
     if (activeTab.entries.length === 0) {
       const tr = document.createElement('tr');
-      tr.innerHTML = apesHtml_watchlist`<td colspan="8" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
+      tr.innerHTML = apesHtml_watchlist`<td colspan="9" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
       tbody.appendChild(tr);
       return;
     }
@@ -1310,6 +1325,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
                     </div>
                 </td>
                 <td class="qol-wl-centered">${populationText}</td>
+                <td class="qol-wl-centered"><span class="qol-wl-intelligence-link" role="button" tabindex="0" data-wl-intel="villages" data-player-id="${escapeHtml(entry.playerId)}" title="View all known villages">${Array.isArray(entry.villages) ? entry.villages.length : 0}</span></td>
                 <td title="${escapeHtml(capitalTitle)}">${escapeHtml(capitalName)}</td>
                 <td><select class="qol-wl-select qol-2nd-vil-select" title="Choose secondary village">
                         ${selectOptions}
@@ -1393,11 +1409,12 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
                 
                 <div class="qol-wl-table-scroll-container">
                     <table class="qol-wl-table">
-                        <colgroup><col class="qol-wl-col-player"><col class="qol-wl-col-population"><col class="qol-wl-col-capital"><col class="qol-wl-col-secondary"><col class="qol-wl-col-send"><col class="qol-wl-col-send"><col class="qol-wl-col-changes"><col class="qol-wl-col-notes"></colgroup>
+                        <colgroup><col class="qol-wl-col-player"><col class="qol-wl-col-population"><col class="qol-wl-col-villages"><col class="qol-wl-col-capital"><col class="qol-wl-col-secondary"><col class="qol-wl-col-send"><col class="qol-wl-col-send"><col class="qol-wl-col-changes"><col class="qol-wl-col-notes"></colgroup>
                         <thead>
                             <tr>
                                 <th>Player</th>
                                 <th class="qol-wl-icon-column">${iconHtml('people', 'Population')}</th>
+                                <th class="qol-wl-icon-column">${iconHtml('house', 'Village count')}</th>
                                 <th class="qol-wl-icon-column">${iconHtml('castle', 'Capital village')}</th>
                                 <th class="qol-wl-icon-column">${iconHtml('house', 'Secondary village')}</th>
                                 <th class="qol-wl-icon-column">${iconHtml('swordCastle', 'Send troops to capital')}</th>
@@ -1419,18 +1436,36 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       watchlistContainer.style.display = 'none';
     });
     document.addEventListener('keydown', e => {
-      if (e.key === 'Escape' && watchlistContainer) {
+      if (e.key === 'Escape' && watchlistContainer && !document.getElementById('qol-wl-intel-overlay')) {
         watchlistContainer.style.display = 'none';
       }
     });
+    const openPlayerIntel = element => {
+      const trigger = element.closest('.qol-wl-intelligence-link');
+      if (!trigger) return false;
+      const playerId = trigger.getAttribute('data-player-id');
+      const entry = scanLogic.existingPlayer(watchlistTabs, playerId);
+      if (!entry) return false;
+      intelligenceUI?.open(entry, trigger.getAttribute('data-wl-intel'), navigateToGameRoute);
+      return true;
+    };
     watchlistContainer.addEventListener('click', e => {
+      if (openPlayerIntel(e.target)) {
+        e.preventDefault();
+        return;
+      }
       const link = e.target.closest('.qol-route-link');
       if (link) {
         e.preventDefault();
         const route = link.getAttribute('data-route');
-        if (route) {
-          navigateToGameRoute(route);
-        }
+        if (route) navigateToGameRoute(route);
+      }
+    });
+    watchlistContainer.addEventListener('keydown', e => {
+      if (e.key !== 'Enter' && e.key !== ' ') return;
+      if (e.target.closest('.qol-wl-intelligence-link')) {
+        e.preventDefault();
+        openPlayerIntel(e.target);
       }
     });
     renderTabsUI();
@@ -1448,6 +1483,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     }
   }
   function destroyWatchlistUI() {
+    intelligenceUI?.close();
     if (scanState) scanState.cancelled = true;
     if (profileCheckInterval) {
       clearInterval(profileCheckInterval);
