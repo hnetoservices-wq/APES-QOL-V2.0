@@ -82,7 +82,8 @@ function testHistory() {
   assert.equal(history.villageTrend(oldRecord, '12|12', sixHours, now), null);
   assert.equal(history.latestVillages(oldRecord)[0].population, 777);
   history.record('44', p('44', 120, [v('a','Old',12,12,780)]), now - 30 * 60000);
-  assert.equal(history.villageTrend(oldRecord, '12|12', sixHours, now), null);
+  assert.equal(history.villageTrend(oldRecord, '12|12', sixHours, now).delta, 3,
+    'once two valid readings exist, older unknown snapshot is safely skipped');
 
   history.seed('45', p('45', 10, [v('a','A',1,1,5)]), now - 8 * hour);
   history.record('45', p('45', 20, [v('a','A',1,1,15)]), now - hour);
