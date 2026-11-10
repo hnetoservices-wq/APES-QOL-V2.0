@@ -38,7 +38,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
   function iconHtml(kind, label, extraClass = '') {
     const classes = `qol-wl-metric-icon${extraClass ? ` ${extraClass}` : ''}`;
     const artwork = kind === 'swordCastle' ? `${iconSvg('sword')}${iconSvg('castle')}` : kind === 'swordHouse' ? `${iconSvg('sword')}${iconSvg('house')}` : iconSvg(kind);
-    return apesHtml_watchlist`<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? (' qol-wl-combo-icon') : ''}" title="${(escapeHtml(label))}" aria-label="${(escapeHtml(label))}">${artwork}</span>`;
+    const tooltip = escapeHtml(window.APES?.i18n?.t(label) ?? label);
+    return apesHtml_watchlist`<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? (' qol-wl-combo-icon') : ''}" title="${tooltip}" aria-label="${tooltip}">${artwork}</span>`;
   }
   function changeDescriptor(value) {
     const numeric = value == null || value === '' ? null : Number(value);
