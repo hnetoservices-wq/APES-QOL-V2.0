@@ -24,12 +24,12 @@ function testDataValidationAndDuplicateSync() {
   const original = snapshot('1', 'Alpha', '1,200', [village('c', 1, 2, true), village('a', 3, 4)]);
   const changed = snapshot('1', 'Alpha', '1,260', [village('nc', 1, 2, true), village('na', 3, 4), village('nb', 5, 6)]);
   assert.equal(logic.validateProfile(original, '1'), null);
-  assert.match(logic.validateProfile({ ...original, playerId: '2' }, '1'), /identity/);
-  assert.match(logic.validateProfile({ ...original, playerName: 'Unknown' }, '1'), /name/);
+  assert.match(logic.validateProfile({ ...original, playerId: '2' }, '1'), /identity/i);
+  assert.match(logic.validateProfile({ ...original, playerName: 'Unknown' }, '1'), /name/i);
   assert.match(logic.validateProfile({ ...original, population: 'N/A' }, '1'), /population/i);
-  assert.match(logic.validateProfile({ ...original, villages: [] }, '1'), /village/);
-  assert.match(logic.validateProfile({ ...original, villages: [village('x', '', 1)] }, '1'), /coordinates/);
-  assert.match(logic.validateProfile({ ...original, villages: [village('x', 1, 2), village('y', 1, 2)] }, '1'), /duplicate/);
+  assert.match(logic.validateProfile({ ...original, villages: [] }, '1'), /village/i);
+  assert.match(logic.validateProfile({ ...original, villages: [village('x', '', 1)] }, '1'), /coordinates/i);
+  assert.match(logic.validateProfile({ ...original, villages: [village('x', 1, 2), village('y', 1, 2)] }, '1'), /duplicate/i);
   assert.notEqual(logic.profileSignature(original), logic.profileSignature(changed));
   const older = { ...original, notes: 'A', selected2ndId: 'a', selected2ndCoords: '(3|4)', lastUpdatedAt: 10 };
   const newer = { ...original, notes: 'B', selected2ndId: 'a', selected2ndCoords: '(3|4)', lastUpdatedAt: 20 };
