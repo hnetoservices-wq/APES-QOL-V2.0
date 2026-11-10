@@ -26,7 +26,7 @@ function testDataValidationAndDuplicateSync() {
   assert.equal(logic.validateProfile(original, '1'), null);
   assert.match(logic.validateProfile({ ...original, playerId: '2' }, '1'), /identity/);
   assert.match(logic.validateProfile({ ...original, playerName: 'Unknown' }, '1'), /name/);
-  assert.match(logic.validateProfile({ ...original, population: 'N/A' }, '1'), /population/);
+  assert.match(logic.validateProfile({ ...original, population: 'N/A' }, '1'), /population/i);
   assert.match(logic.validateProfile({ ...original, villages: [] }, '1'), /village/);
   assert.match(logic.validateProfile({ ...original, villages: [village('x', '', 1)] }, '1'), /coordinates/);
   assert.match(logic.validateProfile({ ...original, villages: [village('x', 1, 2), village('y', 1, 2)] }, '1'), /duplicate/);
