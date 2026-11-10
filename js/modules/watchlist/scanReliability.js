@@ -74,6 +74,7 @@
       entry.playerName = snapshot.playerName;
       entry.population = snapshot.population;
       entry.capital = snapshot.capital ? { ...snapshot.capital } : null;
+      entry.capitalConfirmed = snapshot.capitalConfirmed === true;
       entry.villages = snapshot.villages.map(village => ({ ...village }));
       entry.lastUpdatedAt = now;
       entry.villageChange = villageChange;
