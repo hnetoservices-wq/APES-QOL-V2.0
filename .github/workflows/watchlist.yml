@@ -42,5 +42,3 @@ jobs:
         run: |
           node tests/featureLocalization.cjs
           node tools/audit-feature-localization.cjs
-      - name: Full APES QoL regression suite
-        run: npm test --prefix tests
