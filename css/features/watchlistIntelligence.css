@@ -58,3 +58,7 @@
  #qol-wl-intel-overlay .qol-wl-intel-head { padding:9px!important; }
  #qol-wl-intel-overlay .qol-wl-intel-body { padding:9px!important; }
 }
+
+#qol-wl-intel-overlay .qol-wl-intel-btn[aria-disabled="true"] { opacity:.55!important; cursor:wait!important; pointer-events:none!important; }
+#qol-wl-intel-overlay .qol-wl-intel-notice:empty { display:none!important; }
+#qol-wl-intel-overlay .qol-wl-intel-notice:not(:empty) { margin:-3px 0 10px!important; font-size:11px!important; color:#a3342d!important; font-weight:700!important; }
