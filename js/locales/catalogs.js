@@ -1071,7 +1071,9 @@
     "Village count": "Número de aldeias",
     "Village no longer detected": "Aldeia deixou de ser detetada",
     "Village renamed": "Aldeia renomeada",
-    "No players in any Watchlist to update.": "Não há jogadores em nenhuma lista de observação para atualizar."
+    "No players in any Watchlist to update.": "Não há jogadores em nenhuma lista de observação para atualizar.",
+    "Update all tabs": "Atualizar todos os separadores",
+    "Updating": "A atualizar"
   },
   "es-ES": {
     "Language": "Idioma",
@@ -2143,7 +2145,9 @@
     "Village count": "Número de aldeas",
     "Village no longer detected": "Aldea ya no detectada",
     "Village renamed": "Aldea renombrada",
-    "No players in any Watchlist to update.": "No hay jugadores en ninguna lista de seguimiento para actualizar."
+    "No players in any Watchlist to update.": "No hay jugadores en ninguna lista de seguimiento para actualizar.",
+    "Update all tabs": "Actualizar todas las pestañas",
+    "Updating": "Actualizando"
   },
   "fr": {
     "Language": "Langue",
@@ -3215,7 +3219,9 @@
     "Village count": "Nombre de villages",
     "Village no longer detected": "Village non détecté",
     "Village renamed": "Village renommé",
-    "No players in any Watchlist to update.": "Aucun joueur à mettre à jour dans les listes de suivi."
+    "No players in any Watchlist to update.": "Aucun joueur à mettre à jour dans les listes de suivi.",
+    "Update all tabs": "Mettre à jour tous les onglets",
+    "Updating": "Mise à jour"
   },
   "ru": {
     "Language": "Язык",
@@ -4287,7 +4293,9 @@
     "Village count": "Число деревень",
     "Village no longer detected": "Деревня больше не обнаружена",
     "Village renamed": "Деревня переименована",
-    "No players in any Watchlist to update.": "Нет игроков для обновления ни в одном списке наблюдения."
+    "No players in any Watchlist to update.": "Нет игроков для обновления ни в одном списке наблюдения.",
+    "Update all tabs": "Обновить все вкладки",
+    "Updating": "Обновление"
   },
   "cs": {
     "Language": "Jazyk",
@@ -5359,7 +5367,9 @@
     "Village count": "Počet vesnic",
     "Village no longer detected": "Vesnice již nebyla zjištěna",
     "Village renamed": "Vesnice přejmenována",
-    "No players in any Watchlist to update.": "V žádném sledovacím seznamu nejsou hráči k aktualizaci."
+    "No players in any Watchlist to update.": "V žádném sledovacím seznamu nejsou hráči k aktualizaci.",
+    "Update all tabs": "Aktualizovat všechny karty",
+    "Updating": "Aktualizace"
   },
   "de": {
     "Language": "Sprache",
@@ -6431,7 +6441,9 @@
     "Village count": "Anzahl Dörfer",
     "Village no longer detected": "Dorf nicht mehr erkannt",
     "Village renamed": "Dorf umbenannt",
-    "No players in any Watchlist to update.": "In keiner Beobachtungsliste sind Spieler zum Aktualisieren vorhanden."
+    "No players in any Watchlist to update.": "In keiner Beobachtungsliste sind Spieler zum Aktualisieren vorhanden.",
+    "Update all tabs": "Alle Tabs aktualisieren",
+    "Updating": "Aktualisierung"
   },
   "it": {
     "Language": "Lingua",
@@ -7503,7 +7515,9 @@
     "Village count": "Numero di villaggi",
     "Village no longer detected": "Villaggio non più rilevato",
     "Village renamed": "Villaggio rinominato",
-    "No players in any Watchlist to update.": "Nessun giocatore da aggiornare in nessuna lista di controllo."
+    "No players in any Watchlist to update.": "Nessun giocatore da aggiornare in nessuna lista di controllo.",
+    "Update all tabs": "Aggiorna tutte le schede",
+    "Updating": "Aggiornamento"
   },
   "pl": {
     "Language": "Język",
@@ -8575,7 +8589,9 @@
     "Village count": "Liczba wiosek",
     "Village no longer detected": "Nie wykryto już wioski",
     "Village renamed": "Zmieniono nazwę wioski",
-    "No players in any Watchlist to update.": "Na żadnej liście obserwowanych nie ma graczy do aktualizacji."
+    "No players in any Watchlist to update.": "Na żadnej liście obserwowanych nie ma graczy do aktualizacji.",
+    "Update all tabs": "Aktualizuj wszystkie karty",
+    "Updating": "Aktualizowanie"
   },
   "ro": {
     "Language": "Limbă",
@@ -9647,7 +9663,9 @@
     "Village count": "Număr de sate",
     "Village no longer detected": "Satul nu mai este detectat",
     "Village renamed": "Sat redenumit",
-    "No players in any Watchlist to update.": "Nu există jucători de actualizat în nicio listă de urmărire."
+    "No players in any Watchlist to update.": "Nu există jucători de actualizat în nicio listă de urmărire.",
+    "Update all tabs": "Actualizează toate filele",
+    "Updating": "Se actualizează"
   }
 };
 })();
