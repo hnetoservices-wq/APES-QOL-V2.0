@@ -139,6 +139,7 @@
     const actions = '<div class="qol-wl-intel-actions"><div class="qol-wl-intel-action-group">' +
       control('History', 'view', 'history', context.view === 'history') +
       control('Villages', 'view', 'villages', context.view === 'villages') +
+      control('Saved Reports', 'reports', '', false) +
       '</div><div class="qol-wl-intel-action-group">' + Object.keys(PERIODS).map(period =>
       control(period, 'period', period, context.period === period)
     ).join('') + '</div></div>';
@@ -159,7 +160,7 @@
         '</span></div>' + eventsHtml(record, windowMs) + '</div>';
     overlay.innerHTML = '<div class="qol-wl-intel-panel" role="dialog" aria-modal="true" aria-label="' +
       escape(translate('Player Intelligence')) + '"><div>' + top + '</div><div class="qol-wl-intel-body">' +
-      actions + metrics + content + '</div></div>';
+      actions + '<div class="qol-wl-intel-notice" role="status" aria-live="polite"></div>' + metrics + content + '</div></div>';
     window.APES?.i18n?.apply(overlay);
   }
   function activate(element) {
@@ -172,6 +173,32 @@
     const button = element.closest('[data-wl-intel-action]');
     if (!button) return;
     switch (button.getAttribute('data-wl-intel-action')) {
+      case 'reports': {
+        const currentOverlay = overlay;
+        const name = String(context?.playerName || '').trim();
+        const archive = window.APES_REPORT_ARCHIVE;
+        const reportButton = button;
+        const notice = currentOverlay?.querySelector('.qol-wl-intel-notice');
+        const unavailable = () => {
+          if (!currentOverlay || overlay !== currentOverlay) return;
+          if (notice) notice.textContent = translate('Report Archive is unavailable. Enable it in APES QoL settings.');
+          reportButton.setAttribute('aria-disabled', 'false');
+        };
+        if (!name || typeof archive?.openForPlayer !== 'function') {
+          unavailable();
+          break;
+        }
+        if (reportButton.getAttribute('aria-disabled') === 'true') break;
+        reportButton.setAttribute('aria-disabled', 'true');
+        Promise.resolve().then(() => archive.openForPlayer(name)).then(opened => {
+          if (opened && overlay === currentOverlay) close();
+          else if (!opened) unavailable();
+        }).catch(error => {
+          console.warn('[APES Watchlist] Could not open player reports:', error);
+          unavailable();
+        });
+        break;
+      }
       case 'close': close(); break;
       case 'view': context.view = button.getAttribute('data-wl-intel-value'); render(); break;
       case 'period': context.period = button.getAttribute('data-wl-intel-value'); render(); break;
