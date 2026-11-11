@@ -1,0 +1,57 @@
+.dropdownBody.villageListDropDown ul[data-qol-custom-village-order] {
+  display: flex;
+  flex-direction: column;
+}
+
+.dropdownBody.villageListDropDown ul[data-qol-custom-village-order] > li {
+  order: var(--qol-village-order, 0);
+  flex-shrink: 0;
+}
+
+.qol-feature-card:has(#qol-chk-custom-village-order:not(:checked)) [data-qol-edit-village-order] {
+  display: none;
+}
+
+.qol-village-order-editor {
+  width: min(420px, 90vw);
+  max-height: 85vh;
+  padding: 20px;
+  border: 1px solid #9a9389;
+  border-radius: 6px;
+  background: #f5f1e7;
+  color: #29251e;
+}
+
+.qol-village-order-editor::backdrop {
+  background: rgb(0 0 0 / 45%);
+}
+
+.qol-village-order-editor ol {
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+  max-height: 50vh;
+  overflow: auto;
+}
+
+.qol-village-order-editor li,
+.qol-village-order-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qol-village-order-editor li {
+  padding: 5px;
+  border-bottom: 1px solid #d4cec1;
+  cursor: grab;
+}
+
+.qol-village-order-editor li span {
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+
+.qol-village-order-editor button {
+  padding: 4px 8px;
+}

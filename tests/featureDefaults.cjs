@@ -2,7 +2,7 @@ const fs=require('fs'),path=require('path'),vm=require('vm'),assert=require('ass
 const root=path.join(__dirname,'..'),source=fs.readFileSync(path.join(root,'js/ui/menu.js'),'utf8');
 const saved=new Map(),ctx={window:{},localStorage:{getItem:k=>saved.has(k)?saved.get(k):null},setTimeout(){}};
 const config=vm.runInNewContext(source.slice(0,source.indexOf('let autoDismissActive'))+'\n({basic:BASIC_FEATURES,expert:ADVANCED_FEATURES,kingdom:KINGDOM_MANAGEMENT_FEATURES,cosmetic:COSMETIC_FEATURES,keys:KEYBINDS})',ctx);
-for(const f of [...config.basic,...config.keys.filter(f=>f.key)])assert.equal(ctx.window.isQolEnabled(f.key),true,f.key);
+for(const f of [...config.basic,...config.keys.filter(f=>f.key)])assert.equal(ctx.window.isQolEnabled(f.key),f.key!=='customVillageOrder',f.key);
 for(const f of [...config.expert,...config.kingdom,...config.cosmetic,{key:'roadmaps'}])assert.equal(ctx.window.isQolEnabled(f.key),false,f.key);
 assert.ok(config.basic.some(f=>f.key==='dailyReminders'));assert.ok(!config.expert.some(f=>f.key==='dailyReminders'));
 for(const key of ['npcCalculator','barracks24hPlanner']){assert.ok(config.expert.some(f=>f.key===key));assert.ok(!config.basic.some(f=>f.key===key));}
