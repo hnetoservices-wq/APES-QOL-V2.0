@@ -52,6 +52,16 @@
   overflow-wrap: anywhere;
 }
 
-.qol-village-order-editor button {
-  padding: 4px 8px;
+[data-qol-edit-village-order] {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.qol-village-order-editor [data-step] {
+  flex: 0 0 auto !important;
+}
+
+.qol-village-order-editor [aria-disabled="true"] {
+  opacity: 0.5;
+  cursor: default !important;
 }

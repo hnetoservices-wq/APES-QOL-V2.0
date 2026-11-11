@@ -10,7 +10,7 @@ async function test() {
       <div class="dropdownHead">Village</div>
       <a class="navigation next">Next</a>
     </div></div>
-    <button data-qol-edit-village-order>Reorder villages</button>
+    <div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-edit-village-order>Reorder villages</div>
   `, { url: 'https://test.kingdoms.com', runScripts: 'outside-only' });
   const { window } = dom;
   const { document, localStorage } = window;
@@ -65,8 +65,11 @@ async function test() {
     localStorage.setItem('qol_customVillageOrder', String(value));
     window.dispatchEvent(new window.CustomEvent('qol_setting_changed', { detail: { key: 'customVillageOrder' } }));
   }
+  function press(control, key) {
+    control.dispatchEvent(new window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+  }
   async function openEditor() {
-    document.querySelector('[data-qol-edit-village-order]').click();
+    press(document.querySelector('[data-qol-edit-village-order]'), 'Enter');
     await tick();
     return document.querySelector('dialog');
   }
@@ -79,7 +82,13 @@ async function test() {
 
     setEnabled(true);
     const editor = await openEditor();
-    editor.querySelector('[data-village-id="103"] [data-step="-1"]').click();
+    assert.equal(editor.querySelector('button'), null);
+    const disabled = editor.querySelector('[data-village-id="101"] [data-step="-1"]');
+    assert.equal(disabled.getAttribute('aria-disabled'), 'true');
+    press(disabled, 'Enter');
+    assert.equal(editor.querySelector('li').dataset.villageId, '101');
+    press(editor.querySelector('[data-village-id="103"] [data-step="-1"]'), ' ');
+    assert.equal(document.activeElement.closest('li').dataset.villageId, '103');
     editor.querySelector('[data-action="save"]').click();
     assert.deepEqual(JSON.parse(localStorage.getItem(account)), ['101', '103', '102']);
 

@@ -350,7 +350,7 @@ function featureCardHtml(feature) {
             <div class="qol-feature-copy">
                 <h3 class="qol-feature-name" data-apes-i18n="${escapeHtml(feature.name)}">${escapeHtml(feature.name)}</h3>
                 <p class="qol-feature-desc" data-apes-i18n="${escapeHtml(feature.description)}">${escapeHtml(feature.description)}</p>
-                ${feature.editVillageOrder ? "<button type='button' data-qol-edit-village-order>Reorder villages</button>" : ""}
+                ${feature.editVillageOrder ? "<div class='qol-wl-action-btn primary' role='button' tabindex='0' aria-haspopup='dialog' data-qol-edit-village-order>Reorder villages</div>" : ""}
             </div>
             <label class="qol-switch" title="Toggle ${escapeHtml(feature.name)}">
                 <input type="checkbox" id="${escapeHtml(feature.id)}" class="qol-checkbox">

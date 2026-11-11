@@ -166,9 +166,9 @@
       <ol></ol>
       <p role="status"></p>
       <div class="qol-village-order-actions">
-        <button type="button" data-action="reset">Reset to default</button>
-        <button type="button" data-action="cancel">Cancel</button>
-        <button type="button" data-action="save">Save order</button>
+        <div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-action="reset">Reset to default</div>
+        <div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-action="cancel">Cancel</div>
+        <div class="qol-wl-action-btn primary" role="button" tabindex="0" data-action="save">Save order</div>
       </div>`;
     const list = editor.querySelector('ol');
     const status = editor.querySelector('[role="status"]');
@@ -183,12 +183,15 @@
         label.textContent = village.name;
         row.append(label);
         for (const [step, symbol, direction] of [[-1, '↑', 'up'], [1, '↓', 'down']]) {
-          const button = document.createElement('button');
-          button.type = 'button';
+          const button = document.createElement('div');
+          button.className = 'qol-wl-action-btn secondary';
+          button.setAttribute('role', 'button');
           button.textContent = symbol;
           button.dataset.step = step;
           button.setAttribute('aria-label', `Move ${village.name} ${direction}`);
-          button.disabled = !draft[index + step];
+          const disabled = !draft[index + step];
+          button.setAttribute('aria-disabled', String(disabled));
+          button.tabIndex = disabled ? -1 : 0;
           row.append(button);
         }
         list.append(row);
@@ -203,7 +206,7 @@
       render();
       if (focusStep) {
         const row = list.children[to];
-        (row.querySelector(`[data-step="${focusStep}"]:enabled`) || row.querySelector('button:enabled'))?.focus();
+        (row.querySelector(`[data-step="${focusStep}"][tabindex="0"]`) || row.querySelector('[data-step][tabindex="0"]'))?.focus();
       }
     }
 
@@ -224,8 +227,8 @@
       draggedId = undefined;
     });
     editor.addEventListener('click', event => {
-      const button = event.target.closest('button');
-      if (!button) return;
+      const button = event.target.closest('[role="button"]');
+      if (!button || button.getAttribute('aria-disabled') === 'true') return;
       if (button.dataset.step) {
         const from = draft.findIndex(village => village.id === button.closest('li').dataset.villageId);
         move(from, from + Number(button.dataset.step), button.dataset.step);
@@ -269,11 +272,21 @@
     if (event.target.closest(settingsButton)) void editOrder();
   }
 
+  function onKeydown(event) {
+    const control = event.target.closest?.(settingsButton + ', .qol-village-order-editor [role="button"]');
+    if (!control || !['Enter', ' '].includes(event.key)) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (!event.repeat && control.getAttribute('aria-disabled') !== 'true') control.click();
+  }
+
   function applySetting() {
     observer.disconnect();
     document.removeEventListener('click', onClick, true);
+    document.removeEventListener('keydown', onKeydown, true);
     if (enabled()) {
       document.addEventListener('click', onClick, true);
+      document.addEventListener('keydown', onKeydown, true);
       observer.observe(document.body, { childList: true, subtree: true });
       observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-apes-player-id'] });
       sync();
