@@ -10,7 +10,7 @@ async function test() {
       <div class="dropdownHead">Village</div>
       <a class="navigation next">Next</a>
     </div></div>
-    <div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-edit-village-order>Reorder villages</div>
+    <div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-edit-village-order>Reorder villages</div><div role="status" data-qol-village-order-status></div>
   `, { url: 'https://test.kingdoms.com', runScripts: 'outside-only' });
   const { window } = dom;
   const { document, localStorage } = window;
@@ -21,10 +21,22 @@ async function test() {
   const previous = document.querySelector('.navigation.previous');
   let nativeClicks = 0;
   let selected = '101';
+  let headerClicks = 0;
+  let failModelRead = false;
+  window.APES_CP_VILLAGE_NAVIGATOR = {
+    async getOwnedVillages() {
+      if (failModelRead) throw new Error('Unavailable');
+      return ids.map(id => ({ id, name: `Village ${id}`, isActive: id === selected })).reverse();
+    }
+  };
+  window.addEventListener('hashchange', () => {
+    selected = window.location.hash.match(/villId:(\d+)/)?.[1] ?? selected;
+  });
   let ids = ['101', '102', '103'];
   window.APES = { context: {
     getServer: () => window.location.hostname,
     getPlayerId: () => '7',
+    getVillageId: () => selected,
     isPlayerResolved: () => true
   } };
   window.isQolEnabled = key => localStorage.getItem(`qol_${key}`) === 'true';
@@ -39,6 +51,7 @@ async function test() {
     document.querySelector('.villageListDropDown')?.remove();
   }
   header.addEventListener('click', () => {
+    headerClicks++;
     if (header.classList.contains('opened')) {
       closeList();
       return;
@@ -81,7 +94,12 @@ async function test() {
     assert.equal(await openEditor(), null);
 
     setEnabled(true);
+    failModelRead = true;
+    assert.equal(await openEditor(), null);
+    assert.match(document.querySelector('[data-qol-village-order-status]').textContent, /Could not read/);
+    failModelRead = false;
     const editor = await openEditor();
+    assert.equal(headerClicks, 0, 'Editor opens without touching the hover dropdown');
     assert.equal(editor.querySelector('button'), null);
     const disabled = editor.querySelector('[data-village-id="101"] [data-step="-1"]');
     assert.equal(disabled.getAttribute('aria-disabled'), 'true');
@@ -98,10 +116,14 @@ async function test() {
     const orders = () => [...document.querySelectorAll('.villageListDropDown li')]
       .map(row => row.style.getPropertyValue('--qol-village-order'));
     assert.deepEqual(orders(), ['0', '2', '1', '3']);
+    closeList();
+    window.location.hash = '#/page:resources/villId:101';
+    await tick();
 
     next.click();
     await tick();
     assert.equal(selected, '103');
+    assert.equal(window.location.hash, '#/page:resources/villId:103');
     assert.equal(nativeClicks, 1);
     previous.click();
     await tick();
@@ -109,6 +131,7 @@ async function test() {
     previous.click();
     await tick();
     assert.equal(selected, '104');
+    assert.equal(headerClicks, 1, 'Neither arrow opens the native dropdown');
 
     header.click();
     await tick();

@@ -65,3 +65,8 @@
   opacity: 0.5;
   cursor: default !important;
 }
+
+[data-qol-village-order-status]:empty,
+.qol-feature-card:has(#qol-chk-custom-village-order:not(:checked)) [data-qol-village-order-status] {
+  display: none;
+}

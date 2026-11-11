@@ -2,7 +2,6 @@
   'use strict';
 
   const key = 'customVillageOrder';
-  const headerSelector = '#villageList .currentVillageName .dropdownHead';
   const panelSelector = '.dropdownBody.villageListDropDown';
   const settingsButton = '[data-qol-edit-village-order]';
   const rowId = row => Array.from(row.classList)
@@ -78,81 +77,75 @@
     styledList = list;
   }
 
-  async function openNativeList() {
-    const header = document.querySelector(headerSelector);
-    const openedHere = Boolean(header && !header.classList.contains('opened'));
-    const close = () => {
-      if (openedHere && header.isConnected && header.classList.contains('opened')) header.click();
-    };
-    if (openedHere) header.click();
-    try {
-      for (let attempt = 0; attempt < 12; attempt++) {
-        const { villages } = readRows();
-        if (villages.length && header?.classList.contains('opened')) return { villages, close };
-        if (!enabled() || !header?.isConnected) break;
-        await new Promise(resolve => setTimeout(resolve, 25));
-      }
-      return { villages: [], close };
-    } catch (error) {
-      close();
-      throw error;
-    }
+  async function readOwnedVillages() {
+    const villages = await window.APES_CP_VILLAGE_NAVIGATOR.getOwnedVillages();
+    // Match the native dropdown's case-insensitive name order for unsaved villages.
+    return [...villages].sort((first, second) => {
+      const a = first.name.toLowerCase();
+      const b = second.name.toLowerCase();
+      return a < b ? -1 : a > b ? 1 : 0;
+    });
   }
 
   async function navigate(event, arrow) {
     const account = storageKey();
-    const ids = account ? savedOrder(account) : [];
-    if (!enabled() || !ids.length || replaying) return;
+    if (!enabled() || !account || !savedOrder(account).length || replaying) return;
     event.preventDefault();
     event.stopImmediatePropagation();
     if (busy) return;
     busy = true;
     try {
-      const { villages, close } = await openNativeList();
-      if (!enabled() || storageKey() !== account || !arrow.isConnected) {
-        close();
-        return;
-      }
-      const sorted = ordered(villages, savedOrder(account));
-      const current = sorted.findIndex(village => village.row.classList.contains('selected'));
-      if (current >= 0 && sorted.length > 1) {
+      const villages = await readOwnedVillages();
+      if (!enabled() || storageKey() !== account || !arrow.isConnected) return;
+      const ids = savedOrder(account);
+      const sorted = ordered(villages, ids);
+      const currentId = sorted.find(village => village.isActive)?.id ?? window.APES.context.getVillageId();
+      const current = sorted.findIndex(village => village.id === currentId);
+      if (!ids.length || current < 0) {
+        replayNativeArrow(arrow);
+      } else if (sorted.length > 1) {
         const step = arrow.classList.contains('next') ? 1 : -1;
-        sorted[(current + step + sorted.length) % sorted.length].row.click();
-        close();
-      } else {
-        close();
-        if (sorted.length !== 1 || current < 0) {
-          replaying = true;
-          arrow.click();
-        }
+        const target = sorted[(current + step + sorted.length) % sorted.length];
+        const page = location.hash.includes('/page:resources') ? 'resources' : 'village';
+        location.hash = `#/page:${page}/villId:${target.id}`;
       }
+    } catch {
+      if (enabled() && storageKey() === account && arrow.isConnected) replayNativeArrow(arrow);
     } finally {
-      replaying = false;
       busy = false;
     }
   }
 
-  async function editOrder() {
+  function replayNativeArrow(arrow) {
+    replaying = true;
+    try {
+      arrow.click();
+    } finally {
+      replaying = false;
+    }
+  }
+
+  async function editOrder(button) {
     if (!enabled() || busy || dialog) return;
+    const loadingStatus = button.parentElement.querySelector('[data-qol-village-order-status]');
     const account = storageKey();
     if (!account) {
-      window.alert('Your Travian account is still loading. Try again in a moment.');
+      loadingStatus.textContent = 'Your Travian account is still loading. Try again in a moment.';
       return;
     }
     busy = true;
+    loadingStatus.textContent = 'Loading villages…';
     let villages;
     try {
-      const native = await openNativeList();
-      villages = native.villages;
-      native.close();
+      villages = await readOwnedVillages();
+    } catch {
+      if (enabled() && storageKey() === account) loadingStatus.textContent = 'Could not read your villages. Try again in a moment.';
+      return;
     } finally {
       busy = false;
     }
+    loadingStatus.textContent = '';
     if (!enabled() || storageKey() !== account) return;
-    if (!villages.length) {
-      window.alert('Could not read the village list. Try again from your village view.');
-      return;
-    }
 
     let draft = ordered(villages, savedOrder(account));
     let useDefault = false;
@@ -269,7 +262,8 @@
     if (!(event.target instanceof Element)) return;
     const arrow = event.target.closest('#villageList .navigation.previous, #villageList .navigation.next');
     if (arrow) void navigate(event, arrow);
-    if (event.target.closest(settingsButton)) void editOrder();
+    const button = event.target.closest(settingsButton);
+    if (button) void editOrder(button);
   }
 
   function onKeydown(event) {
