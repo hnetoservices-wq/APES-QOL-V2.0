@@ -130,7 +130,8 @@
   text-align:center!important;
 }
 :is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-village-count,
-:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-production-total {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active .qol-royal-tribute-production-total,
+.tabTributes .ownVillages .qol-royal-tribute-production-total {
   position:static!important;
   display:inline-block!important;
   float:none!important;
@@ -163,7 +164,8 @@
   z-index:auto!important;
 }
 :is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:first-child > i.village_village_small_flat_black,
-:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) > i.movement_tribute_small_flat_black {
+:is(.tributeVillages,.foreignVillages).qol-royal-tributes-active table.gradient > thead > tr > th:nth-child(2) > i.movement_tribute_small_flat_black,
+.tabTributes .ownVillages .qol-royal-tribute-production-total + i.movement_tribute_small_flat_black {
   position:static!important;
   display:inline-block!important;
   float:none!important;

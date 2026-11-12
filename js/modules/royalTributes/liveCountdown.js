@@ -11,6 +11,7 @@
       rows: 'tbody tr[ng-repeat*="village in foreignVillages"]',
       kind: 'foreign', container: '.foreignVillages' }
   ]);
+  const GOVERNOR_TABLE = '.tabTributes .ownVillages table.gradient';
   const LABEL_CLASS = 'qol-royal-tribute-eta';
   const CELL_CLASS = 'qol-royal-tribute-eta-cell';
   const HEAD_CLASS = 'qol-royal-tribute-eta-head';
@@ -163,6 +164,33 @@
     return badge;
   }
 
+  function productionRate(data) {
+    const rate = data?.tributeProduction;
+    return Number.isFinite(rate) && rate >= 0 ? rate : null;
+  }
+
+  function renderProduction(head, hourlyTotal, missingRates, title) {
+    const badge = headerBadge(head, PRODUCTION_CLASS,
+      title + (missingRates ? ' Some production rates are unavailable.' : ''));
+    const production = hourlyTotal === null ? '— res/h'
+      : (missingRates ? '≥ ' : '') + hourlyTotal.toLocaleString() + ' res/h';
+    if (badge.textContent !== production) badge.textContent = production;
+  }
+
+  function renderGovernorProduction(table) {
+    const head = table.querySelector('thead .movement_tribute_small_flat_black')?.parentElement;
+    if (!head) return;
+    const ids = new Set();
+    for (const row of table.querySelectorAll('tbody tr[ng-repeat*="village in ownVillages.data"]')) {
+      const id = row.querySelector('td.villageColumn [villageid]')?.getAttribute('villageid');
+      if (id && /^\d+$/.test(id)) ids.add(id);
+    }
+    const rates = [...ids].map(id => productionRate(villageDataFor(id))).filter(rate => rate !== null);
+    const total = rates.length ? rates.reduce((sum, rate) => sum + rate, 0) : null;
+    renderProduction(head, total, rates.length < ids.size,
+      'Total hourly tribute production from your villages.');
+  }
+
   function renderHeader(table, count, hourlyTotal, missingRates, kind) {
     const row = table.querySelector('thead tr');
     if (!row) return;
@@ -172,11 +200,8 @@
     const countBadge = headerBadge(heads[0], COUNT_CLASS,
       'Connected ' + relation + ' villages under your influence.');
     if (countBadge.textContent !== String(count)) countBadge.textContent = String(count);
-    const productionBadge = headerBadge(heads[1], PRODUCTION_CLASS,
-      'Total hourly tribute resources from connected ' + relation + ' villages.' +
-      (missingRates ? ' Some production rates are unavailable.' : ''));
-    const production = (missingRates ? '≥ ' : '') + hourlyTotal.toLocaleString() + ' res/h';
-    if (productionBadge.textContent !== production) productionBadge.textContent = production;
+    renderProduction(heads[1], hourlyTotal, missingRates,
+      'Total hourly tribute resources from connected ' + relation + ' villages.');
     if (!row.querySelector('th.' + HEAD_CLASS)) {
       const header = document.createElement('th');
       header.className = HEAD_CLASS;
@@ -220,9 +245,8 @@
       if (seen.has(id)) continue;
       seen.add(id);
       count++;
-      const hourly = data?.tributeProduction;
-      if (typeof hourly === 'number' && Number.isFinite(hourly) && hourly >= 0)
-        hourlyTotal += hourly;
+      const hourly = productionRate(data);
+      if (hourly !== null) hourlyTotal += hourly;
       else missingRates = true;
     }
     renderHeader(table, count, hourlyTotal, missingRates, config.kind);
@@ -233,6 +257,11 @@
   function tick() {
     const enabled = isEnabled();
     const nowSeconds = Date.now() / 1000;
+    const governorTable = document.querySelector(GOVERNOR_TABLE);
+    if (governorTable) {
+      if (enabled) renderGovernorProduction(governorTable);
+      else governorTable.querySelector('.' + PRODUCTION_CLASS)?.remove();
+    }
     for (const config of TABLES) {
       const table = document.querySelector(config.selector);
       if (!table) continue;
