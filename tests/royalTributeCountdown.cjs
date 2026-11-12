@@ -50,8 +50,10 @@ assert.match(css,/\.qol-royal-tribute-transit-panel/);
 assert.match(css,/button\[premium-feature="tributeFetchInstantly"\]/);
 assert.match(css,/\.price\.gold/);
 assert.match(menu,/key: 'royalTributeCountdown'/);
-assert.deepEqual(manifest.content_scripts.find(x=>x.world==='MAIN').js.slice(-2),
- ['js/modules/royalTributes/etaCalculator.js','js/modules/royalTributes/liveCountdown.js']);
+const mainScripts=manifest.content_scripts.find(x=>x.world==='MAIN').js;
+const etaIndex=mainScripts.indexOf('js/modules/royalTributes/etaCalculator.js');
+assert.ok(etaIndex>=0);
+assert.equal(mainScripts[etaIndex+1],'js/modules/royalTributes/liveCountdown.js');
 
 const all=[];
 class Node {
@@ -161,10 +163,25 @@ foreignTable.querySelectorAll=sel=>sel.startsWith('tbody tr[')
   ?[foreign.row,foreignUnprotected.row]:Node.prototype.querySelectorAll.call(foreignTable,sel);
 const foreignNativeButton=foreign.native.querySelector('button');
 
+const governorTable=new Node('table','gradient');
+const governorHead=governorTable.appendChild(new Node('th'));
+const governorIcon=governorHead.appendChild(new Node('i','movement_tribute_small_flat_black'));
+const governorRows=['536592428','536559663','536559663','536526894'].map(id=>{
+ const row=new Node('tr');
+ row.querySelector=sel=>sel==='td.villageColumn [villageid]'?{getAttribute:()=>id}:null;
+ return row;
+});
+governorTable.querySelector=sel=>sel==='thead .movement_tribute_small_flat_black'
+ ?governorIcon:Node.prototype.querySelector.call(governorTable,sel);
+governorTable.querySelectorAll=sel=>sel.includes('village in ownVillages.data')
+ ?governorRows:Node.prototype.querySelectorAll.call(governorTable,sel);
+const governorProduction=()=>governorHead.querySelector('.qol-royal-tribute-production-total');
+
 const document={
  readyState:'loading',
  querySelector:sel=>sel==='.tributeVillages table.gradient'?table:
-   sel==='.foreignVillages table.gradient'?foreignTable:null,
+   sel==='.foreignVillages table.gradient'?foreignTable:
+   sel==='.tabTributes .ownVillages table.gradient'?governorTable:null,
  createElement:tag=>new Node(tag),
  addEventListener(){}
 };
@@ -172,12 +189,18 @@ let runner=null,enabled=true;
 const window={
  Cache:{c:cache},
  APES:{royalTributeEtaMath:math},
- localStorage:{getItem:()=>enabled?null:'false'},
+ localStorage:{getItem:()=>enabled?'true':'false'},
  setInterval:fn=>{runner=fn}
 };
 new Function('window','document',src)(window,document);
 assert.equal(typeof runner,'function');
 runner();
+assert.equal(governorProduction().textContent,'≥ 455 res/h','Governor total is deduplicated and flags missing rates');
+assert.equal(governorHead.children[1],governorIcon,'The native tribute icon remains next to the total');
+cache['Village:536526894']={data:{tributeProduction:45,allowTributeCollection:0}};
+runner();
+assert.equal(governorProduction().textContent,'500 res/h','Production updates when the missing rate arrives');
+assert.equal(governorHead.children.length,2,'Only one production badge is rendered');
 assert.ok(wrapper.classList.contains('qol-royal-tributes-active'));
 assert.ok(foreignWrapper.classList.contains('qol-royal-tributes-active'));
 assert.equal(foreignHeader.querySelectorAll('th').length,3,'Foreign governors have ETA header');
@@ -264,6 +287,7 @@ assert.equal(premiumButton.classList.contains('premium'),true,'Premium marker re
 runner();
 assert.equal(transitPanel.querySelectorAll('.qol-royal-collect-label').length,0,'No accidental premium relabelling on next tick');
 enabled=false;runner();
+assert.equal(governorProduction(),null,'Disabling the tracker removes the governor total');
 assert.equal(foreignHeader.querySelectorAll('th').length,2,'Restores foreign native headers');
 assert.equal(foreign.row.children.length,2,'Restores foreign native rows');
 assert.ok(!foreignWrapper.classList.contains('qol-royal-tributes-active'),'Removes foreign styling');
