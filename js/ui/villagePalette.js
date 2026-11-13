@@ -981,6 +981,8 @@ const apesHtml_villagePalette = window.APES?.i18n?.html || ((s, ...v) => String.
                     </div>
                     <div class="apes-vd-heading-actions">
                         <div class="apes-vd-scan-btn" role="button" tabindex="0" aria-disabled="false">Scan Now</div>
+                        <div class="apes-vd-export-btn" role="button" tabindex="0" data-apes-i18n="Export">EXPORT</div>
+                        <span class="apes-vd-export-status" role="status"></span>
                         <div class="apes-vd-hint">H / Esc to close · Click a village to switch</div>
                     </div>
                 </div>
@@ -1435,6 +1437,7 @@ const apesHtml_villagePalette = window.APES?.i18n?.html || ((s, ...v) => String.
     menuObserver.observe(document.documentElement, { childList: true, subtree: true });
 
     window.APES_VILLAGE_PALETTE = Object.freeze({
+        unitName,
         open: openDashboard,
         close: closeDashboard,
         toggle: toggleDashboard,
