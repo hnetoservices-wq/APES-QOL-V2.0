@@ -33,7 +33,8 @@ async function test() {
   const { document, localStorage } = window;
   window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
   window.HTMLDialogElement.prototype.close = function () { this.open = false; };
-  window.APES = { buildingNames: { 17: 'Marketplace', 10: 'Warehouse', 19: 'Barracks' } };
+  window.APES = {};
+  window.eval(fs.readFileSync(path.join(__dirname, '../js/core/buildingNames.js'), 'utf8'));
   const wait = () => new Promise(resolve => window.setTimeout(resolve, 40));
   const area = id => document.querySelector(`area[location-id="${id}"]`);
   const slot = id => document.querySelector(`.buildingLocation${id}`);
@@ -76,6 +77,7 @@ async function test() {
     slot(29).classList.replace('buildingLocation29', 'buildingLocation37');
     area(29).setAttribute('location-id', '37');
     choose.click();
+    action('reset');
     clickSpot(28);
     clickSpot(37);
     action('save');
@@ -100,7 +102,7 @@ async function test() {
     const view = document.querySelector('#villageView');
     view.querySelector('.buildingId17').classList.replace('buildingId17', 'buildingId8');
     await wait();
-    assert.equal(shift(28), '100px', 'A missing type yields an empty spot when one is available');
+    assert.equal(shift(28), '100px', 'The explicitly empty spot takes priority when the requested building is missing');
 
     view.parentElement.innerHTML = markup;
     await wait();
@@ -161,6 +163,23 @@ async function test() {
     replaceLayout([10, 0, 17, 19]);
     await wait();
     assert.equal(shift(31), '-200px', 'An absent building type is placed when found in another village');
+
+    document.querySelector('#villageView').remove();
+    window.location.hash = '#/page:map';
+    await wait();
+    document.querySelector('[data-qol-marketplace-layout]').click();
+    assert.ok(document.querySelector('dialog[open]'), 'Designer opens on the map with no village DOM');
+    action('reset');
+    const warehouse = document.querySelector('[data-qol-layout-type="10"]');
+    assert.equal(warehouse.textContent, 'Warehouse');
+    warehouse.click();
+    clickSpot(29);
+    assert.equal(document.querySelector('[data-qol-layout-slot="29"]').textContent, 'Warehouse');
+    action('save');
+    document.body.insertAdjacentHTML('beforeend', '<div id="villageView"></div>');
+    replaceLayout([10, 0, 17, 19]);
+    await wait();
+    assert.equal(shift(28), '100px', 'A design applied outside the village is used when a village opens');
   } finally {
     dom.window.close();
   }

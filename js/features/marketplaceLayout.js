@@ -7,6 +7,14 @@
   const controls = '[data-qol-marketplace-layout], [data-qol-layout-slot], [data-qol-layout-action], [data-qol-layout-type]';
   const slotClass = /^buildingLocation(\d+)$/;
   const ordinarySlot = id => id >= 19 && id <= 40 && id !== 33;
+  // Reference positions from the desktop village map, in its 1174 × 850 coordinate space.
+  const mapPositions = [
+    [245, 357], [382, 503], [188, 437], [182.5, 549], [449.5, 414],
+    [396, 301], [509.5, 253], [655, 272], [605, 379], [790, 285],
+    [846.5, 385], [893.5, 442], [961, 555], [728.5, 518], null,
+    [855.5, 615], [548.5, 569], [262.5, 620], [363, 749], [660.5, 642],
+    [770.5, 705], [530.5, 681]
+  ];
   // Spot 37 borders the cliff. Keep the Marketplace footprint above the rim.
   const marketplaceClearance = new Map([[37, 36]]);
   const shiftAttribute = 'data-qol-layout-shift';
@@ -135,9 +143,12 @@
       const slot = [...available].find(candidate => candidate.type === type);
       if (slot) assign(id, slot);
     }
-    for (const id of requested.keys()) {
+    for (const [id, type] of requested) {
       if (assignments.has(id)) continue;
-      const empty = [...available].find(candidate => candidate.type === 0);
+      if (type === 0) continue;
+      const current = slots.get(id);
+      const empty = available.has(current) && current.type === 0
+        ? current : [...available].find(candidate => candidate.type === 0 && !assignments.has(candidate.id));
       if (empty) assign(id, empty);
     }
     for (const slot of available) {
@@ -154,8 +165,7 @@
     frame = 0;
     const enabled = window.isQolEnabled(feature);
     const view = enabled ? getView() : null;
-    if (picker && (picker.view !== view ||
-        [...picker.slots.values()].some(slot => !view.contains(slot.building)))) closePicker();
+    if (!enabled) closePicker();
     const preset = enabled ? getPreset() : [];
     const slots = view && preset.length ? readSlots(view) : new Map();
     const plans = [...assignSlots(slots, preset)]
@@ -188,18 +198,15 @@
   function openPicker(button) {
     if (!window.isQolEnabled(feature)) return;
     const view = getView();
-    const feedback = button.parentElement.querySelector('[data-qol-marketplace-layout-feedback]');
-    if (!view) {
-      feedback.textContent = 'Open a desktop village view to choose a spot.';
-      return;
-    }
-    const slots = readSlots(view);
-    if (!slots.size) {
-      feedback.textContent = 'Village slots are still loading. Try again in a moment.';
-      return;
-    }
-
-    feedback.textContent = '';
+    const liveSlots = view ? readSlots(view) : new Map();
+    const slots = new Map();
+    mapPositions.forEach((position, index) => {
+      if (!position) return;
+      const id = 19 + index;
+      const [x, y] = position;
+      const live = liveSlots.get(id);
+      slots.set(id, { id, x, y, type: live?.type ?? 0, image: live?.image });
+    });
     closePicker();
     const dialog = document.createElement('dialog');
     dialog.className = 'qol-village-designer';
@@ -215,7 +222,7 @@
     const markers = dialog.querySelector('.qol-marketplace-layout-markers');
     const palette = dialog.querySelector('.qol-village-designer-palette');
     const preset = new Map(getPreset());
-    picker = { view, dialog, opener: button, markers, palette, slots, preset, selected: null, type: null };
+    picker = { dialog, opener: button, markers, palette, slots, preset, selected: null, type: null };
     const names = window.APES?.buildingNames || {};
     const types = new Set([...slots.values()].map(slot => slot.type));
     for (const type of Object.keys(names).map(Number)) {
@@ -387,7 +394,6 @@
   });
   window.addEventListener('hashchange', () => {
     if (!window.isQolEnabled(feature)) return;
-    closePicker();
     schedule();
   });
   applySetting();

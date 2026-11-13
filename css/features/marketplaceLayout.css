@@ -16,9 +16,7 @@
   margin-top: 4px;
 }
 
-[data-qol-marketplace-layout-feedback]:empty,
-.qol-feature-card:has(#qol-chk-marketplace-layout:not(:checked)) [data-qol-marketplace-layout],
-.qol-feature-card:has(#qol-chk-marketplace-layout:not(:checked)) [data-qol-marketplace-layout-feedback] {
+.qol-feature-card:has(#qol-chk-marketplace-layout:not(:checked)) [data-qol-marketplace-layout] {
   display: none;
 }
 
