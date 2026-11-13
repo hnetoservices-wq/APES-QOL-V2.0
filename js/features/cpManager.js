@@ -284,7 +284,12 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
 #${PANEL_ID} .qol-cp-body{display:flex!important;flex-direction:column!important;gap:9px!important;padding:10px!important;background:#f7f5f0!important;overflow-y:auto!important}
 #${PANEL_ID} .qol-cp-description{padding:7px 9px!important;background:#fff6e5!important;border:1px solid #d4c2a5!important;border-radius:4px!important;color:#5b4630!important;font-size:11px!important;line-height:1.4!important}
 #${PANEL_ID} .qol-cp-controls{display:flex!important;align-items:center!important;gap:7px!important;flex-wrap:wrap!important}
-#${PANEL_ID} .qol-cp-action-btn{min-width:120px!important;height:28px!important;padding:5px 11px!important;border:1px solid var(--qol-action-border)!important;border-radius:3px!important;background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;font-size:11px!important;font-weight:bold!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+#${PANEL_ID} .qol-cp-action-btn,#${PLANNER_ID} .qol-cp-action-btn{min-width:120px!important;height:28px!important;padding:5px 11px!important;border:1px solid var(--qol-action-border)!important;border-radius:3px!important;background:linear-gradient(to bottom,var(--qol-accent),var(--qol-accent-dark))!important;color:#fff!important;font-size:11px!important;font-weight:bold!important;white-space:nowrap!important;cursor:pointer!important;user-select:none!important;display:inline-flex!important;align-items:center!important;justify-content:center!important}
+#${PLANNER_ID} .qol-cp-plan-row[data-future]:not([data-future=""]) td{background:#e3eff7!important;border-bottom-color:#c4d8e8!important}
+#${PLANNER_ID} .qol-cp-remove-future{min-width:0!important;margin-left:8px!important;height:22px!important}
+#${PLANNER_ID} .qol-cp-action-btn:hover{filter:brightness(1.15)}
+#${PLANNER_ID} .qol-cp-action-btn:focus-visible{outline:2px solid #28668a;outline-offset:2px}
+#${PLANNER_ID} .qol-cp-action-btn[aria-disabled="true"]{opacity:.45!important;cursor:default!important}
 #${PANEL_ID} .qol-cp-action-btn.secondary{background:linear-gradient(to bottom,#937951,#6b5335)!important}
 #${PANEL_ID} .qol-cp-action-btn.hidden{display:none!important}
 #${PANEL_ID} .qol-cp-action-btn.disabled{opacity:.45!important;pointer-events:none!important}
@@ -1195,23 +1200,30 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       try { localStorage.setItem(key, JSON.stringify(next)); }
       catch (error) { console.warn('[APES CP Planner] Could not save the plan.', error); }
     }
-    const add = planner.querySelector('.qol-cp-add-future');
-    add.addEventListener('keydown', event => {
-      if (!['Enter', ' '].includes(event.key)) return;
-      event.preventDefault();
-      if (!event.repeat) add.click();
-    });
-    add.addEventListener('click', () => {
-      if (add.getAttribute('aria-disabled') === 'true') return;
-      if (lastScanResult !== result || plannerStorageKey() !== key) return;
-      const next = key ? loadPlannerSettings(key) : saved;
-      next.futureCount = futureCount(saved) + 1;
-      if (key) {
-        try { localStorage.setItem(key, JSON.stringify(next)); }
-        catch (error) { console.warn('[APES CP Planner] Could not save the future village.', error); }
-      }
-      renderPlanner(next);
-      planner.querySelector('.qol-cp-plan-row:last-child .qol-cp-start')?.focus();
+    planner.querySelectorAll('.qol-cp-add-future,.qol-cp-remove-future').forEach(control => {
+      control.addEventListener('keydown', event => {
+        if (!['Enter', ' '].includes(event.key)) return;
+        event.preventDefault();
+        if (!event.repeat) control.click();
+      });
+      control.addEventListener('click', () => {
+        if (control.getAttribute('aria-disabled') === 'true') return;
+        if (lastScanResult !== result || plannerStorageKey() !== key) return;
+        const next = key ? loadPlannerSettings(key) : saved;
+        const removed = Number(control.dataset.removeFuture);
+        changeFutureRows(next, removed);
+        if (key) {
+          try { localStorage.setItem(key, JSON.stringify(next)); }
+          catch (error) {
+            console.warn('[APES CP Planner] Could not save the future villages.', error);
+            return;
+          }
+        }
+        renderPlanner(next);
+        const focusRow = removed ? Math.min(removed, next.futureCount) : next.futureCount;
+        (planner.querySelector(`[data-future="${focusRow}"] .qol-cp-start`) ||
+          planner.querySelector('.qol-cp-add-future'))?.focus();
+      });
     });
     planner.querySelectorAll('select,input').forEach(control => control.addEventListener('change', change));
     updatePlanner();
@@ -1219,6 +1231,21 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
   }
   function futureCount(saved) {
     return Number.isInteger(saved.futureCount) ? Math.min(CP_SLOT_TARGETS.length, Math.max(0, saved.futureCount)) : 0;
+  }
+  function changeFutureRows(settings, removed) {
+    const count = futureCount(settings);
+    if (!removed) {
+      settings.futureCount = count + 1;
+      return;
+    }
+    const villages = settings.villages || {};
+    for (let index = removed; index < count; index++) {
+      const next = villages['future-' + (index + 1)];
+      if (next) villages['future-' + index] = next;
+      else delete villages['future-' + index];
+    }
+    delete villages['future-' + count];
+    settings.futureCount = count - 1;
   }
   function renderPlanner(settings) {
     if (!lastScanResult || lastScanResult.plannerStorageKey !== plannerStorageKey()) return;
@@ -1234,9 +1261,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     }
     const rows = villages.map((village, index) => {
       const start = village.hasTownHall ? Math.max(1, village.level) : 0;
-      return apesHtml_cpManager`<tr class="qol-cp-plan-row" data-index="${index}" data-future="${village.future || ''}"><td><input type="date" class="qol-cp-start" aria-label="Start date for ${escapeHtml(village.villageName)}"></td><td>${escapeHtml(village.villageName)}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
+      return apesHtml_cpManager`<tr class="qol-cp-plan-row" data-index="${index}" data-future="${village.future || ''}"><td><input type="date" class="qol-cp-start" aria-label="Start date for ${escapeHtml(village.villageName)}"></td><td>${escapeHtml(village.villageName)}${village.future ? apesHtml_cpManager`<div class="qol-cp-action-btn qol-cp-remove-future" role="button" tabindex="0" data-remove-future="${village.future}" aria-label="Remove future village ${village.future}">Remove</div>` : ''}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
     }).join('');
-    planner.querySelector('.qol-cp-planner-body').innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Start</th><th>Village</th><th>Town Hall</th><th>Celebration</th><th><label>24/7 <input type="checkbox" class="qol-cp-247-all" aria-label="Toggle all eligible 24/7 celebrations"></label></th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="7"><div role="button" tabindex="0" class="qol-cp-action-btn secondary qol-cp-add-future" aria-disabled="${futureCount(saved) >= remaining}">Add future village</div></td></tr></tfoot></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
+    planner.querySelector('.qol-cp-planner-body').innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Start</th><th>Village</th><th>Town Hall</th><th>Celebration</th><th><label>24/7 <input type="checkbox" class="qol-cp-247-all" aria-label="Toggle all eligible 24/7 celebrations"></label></th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="7"><div role="button" tabindex="0" class="qol-cp-action-btn secondary qol-cp-add-future" aria-disabled="${futureCount(saved) >= remaining}">Add Future Village</div></td></tr></tfoot></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
     planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
     bindPlannerSettings(planner, lastScanResult, saved);
     planner.querySelector('.qol-cp-period-input')?.addEventListener('input', updatePlanner);
