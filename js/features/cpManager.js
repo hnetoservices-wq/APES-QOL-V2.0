@@ -1082,8 +1082,92 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     for (let level = start; level <= 20; level += 1) options.push(apesHtml_cpManager`<option value="${level}"${level === start ? (' selected') : ''}>${level}</option>`);
     return options.join('');
   }
+  function plannerStorageKey() {
+    const context = window.APES?.context;
+    return context?.isPlayerResolved()
+      ? `qol_cp_plan_v1:${context.getServer()}:${context.getPlayerId()}` : null;
+  }
+  function loadPlannerSettings(key) {
+    try {
+      const value = key && JSON.parse(localStorage.getItem(key));
+      return value && typeof value === 'object' ? value : {};
+    } catch {
+      return {};
+    }
+  }
+  function bindPlannerSettings(planner, result) {
+    const key = result.plannerStorageKey;
+    const saved = loadPlannerSettings(key);
+    const rows = [...planner.querySelectorAll('.qol-cp-plan-row')];
+    const master = planner.querySelector('.qol-cp-247-all');
+    const period = planner.querySelector('.qol-cp-period-input');
+    const artworks = planner.querySelector('.qol-cp-artwork-input');
+    const target = planner.querySelector('.qol-cp-target-select');
+    if (Number.isFinite(saved.period)) period.value = saved.period;
+    if (Number.isFinite(saved.artworks)) artworks.value = saved.artworks;
+    if ([...target.options].some(option => option.value === String(saved.target))) target.value = saved.target;
+    const entries = rows.map((row, index) => {
+      const id = String(result.townHalls.villages[index].villageId);
+      const level = row.querySelector('.qol-cp-level-select');
+      const type = row.querySelector('.qol-cp-type-select');
+      const check = row.querySelector('.qol-cp-247-check');
+      const plan = saved.villages?.[id];
+      if (Number.isInteger(plan?.level) && plan.level <= 20) {
+        level.value = Math.max(Number(level.value), plan.level);
+      }
+      if (['none', 'small', 'big'].includes(plan?.type)) type.value = plan.type;
+      check.checked = plan?.run247 === true;
+      return { id, level, type, check };
+    });
+    const eligible = () => entries.filter(entry => !entry.check.disabled);
+    function syncMaster() {
+      const active = eligible();
+      const checked = active.filter(entry => entry.check.checked).length;
+      master.disabled = !active.length;
+      master.checked = active.length > 0 && checked === active.length;
+      master.indeterminate = checked > 0 && checked < active.length;
+    }
+    function change(event) {
+      if (lastScanResult !== result || plannerStorageKey() !== key) return;
+      const control = event.currentTarget;
+      if (control === master) {
+        for (const entry of eligible()) entry.check.checked = master.checked;
+      }
+      const edited = entries.find(entry => [entry.level, entry.type, entry.check].includes(control));
+      const requestedLevel = Number(edited?.level.value);
+      updatePlanner();
+      syncMaster();
+      if (!key) return;
+      const next = loadPlannerSettings(key);
+      next.villages = { ...next.villages };
+      if (edited && /^\d+$/.test(edited.id)) {
+        const previous = next.villages[edited.id] || {};
+        next.villages[edited.id] = {
+          level: control === edited.level ? requestedLevel : previous.level,
+          type: edited.type.value,
+          run247: edited.check.checked
+        };
+      }
+      if (control === master) {
+        for (const entry of eligible()) {
+          if (!/^\d+$/.test(entry.id)) continue;
+          next.villages[entry.id] = {
+            ...next.villages[entry.id], type: entry.type.value, run247: entry.check.checked
+          };
+        }
+      }
+      if (control === period) next.period = getPlannerPeriodDays();
+      if (control === artworks) next.artworks = getPlannerArtworkCount();
+      if (control === target) next.target = getPlannerTargetSlot();
+      try { localStorage.setItem(key, JSON.stringify(next)); }
+      catch (error) { console.warn('[APES CP Planner] Could not save the plan.', error); }
+    }
+    planner.querySelectorAll('select,input').forEach(control => control.addEventListener('change', change));
+    updatePlanner();
+    syncMaster();
+  }
   function renderPlanner() {
-    if (!lastScanResult) return;
+    if (!lastScanResult || lastScanResult.plannerStorageKey !== plannerStorageKey()) return;
     const planner = mountPlannerPanel();
     const speedInfo = detectServerSpeed(lastScanResult);
     const nextSlot = getNextExpansionSlot(lastScanResult);
@@ -1092,9 +1176,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       const start = village.hasTownHall ? Math.max(1, village.level) : 0;
       return apesHtml_cpManager`<tr class="qol-cp-plan-row" data-index="${index}"><td>${escapeHtml(village.villageName)}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
     }).join('');
-    planner.querySelector('.qol-cp-planner-body').innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th>24/7</th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
+    planner.querySelector('.qol-cp-planner-body').innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th><label>24/7 <input type="checkbox" class="qol-cp-247-all" aria-label="Toggle all eligible 24/7 celebrations"></label></th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
     planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
-    planner.querySelectorAll('select,input').forEach(control => control.addEventListener('change', updatePlanner));
+    bindPlannerSettings(planner, lastScanResult);
     planner.querySelector('.qol-cp-period-input')?.addEventListener('input', updatePlanner);
     planner.querySelector('.qol-cp-artwork-input')?.addEventListener('input', updatePlanner);
     planner.style.setProperty('display', 'flex', 'important');
@@ -1125,6 +1209,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (isScanning || !isEnabled()) return;
     isScanning = true;
     const originalHash = window.location.hash || '';
+    const startingAccount = plannerStorageKey();
     // Keep earlier completed scan results visible until replacement is ready.
     setScanButtonState(true, 'Scanning...');
     showScanOverlay();
@@ -1145,14 +1230,19 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
         cpPerDay: culture.total,
         villageCp: culture.villageCp,
         prediction,
-        townHalls
+        townHalls,
+        plannerStorageKey: startingAccount || plannerStorageKey()
       };
       if (window.location.hash !== originalHash) {
         window.location.hash = originalHash;
         await sleep(150);
       }
+      if (result.plannerStorageKey !== plannerStorageKey()) throw new Error('The account changed during the CP scan.');
+      const planner = document.getElementById(PLANNER_ID);
+      const plannerWasOpen = planner && getComputedStyle(planner).display !== 'none';
       lastScanResult = result;
       renderResult(result);
+      if (plannerWasOpen) renderPlanner();
       const hallCount = townHalls.villages.filter(village => village.hasTownHall).length;
       const nextSlot = getNextExpansionSlot(result);
       const count = `${townHalls.scannedCount}/${townHalls.expectedCount}`;
