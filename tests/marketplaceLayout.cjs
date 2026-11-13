@@ -165,10 +165,16 @@ async function test() {
     assert.equal(shift(31), '-200px', 'An absent building type is placed when found in another village');
 
     document.querySelector('#villageView').remove();
+    const gameStyle = document.createElement('style');
+    gameStyle.textContent = '.viewBackground.village { background-image: url("https://test.kingdoms.com/village_view.jpg"); }';
+    document.head.append(gameStyle);
     window.location.hash = '#/page:map';
     await wait();
     document.querySelector('[data-qol-marketplace-layout]').click();
     assert.ok(document.querySelector('dialog[open]'), 'Designer opens on the map with no village DOM');
+    assert.match(document.querySelector('.qol-marketplace-layout-markers').style
+      .getPropertyValue('--qol-village-art'), /village_view\.jpg/);
+    assert.equal(document.querySelector('.viewBackground.village'), null, 'Artwork probe is removed');
     action('reset');
     const warehouse = document.querySelector('[data-qol-layout-type="10"]');
     assert.equal(warehouse.textContent, 'Warehouse');

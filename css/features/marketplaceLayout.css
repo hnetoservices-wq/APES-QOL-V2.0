@@ -62,7 +62,12 @@
   min-width: 520px;
   border: 1px solid #52613e;
   border-radius: 6px;
-  background: radial-gradient(ellipse at center, #68794c 45%, #4b613d 80%);
+  background: var(--qol-village-art, none),
+    radial-gradient(ellipse at center, #68794c 45%, #4b613d 80%);
+  /* Crop the 1920 × 1440 scene to the 1174 × 850 slot map at (365, 250). */
+  background-size: 163.5434% 169.4118%, cover;
+  background-position: 48.9276% 42.3729%, center;
+  background-repeat: no-repeat;
 }
 
 .qol-marketplace-layout-marker {

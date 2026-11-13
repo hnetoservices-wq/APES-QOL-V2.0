@@ -195,6 +195,21 @@
     opener.focus({ preventScroll: true });
   }
 
+  function setDesignerArtwork(map, view) {
+    // Let Travian's stylesheet choose the asset for this world and season.
+    const probe = document.createElement('div');
+    probe.className = 'viewBackground village';
+    if (view?.closest('.village-water')) probe.classList.add('village-water');
+    probe.hidden = true;
+    document.body.append(probe);
+    try {
+      const artwork = getComputedStyle(probe).backgroundImage;
+      if (artwork.startsWith('url(')) map.style.setProperty('--qol-village-art', artwork);
+    } finally {
+      probe.remove();
+    }
+  }
+
   function openPicker(button) {
     if (!window.isQolEnabled(feature)) return;
     const view = getView();
@@ -220,6 +235,7 @@
       '<div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-qol-layout-action="cancel">Cancel</div>' +
       '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-layout-action="save">Apply layout</div></div>';
     const markers = dialog.querySelector('.qol-marketplace-layout-markers');
+    setDesignerArtwork(markers, view);
     const palette = dialog.querySelector('.qol-village-designer-palette');
     const preset = new Map(getPreset());
     picker = { dialog, opener: button, markers, palette, slots, preset, selected: null, type: null };
