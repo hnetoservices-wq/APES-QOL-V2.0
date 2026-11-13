@@ -1437,6 +1437,7 @@ const apesHtml_villagePalette = window.APES?.i18n?.html || ((s, ...v) => String.
     menuObserver.observe(document.documentElement, { childList: true, subtree: true });
 
     window.APES_VILLAGE_PALETTE = Object.freeze({
+        unitName,
         open: openDashboard,
         close: closeDashboard,
         toggle: toggleDashboard,

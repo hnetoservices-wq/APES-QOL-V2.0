@@ -574,6 +574,28 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
       element.scrollTop=scrollPositions[element.dataset.apesAoScroll]||0;
     });
   }
+  function trainingUnits(villages) {
+    const units=new Map();
+    for(const village of villages){
+      for(const type of Object.keys(TRAINING)){
+        const queue=village.unitQueue?.buildingTypes?.[type];
+        if(!Array.isArray(queue))continue;
+        for(const item of queue){
+          const count=num(item?.count);
+          if(!(count>0))continue;
+          const id=item.unitType??item.unitTypeId??item.unitId??item.unitIndex;
+          const name=id==null?'Unknown unit':
+            window.APES_VILLAGE_PALETTE?.unitName?.(village.tribeId,id)??('Unit '+id);
+          const key=String(village.tribeId)+':'+name;
+          const entry=units.get(key)??{name,tribe:TRIBES[village.tribeId]??'',count:0};
+          entry.count+=count;
+          units.set(key,entry);
+        }
+      }
+    }
+    return [...units.values()].sort((a,b)=>b.count-a.count||a.name.localeCompare(b.name));
+  }
+
   function exportSheets(data) {
     const villages=data.villages;
     const resources=resourceOverview(villages), troops=unitCounter(villages);
@@ -612,7 +634,9 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
         }))
       ],
       Troops: [['Tribe','Unit','Count'],...troops.rows.map(r=>[r.tribeName,r.name,r.count])],
-      Training: [['Village ID','Village','Queued troops','Queues'],
+      Training: [['Unit','Queued troops','Tribe'],
+        ...trainingUnits(villages).map(r=>[r.name,r.count,r.tribe]),
+        [],['Village ID','Village','Queued troops','Queues'],
         ...training.rows.map(r=>[r.id,r.name,r.count,r.details])],
       Celebrations: [['Village ID','Village','State','Celebration','Ends at (UTC)'],
         ...celebrations.active.map(r=>[r.id,r.name,'Active',r.label,date(r.end)]),
