@@ -7,6 +7,10 @@
   const controls = '[data-qol-marketplace-layout], [data-qol-layout-slot], [data-qol-layout-action], [data-qol-layout-type]';
   const slotClass = /^buildingLocation(\d+)$/;
   const ordinarySlot = id => id >= 19 && id <= 40 && id !== 33;
+  const extraPlots = [[42, 1120, 800], [43, 985, 843]];
+  const repeatable = new Set([10, 11, 38, 39, 46]);
+  const uniqueType = type => type > 0 && !repeatable.has(type);
+  const layoutSlot = id => ordinarySlot(id) || extraPlots.some(([plot]) => plot === id);
   // Reference positions from the desktop village map, in its 1174 × 850 coordinate space.
   const mapPositions = [
     [245, 357], [382, 503], [188, 437], [182.5, 549], [449.5, 414],
@@ -28,12 +32,25 @@
       const saved = localStorage.getItem(presetKey);
       if (saved !== null) {
         const entries = JSON.parse(saved);
-        return Array.isArray(entries) ? entries.filter(entry =>
-          Array.isArray(entry) && ordinarySlot(entry[0]) && Number.isInteger(entry[1]) && entry[1] >= 0) : [];
+        const preset = new Map();
+        for (const entry of Array.isArray(entries) ? entries : []) {
+          if (Array.isArray(entry) && layoutSlot(entry[0]) && Number.isInteger(entry[1]) && entry[1] >= 0)
+            placeType(preset, ...entry);
+        }
+        return [...preset];
       }
       const legacy = Number(localStorage.getItem(legacyKey));
       return ordinarySlot(legacy) ? [[legacy, 17]] : [];
     } catch { return []; }
+  }
+
+  function placeType(preset, id, type) {
+    if (uniqueType(type)) {
+      for (const [other, existing] of preset) {
+        if (other !== id && existing === type) preset.set(other, 0);
+      }
+    }
+    preset.set(id, type);
   }
 
   function pointList(value) {
@@ -52,7 +69,7 @@
     for (const building of view.querySelectorAll(':scope > building-location')) {
       const marker = Array.from(building.classList).map(name => name.match(slotClass)).find(Boolean);
       const id = Number(marker?.[1]);
-      if (!ordinarySlot(id) || building.querySelector('img.buildingWall, img.buildingId16, img.buildingId40')) continue;
+      if ((!ordinarySlot(id) && !(id > 41)) || building.querySelector('img.buildingWall, img.buildingId16, img.buildingId40')) continue;
       const areas = Array.from(view.querySelectorAll(`map#clickareasVillage area[location-id="${id}"][shape="poly"]`));
       const points = pointList(areas[0]?.getAttribute('tg-coords'));
       if (!points) continue;
@@ -63,9 +80,17 @@
       const image = building.querySelector('img.location[class*="buildingId"]');
       const type = Number(image?.className.match(/(?:^|\s)buildingId(\d+)(?:\s|$)/)?.[1]) || 0;
       if (!type && !building.classList.contains('free')) continue;
-      slots.set(id, {
-        id, building, areas, type, image: image?.getAttribute('src'),
-        x: (left + right) / 2,
+      const x = (left + right) / 2;
+      // Identify the additional construction sites by their map position.
+      // Keep the game's real location ID and click handler on the original area.
+      const plot = ordinarySlot(id) ? id : bottom >= 724 && x >= 838
+        ? extraPlots.reduce((nearest, candidate) =>
+          Math.abs(candidate[1] - x) < Math.abs(nearest[1] - x) ? candidate : nearest)[0]
+        : null;
+      if (plot === null || slots.has(plot)) continue;
+      slots.set(plot, {
+        id: plot, building, areas, type, image: image?.getAttribute('src'),
+        x,
         y: bottom
       });
     }
@@ -222,6 +247,10 @@
       const live = liveSlots.get(id);
       slots.set(id, { id, x, y, type: live?.type ?? 0, image: live?.image });
     });
+    for (const [id, x, y] of extraPlots) {
+      const live = liveSlots.get(id);
+      slots.set(id, { id, x, y, type: live?.type ?? 0, image: live?.image });
+    }
     closePicker();
     const dialog = document.createElement('dialog');
     dialog.className = 'qol-village-designer';
@@ -280,13 +309,14 @@
       : selected === null ? 'Choose a building from the palette, or select two map spots to swap.'
         : 'Choose the second spot to swap.';
     for (const slot of slots.values()) {
-      const occupantType = preset.get(slot.id) ?? draft.get(slot.id).type;
+      const occupantType = draftType(slot.id, draft, preset);
       const name = buildingName(occupantType);
       const marker = document.createElement('div');
       marker.className = 'qol-wl-action-btn primary qol-marketplace-layout-marker';
       marker.setAttribute('role', 'button');
       marker.tabIndex = 0;
-      marker.setAttribute('aria-label', `Spot ${slot.id}: ${name}`);
+      const plotName = slot.id >= 42 ? `Extra plot ${slot.id - 41}` : `Spot ${slot.id}`;
+      marker.setAttribute('aria-label', `${plotName}: ${name}`);
       marker.setAttribute('aria-pressed', String(selected === slot.id));
       marker.dataset.qolLayoutSlot = slot.id;
       marker.style.left = `${slot.x / 1174 * 100}%`;
@@ -299,25 +329,31 @@
         marker.append(thumbnail);
       }
       const label = document.createElement('span');
-      label.textContent = name;
+      label.textContent = slot.id >= 42 ? `${plotName}: ${name}` : name;
       marker.append(label);
       markers.append(marker);
       if (focusId === slot.id) marker.focus({ preventScroll: true });
     }
   }
 
+  function draftType(id, draft, preset) {
+    if (preset.has(id)) return preset.get(id);
+    const type = draft.get(id).type;
+    return uniqueType(type) && [...preset.values()].includes(type) ? 0 : type;
+  }
+
   function swapDraft(id) {
     const { preset, slots, selected, type } = picker;
     if (type !== null) {
-      preset.set(id, type);
+      placeType(preset, id, type);
       picker.type = null;
     } else if (selected === null) {
       picker.selected = id;
     } else {
       if (selected !== id) {
         const draft = assignSlots(slots, [...preset]);
-        const source = preset.get(selected) ?? draft.get(selected).type;
-        const target = preset.get(id) ?? draft.get(id).type;
+        const source = draftType(selected, draft, preset);
+        const target = draftType(id, draft, preset);
         preset.set(selected, target);
         preset.set(id, source);
       }

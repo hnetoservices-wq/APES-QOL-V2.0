@@ -186,6 +186,32 @@ async function test() {
     replaceLayout([10, 0, 17, 19]);
     await wait();
     assert.equal(shift(28), '100px', 'A design applied outside the village is used when a village opens');
+
+    const chooseType = type => document.querySelector(`[data-qol-layout-type="${type}"]`).click();
+    document.querySelector('[data-qol-marketplace-layout]').click();
+    action('reset');
+    chooseType(17);
+    clickSpot(42);
+    chooseType(17);
+    clickSpot(43);
+    assert.match(document.querySelector('[data-qol-layout-slot="42"]').textContent, /Empty/);
+    assert.match(document.querySelector('[data-qol-layout-slot="43"]').textContent, /Marketplace/);
+    chooseType(10);
+    clickSpot(28);
+    chooseType(10);
+    clickSpot(42);
+    action('save');
+    const preset = new Map(JSON.parse(localStorage.getItem('qol_village_layout_v1')));
+    assert.equal(preset.get(28), 10);
+    assert.equal(preset.get(42), 10, 'Warehouses can repeat');
+    assert.equal(preset.get(43), 17);
+    const village = document.querySelector('#villageView');
+    village.insertAdjacentHTML('afterbegin', '<building-location class="buildingLocation43 free"></building-location>');
+    village.querySelector('map').insertAdjacentHTML('beforeend',
+      '<area shape="poly" location-id="43" tg-coords="970,815,990,815,990,840,970,840" coords="970,815,990,815,990,840,970,840">');
+    await wait();
+    assert.equal(shift(30), '770px', 'An unlocked extra plot can receive a real Marketplace');
+    assert.equal(area(30).getAttribute('location-id'), '30', 'The moved area keeps its original game location');
   } finally {
     dom.window.close();
   }
