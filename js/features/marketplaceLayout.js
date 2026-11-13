@@ -4,7 +4,7 @@
   const feature = 'marketplaceLayout';
   const presetKey = 'qol_village_layout_v1';
   const legacyKey = 'qol_marketplace_display_slot';
-  const controls = '[data-qol-marketplace-layout], [data-qol-layout-slot], [data-qol-layout-action]';
+  const controls = '[data-qol-marketplace-layout], [data-qol-layout-slot], [data-qol-layout-action], [data-qol-layout-type]';
   const slotClass = /^buildingLocation(\d+)$/;
   const ordinarySlot = id => id >= 19 && id <= 40 && id !== 33;
   // Spot 37 borders the cliff. Keep the Marketplace footprint above the rim.
@@ -56,7 +56,7 @@
       const type = Number(image?.className.match(/(?:^|\s)buildingId(\d+)(?:\s|$)/)?.[1]) || 0;
       if (!type && !building.classList.contains('free')) continue;
       slots.set(id, {
-        id, building, areas, type,
+        id, building, areas, type, image: image?.getAttribute('src'),
         x: (left + right) / 2,
         y: bottom
       });
@@ -157,7 +157,7 @@
     if (picker && (picker.view !== view ||
         [...picker.slots.values()].some(slot => !view.contains(slot.building)))) closePicker();
     const preset = enabled ? getPreset() : [];
-    const slots = view && !picker && preset.length ? readSlots(view) : new Map();
+    const slots = view && preset.length ? readSlots(view) : new Map();
     const plans = [...assignSlots(slots, preset)]
       .filter(([id, source]) => id !== source.id)
       .map(([id, source]) => planShift(source, slots.get(id),
@@ -178,9 +178,11 @@
 
   function closePicker() {
     if (!picker) return;
-    picker.markers.remove();
-    picker.notice.remove();
+    const { dialog, opener } = picker;
     picker = null;
+    dialog.close();
+    dialog.remove();
+    opener.focus({ preventScroll: true });
   }
 
   function openPicker(button) {
@@ -199,33 +201,64 @@
 
     feedback.textContent = '';
     closePicker();
-    const markers = document.createElement('div');
-    markers.className = 'qol-marketplace-layout-markers';
-    const notice = document.createElement('div');
-    notice.className = 'qol-marketplace-layout-notice';
-    notice.innerHTML = '<span role="status"></span>' +
+    const dialog = document.createElement('dialog');
+    dialog.className = 'qol-village-designer';
+    dialog.setAttribute('aria-labelledby', 'qol-village-designer-title');
+    dialog.innerHTML = '<h2 id="qol-village-designer-title">Village Designer</h2>' +
+      '<div class="qol-village-designer-body"><section><h3>Building palette</h3>' +
+      '<div class="qol-village-designer-palette"></div></section>' +
+      '<div class="qol-village-designer-map-scroll"><div class="qol-marketplace-layout-markers" role="group" aria-label="Village map"></div></div></div>' +
+      '<p role="status"></p><div class="qol-village-designer-actions">' +
       '<div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-qol-layout-action="reset">Reset draft</div>' +
       '<div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-qol-layout-action="cancel">Cancel</div>' +
-      '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-layout-action="save">Save layout</div>';
+      '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-layout-action="save">Apply layout</div></div>';
+    const markers = dialog.querySelector('.qol-marketplace-layout-markers');
+    const palette = dialog.querySelector('.qol-village-designer-palette');
     const preset = new Map(getPreset());
-    picker = { view, markers, notice, slots, preset, draft: assignSlots(slots, [...preset]), selected: null };
-    sync();
-    view.append(markers);
-    document.body.append(notice);
+    picker = { view, dialog, opener: button, markers, palette, slots, preset, selected: null, type: null };
+    const names = window.APES?.buildingNames || {};
+    const types = new Set([...slots.values()].map(slot => slot.type));
+    for (const type of Object.keys(names).map(Number)) {
+      if (type >= 5 && ![16, 31, 32, 33, 40].includes(type)) types.add(type);
+    }
+    types.add(0);
+    for (const type of [...types].sort((a, b) => buildingName(a).localeCompare(buildingName(b)))) {
+      const item = document.createElement('div');
+      item.className = 'qol-wl-action-btn secondary';
+      item.setAttribute('role', 'button');
+      item.tabIndex = 0;
+      item.dataset.qolLayoutType = type;
+      item.textContent = buildingName(type);
+      palette.append(item);
+    }
+    document.body.append(dialog);
+    dialog.addEventListener('cancel', event => {
+      event.preventDefault();
+      closePicker();
+    });
     renderPicker();
-    document.querySelector('#qol-modal .qol-modal-close')?.click();
-    markers.querySelector('[tabindex="0"]')?.focus({ preventScroll: true });
+    dialog.showModal();
+  }
+
+  function buildingName(type) {
+    return type ? window.APES?.buildingNames?.[type] || `Building ${type}` : 'Empty';
   }
 
   function renderPicker(focusId) {
-    const { markers, notice, slots, draft, selected } = picker;
+    const { markers, dialog, palette, slots, preset, selected, type } = picker;
+    const draft = assignSlots(slots, [...preset]);
+    const images = new Map([...slots.values()].map(slot => [slot.type, slot.image]));
     markers.replaceChildren();
-    notice.querySelector('[role="status"]').textContent = selected === null
-      ? 'Select a building or empty spot to move.'
-      : 'Select a destination to swap the two spots.';
+    for (const item of palette.children) {
+      item.setAttribute('aria-pressed', String(Number(item.dataset.qolLayoutType) === type));
+    }
+    dialog.querySelector('[role="status"]').textContent = type !== null
+      ? `Choose a spot for ${buildingName(type)}.`
+      : selected === null ? 'Choose a building from the palette, or select two map spots to swap.'
+        : 'Choose the second spot to swap.';
     for (const slot of slots.values()) {
-      const occupant = draft.get(slot.id);
-      const name = occupant.type ? window.APES?.buildingNames?.[occupant.type] || `Building ${occupant.type}` : 'Empty';
+      const occupantType = preset.get(slot.id) ?? draft.get(slot.id).type;
+      const name = buildingName(occupantType);
       const marker = document.createElement('div');
       marker.className = 'qol-wl-action-btn primary qol-marketplace-layout-marker';
       marker.setAttribute('role', 'button');
@@ -233,26 +266,37 @@
       marker.setAttribute('aria-label', `Spot ${slot.id}: ${name}`);
       marker.setAttribute('aria-pressed', String(selected === slot.id));
       marker.dataset.qolLayoutSlot = slot.id;
-      marker.style.left = `${slot.x}px`;
-      marker.style.top = `${slot.y}px`;
-      marker.textContent = name;
+      marker.style.left = `${slot.x / 1174 * 100}%`;
+      marker.style.top = `${slot.y / 850 * 100}%`;
+      const image = images.get(occupantType);
+      if (image) {
+        const thumbnail = document.createElement('img');
+        thumbnail.src = image;
+        thumbnail.alt = '';
+        marker.append(thumbnail);
+      }
+      const label = document.createElement('span');
+      label.textContent = name;
+      marker.append(label);
       markers.append(marker);
       if (focusId === slot.id) marker.focus({ preventScroll: true });
     }
   }
 
   function swapDraft(id) {
-    const { draft, selected } = picker;
-    if (selected === null) {
+    const { preset, slots, selected, type } = picker;
+    if (type !== null) {
+      preset.set(id, type);
+      picker.type = null;
+    } else if (selected === null) {
       picker.selected = id;
     } else {
       if (selected !== id) {
-        const source = draft.get(selected);
-        const target = draft.get(id);
-        draft.set(selected, target);
-        draft.set(id, source);
-        picker.preset.set(selected, target.type);
-        picker.preset.set(id, source.type);
+        const draft = assignSlots(slots, [...preset]);
+        const source = preset.get(selected) ?? draft.get(selected).type;
+        const target = preset.get(id) ?? draft.get(id).type;
+        preset.set(selected, target);
+        preset.set(id, source);
       }
       picker.selected = null;
     }
@@ -266,17 +310,22 @@
       openPicker(control);
       return;
     }
-    if (!picker) return;
+    if (!picker?.dialog.contains(control)) return;
+    if (picker.palette.contains(control)) {
+      picker.type = Number(control.dataset.qolLayoutType);
+      picker.selected = null;
+      renderPicker();
+      return;
+    }
     if (picker.markers.contains(control)) {
       swapDraft(Number(control.dataset.qolLayoutSlot));
       return;
     }
-    if (!picker.notice.contains(control)) return;
     const action = control.dataset.qolLayoutAction;
     if (action === 'reset') {
-      picker.draft = new Map(picker.slots);
       picker.preset.clear();
       picker.selected = null;
+      picker.type = null;
       renderPicker();
       return;
     }
@@ -284,7 +333,7 @@
       try {
         localStorage.setItem(presetKey, JSON.stringify([...picker.preset]));
       } catch {
-        picker.notice.querySelector('[role="status"]').textContent = 'Could not save the layout. Try again.';
+        picker.dialog.querySelector('[role="status"]').textContent = 'Could not save the layout. Try again.';
         return;
       }
     }

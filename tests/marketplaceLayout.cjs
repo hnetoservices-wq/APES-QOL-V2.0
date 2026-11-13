@@ -31,6 +31,9 @@ async function test() {
   });
   const { window } = dom;
   const { document, localStorage } = window;
+  window.HTMLDialogElement.prototype.showModal = function () { this.open = true; };
+  window.HTMLDialogElement.prototype.close = function () { this.open = false; };
+  window.APES = { buildingNames: { 17: 'Marketplace', 10: 'Warehouse', 19: 'Barracks' } };
   const wait = () => new Promise(resolve => window.setTimeout(resolve, 40));
   const area = id => document.querySelector(`area[location-id="${id}"]`);
   const slot = id => document.querySelector(`.buildingLocation${id}`);
@@ -54,9 +57,9 @@ async function test() {
     const clickSpot = id => document.querySelector(`[data-qol-layout-slot="${id}"]`).click();
     const action = name => document.querySelector(`[data-qol-layout-action="${name}"]`).click();
     choose.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
-    assert.equal(shift(28), '', 'Picker shows the native layout');
+    assert.ok(document.querySelector('dialog[open]'));
     assert.equal(document.querySelector('[data-qol-layout-slot="33"]'), null, 'Wall cannot be selected');
-    assert.match(document.querySelector('[data-qol-layout-slot="29"]').textContent, /Building 17/);
+    assert.match(document.querySelector('[data-qol-layout-slot="29"]').textContent, /Marketplace/);
     action('save');
     await wait();
 
@@ -147,7 +150,17 @@ async function test() {
     action('reset');
     action('save');
     await wait();
-    assert.equal(shift(30), '', 'Saving a reset restores the native arrangement');
+    assert.equal(shift(30), '', 'Applying a reset restores the native arrangement');
+    document.querySelector('[data-qol-marketplace-layout]').click();
+    document.querySelector('[data-qol-layout-type="19"]').click();
+    clickSpot(29);
+    assert.match(document.querySelector('[data-qol-layout-slot="29"]').textContent, /Barracks/);
+    assert.deepEqual(JSON.parse(localStorage.getItem('qol_village_layout_v1')), [], 'Draft stays separate until Apply');
+    action('save');
+    assert.deepEqual(JSON.parse(localStorage.getItem('qol_village_layout_v1')), [[29, 19]]);
+    replaceLayout([10, 0, 17, 19]);
+    await wait();
+    assert.equal(shift(31), '-200px', 'An absent building type is placed when found in another village');
   } finally {
     dom.window.close();
   }
