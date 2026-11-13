@@ -1,0 +1,102 @@
+#villageView > building-location[data-qol-layout-shift] {
+  position: absolute;
+  top: var(--qol-layout-y);
+  left: var(--qol-layout-x);
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+#villageView > building-location[data-qol-layout-shift] .buildingStatusButton {
+  pointer-events: auto;
+}
+
+[data-qol-marketplace-layout] {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+.qol-feature-card:has(#qol-chk-marketplace-layout:not(:checked)) [data-qol-marketplace-layout] {
+  display: none;
+}
+
+
+.qol-village-designer {
+  width: min(1040px, 94vw);
+  max-height: 92vh;
+  overflow: auto;
+  box-sizing: border-box;
+  padding: 18px;
+  border: 1px solid var(--qol-accent-outline);
+  border-radius: 8px;
+  background: #faf5eb;
+  color: #382c21;
+}
+
+.qol-village-designer::backdrop {
+  background: rgb(0 0 0 / 55%);
+}
+
+.qol-village-designer-body {
+  display: grid;
+  grid-template-columns: 155px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.qol-village-designer-palette {
+  display: grid;
+  gap: 5px;
+  max-height: 48vh;
+  overflow: auto;
+  padding: 4px;
+}
+
+.qol-village-designer-map-scroll {
+  overflow: auto;
+}
+
+.qol-marketplace-layout-markers {
+  position: relative;
+  aspect-ratio: 1174 / 850;
+  min-width: 520px;
+  border: 1px solid #52613e;
+  border-radius: 6px;
+  background: var(--qol-village-art, none),
+    radial-gradient(ellipse at center, #68794c 45%, #4b613d 80%);
+  /* Crop the 1920 × 1440 scene to the 1174 × 850 slot map at (365, 250). */
+  background-size: 163.5434% 169.4118%, cover;
+  background-position: 48.9276% 42.3729%, center;
+  background-repeat: no-repeat;
+}
+
+.qol-marketplace-layout-marker {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  white-space: nowrap;
+  padding: 2px 4px !important;
+  font-size: 10px !important;
+}
+
+.qol-marketplace-layout-marker img {
+  width: 35px;
+  height: 26px;
+  object-fit: contain;
+}
+
+.qol-village-designer [aria-pressed="true"],
+.qol-village-designer [role="button"]:focus-visible {
+  outline: 2px solid #e2a54b;
+  outline-offset: 2px;
+  z-index: 1;
+}
+
+.qol-village-designer-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}

@@ -198,6 +198,12 @@ const KINGDOM_MANAGEMENT_FEATURES = [{
   description: 'Scans Secret Society member pages, tracks Off, Def and OP roles, and sends targeted individual messages.'
 }];
 const COSMETIC_FEATURES = [{
+  id: 'qol-chk-marketplace-layout',
+  key: 'marketplaceLayout',
+  name: 'Village Layout',
+  icon: '↔',
+  description: 'Arrange buildings in a layout shared across your own and sitter villages.'
+}, {
   id: 'qol-chk-visual-tribe-skins',
   key: 'visualTribeSkins',
   name: 'Visual Tribe Skin',
@@ -343,6 +349,7 @@ function featureCardHtml(feature) {
             <div class="qol-feature-copy">
                 <h3 class="qol-feature-name" data-apes-i18n="${escapeHtml(feature.name)}">${escapeHtml(feature.name)}</h3>
                 <p class="qol-feature-desc" data-apes-i18n="${escapeHtml(feature.description)}">${escapeHtml(feature.description)}</p>
+                ${feature.key === 'marketplaceLayout' ? '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-marketplace-layout>Edit village layout</div>' : ''}
             </div>
             <label class="qol-switch" title="Toggle ${escapeHtml(feature.name)}">
                 <input type="checkbox" id="${escapeHtml(feature.id)}" class="qol-checkbox">
