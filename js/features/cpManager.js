@@ -329,7 +329,7 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
 #${PLANNER_ID} .qol-cp-period-input,#${PLANNER_ID} .qol-cp-artwork-input{appearance:auto!important;-webkit-appearance:auto!important;width:62px!important;height:25px!important;padding:2px 5px!important;border:1px solid #a99473!important;border-radius:3px!important;background:#fff!important;color:#493821!important;font-size:11px!important;text-align:center!important}
 #${PLANNER_ID} .qol-cp-period-hint,#${PLANNER_ID} .qol-cp-artwork-hint{color:#84735d!important;font-size:9px!important;overflow:hidden!important;text-overflow:ellipsis!important;white-space:nowrap!important}
 #${PLANNER_ID} .qol-cp-planner-table-wrap{overflow:auto!important;min-height:120px!important;max-height:none!important;background:#fff!important;flex:1 1 auto!important}
-#${PLANNER_ID} .qol-cp-plan-select{display:inline-block!important;appearance:auto!important;-webkit-appearance:auto!important;width:100%!important;min-width:64px!important;max-width:112px!important;height:28px!important;padding:3px 6px!important;border:1px solid #a99473!important;border-radius:3px!important;background:#fff!important;color:#493821!important;font-size:11px!important}
+#${PLANNER_ID} .qol-cp-start, #${PLANNER_ID} .qol-cp-plan-select{display:inline-block!important;appearance:auto!important;-webkit-appearance:auto!important;width:100%!important;min-width:64px!important;max-width:112px!important;height:28px!important;padding:3px 6px!important;border:1px solid #a99473!important;border-radius:3px!important;background:#fff!important;color:#493821!important;font-size:11px!important}
 #${PLANNER_ID} .qol-cp-247-check{appearance:auto!important;-webkit-appearance:checkbox!important;width:16px!important;height:16px!important;margin:0!important}
 #${PLANNER_ID} .qol-cp-roadmap{background:#fff!important;border-top:1px solid #d6c8ae!important;flex:0 0 auto!important}
 #${PLANNER_ID} .qol-cp-roadmap-head{display:flex!important;align-items:center!important;justify-content:space-between!important;padding:6px 9px!important;background:#e9dfcc!important;color:var(--qol-accent-deep)!important;font-size:9px!important;font-weight:bold!important;text-transform:uppercase!important}
@@ -916,29 +916,58 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     const first = Math.max(now, Number.isFinite(busyUntil) ? busyUntil : now);
     return first >= end ? 0 : Math.ceil((end - first) / (duration * 1000));
   }
+  function plannerVillage(row, result = lastScanResult) {
+    return row.dataset.future
+      ? { villageName: 'Future village ' + row.dataset.future, level: 0, hasTownHall: false }
+      : result.townHalls.villages[Number(row.dataset.index)];
+  }
+  function localDate(timestamp) {
+    const date = new Date(timestamp);
+    return [date.getFullYear(), String(date.getMonth() + 1).padStart(2, '0'),
+      String(date.getDate()).padStart(2, '0')].join('-');
+  }
   function readPlannerPlans() {
     const planner = document.getElementById(PLANNER_ID);
     if (!planner || !lastScanResult) return [];
     const speed = detectServerSpeed(lastScanResult).speed;
-    return Array.from(planner.querySelectorAll('.qol-cp-plan-row')).map(row => {
-      const index = Number.parseInt(row.dataset.index, 10);
-      const village = lastScanResult.townHalls.villages[index];
+    const plans = [];
+    const now = Date.now();
+    let nextSlot = getNextExpansionSlot(lastScanResult);
+    let priorStart = now;
+    for (const row of planner.querySelectorAll('.qol-cp-plan-row')) {
+      const village = plannerVillage(row);
+      const input = row.querySelector('.qol-cp-start');
+      const entered = input.value ? Date.parse(input.value + 'T00:00:00') : now;
+      let startMs = Math.max(now, entered);
+      if (row.dataset.future) {
+        const target = getSlotTarget(nextSlot++);
+        const forecast = target == null ? null : buildPlannerPrediction(lastScanResult, plans,
+          getPlannerPeriodDays(), target, getPlannerArtworkCount()).targetDate;
+        const earliest = forecast ? Math.max(priorStart, Number(forecast)) : Infinity;
+        startMs = input.dataset.auto === 'true' ? earliest : Math.max(startMs, earliest);
+        if (input.dataset.auto === 'true') input.value = Number.isFinite(earliest) ? localDate(earliest) : '';
+        input.title = Number.isFinite(startMs) ? 'Effective start: ' + new Date(startMs).toLocaleString()
+          : 'Expansion date unavailable';
+        priorStart = startMs;
+      }
       const level = Number.parseInt(row.querySelector('.qol-cp-level-select')?.value || '0', 10);
       const type = row.querySelector('.qol-cp-type-select')?.value || 'none';
       const has = type === 'small' || type === 'big';
       const run247 = has && Boolean(row.querySelector('.qol-cp-247-check')?.checked);
       const durationSeconds = has ? getCelebrationDurationSeconds(level, type, speed) : null;
       const reward = level > 0 && has ? type === 'big' ? getBigReward(lastScanResult) : getSmallReward(village) : 0;
-      return {
+      plans.push({
         villageName: village.villageName,
+        startMs,
         level,
         type,
         run247,
         durationSeconds,
         reward,
         busyUntilMs: village.busyUntilMs
-      };
-    });
+      });
+    }
+    return plans;
   }
   function buildPlannerPrediction(result, plans, periodDays, targetCp = result.target, artworkCount = 0) {
     const target = Number.isFinite(targetCp) ? targetCp : result.target;
@@ -954,9 +983,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       ...event,
       source: 'queued'
     })), ...buildArtworkEvents(result, artworkCount, now)].sort((a, b) => a.startMs - b.startMs);
-    const sequences = plans.filter(plan => plan.level > 0 && plan.durationSeconds > 0 && plan.reward > 0).map(plan => ({
+    const sequences = plans.filter(plan => Number.isFinite(plan.startMs) && plan.level > 0 && plan.durationSeconds > 0 && plan.reward > 0).map(plan => ({
       ...plan,
-      nextStartMs: Math.max(now, plan.busyUntilMs || now),
+      nextStartMs: Math.max(now, plan.startMs, plan.busyUntilMs || now),
       planEndMs: planEnd,
       source: 'plan'
     })).filter(plan => !plan.run247 || plan.nextStartMs < plan.planEndMs);
@@ -1030,8 +1059,6 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     let total247 = 0;
     let oneOff = 0;
     planner.querySelectorAll('.qol-cp-plan-row').forEach(row => {
-      const index = Number.parseInt(row.dataset.index, 10);
-      const village = lastScanResult.townHalls.villages[index];
       const levelSelect = row.querySelector('.qol-cp-level-select');
       const typeSelect = row.querySelector('.qol-cp-type-select');
       const check = row.querySelector('.qol-cp-247-check');
@@ -1045,16 +1072,18 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       const has = level > 0 && (type === 'small' || type === 'big');
       check.disabled = !has;
       if (!has) check.checked = false;
-      const duration = has ? getCelebrationDurationSeconds(level, type, speedInfo.speed) : null;
-      const reward = has ? type === 'big' ? getBigReward(lastScanResult) : getSmallReward(village) : 0;
+    });
+    const plans = readPlannerPlans();
+    planner.querySelectorAll('.qol-cp-plan-row').forEach((row, index) => {
+      const {durationSeconds: duration, reward, run247, startMs, busyUntilMs} = plans[index];
       let contribution = 0;
       let title = '';
-      if (check.checked && duration > 0 && reward > 0) {
-        const starts = count247StartsInPeriod(duration, village.busyUntilMs, periodDays, now);
+      if (run247 && duration > 0 && reward > 0) {
+        const starts = count247StartsInPeriod(duration, Math.max(startMs, busyUntilMs || now), periodDays, now);
         contribution = reward * starts;
         total247 += contribution;
         title = `${formatNumber(reward)} CP × ${starts} starts = ${formatNumber(contribution)} CP`;
-      } else if (reward > 0) {
+      } else if (reward > 0 && Number.isFinite(startMs)) {
         contribution = reward;
         oneOff += reward;
         title = `${formatNumber(reward)} CP from one planned celebration`;
@@ -1063,7 +1092,6 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       row.querySelector('.qol-cp-plan-cpday').textContent = contribution > 0 ? formatNumber(contribution) : '-';
       row.querySelector('.qol-cp-plan-cpday').title = title;
     });
-    const plans = readPlannerPlans();
     const prediction = buildPlannerPrediction(lastScanResult, plans, periodDays, targetCp, artworkCount);
     const remaining = Math.max(0, targetCp - lastScanResult.current);
     planner.querySelector('.qol-cp-plan-base').textContent = formatNumber(lastScanResult.cpPerDay);
@@ -1095,9 +1123,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       return {};
     }
   }
-  function bindPlannerSettings(planner, result) {
+  function bindPlannerSettings(planner, result, saved) {
     const key = result.plannerStorageKey;
-    const saved = loadPlannerSettings(key);
+
     const rows = [...planner.querySelectorAll('.qol-cp-plan-row')];
     const master = planner.querySelector('.qol-cp-247-all');
     const period = planner.querySelector('.qol-cp-period-input');
@@ -1107,7 +1135,8 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
     if (Number.isFinite(saved.artworks)) artworks.value = saved.artworks;
     if ([...target.options].some(option => option.value === String(saved.target))) target.value = saved.target;
     const entries = rows.map((row, index) => {
-      const id = String(result.townHalls.villages[index].villageId);
+      const id = row.dataset.future ? 'future-' + row.dataset.future : String(result.townHalls.villages[index].villageId);
+      const start = row.querySelector('.qol-cp-start');
       const level = row.querySelector('.qol-cp-level-select');
       const type = row.querySelector('.qol-cp-type-select');
       const check = row.querySelector('.qol-cp-247-check');
@@ -1117,7 +1146,9 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       }
       if (['none', 'small', 'big'].includes(plan?.type)) type.value = plan.type;
       check.checked = plan?.run247 === true;
-      return { id, level, type, check };
+      start.value = typeof plan?.start === 'string' ? plan.start : row.dataset.future ? '' : localDate(Date.now());
+      start.dataset.auto = String(Boolean(row.dataset.future && !start.value));
+      return { id, level, type, check, start };
     });
     const eligible = () => entries.filter(entry => !entry.check.disabled);
     function syncMaster() {
@@ -1133,24 +1164,25 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       if (control === master) {
         for (const entry of eligible()) entry.check.checked = master.checked;
       }
-      const edited = entries.find(entry => [entry.level, entry.type, entry.check].includes(control));
+      const edited = entries.find(entry => [entry.level, entry.type, entry.check, entry.start].includes(control));
+      if (edited?.start === control) control.dataset.auto = String(!control.value);
       const requestedLevel = Number(edited?.level.value);
       updatePlanner();
       syncMaster();
-      if (!key) return;
-      const next = loadPlannerSettings(key);
+      const next = key ? loadPlannerSettings(key) : saved;
       next.villages = { ...next.villages };
-      if (edited && /^\d+$/.test(edited.id)) {
+      if (edited && /^(?:future-)?\d+$/.test(edited.id)) {
         const previous = next.villages[edited.id] || {};
         next.villages[edited.id] = {
           level: control === edited.level ? requestedLevel : previous.level,
           type: edited.type.value,
-          run247: edited.check.checked
+          run247: edited.check.checked,
+          start: edited.start.dataset.auto === 'true' ? null : edited.start.value || null
         };
       }
       if (control === master) {
         for (const entry of eligible()) {
-          if (!/^\d+$/.test(entry.id)) continue;
+          if (!/^(?:future-)?\d+$/.test(entry.id)) continue;
           next.villages[entry.id] = {
             ...next.villages[entry.id], type: entry.type.value, run247: entry.check.checked
           };
@@ -1159,26 +1191,54 @@ body.qol-menu-open #${TOGGLE_ID}{filter:blur(3px)!important;opacity:.35!importan
       if (control === period) next.period = getPlannerPeriodDays();
       if (control === artworks) next.artworks = getPlannerArtworkCount();
       if (control === target) next.target = getPlannerTargetSlot();
+      if (!key) return;
       try { localStorage.setItem(key, JSON.stringify(next)); }
       catch (error) { console.warn('[APES CP Planner] Could not save the plan.', error); }
     }
+    const add = planner.querySelector('.qol-cp-add-future');
+    add.addEventListener('keydown', event => {
+      if (!['Enter', ' '].includes(event.key)) return;
+      event.preventDefault();
+      if (!event.repeat) add.click();
+    });
+    add.addEventListener('click', () => {
+      if (add.getAttribute('aria-disabled') === 'true') return;
+      if (lastScanResult !== result || plannerStorageKey() !== key) return;
+      const next = key ? loadPlannerSettings(key) : saved;
+      next.futureCount = futureCount(saved) + 1;
+      if (key) {
+        try { localStorage.setItem(key, JSON.stringify(next)); }
+        catch (error) { console.warn('[APES CP Planner] Could not save the future village.', error); }
+      }
+      renderPlanner(next);
+      planner.querySelector('.qol-cp-plan-row:last-child .qol-cp-start')?.focus();
+    });
     planner.querySelectorAll('select,input').forEach(control => control.addEventListener('change', change));
     updatePlanner();
     syncMaster();
   }
-  function renderPlanner() {
+  function futureCount(saved) {
+    return Number.isInteger(saved.futureCount) ? Math.min(CP_SLOT_TARGETS.length, Math.max(0, saved.futureCount)) : 0;
+  }
+  function renderPlanner(settings) {
     if (!lastScanResult || lastScanResult.plannerStorageKey !== plannerStorageKey()) return;
     const planner = mountPlannerPanel();
     const speedInfo = detectServerSpeed(lastScanResult);
     const nextSlot = getNextExpansionSlot(lastScanResult);
     const artworkReward = getArtworkReward(lastScanResult);
-    const rows = lastScanResult.townHalls.villages.map((village, index) => {
+    const saved = settings || loadPlannerSettings(lastScanResult.plannerStorageKey);
+    const villages = [...lastScanResult.townHalls.villages];
+    const remaining = CP_SLOT_TARGETS.length - nextSlot + 1;
+    for (let i = 1; i <= Math.min(futureCount(saved), remaining); i++) {
+      villages.push({ future: i, villageName: 'Future village ' + i, level: 0, hasTownHall: false });
+    }
+    const rows = villages.map((village, index) => {
       const start = village.hasTownHall ? Math.max(1, village.level) : 0;
-      return apesHtml_cpManager`<tr class="qol-cp-plan-row" data-index="${index}"><td>${escapeHtml(village.villageName)}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
+      return apesHtml_cpManager`<tr class="qol-cp-plan-row" data-index="${index}" data-future="${village.future || ''}"><td><input type="date" class="qol-cp-start" aria-label="Start date for ${escapeHtml(village.villageName)}"></td><td>${escapeHtml(village.villageName)}</td><td><select class="qol-cp-plan-select qol-cp-level-select">${buildLevelOptions(village)}</select></td><td><select class="qol-cp-plan-select qol-cp-type-select"${start === 0 ? ' disabled' : ''}><option value="none" selected>None</option><option value="small">Small</option><option value="big"${start < 10 ? ' disabled' : ''}>Big</option></select></td><td><input type="checkbox" class="qol-cp-247-check" disabled></td><td class="qol-cp-plan-duration">-</td><td class="qol-cp-plan-cpday">-</td></tr>`;
     }).join('');
-    planner.querySelector('.qol-cp-planner-body').innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Village</th><th>Town Hall</th><th>Celebration</th><th><label>24/7 <input type="checkbox" class="qol-cp-247-all" aria-label="Toggle all eligible 24/7 celebrations"></label></th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
+    planner.querySelector('.qol-cp-planner-body').innerHTML = apesHtml_cpManager`<div class="qol-cp-planner-summary"><div class="qol-cp-plan-stat"><span>Base CP / Day</span><strong class="qol-cp-plan-base">-</strong></div><div class="qol-cp-plan-stat"><span>24/7 CP / Period</span><strong class="qol-cp-plan-celebrations">-</strong></div><div class="qol-cp-plan-stat"><span>One-off Celebration CP</span><strong class="qol-cp-plan-oneoff">-</strong></div><div class="qol-cp-plan-stat"><span>Artwork CP</span><strong class="qol-cp-plan-artworks">0</strong></div><div class="qol-cp-plan-stat"><span>Planner ETA</span><strong class="qol-cp-plan-eta" style="font-size:10px!important">-</strong></div></div><div class="qol-cp-planner-controls"><div class="qol-cp-target-control"><strong>Target expansion</strong><select class="qol-cp-target-select">${buildTargetSlotOptions(lastScanResult)}</select><span class="qol-cp-target-remaining"></span></div><div class="qol-cp-period-control"><strong>24/7 period</strong><input type="number" class="qol-cp-period-input" min="1" max="365" value="30"><span>days</span><span class="qol-cp-period-hint">Starts inside period count.</span></div><div class="qol-cp-artwork-control"><strong>Artworks</strong><input type="number" class="qol-cp-artwork-input" min="0" max="365" value="0"><span class="qol-cp-artwork-hint">${formatNumber(artworkReward)} CP each · 1/day</span></div></div><div class="qol-cp-planner-table-wrap"><table><thead><tr><th>Start</th><th>Village</th><th>Town Hall</th><th>Celebration</th><th><label>24/7 <input type="checkbox" class="qol-cp-247-all" aria-label="Toggle all eligible 24/7 celebrations"></label></th><th>Duration</th><th>Extra CP / Period*</th></tr></thead><tbody>${rows}</tbody><tfoot><tr><td colspan="7"><div role="button" tabindex="0" class="qol-cp-action-btn secondary qol-cp-add-future" aria-disabled="${futureCount(saved) >= remaining}">Add future village</div></td></tr></tfoot></table></div><div class="qol-cp-roadmap"><div class="qol-cp-roadmap-head"><span>CP Roadmap</span><span>Next 5 expansion slots from Slot ${nextSlot}</span></div><div class="qol-cp-roadmap-wrap"><table><thead><tr><th>Slot</th><th>Target CP</th><th>Remaining</th><th>ETA</th></tr></thead><tbody class="qol-cp-roadmap-body"></tbody></table></div></div>`;
     planner.querySelector('.qol-cp-speed').textContent = `${speedInfo.detected ? 'Detected' : 'Assumed'} x${speedInfo.speed} · ${speedInfo.source}`;
-    bindPlannerSettings(planner, lastScanResult);
+    bindPlannerSettings(planner, lastScanResult, saved);
     planner.querySelector('.qol-cp-period-input')?.addEventListener('input', updatePlanner);
     planner.querySelector('.qol-cp-artwork-input')?.addEventListener('input', updatePlanner);
     planner.style.setProperty('display', 'flex', 'important');
