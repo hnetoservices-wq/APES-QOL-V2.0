@@ -62,6 +62,7 @@
     41: 'Horse Drinking Trough',
     46: 'Healing Tent'
   });
+  APES.buildingNames = BUILDING_NAMES;
   const BUILDING_SHORT_NAMES = Object.freeze({
     1: 'Wood',
     2: 'Clay',

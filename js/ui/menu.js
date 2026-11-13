@@ -200,9 +200,9 @@ const KINGDOM_MANAGEMENT_FEATURES = [{
 const COSMETIC_FEATURES = [{
   id: 'qol-chk-marketplace-layout',
   key: 'marketplaceLayout',
-  name: 'Marketplace Layout Preview',
+  name: 'Village Layout',
   icon: '↔',
-  description: 'Choose where the Marketplace appears in the desktop village view.'
+  description: 'Arrange buildings in a layout shared across your own and sitter villages.'
 }, {
   id: 'qol-chk-visual-tribe-skins',
   key: 'visualTribeSkins',
@@ -349,7 +349,7 @@ function featureCardHtml(feature) {
             <div class="qol-feature-copy">
                 <h3 class="qol-feature-name" data-apes-i18n="${escapeHtml(feature.name)}">${escapeHtml(feature.name)}</h3>
                 <p class="qol-feature-desc" data-apes-i18n="${escapeHtml(feature.description)}">${escapeHtml(feature.description)}</p>
-                ${feature.key === 'marketplaceLayout' ? '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-marketplace-layout>Choose Marketplace spot</div><div role="status" data-qol-marketplace-layout-feedback></div>' : ''}
+                ${feature.key === 'marketplaceLayout' ? '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-marketplace-layout>Edit village layout</div><div role="status" data-qol-marketplace-layout-feedback></div>' : ''}
             </div>
             <label class="qol-switch" title="Toggle ${escapeHtml(feature.name)}">
                 <input type="checkbox" id="${escapeHtml(feature.id)}" class="qol-checkbox">

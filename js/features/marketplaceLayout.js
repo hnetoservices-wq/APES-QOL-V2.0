@@ -2,7 +2,9 @@
   'use strict';
 
   const feature = 'marketplaceLayout';
-  const presetKey = 'qol_marketplace_display_slot';
+  const presetKey = 'qol_village_layout_v1';
+  const legacyKey = 'qol_marketplace_display_slot';
+  const controls = '[data-qol-marketplace-layout], [data-qol-layout-slot], [data-qol-layout-action]';
   const slotClass = /^buildingLocation(\d+)$/;
   const ordinarySlot = id => id >= 19 && id <= 40 && id !== 33;
   // Spot 37 borders the cliff. Keep the Marketplace footprint above the rim.
@@ -14,8 +16,16 @@
   let frame = 0;
 
   function getPreset() {
-    try { return Number(localStorage.getItem(presetKey)); }
-    catch { return 0; }
+    try {
+      const saved = localStorage.getItem(presetKey);
+      if (saved !== null) {
+        const entries = JSON.parse(saved);
+        return Array.isArray(entries) ? entries.filter(entry =>
+          Array.isArray(entry) && ordinarySlot(entry[0]) && Number.isInteger(entry[1]) && entry[1] >= 0) : [];
+      }
+      const legacy = Number(localStorage.getItem(legacyKey));
+      return ordinarySlot(legacy) ? [[legacy, 17]] : [];
+    } catch { return []; }
   }
 
   function pointList(value) {
@@ -34,7 +44,7 @@
     for (const building of view.querySelectorAll(':scope > building-location')) {
       const marker = Array.from(building.classList).map(name => name.match(slotClass)).find(Boolean);
       const id = Number(marker?.[1]);
-      if (!ordinarySlot(id) || building.querySelector('img.buildingWall, img.buildingId16')) continue;
+      if (!ordinarySlot(id) || building.querySelector('img.buildingWall, img.buildingId16, img.buildingId40')) continue;
       const areas = Array.from(view.querySelectorAll(`map#clickareasVillage area[location-id="${id}"][shape="poly"]`));
       const points = pointList(areas[0]?.getAttribute('tg-coords'));
       if (!points) continue;
@@ -42,8 +52,11 @@
       const [, bottom] = bounds(points, 1);
       // Anchor to the ground edge of both polygons. A level badge and the
       // center of an empty plot sit at different heights above the ground.
+      const image = building.querySelector('img.location[class*="buildingId"]');
+      const type = Number(image?.className.match(/(?:^|\s)buildingId(\d+)(?:\s|$)/)?.[1]) || 0;
+      if (!type && !building.classList.contains('free')) continue;
       slots.set(id, {
-        id, building, areas,
+        id, building, areas, type,
         x: (left + right) / 2,
         y: bottom
       });
@@ -105,25 +118,58 @@
     return view?.querySelector('img[usemap="#clickareasVillage"]') && !view.closest('.ng-hide') ? view : null;
   }
 
+  function assignSlots(slots, preset) {
+    const available = new Set(slots.values());
+    const assignments = new Map();
+    function assign(id, slot) {
+      assignments.set(id, slot);
+      available.delete(slot);
+    }
+    // Match existing occupants first, then assign additional copies in slot order.
+    const requested = new Map(preset.filter(([id]) => slots.has(id)));
+    for (const [id, type] of requested) {
+      if (slots.get(id).type === type) assign(id, slots.get(id));
+    }
+    for (const [id, type] of requested) {
+      if (assignments.has(id)) continue;
+      const slot = [...available].find(candidate => candidate.type === type);
+      if (slot) assign(id, slot);
+    }
+    for (const id of requested.keys()) {
+      if (assignments.has(id)) continue;
+      const empty = [...available].find(candidate => candidate.type === 0);
+      if (empty) assign(id, empty);
+    }
+    for (const slot of available) {
+      if (!assignments.has(slot.id)) assign(slot.id, slot);
+    }
+    const remaining = available.values();
+    for (const id of slots.keys()) {
+      if (!assignments.has(id)) assign(id, remaining.next().value);
+    }
+    return assignments;
+  }
+
   function sync() {
     frame = 0;
     const enabled = window.isQolEnabled(feature);
     const view = enabled ? getView() : null;
-    if (picker && picker.view !== view) closePicker();
-    const preset = enabled ? getPreset() : 0;
-    const slots = view && !picker && ordinarySlot(preset) ? readSlots(view) : new Map();
-    const market = [...slots.values()].find(slot => slot.building.querySelector('img.location.buildingId17'));
-    const target = slots.get(preset);
-    const plans = market && target && market !== target
-      ? [planShift(market, target, marketplaceClearance.get(target.id)), planShift(target, market)] : [];
-    const pair = plans.every(Boolean) ? plans : [];
+    if (picker && (picker.view !== view ||
+        [...picker.slots.values()].some(slot => !view.contains(slot.building)))) closePicker();
+    const preset = enabled ? getPreset() : [];
+    const slots = view && !picker && preset.length ? readSlots(view) : new Map();
+    const plans = [...assignSlots(slots, preset)]
+      .filter(([id, source]) => id !== source.id)
+      .map(([id, source]) => planShift(source, slots.get(id),
+        source.type === 17 ? marketplaceClearance.get(id) : 0));
+    const validPlans = plans.every(Boolean) ? plans : [];
     for (const building of shifted) {
-      if (!pair.some(slot => slot.building === building)) restoreBuilding(building);
+      if (!validPlans.some(slot => slot.building === building)) restoreBuilding(building);
     }
     for (const [area, state] of coordinates) {
-      if (!pair.some(slot => slot.areas.some(entry => entry.area === area))) restoreArea(area, state);
+      if (!validPlans.some(slot => slot.areas.some(entry => entry.area === area))) restoreArea(area, state);
     }
-    pair.forEach(applyShift);
+    validPlans.forEach(applyShift);
   }
 
   function schedule() {
@@ -157,47 +203,93 @@
     markers.className = 'qol-marketplace-layout-markers';
     const notice = document.createElement('div');
     notice.className = 'qol-marketplace-layout-notice';
-    notice.innerHTML = '<span>Choose the Marketplace’s display spot.</span>' +
-      '<div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-qol-layout-cancel>Cancel</div>';
-    picker = { view, markers, notice };
+    notice.innerHTML = '<span role="status"></span>' +
+      '<div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-qol-layout-action="reset">Reset draft</div>' +
+      '<div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-qol-layout-action="cancel">Cancel</div>' +
+      '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-layout-action="save">Save layout</div>';
+    const preset = new Map(getPreset());
+    picker = { view, markers, notice, slots, preset, draft: assignSlots(slots, [...preset]), selected: null };
     sync();
-
-    for (const slot of slots.values()) {
-      const marker = document.createElement('div');
-      marker.className = 'qol-wl-action-btn primary qol-marketplace-layout-marker';
-      marker.setAttribute('role', 'button');
-      marker.tabIndex = 0;
-      marker.setAttribute('aria-label', `Show Marketplace at spot ${slot.id}`);
-      marker.dataset.qolLayoutSlot = slot.id;
-      marker.style.left = `${slot.x}px`;
-      marker.style.top = `${slot.y}px`;
-      marker.textContent = slot.id;
-      markers.append(marker);
-    }
     view.append(markers);
     document.body.append(notice);
+    renderPicker();
     document.querySelector('#qol-modal .qol-modal-close')?.click();
     markers.querySelector('[tabindex="0"]')?.focus({ preventScroll: true });
   }
 
+  function renderPicker(focusId) {
+    const { markers, notice, slots, draft, selected } = picker;
+    markers.replaceChildren();
+    notice.querySelector('[role="status"]').textContent = selected === null
+      ? 'Select a building or empty spot to move.'
+      : 'Select a destination to swap the two spots.';
+    for (const slot of slots.values()) {
+      const occupant = draft.get(slot.id);
+      const name = occupant.type ? window.APES?.buildingNames?.[occupant.type] || `Building ${occupant.type}` : 'Empty';
+      const marker = document.createElement('div');
+      marker.className = 'qol-wl-action-btn primary qol-marketplace-layout-marker';
+      marker.setAttribute('role', 'button');
+      marker.tabIndex = 0;
+      marker.setAttribute('aria-label', `Spot ${slot.id}: ${name}`);
+      marker.setAttribute('aria-pressed', String(selected === slot.id));
+      marker.dataset.qolLayoutSlot = slot.id;
+      marker.style.left = `${slot.x}px`;
+      marker.style.top = `${slot.y}px`;
+      marker.textContent = name;
+      markers.append(marker);
+      if (focusId === slot.id) marker.focus({ preventScroll: true });
+    }
+  }
+
+  function swapDraft(id) {
+    const { draft, selected } = picker;
+    if (selected === null) {
+      picker.selected = id;
+    } else {
+      if (selected !== id) {
+        const source = draft.get(selected);
+        const target = draft.get(id);
+        draft.set(selected, target);
+        draft.set(id, source);
+        picker.preset.set(selected, target.type);
+        picker.preset.set(id, source.type);
+      }
+      picker.selected = null;
+    }
+    renderPicker(id);
+  }
+
   function onClick(event) {
-    const control = event.target.closest?.('[data-qol-marketplace-layout], [data-qol-layout-slot], [data-qol-layout-cancel]');
+    const control = event.target.closest?.(controls);
     if (!control) return;
     if (control.hasAttribute('data-qol-marketplace-layout')) {
       openPicker(control);
-    } else if (picker && control.hasAttribute('data-qol-layout-cancel')) {
-      closePicker();
-      schedule();
-    } else if (picker?.markers.contains(control)) {
+      return;
+    }
+    if (!picker) return;
+    if (picker.markers.contains(control)) {
+      swapDraft(Number(control.dataset.qolLayoutSlot));
+      return;
+    }
+    if (!picker.notice.contains(control)) return;
+    const action = control.dataset.qolLayoutAction;
+    if (action === 'reset') {
+      picker.draft = new Map(picker.slots);
+      picker.preset.clear();
+      picker.selected = null;
+      renderPicker();
+      return;
+    }
+    if (action === 'save') {
       try {
-        localStorage.setItem(presetKey, control.dataset.qolLayoutSlot);
+        localStorage.setItem(presetKey, JSON.stringify([...picker.preset]));
       } catch {
-        picker.notice.querySelector('span').textContent = 'Could not save the display spot. Try again.';
+        picker.notice.querySelector('[role="status"]').textContent = 'Could not save the layout. Try again.';
         return;
       }
-      closePicker();
-      schedule();
     }
+    closePicker();
+    schedule();
   }
 
   function onKeydown(event) {
@@ -208,7 +300,7 @@
       schedule();
       return;
     }
-    const control = event.target.closest?.('[data-qol-marketplace-layout], [data-qol-layout-slot], [data-qol-layout-cancel]');
+    const control = event.target.closest?.(controls);
     if (!control || (event.key !== 'Enter' && event.key !== ' ')) return;
     event.preventDefault();
     event.stopImmediatePropagation();
@@ -220,7 +312,7 @@
       (record.type === 'attributes'
         ? record.target.matches('#villageView, #villageView > building-location, #villageView building-location img.location, #clickareasVillage area') ||
           record.target === document.getElementById('villageView')?.closest('.villageBackground')
-        : record.target.closest?.('#villageView')) ||
+        : record.target.closest?.('#villageView') && !picker?.markers.contains(record.target)) ||
       [...record.addedNodes, ...record.removedNodes].some(node =>
         node.matches?.('#villageView') || node.querySelector?.('#villageView')))) schedule();
   });

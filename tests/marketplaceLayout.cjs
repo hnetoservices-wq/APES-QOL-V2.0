@@ -51,10 +51,13 @@ async function test() {
 
     setEnabled(true);
     const choose = document.querySelector('[data-qol-marketplace-layout]');
+    const clickSpot = id => document.querySelector(`[data-qol-layout-slot="${id}"]`).click();
+    const action = name => document.querySelector(`[data-qol-layout-action="${name}"]`).click();
     choose.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
     assert.equal(shift(28), '', 'Picker shows the native layout');
     assert.equal(document.querySelector('[data-qol-layout-slot="33"]'), null, 'Wall cannot be selected');
-    document.querySelector('[data-qol-layout-slot="29"]').click();
+    assert.match(document.querySelector('[data-qol-layout-slot="29"]').textContent, /Building 17/);
+    action('save');
     await wait();
 
     assert.equal(shift(28), '100px');
@@ -70,7 +73,9 @@ async function test() {
     slot(29).classList.replace('buildingLocation29', 'buildingLocation37');
     area(29).setAttribute('location-id', '37');
     choose.click();
-    document.querySelector('[data-qol-layout-slot="37"]').click();
+    clickSpot(28);
+    clickSpot(37);
+    action('save');
     await wait();
     assert.equal(slot(28).style.getPropertyValue('--qol-layout-y'), '24px');
     assert.equal(area(28).getAttribute('coords'), '190,104,210,104,210,124,190,124');
@@ -78,7 +83,10 @@ async function test() {
     slot(37).classList.replace('buildingLocation37', 'buildingLocation29');
     area(37).setAttribute('location-id', '29');
     choose.click();
-    document.querySelector('[data-qol-layout-slot="29"]').click();
+    action('reset');
+    clickSpot(28);
+    clickSpot(29);
+    action('save');
     await wait();
 
     const resized = '45,40,55,40,55,50,45,50';
@@ -89,7 +97,7 @@ async function test() {
     const view = document.querySelector('#villageView');
     view.querySelector('.buildingId17').classList.replace('buildingId17', 'buildingId8');
     await wait();
-    assert.equal(shift(28), '', 'A village without a Marketplace keeps its native positions');
+    assert.equal(shift(28), '100px', 'A missing type yields an empty spot when one is available');
 
     view.parentElement.innerHTML = markup;
     await wait();
@@ -100,6 +108,46 @@ async function test() {
     await wait();
     assert.equal(shift(28), '');
     assert.equal(area(28).getAttribute('coords'), resized, 'Disabling restores the latest native polygon');
+
+    const replaceLayout = types => {
+      document.querySelector('#villageView').outerHTML = '<div id="villageView">' +
+        types.map((type, index) => `<building-location class="buildingLocation${28 + index}${type ? '' : ' free'}">` +
+          (type ? `<img class="location buildingId${type}">` : '') + '</building-location>').join('') +
+        '<map id="clickareasVillage">' + types.map((_, index) => {
+          const x = index * 100;
+          const coords = `${x},0,${x + 20},0,${x + 20},20,${x},20`;
+          return `<area shape="poly" location-id="${28 + index}" tg-coords="${coords}" coords="${coords}">`;
+        }).join('') + '</map><img usemap="#clickareasVillage"></div>';
+    };
+    replaceLayout([17, 10, 10, 0]);
+    setEnabled(true);
+    document.querySelector('[data-qol-marketplace-layout]').click();
+    action('reset');
+    clickSpot(28);
+    clickSpot(29);
+    clickSpot(30);
+    clickSpot(31);
+    action('save');
+    await wait();
+    assert.deepEqual(JSON.parse(localStorage.getItem('qol_village_layout_v1')),
+      [[28, 10], [29, 17], [30, 0], [31, 10]]);
+    assert.deepEqual([28, 29, 30, 31].map(shift), ['100px', '-100px', '100px', '-100px']);
+
+    replaceLayout([10, 0, 17, 10]);
+    window.location.hash = '#/page:village/villId:202';
+    await wait();
+    assert.deepEqual([28, 29, 30, 31].map(shift), ['', '100px', '-100px', ''],
+      'Same preset resolves against different real slots, including duplicate buildings');
+    document.querySelector('[data-qol-marketplace-layout]').click();
+    action('reset');
+    action('cancel');
+    await wait();
+    assert.equal(shift(30), '-100px', 'Cancel restores the saved arrangement');
+    document.querySelector('[data-qol-marketplace-layout]').click();
+    action('reset');
+    action('save');
+    await wait();
+    assert.equal(shift(30), '', 'Saving a reset restores the native arrangement');
   } finally {
     dom.window.close();
   }
