@@ -67,6 +67,20 @@ async function test() {
     area(29).click();
     assert.deepEqual(clicked, [28, 29], 'Original Marketplace and construction actions remain attached');
 
+    slot(29).classList.replace('buildingLocation29', 'buildingLocation37');
+    area(29).setAttribute('location-id', '37');
+    choose.click();
+    document.querySelector('[data-qol-layout-slot="37"]').click();
+    await wait();
+    assert.equal(slot(28).style.getPropertyValue('--qol-layout-y'), '24px');
+    assert.equal(area(28).getAttribute('coords'), '190,104,210,104,210,124,190,124');
+    assert.equal(slot(37).style.getPropertyValue('--qol-layout-y'), '-60px');
+    slot(37).classList.replace('buildingLocation37', 'buildingLocation29');
+    area(37).setAttribute('location-id', '29');
+    choose.click();
+    document.querySelector('[data-qol-layout-slot="29"]').click();
+    await wait();
+
     const resized = '45,40,55,40,55,50,45,50';
     area(28).setAttribute('coords', resized);
     await wait();

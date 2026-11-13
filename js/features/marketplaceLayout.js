@@ -5,6 +5,8 @@
   const presetKey = 'qol_marketplace_display_slot';
   const slotClass = /^buildingLocation(\d+)$/;
   const ordinarySlot = id => id >= 19 && id <= 40 && id !== 33;
+  // Spot 37 borders the cliff. Keep the Marketplace footprint above the rim.
+  const marketplaceClearance = new Map([[37, 36]]);
   const shiftAttribute = 'data-qol-layout-shift';
   const coordinates = new Map();
   const shifted = new Set();
@@ -80,9 +82,9 @@
     return { area, original, applied };
   }
 
-  function planShift(slot, destination) {
+  function planShift(slot, destination, clearance = 0) {
     const x = destination.x - slot.x;
-    const y = destination.y - slot.y;
+    const y = destination.y - slot.y - clearance;
     const areas = slot.areas.map(area => areaShift(area, x, y));
     return areas.every(Boolean) ? { building: slot.building, x, y, areas } : null;
   }
@@ -113,7 +115,7 @@
     const market = [...slots.values()].find(slot => slot.building.querySelector('img.location.buildingId17'));
     const target = slots.get(preset);
     const plans = market && target && market !== target
-      ? [planShift(market, target), planShift(target, market)] : [];
+      ? [planShift(market, target, marketplaceClearance.get(target.id)), planShift(target, market)] : [];
     const pair = plans.every(Boolean) ? plans : [];
     for (const building of shifted) {
       if (!pair.some(slot => slot.building === building)) restoreBuilding(building);
