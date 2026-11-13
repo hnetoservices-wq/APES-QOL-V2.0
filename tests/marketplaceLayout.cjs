@@ -59,8 +59,8 @@ async function test() {
 
     assert.equal(shift(28), '100px');
     assert.equal(shift(29), '-100px');
-    assert.equal(area(28).getAttribute('coords'), '190,130,210,130,210,150,190,150');
-    assert.equal(area(29).getAttribute('coords'), '90,90,110,90,110,110,90,110');
+    assert.equal(area(28).getAttribute('coords'), '190,140,210,140,210,160,190,160');
+    assert.equal(area(29).getAttribute('coords'), '90,80,110,80,110,100,90,100');
     const clicked = [];
     for (const id of [28, 29]) area(id).addEventListener('click', () => clicked.push(id));
     area(28).click();
@@ -70,7 +70,7 @@ async function test() {
     const resized = '45,40,55,40,55,50,45,50';
     area(28).setAttribute('coords', resized);
     await wait();
-    assert.equal(area(28).getAttribute('coords'), '95,65,105,65,105,75,95,75');
+    assert.equal(area(28).getAttribute('coords'), '95,70,105,70,105,80,95,80');
 
     const view = document.querySelector('#villageView');
     view.querySelector('.buildingId17').classList.replace('buildingId17', 'buildingId8');

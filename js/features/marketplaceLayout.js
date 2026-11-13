@@ -37,14 +37,13 @@
       const points = pointList(areas[0]?.getAttribute('tg-coords'));
       if (!points) continue;
       const [left, right] = bounds(points, 0);
-      const [top, bottom] = bounds(points, 1);
-      const status = building.querySelector('[building-status]');
-      const statusX = Number.parseFloat(status?.style.left);
-      const statusY = Number.parseFloat(status?.style.top);
+      const [, bottom] = bounds(points, 1);
+      // Anchor to the ground edge of both polygons. A level badge and the
+      // center of an empty plot sit at different heights above the ground.
       slots.set(id, {
         id, building, areas,
-        x: Number.isFinite(statusX) ? statusX : (left + right) / 2,
-        y: Number.isFinite(statusY) ? statusY : (top + bottom) / 2
+        x: (left + right) / 2,
+        y: bottom
       });
     }
     return slots;
