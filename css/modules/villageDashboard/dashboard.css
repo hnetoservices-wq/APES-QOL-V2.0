@@ -53,7 +53,8 @@
     min-width: 0 !important;
 }
 
-.apes-vd-scan-btn {
+.apes-vd-scan-btn,
+.apes-vd-export-btn {
     appearance: none !important;
     -webkit-appearance: none !important;
     display: inline-flex !important;
@@ -80,7 +81,9 @@
 }
 
 .apes-vd-scan-btn:hover,
-.apes-vd-scan-btn:focus-visible {
+.apes-vd-scan-btn:focus-visible,
+.apes-vd-export-btn:hover,
+.apes-vd-export-btn:focus-visible {
     border-color: rgba(232, 199, 119, .94) !important;
     background: rgba(94, 73, 39, .94) !important;
     color: #fff2cb !important;
@@ -93,6 +96,18 @@
     color: #dfffc2 !important;
     cursor: wait !important;
     pointer-events: none !important;
+}
+
+.apes-vd-export-status {
+  display: none;
+}
+
+.apes-v2-village-dashboard:not(.apes-vd-account-mode) .apes-vd-export-btn {
+  display: none !important;
+}
+
+.apes-vd-account-mode .apes-vd-export-status:not(:empty) {
+  display: inline;
 }
 
 .apes-vd-hint {

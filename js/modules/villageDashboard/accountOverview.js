@@ -574,7 +574,93 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
       element.scrollTop=scrollPositions[element.dataset.apesAoScroll]||0;
     });
   }
+  function exportSheets(data) {
+    const villages=data.villages;
+    const resources=resourceOverview(villages), troops=unitCounter(villages);
+    const training=activeQueues(villages), celebrations=celebrationCounts(villages);
+    const production=window.APES?.villageResourceProduction;
+    const records=production?.all?.()||{};
+    const labels=RESOURCE_TYPES.map(item=>item.label);
+    const rates=values=>RESOURCE_TYPES.map(item=>num(values?.[item.key]));
+    const date=value=>{
+      const timestamp=ts(value);
+      return timestamp&&timestamp<=8.64e15?new Date(timestamp).toISOString():null;
+    };
+    return {
+      Summary: [
+        ['Metric','Value'],['Exported at (UTC)',new Date().toISOString()],['Villages',villages.length],
+        ['Population',villages.reduce((sum,v)=>sum+Math.max(0,num(v.population)||0),0)],
+        ['Own troops',troops.scanned?troops.total:null],['Villages with troop scans',troops.scanned],
+        ['Oldest troop scan (UTC)',date(troops.oldest)],['Latest troop scan (UTC)',date(troops.latest)],
+        ['Troops queued',training.total],['Villages training',training.rows.length],
+        ['Celebrating villages',celebrations.active.length],['Idle villages',celebrations.idle.length],
+        ['Villages with complete production readings',resources.complete],
+        ['Oldest production scan (UTC)',date(resources.oldest)],
+        ...RESOURCE_TYPES.map(item=>[item.label+' per hour',resources.complete?resources.totals[item.key]:null]),
+        ['Total per hour',resources.complete?productionValue(resources,TOTAL_PRODUCTION):null]
+      ],
+      Villages: [
+        ['Village ID','Village','Population',...labels.map(label=>label+' per hour'),'Production scanned at (UTC)'],
+        ...villages.map(v=>[String(v.villageId),v.name,num(v.population),...rates(records[v.villageId]?.production),
+          date(records[v.villageId]?.scannedAt)])
+      ],
+      Storage: [
+        ['Village ID','Village','Resource','Rate per hour','Stock at scan','Capacity','Forecast','Status','Projected at (UTC)'],
+        ...storageForecast(villages).rows.flatMap(v=>RESOURCE_TYPES.map(({key,label})=>{
+          const r=v.resources[key];
+          return [v.id,v.name,label,r.rate,r.amount,r.capacity,r.direction,r.status,date(r.finish)];
+        }))
+      ],
+      Troops: [['Tribe','Unit','Count'],...troops.rows.map(r=>[r.tribeName,r.name,r.count])],
+      Training: [['Village ID','Village','Queued troops','Queues'],
+        ...training.rows.map(r=>[r.id,r.name,r.count,r.details])],
+      Celebrations: [['Village ID','Village','State','Celebration','Ends at (UTC)'],
+        ...celebrations.active.map(r=>[r.id,r.name,'Active',r.label,date(r.end)]),
+        ...celebrations.idle.map(r=>[r.id,r.name,'Idle'])],
+      'Production History': [['Scanned at (UTC)','Villages','Captured','Complete',...labels,'Total per hour'],
+        ...(production?.scanHistory?.()||[]).map(r=>[date(r.timestamp),r.villages,r.captured,r.complete?'Yes':'No',
+          ...rates(r.totals),productionValue(r,TOTAL_PRODUCTION)])],
+      'Population History': [['Day','Population'],...popHistory(data.playerId).slice(-30).map(r=>[r.day,num(r.population)])],
+      'Army and Power History': [['Day','Troops','Attack','Defense','Villages covered','Villages'],
+        ...armyHistory(data).slice(-30).map(r=>[r.day,r.troops,r.attack,r.defense,r.coverage,r.villages])]
+    };
+  }
+
+  function downloadOverview(control) {
+    const status=control.parentElement.querySelector('.apes-vd-export-status');
+    if(window.APES?.villageDashboardCombinedScan?.isRunning?.()){
+      status.textContent='Wait for the scan to finish.';
+      return;
+    }
+    if(!snapshot?.villages?.length){
+      status.textContent='No village data to export. Run Scan Now.';
+      return;
+    }
+    try {
+      const url=URL.createObjectURL(window.APES.createWorkbook(exportSheets(snapshot)));
+      const link=document.createElement('a');
+      link.href=url;
+      link.download='APES-Account-Overview-'+new Date().toISOString().slice(0,10)+'.xlsx';
+      try {
+        document.body.append(link);
+        link.click();
+        status.textContent='';
+      } finally {
+        link.remove();
+        setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }
+    } catch (error) {
+      console.warn('[APES Account Overview] Export failed',error);
+      status.textContent='Could not export the workbook.';
+    }
+  }
+
   document.addEventListener('click',event=>{
+    const control=event.target?.closest?.(`#${ROOT} .apes-vd-export-btn`);
+    if(control){
+      downloadOverview(control);
+      return;
+    }
     const target=event.target?.closest?.('[data-apes-ao-village]');
     if(!target?.closest?.('.apes-vd-account-overview'))return;
     event.preventDefault();event.stopPropagation();
@@ -585,7 +671,7 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
   },true);
   document.addEventListener('keydown',event=>{
     if(event.key!=='Enter'&&event.key!==' ')return;
-    const target=event.target?.closest?.('[data-apes-ao-village]');
+    const target=event.target?.closest?.(`[data-apes-ao-village], #${ROOT} .apes-vd-export-btn`);
     if(!target)return;
     event.preventDefault();target.click();
   },true);
