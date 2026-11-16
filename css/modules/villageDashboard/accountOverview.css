@@ -596,7 +596,7 @@
 #apes-v2-village-overlay .apes-ao-celebration-split {
   grid-template-columns: repeat(2,minmax(0,1fr)) !important;
 }
-#apes-v2-village-overlay .apes-ao-celebration-rows {
+#apes-v2-village-overlay :is(.apes-ao-celebration-rows, .apes-ao-training-list) {
   max-height: 330px !important;
   overflow-y: auto !important;
   overflow-x: hidden !important;

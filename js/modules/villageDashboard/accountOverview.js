@@ -561,7 +561,7 @@ const apesHtml_accountOverview = window.APES?.i18n?.html || ((s, ...v) => String
           </div></section>
         <section class="apes-ao-manager"><div class="apes-ao-manager-head"><strong>Training Overview</strong><small>${fmt(q.total)} troops queued in ${fmt(q.rows.length)} villages</small></div>
           <div class="apes-ao-counters"><span>Total queued <b>${fmt(q.total)}</b></span><span>Active villages <b>${fmt(q.rows.length)}</b></span></div>
-          <div class="apes-ao-training-list">${training||apesHtml_accountOverview`<p class="apes-ao-empty-list">No active training found</p>`}</div>
+          <div class="apes-ao-training-list" data-apes-ao-scroll="training">${training||apesHtml_accountOverview`<p class="apes-ao-empty-list">No active training found</p>`}</div>
           <small class="apes-ao-caveat">Barracks, Stable, Workshop and Great variants. Healing excluded.</small></section>
       </div>
       <div class="apes-ao-charts">${charts}</div>
