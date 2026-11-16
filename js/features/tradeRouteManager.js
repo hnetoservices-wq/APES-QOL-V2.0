@@ -3,7 +3,7 @@
 
   const feature = 'tradeRouteManager';
   const resources = ['wood', 'clay', 'iron', 'crop'];
-  const tabs = '.tabTradeRoute .tradeRoute, .tabTradeRoute .tradeRoutes';
+  const tabs = '.tabTradeRoute .tradeRoute';
   const launcherId = 'qol-trade-route-toggle-btn';
   const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
   let panel;
@@ -17,7 +17,8 @@
   function routeAmount(route, resource) {
     const cell = route.querySelector('.' + resource + 'Value .resourceValue');
     if (!cell) return route.querySelector('.costs .resourceValue') ? 0 : null;
-    const digits = cell.textContent.trim().replace(/[\s,.'’]/g, '');
+    // Travian wraps displayed resource counts in Unicode direction marks.
+    const digits = cell.textContent.replace(/[\p{Cf}\s,.'’]/gu, '');
     return /^\d+$/.test(digits) ? Number(digits) : null;
   }
 
@@ -69,14 +70,22 @@
     const slot = market.id.match(/^buildingImage(\d+)$/)?.[1];
     if (!slot) throw new Error('Marketplace slot unavailable');
     const previous = new Set(document.querySelectorAll(tabs));
-    location.hash = hash + '/location:' + slot + '/window:building/tab:TradeRoute';
-    const tab = await waitFor(() => [...document.querySelectorAll(tabs)].find(root =>
-      !previous.has(root) && !root.closest('.ng-hide, .hiddenTab, [hidden]') &&
-      root.closest('.tabTradeRoute.currentTab, .tabTradeRoute.activeTab')), check);
-    await new Promise(resolve => setTimeout(resolve, 350));
-    check();
-    if (!tab.isConnected || !location.hash.startsWith(hash + '/')) throw new Error('Marketplace view changed');
-    return readRoutes(tab, village.id).map(route => ({ ...route, marketHash: location.hash }));
+    const marketHash = hash + '/location:' + slot + '/window:building/tab:TradeRoute';
+    location.hash = marketHash;
+    return waitFor(() => {
+      if (location.hash !== marketHash) return null;
+      const tab = [...document.querySelectorAll(tabs)].find(root =>
+        !previous.has(root) && !root.closest('.ng-hide, .hiddenTab, [hidden]') &&
+        root.closest('.tabTradeRoute.currentTab, .tabTradeRoute.activeTab'));
+      if (!tab) return null;
+      if (tab.querySelector('[ng-if="tradeRoutes.data.length == 0"]:not(.ng-hide)')) return [];
+      if (!tab.querySelector('.routeContainer')) return null;
+      try {
+        return readRoutes(tab, village.id).map(route => ({ ...route, marketHash }));
+      } catch {
+        return null;
+      }
+    }, check);
   }
 
   function render() {
@@ -85,6 +94,7 @@
     renderRoutes();
     if (!snapshot || snapshot.account !== account()) return;
     const complete = snapshot.failed.length === 0;
+    const unread = new Set(snapshot.failed.map(village => village.id));
     for (const village of snapshot.villages) {
       const row = body.insertRow();
       row.insertCell().textContent = village.name;
@@ -103,7 +113,8 @@
         if (net < 0) value.className = 'qol-route-deficit';
         const details = document.createElement('small');
         details.textContent = 'Base ' + (Number.isFinite(base) ? number.format(base) : '—') +
-          ' · In ' + number.format(incoming) + ' · Out ' + number.format(outgoing);
+          ' · In ' + (complete ? number.format(incoming) : incoming ? '≥' + number.format(incoming) : '—') +
+          ' · Out ' + (unread.has(village.id) ? '—' : number.format(outgoing));
         cell.append(value, details);
       });
     }
@@ -171,14 +182,14 @@
         try { routes.push(...await scanVillage(village, villages, readings, check)); }
         catch (error) {
           check();
-          failed.push(village.name);
+          failed.push(village);
           console.warn('[APES Trade Routes]', village.name, error);
         }
       }
       snapshot = { account: key, villages, routes, failed, readings };
       render();
       status.textContent = failed.length
-        ? 'Partial scan. Net rates unavailable. Could not read: ' + failed.join(', ')
+        ? 'Partial scan. Net rates unavailable. Could not read: ' + failed.map(village => village.name).join(', ')
         : 'Scan complete. A dash means production could not be read.';
     } catch (error) {
       status.textContent = error.message;
