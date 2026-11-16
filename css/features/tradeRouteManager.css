@@ -1,0 +1,51 @@
+.qol-routes-compact .routeContainer {
+  display: none !important;
+}
+
+.qol-simple-trade-routes {
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--qol-accent-outline);
+  border-radius: 5px;
+  background: #faf5eb;
+  color: #382c21;
+}
+
+.qol-simple-routes-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.qol-simple-trade-routes [role="button"] {
+  flex: 0 0 auto !important;
+}
+
+.qol-simple-trade-routes [role="button"]:focus-visible {
+  outline: 2px solid var(--qol-accent-deep);
+  outline-offset: 2px;
+}
+
+.qol-simple-routes-table {
+  margin-top: 8px;
+  overflow-x: auto;
+}
+
+.qol-simple-routes-table table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+}
+
+.qol-simple-routes-table th,
+.qol-simple-routes-table td {
+  padding: 6px;
+  border-bottom: 1px solid #ded3c1;
+  text-align: left;
+}
+
+.qol-simple-routes-table td:nth-child(n+2):nth-child(-n+5) {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}

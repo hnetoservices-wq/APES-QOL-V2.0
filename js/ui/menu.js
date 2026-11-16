@@ -124,6 +124,12 @@ const BASIC_FEATURES = [{
   description: 'Keeps Continue, Back and Send fixed at the top while preparing multiple troop movements.'
 }];
 const ADVANCED_FEATURES = [{
+  id: 'qol-chk-trade-route-manager',
+  key: 'tradeRouteManager',
+  name: 'Trade Route Manager',
+  icon: '⇄',
+  description: 'Show a compact list of routes in the Marketplace, with Pause and Resume controls.'
+}, {
   id: 'qol-chk-barracks-24h-planner',
   key: 'barracks24hPlanner',
   name: '24h Training Planner',
