@@ -324,6 +324,10 @@ const TOOLBAR_ITEMS = [{
   label: 'CP Manager',
   key: 'cpManager'
 }, {
+  id: 'qol-trade-route-toggle-btn',
+  label: 'Trade Route Manager',
+  key: 'tradeRouteManager'
+}, {
   id: 'qol-ss-scanner-toggle-btn',
   label: 'Secret Society Scanner',
   key: 'secretSocietyScanner'
@@ -356,7 +360,6 @@ function featureCardHtml(feature) {
                 <h3 class="qol-feature-name" data-apes-i18n="${escapeHtml(feature.name)}">${escapeHtml(feature.name)}</h3>
                 <p class="qol-feature-desc" data-apes-i18n="${escapeHtml(feature.description)}">${escapeHtml(feature.description)}</p>
                 ${feature.key === 'marketplaceLayout' ? '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-marketplace-layout>Edit village layout</div>' : ''}
-                ${feature.key === 'tradeRouteManager' ? '<div class="qol-wl-action-btn primary" role="button" tabindex="0" data-qol-trade-balance>Open Trade Route Manager</div>' : ''}
             </div>
             <label class="qol-switch" title="Toggle ${escapeHtml(feature.name)}">
                 <input type="checkbox" id="${escapeHtml(feature.id)}" class="qol-checkbox">

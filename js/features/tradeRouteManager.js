@@ -4,7 +4,7 @@
   const feature = 'tradeRouteManager';
   const resources = ['wood', 'clay', 'iron', 'crop'];
   const tabs = '.tabTradeRoute .tradeRoute, .tabTradeRoute .tradeRoutes';
-  const launcher = '[data-qol-trade-balance]';
+  const launcherId = 'qol-trade-route-toggle-btn';
   const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
   let panel;
   let running = false;
@@ -23,20 +23,26 @@
 
   function readRoutes(root, source) {
     return [...root.querySelectorAll('.routeContainer')].map(route => {
-      const target = route.querySelector('.controlPanel .villageLink[villageid]')?.getAttribute('villageid');
+      const link = route.querySelector('.controlPanel .villageLink[villageid]');
+      const target = link?.getAttribute('villageid');
       const active = icon => route.querySelector('.tradeRoute_' + icon + '_small_flat_black')
         ?.closest('.iconButton')?.classList.contains('active');
-      if (active('pause') && !active('start')) return null;
+      const paused = active('pause') && !active('start');
       const hours = new Set([...route.querySelectorAll('.timeline .timeMarker > div[class*="hour-"]')]
         .filter(marker => !marker.closest('.ng-hide, [hidden]'))
         .map(marker => [...marker.classList].find(name => /^hour-\d+$/.test(name)))
         .filter(Boolean));
       const amounts = resources.map(resource => routeAmount(route, resource));
-      if (!target || !active('start') || active('pause') || !hours.size || amounts.includes(null)) {
+      if (!target || (!paused && (!active('start') || active('pause') || !hours.size || amounts.includes(null)))) {
         throw new Error('Incomplete trade route details');
       }
-      return { source, target, amounts: amounts.map(amount => amount * hours.size / 24) };
-    }).filter(Boolean);
+      return {
+        source, target, paused,
+        destination: link.getAttribute('villagename') || link.textContent.trim() || target,
+        hours: [...hours].map(hour => Number(hour.slice(5))).sort((a, b) => a - b),
+        amounts: amounts.map(amount => paused ? 0 : amount * hours.size / 24)
+      };
+    });
   }
 
   function waitFor(read, check) {
@@ -70,12 +76,13 @@
     await new Promise(resolve => setTimeout(resolve, 350));
     check();
     if (!tab.isConnected || !location.hash.startsWith(hash + '/')) throw new Error('Marketplace view changed');
-    return readRoutes(tab, village.id);
+    return readRoutes(tab, village.id).map(route => ({ ...route, marketHash: location.hash }));
   }
 
   function render() {
-    const body = panel.querySelector('tbody');
+    const body = panel.querySelector('[data-route-balances] tbody');
     body.replaceChildren();
+    renderRoutes();
     if (!snapshot || snapshot.account !== account()) return;
     const complete = snapshot.failed.length === 0;
     for (const village of snapshot.villages) {
@@ -99,6 +106,40 @@
           ' · In ' + number.format(incoming) + ' · Out ' + number.format(outgoing);
         cell.append(value, details);
       });
+    }
+  }
+
+  function renderRoutes() {
+    const body = panel.querySelector('[data-route-list] tbody');
+    body.replaceChildren();
+    if (!snapshot || snapshot.account !== account()) return;
+    const names = new Map(snapshot.villages.map(village => [village.id, village.name]));
+    const filter = panel.querySelector('[data-route-filter]').value.trim().toLocaleLowerCase();
+    const routes = [...snapshot.routes].sort((a, b) =>
+      names.get(a.source).localeCompare(names.get(b.source)) || a.destination.localeCompare(b.destination));
+    for (const route of routes) {
+      const source = names.get(route.source);
+      if (!`${source} ${route.destination}`.toLocaleLowerCase().includes(filter)) continue;
+      const row = body.insertRow();
+      for (const value of [source, route.destination,
+        route.hours.map(hour => String(hour).padStart(2, '0') + ':00').join(', ') || '—',
+        route.paused ? 'Paused' : 'Active']) row.insertCell().textContent = value;
+      const edit = document.createElement('div');
+      edit.className = 'qol-wl-action-btn secondary';
+      edit.setAttribute('role', 'button');
+      edit.tabIndex = 0;
+      edit.textContent = 'Open Marketplace';
+      edit.addEventListener('click', () => {
+        if (running || snapshot?.account !== account()) return;
+        panel.close();
+        location.hash = route.marketHash;
+      });
+      row.insertCell().append(edit);
+    }
+    if (!body.rows.length) {
+      const cell = body.insertRow().insertCell();
+      cell.colSpan = 5;
+      cell.textContent = filter ? 'No matching routes.' : 'No routes found in the scanned villages.';
     }
   }
 
@@ -150,6 +191,8 @@
 
   function open() {
     if (!window.isQolEnabled(feature)) return;
+    if (panel?.open) return;
+    window.APES?.ui?.closeOtherTools(feature);
     if (!panel) {
       panel = document.createElement('dialog');
       panel.className = 'qol-simple-trade-routes';
@@ -161,23 +204,37 @@
         </header>
         <p>Hourly balance = production + scheduled imports − scheduled exports.</p>
         <p role="status">Scan trade routes to calculate village balances.</p>
-        <div class="qol-simple-routes-table"><table>
+        <div class="qol-simple-routes-table" data-route-balances><table>
           <thead><tr><th>Village</th><th>Wood / h</th><th>Clay / h</th><th>Iron / h</th><th>Crop / h</th></tr></thead>
+          <tbody></tbody>
+        </table></div>
+        <h3>Trade routes</h3>
+        <label>Filter by village <input type="search" data-route-filter></label>
+        <div class="qol-simple-routes-table" data-route-list><table>
+          <thead><tr><th>From</th><th>To</th><th>Departures</th><th>Status</th><th>Manage</th></tr></thead>
           <tbody></tbody>
         </table></div>`;
       panel.querySelector('[data-route-scan]').addEventListener('click', scan);
       panel.querySelector('[data-route-close]').addEventListener('click', () => panel.close());
+      panel.querySelector('[data-route-filter]').addEventListener('input', renderRoutes);
       document.body.append(panel);
     }
     render();
-    if (!panel.open) panel.showModal();
+    panel.showModal();
   }
 
-  document.addEventListener('click', event => {
-    if (event.target.closest?.(launcher)) open();
-  });
+  const launcher = document.createElement('div');
+  launcher.id = launcherId;
+  launcher.title = 'Trade Route Manager';
+  launcher.setAttribute('aria-label', launcher.title);
+  launcher.setAttribute('role', 'button');
+  launcher.tabIndex = 0;
+  launcher.innerHTML = '<svg class="qol-feature-symbol" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 8h16m-5-5 5 5-5 5m5 3H4m5-5-5 5 5 5"/></svg>';
+  launcher.addEventListener('click', open);
+  document.body.append(launcher);
+  window.qolRepositionAllButtons?.();
   document.addEventListener('keydown', event => {
-    const control = event.target.closest?.(launcher + ', .qol-simple-trade-routes [role="button"]');
+    const control = event.target.closest?.('#' + launcherId + ', .qol-simple-trade-routes [role="button"]');
     if (!control || !['Enter', ' '].includes(event.key)) return;
     event.preventDefault();
     event.stopPropagation();
@@ -185,5 +242,8 @@
   }, true);
   window.addEventListener('qol_setting_changed', event => {
     if (event.detail?.key === feature && !window.isQolEnabled(feature)) panel?.close();
+  });
+  window.addEventListener('qol_close_others', event => {
+    if (event.detail?.source !== feature) panel?.close();
   });
 })();
