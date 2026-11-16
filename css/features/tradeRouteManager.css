@@ -82,3 +82,11 @@
 .qol-route-deficit {
   color: #a12626;
 }
+
+.qol-route-celebration {
+  background: #fff;
+  color: #382c21;
+  border: 1px solid #b6a58b;
+  border-radius: 4px;
+  padding: 4px;
+}

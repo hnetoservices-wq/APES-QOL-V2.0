@@ -3,6 +3,8 @@
 
   const feature = 'tradeRouteManager';
   const resources = ['wood', 'clay', 'iron', 'crop'];
+  // Travian Kingdoms Town Hall costs, in wood, clay, iron, crop order.
+  const celebrationCosts = { small: [3800, 4000, 3030, 9500], big: [16200, 20250, 17500, 47700] };
   const tabs = '.tabTradeRoute .tradeRoute';
   const launcherId = 'qol-trade-route-toggle-btn';
   const number = new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 });
@@ -63,8 +65,11 @@
     const hash = '#/page:village/villId:' + village.id;
     await window.APES_CP_VILLAGE_NAVIGATOR.navigate(village, villages);
     check();
-    readings[village.id] = window.APES.villageResourceProduction?.captureForScan?.(village.id)?.production;
+    readings[village.id] = window.APES.villageResourceProduction?.captureForScan?.(village.id);
     const view = await waitFor(() => document.querySelector('#villageView:not(.ng-hide)'), check);
+    const hall = view.querySelector('img.location.buildingId24');
+    const level = Number(hall?.closest('building-location')?.querySelector('.buildingLevel')?.textContent.trim());
+    village.townHall = hall ? (Number.isInteger(level) && level >= 1 && level <= 20 ? level : null) : 0;
     const market = view.querySelector('img.location.buildingId17');
     if (!market) return [];
     const slot = market.id.match(/^buildingImage(\d+)$/)?.[1];
@@ -88,6 +93,57 @@
     }, check);
   }
 
+  function plannedCelebrations() {
+    try { return JSON.parse(localStorage.getItem('qol_trade_celebrations:' + account())) || {}; }
+    catch { return {}; }
+  }
+
+  function formatDuration(seconds) {
+    return [Math.floor(seconds / 3600), Math.floor(seconds % 3600 / 60), seconds % 60]
+      .map(value => String(value).padStart(2, '0')).join(':');
+  }
+
+  function celebrationPlan(row, village, plans) {
+    const cell = row.insertCell();
+    const type = plans[village.id];
+    const select = document.createElement('select');
+    select.className = 'qol-route-celebration';
+    select.setAttribute('aria-label', 'Plan celebration for ' + village.name);
+    const hasHall = village.townHall > 0;
+    for (const [value, label, disabled] of [
+      ['none', 'None', false], ['small', 'Small', !hasHall], ['big', 'Big (Town Hall 10+)', !(village.townHall >= 10)]
+    ]) {
+      const option = new Option(label, value);
+      option.disabled = disabled;
+      select.add(option);
+      if (type === value && !disabled) select.value = value;
+    }
+    select.disabled = !hasHall;
+    select.addEventListener('change', () => {
+      const key = account();
+      if (!key || key !== snapshot?.account) return;
+      const next = plannedCelebrations();
+      next[village.id] = select.value;
+      try { localStorage.setItem('qol_trade_celebrations:' + key, JSON.stringify(next)); }
+      catch {
+        panel.querySelector('[role="status"]').textContent = 'Could not save the celebration plan.';
+      }
+      const index = row.sectionRowIndex;
+      render();
+      panel.querySelector('[data-route-balances] tbody').rows[index]?.querySelector('select')?.focus();
+    });
+    cell.append(select);
+    const costs = celebrationCosts[select.value];
+    if (!costs) return null;
+    const { dataset } = document.documentElement;
+    const speed = Number(dataset.apesCpWorldSpeed || dataset.apesWorldSpeed);
+    const duration = speed > 0 ? window.APES.celebrationDurationSeconds?.(village.townHall, select.value, speed) : null;
+    const note = document.createElement('small');
+    note.textContent = duration ? formatDuration(duration) + ' per celebration' : 'Duration unavailable';
+    cell.append(note);
+    return { costs, duration };
+  }
+
   function render() {
     const body = panel.querySelector('[data-route-balances] tbody');
     body.replaceChildren();
@@ -95,11 +151,15 @@
     if (!snapshot || snapshot.account !== account()) return;
     const complete = snapshot.failed.length === 0;
     const unread = new Set(snapshot.failed.map(village => village.id));
+    const plans = plannedCelebrations();
     for (const village of snapshot.villages) {
       const row = body.insertRow();
       row.insertCell().textContent = village.name;
+      row.insertCell().textContent = village.townHall === 0 ? 'None' : village.townHall ?? '—';
+      const plan = celebrationPlan(row, village, plans);
       resources.forEach((resource, index) => {
-        const base = snapshot.readings[village.id]?.[resource];
+        const reading = snapshot.readings[village.id];
+        const base = reading?.production?.[resource];
         let incoming = 0;
         let outgoing = 0;
         for (const route of snapshot.routes) {
@@ -116,6 +176,34 @@
           ' · In ' + (complete ? number.format(incoming) : incoming ? '≥' + number.format(incoming) : '—') +
           ' · Out ' + (unread.has(village.id) ? '—' : number.format(outgoing));
         cell.append(value, details);
+        if (plan) {
+          const cost = plan.costs[index];
+          const reserve = document.createElement('small');
+          reserve.textContent = 'Cost: ' + number.format(cost) + ' per celebration';
+          cell.append(reserve);
+          const stock = reading?.stock?.[resource];
+          if (stock) {
+            const stockNote = document.createElement('small');
+            stockNote.textContent = stock.capacity < cost
+              ? 'Storage too small by ' + number.format(cost - stock.capacity)
+              : 'Stock at scan: ' + number.format(stock.amount);
+            if (stock.capacity < cost || stock.amount < cost) stockNote.className = 'qol-route-deficit';
+            cell.append(stockNote);
+          }
+          if (plan.duration && net !== null) {
+            const required = cost * 3600 / plan.duration;
+            const budget = base + incoming - required;
+            const guidance = document.createElement('small');
+            guidance.textContent = budget < 0
+              ? 'Needs ' + number.format(-budget) + '/h more even with exports paused'
+              : 'Export budget: ' + number.format(Math.floor(budget)) + '/h';
+            if (net < required) {
+              guidance.className = 'qol-route-deficit';
+              guidance.textContent += ' · Short ' + number.format(required - net) + '/h';
+            }
+            cell.append(guidance);
+          }
+        }
       });
     }
   }
@@ -213,10 +301,10 @@
           <div class="qol-wl-action-btn primary" role="button" tabindex="0" data-route-scan>Scan trade routes</div>
           <div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-route-close>Close</div>
         </header>
-        <p>Hourly balance = production + scheduled imports − scheduled exports.</p>
+        <p>Hourly balance = production + scheduled imports − scheduled exports. Celebration export budgets use average rates. Keep one celebration’s cost in stock when it’s time to queue, and allow for shipment timing.</p>
         <p role="status">Scan trade routes to calculate village balances.</p>
         <div class="qol-simple-routes-table" data-route-balances><table>
-          <thead><tr><th>Village</th><th>Wood / h</th><th>Clay / h</th><th>Iron / h</th><th>Crop / h</th></tr></thead>
+          <thead><tr><th>Village</th><th>Town Hall</th><th>Plan Celebration</th><th>Wood / h</th><th>Clay / h</th><th>Iron / h</th><th>Crop / h</th></tr></thead>
           <tbody></tbody>
         </table></div>
         <h3>Trade routes</h3>
