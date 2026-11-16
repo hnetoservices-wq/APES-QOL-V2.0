@@ -69,7 +69,8 @@
     const view = await waitFor(() => document.querySelector('#villageView:not(.ng-hide)'), check);
     const hall = view.querySelector('img.location.buildingId24');
     const level = Number(hall?.closest('building-location')?.querySelector('.buildingLevel')?.textContent.trim());
-    village.townHall = hall ? (Number.isInteger(level) && level >= 1 && level <= 20 ? level : null) : 0;
+    village.townHall = Number.isInteger(level) && level >= 1 && level <= 20
+      ? level : village.townHallLevel ?? (hall || village.hasTownHall ? null : 0);
     const market = view.querySelector('img.location.buildingId17');
     if (!market) return [];
     const slot = market.id.match(/^buildingImage(\d+)$/)?.[1];
@@ -104,41 +105,52 @@
   }
 
   function celebrationPlan(cell, village, plans) {
-    const type = plans[village.id];
-    const select = document.createElement('select');
-    select.className = 'qol-route-celebration';
-    select.setAttribute('aria-label', 'Plan celebration for ' + village.name);
-    const hasHall = village.townHall > 0;
+    const bigAllowed = village.townHall >= 10;
+    const selected = plans[village.id];
+    const type = (selected === 'small' && village.townHall !== 0) || (selected === 'big' && bigAllowed)
+      ? selected : 'none';
+    const controls = document.createElement('div');
+    controls.className = 'qol-route-celebrations';
+    controls.setAttribute('role', 'group');
+    controls.setAttribute('aria-label', 'Plan celebration for ' + village.name);
     for (const [value, label, disabled] of [
-      ['none', 'None', false], ['small', 'Small', !hasHall], ['big', 'Big (Town Hall 10+)', !(village.townHall >= 10)]
+      ['none', 'None', false], ['small', 'Small', village.townHall === 0], ['big', 'Big', !bigAllowed]
     ]) {
-      const option = new Option(label, value);
-      option.disabled = disabled;
-      select.add(option);
-      if (type === value && !disabled) select.value = value;
+      const button = document.createElement('div');
+      button.className = 'qol-wl-action-btn ' + (value === type ? 'primary' : 'secondary');
+      button.setAttribute('role', 'button');
+      button.setAttribute('aria-disabled', String(disabled));
+      button.setAttribute('aria-pressed', String(value === type));
+      button.tabIndex = disabled ? -1 : 0;
+      button.dataset.celebration = value;
+      button.textContent = label;
+      if (disabled && value === 'big') button.title = 'Requires a verified Town Hall level of 10 or higher';
+      button.addEventListener('click', () => {
+        const key = account();
+        if (disabled || !key || key !== snapshot?.account) return;
+        const next = plannedCelebrations();
+        next[village.id] = value;
+        try { localStorage.setItem('qol_trade_celebrations:' + key, JSON.stringify(next)); }
+        catch {
+          panel.querySelector('[role="status"]').textContent = 'Could not save the celebration plan.';
+          return;
+        }
+        const index = cell.parentElement.sectionRowIndex;
+        render();
+        panel.querySelector('[data-route-balances] tbody').rows[index]
+          ?.querySelector(`[data-celebration="${value}"]`)?.focus();
+      });
+      controls.append(button);
     }
-    select.disabled = !hasHall;
-    select.addEventListener('change', () => {
-      const key = account();
-      if (!key || key !== snapshot?.account) return;
-      const next = plannedCelebrations();
-      next[village.id] = select.value;
-      try { localStorage.setItem('qol_trade_celebrations:' + key, JSON.stringify(next)); }
-      catch {
-        panel.querySelector('[role="status"]').textContent = 'Could not save the celebration plan.';
-      }
-      const index = cell.parentElement.sectionRowIndex;
-      render();
-      panel.querySelector('[data-route-balances] tbody').rows[index]?.querySelector('select')?.focus();
-    });
-    cell.append(select);
-    const costs = celebrationCosts[select.value];
+    cell.append(controls);
+    const costs = celebrationCosts[type];
     if (!costs) return null;
     const { dataset } = document.documentElement;
     const speed = Number(dataset.apesCpWorldSpeed || dataset.apesWorldSpeed);
-    const duration = speed > 0 ? window.APES.celebrationDurationSeconds?.(village.townHall, select.value, speed) : null;
+    const duration = speed > 0 ? window.APES.celebrationDurationSeconds?.(village.townHall, type, speed) : null;
     const note = document.createElement('small');
-    note.textContent = duration ? formatDuration(duration) + ' per celebration' : 'Duration unavailable';
+    note.textContent = duration ? formatDuration(duration) + ' per celebration' :
+      village.townHall == null ? 'Town Hall level unverified' : 'Duration unavailable';
     cell.append(note);
     return { costs, duration };
   }
@@ -263,7 +275,7 @@
       status.textContent = 'Reading villages…';
       const owned = await window.APES_CP_VILLAGE_NAVIGATOR.getOwnedVillages();
       // The shared navigator returns frozen village records.
-      const villages = owned.map(village => ({ ...village, townHall: null }));
+      const villages = owned.map(village => ({ ...village, townHall: village.townHallLevel ?? null }));
       const routes = [];
       const failed = [];
       const readings = {};

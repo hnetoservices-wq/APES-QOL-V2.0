@@ -27,7 +27,7 @@
     walk(raw);
     return [...result].filter(candidate=>!!modelData(cache,'Village:'+candidate));
   }
-  function townHallPresent(cache,villageId){
+  function townHallLevel(cache,villageId){
     const raw=modelData(cache,'Collection:Building:'+villageId);
     if(!raw)return null;
     const entries=Array.isArray(raw)?raw:Object.values(raw);
@@ -40,7 +40,8 @@
           String(data).match(/Building:(\d+)/)?.[1]??data);
         building=bid?modelData(cache,'Building:'+bid):null;
       }
-      if(Number(building?.buildingType)===24&&Number(building?.lvl)>0)return true;
+      const level=Number(building?.lvl??building?.level);
+      if(Number(building?.buildingType)===24&&Number.isInteger(level)&&level>=1&&level<=20)return level;
     }
     return null;
   }
@@ -77,13 +78,15 @@
     }
     const villages=[...ids].map(villageId=>{
       const village=modelData(cache,'Village:'+villageId);
+      const hallLevel=townHallLevel(cache,villageId);
       return {
         id:villageId,
         name:String(village?.name??'').trim(),
         isTown:isTrue(village?.isTown),
         isActive:isTrue(village?.isActive),
         playerId:player,
-        hasTownHall:townHallPresent(cache,villageId)
+        hasTownHall:hallLevel===null?null:true,
+        townHallLevel:hallLevel
       };
     }).filter(v=>v.name).sort((a,b)=>
       Number(b.isActive)-Number(a.isActive)||a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'})
