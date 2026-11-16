@@ -48,8 +48,7 @@
       if(!validId(id)||!name||unique.has(id))continue;
       unique.set(id,Object.freeze({
         id,name,isTown:v.isTown===true,isActive:v.isActive===true,
-        playerId:v.playerId,hasTownHall:v.hasTownHall===true,
-        townHallLevel:v.townHallLevel,celebrationEnd:v.celebrationEnd
+        playerId:v.playerId,hasTownHall:v.hasTownHall===true
       }));
     }
     return [...unique.values()];

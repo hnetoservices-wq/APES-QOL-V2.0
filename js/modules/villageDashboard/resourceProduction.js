@@ -173,9 +173,8 @@
         !document.getElementById('resourceBar')) return null;
     const production=readCurrentProduction();
     if (!production || RESOURCE_DEFS.some(resource=>!Number.isFinite(production[resource.key]))) return null;
-    const stock=readCurrentStock();
-    if (!save(villageId,production,stock)) return null;
-    return {villageId,production,stock,capturedAt:Date.now()};
+    if (!save(villageId,production,readCurrentStock())) return null;
+    return {villageId,production,capturedAt:Date.now()};
   }
 
   function historyStorageKey() {

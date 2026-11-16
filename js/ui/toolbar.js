@@ -60,10 +60,6 @@ const apesHtml_toolbar = window.APES?.i18n?.html || ((s, ...v) => String.raw({ r
     label: 'CP Manager',
     key: 'cpManager'
   }, {
-    id: 'qol-trade-route-toggle-btn',
-    label: 'Trade Route Manager',
-    key: 'tradeRouteManager'
-  }, {
     id: 'qol-ss-scanner-toggle-btn',
     label: 'Secret Society Scanner',
     key: 'secretSocietyScanner'

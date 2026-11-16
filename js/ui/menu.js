@@ -124,12 +124,6 @@ const BASIC_FEATURES = [{
   description: 'Keeps Continue, Back and Send fixed at the top while preparing multiple troop movements.'
 }];
 const ADVANCED_FEATURES = [{
-  id: 'qol-chk-trade-route-manager',
-  key: 'tradeRouteManager',
-  name: 'Trade Route Manager',
-  icon: '⇄',
-  description: 'Calculate each village’s net hourly production after scheduled trade routes.'
-}, {
   id: 'qol-chk-barracks-24h-planner',
   key: 'barracks24hPlanner',
   name: '24h Training Planner',
@@ -323,10 +317,6 @@ const TOOLBAR_ITEMS = [{
   id: 'qol-cp-toggle-btn',
   label: 'CP Manager',
   key: 'cpManager'
-}, {
-  id: 'qol-trade-route-toggle-btn',
-  label: 'Trade Route Manager',
-  key: 'tradeRouteManager'
 }, {
   id: 'qol-ss-scanner-toggle-btn',
   label: 'Secret Society Scanner',

@@ -129,7 +129,6 @@ const apesHtml_cpManager = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     const base = timeStringToSeconds(CELEBRATION_DURATIONS_X1[level]?.[type]);
     return Number.isFinite(base) ? Math.round(base / speed) : null;
   }
-  window.APES.celebrationDurationSeconds = getCelebrationDurationSeconds;
   function getSlotTarget(slot) {
     const index = Number.parseInt(slot, 10) - 1;
     return index >= 0 && index < CP_SLOT_TARGETS.length ? CP_SLOT_TARGETS[index] : null;
