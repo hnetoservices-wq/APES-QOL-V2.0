@@ -103,8 +103,7 @@
       .map(value => String(value).padStart(2, '0')).join(':');
   }
 
-  function celebrationPlan(row, village, plans) {
-    const cell = row.insertCell();
+  function celebrationPlan(cell, village, plans) {
     const type = plans[village.id];
     const select = document.createElement('select');
     select.className = 'qol-route-celebration';
@@ -128,7 +127,7 @@
       catch {
         panel.querySelector('[role="status"]').textContent = 'Could not save the celebration plan.';
       }
-      const index = row.sectionRowIndex;
+      const index = cell.parentElement.sectionRowIndex;
       render();
       panel.querySelector('[data-route-balances] tbody').rows[index]?.querySelector('select')?.focus();
     });
@@ -155,8 +154,8 @@
     for (const village of snapshot.villages) {
       const row = body.insertRow();
       row.insertCell().textContent = village.name;
-      row.insertCell().textContent = village.townHall === 0 ? 'None' : village.townHall ?? '—';
-      const plan = celebrationPlan(row, village, plans);
+      const celebrationCell = document.createElement('td');
+      const plan = celebrationPlan(celebrationCell, village, plans);
       resources.forEach((resource, index) => {
         const reading = snapshot.readings[village.id];
         const base = reading?.production?.[resource];
@@ -205,6 +204,8 @@
           }
         }
       });
+      row.insertCell().textContent = village.townHall === 0 ? 'None' : village.townHall ?? '—';
+      row.append(celebrationCell);
     }
   }
 
@@ -260,7 +261,9 @@
     scanControl.setAttribute('aria-disabled', 'true');
     try {
       status.textContent = 'Reading villages…';
-      const villages = await window.APES_CP_VILLAGE_NAVIGATOR.getOwnedVillages();
+      const owned = await window.APES_CP_VILLAGE_NAVIGATOR.getOwnedVillages();
+      // The shared navigator returns frozen village records.
+      const villages = owned.map(village => ({ ...village, townHall: null }));
       const routes = [];
       const failed = [];
       const readings = {};
@@ -304,7 +307,7 @@
         <p>Hourly balance = production + scheduled imports − scheduled exports. Celebration export budgets use average rates. Keep one celebration’s cost in stock when it’s time to queue, and allow for shipment timing.</p>
         <p role="status">Scan trade routes to calculate village balances.</p>
         <div class="qol-simple-routes-table" data-route-balances><table>
-          <thead><tr><th>Village</th><th>Town Hall</th><th>Plan Celebration</th><th>Wood / h</th><th>Clay / h</th><th>Iron / h</th><th>Crop / h</th></tr></thead>
+          <thead><tr><th>Village</th><th>Wood / h</th><th>Clay / h</th><th>Iron / h</th><th>Crop / h</th><th>Town Hall</th><th>Plan Celebration</th></tr></thead>
           <tbody></tbody>
         </table></div>
         <h3>Trade routes</h3>
