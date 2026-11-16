@@ -85,6 +85,7 @@
         isTown:isTrue(village?.isTown),
         isActive:isTrue(village?.isActive),
         playerId:player,
+        celebrationEnd:village?.celebrationEnd,
         hasTownHall:hallLevel===null?null:true,
         townHallLevel:hallLevel
       };

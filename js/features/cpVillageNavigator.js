@@ -49,7 +49,7 @@
       unique.set(id,Object.freeze({
         id,name,isTown:v.isTown===true,isActive:v.isActive===true,
         playerId:v.playerId,hasTownHall:v.hasTownHall===true,
-        townHallLevel:v.townHallLevel
+        townHallLevel:v.townHallLevel,celebrationEnd:v.celebrationEnd
       }));
     }
     return [...unique.values()];

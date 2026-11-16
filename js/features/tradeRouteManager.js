@@ -24,6 +24,35 @@
     return /^\d+$/.test(digits) ? Number(digits) : null;
   }
 
+  function readTiming(route, markers) {
+    route.dispatchEvent(new Event('apes_read_trade_route_timing', { bubbles: true }));
+    const data = JSON.parse(route.getAttribute('data-apes-route-timing') || '{}');
+    route.removeAttribute('data-apes-route-timing');
+    const hourAligned = markers.length > 0 && markers.every(marker =>
+      marker.parentElement.style.margin.split(' ').every(value => /^(?:0|0px|0%)$/.test(value)) &&
+      marker.parentElement.style.margin !== '');
+    const single = markers.length > 0 && markers.every(marker =>
+      [...marker.childNodes].some(node => node.nodeType === Node.COMMENT_NODE && node.textContent.trim() === 'ngIf: recurrences>1') &&
+      ![...marker.childNodes].some(node => node.nodeType === Node.COMMENT_NODE && node.textContent.includes('end ngIf: recurrences>1')));
+    const minute = Number.isInteger(data.minutesOffset) && Math.abs(data.minutesOffset) < 60
+      ? data.minutesOffset : hourAligned ? 0 : null;
+    return {
+      minute,
+      repeats: [1, 2, 3].includes(data.recurrences) ? data.recurrences : single ? 1 : null,
+      travelSeconds: Number.isFinite(data.duration) && data.duration > 0 ? data.duration : null
+    };
+  }
+
+  function readClock() {
+    const text = document.querySelector('#servertime [i18ndt]')?.textContent.replace(/\p{Cf}/gu, '').trim();
+    const match = text?.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?\s*(AM|PM)?$/i);
+    if (!match) return null;
+    const hours = Number(match[1]);
+    if (hours > (match[4] ? 12 : 23) || Number(match[2]) > 59 || Number(match[3] || 0) > 59) return null;
+    const adjusted = match[4] ? hours % 12 + (match[4].toUpperCase() === 'PM' ? 12 : 0) : hours;
+    return adjusted * 3600 + Number(match[2]) * 60 + Number(match[3] || 0);
+  }
+
   function readRoutes(root, source) {
     return [...root.querySelectorAll('.routeContainer')].map(route => {
       const link = route.querySelector('.controlPanel .villageLink[villageid]');
@@ -31,19 +60,23 @@
       const active = icon => route.querySelector('.tradeRoute_' + icon + '_small_flat_black')
         ?.closest('.iconButton')?.classList.contains('active');
       const paused = active('pause') && !active('start');
-      const hours = new Set([...route.querySelectorAll('.timeline .timeMarker > div[class*="hour-"]')]
-        .filter(marker => !marker.closest('.ng-hide, [hidden]'))
+      const markers = [...route.querySelectorAll('.timeline .timeMarker > div[class*="hour-"]')]
+        .filter(marker => !marker.closest('.ng-hide, [hidden]'));
+      const hours = new Set(markers
         .map(marker => [...marker.classList].find(name => /^hour-\d+$/.test(name)))
         .filter(Boolean));
       const amounts = resources.map(resource => routeAmount(route, resource));
       if (!target || (!paused && (!active('start') || active('pause') || !hours.size || amounts.includes(null)))) {
         throw new Error('Incomplete trade route details');
       }
+      const timing = readTiming(route, markers);
       return {
         source, target, paused,
+        ...timing,
         destination: link.getAttribute('villagename') || link.textContent.trim() || target,
         hours: [...hours].map(hour => Number(hour.slice(5))).sort((a, b) => a - b),
-        amounts: amounts.map(amount => paused ? 0 : amount * hours.size / 24)
+        shipment: amounts,
+        amounts: amounts.map(amount => paused ? 0 : amount * hours.size * (timing.repeats ?? 1) / 24)
       };
     });
   }
@@ -65,7 +98,8 @@
     const hash = '#/page:village/villId:' + village.id;
     await window.APES_CP_VILLAGE_NAVIGATOR.navigate(village, villages);
     check();
-    readings[village.id] = window.APES.villageResourceProduction?.captureForScan?.(village.id);
+    const reading = window.APES.villageResourceProduction?.captureForScan?.(village.id);
+    if (reading) readings[village.id] = { ...reading, clock: readClock() };
     const view = await waitFor(() => document.querySelector('#villageView:not(.ng-hide)'), check);
     const hall = view.querySelector('img.location.buildingId24');
     const level = Number(hall?.closest('building-location')?.querySelector('.buildingLevel')?.textContent.trim());
@@ -168,8 +202,23 @@
       row.insertCell().textContent = village.name;
       const celebrationCell = document.createElement('td');
       const plan = celebrationPlan(celebrationCell, village, plans);
+      const reading = snapshot.readings[village.id];
+      const clock = reading?.clock;
+      const forecast = window.APES.tradeRouteForecast;
+      const end = Number(village.celebrationEnd);
+      const endMs = end < 1e11 ? end * 1000 : end;
+      const untilEnd = Math.ceil((endMs - reading?.capturedAt) / 1000);
+      const firstQueue = untilEnd > 0 ? untilEnd : plan?.duration;
+      const timing = plan?.duration && Number.isFinite(clock) && !unread.has(village.id)
+        ? forecast.eventsForVillage(snapshot.routes, village.id, clock, firstQueue + plan.duration * 2) : null;
+      if (plan?.duration) {
+        const note = document.createElement('small');
+        note.textContent = !timing || timing.unknownOutgoing ? 'Shipment timing unavailable'
+          : 'First queue check in ' + formatDuration(firstQueue) +
+            (timing.unknownIncoming || !complete ? ' · Some imports excluded' : '');
+        celebrationCell.append(note);
+      }
       resources.forEach((resource, index) => {
-        const reading = snapshot.readings[village.id];
         const base = reading?.production?.[resource];
         let incoming = 0;
         let outgoing = 0;
@@ -178,14 +227,18 @@
           if (route.source === village.id) outgoing += route.amounts[index];
         }
         const cell = row.insertCell();
-        const net = Number.isFinite(base) && complete ? base + incoming - outgoing : null;
+        const outgoingKnown = !unread.has(village.id) && !snapshot.routes.some(route =>
+          route.source === village.id && !route.paused && route.repeats === null);
+        const incomingKnown = complete && !snapshot.routes.some(route =>
+          route.target === village.id && !route.paused && route.repeats === null);
+        const net = Number.isFinite(base) && outgoingKnown ? base + incoming - outgoing : null;
         const value = document.createElement('strong');
-        value.textContent = net === null ? '—' : number.format(net);
-        if (net < 0) value.className = 'qol-route-deficit';
+        value.textContent = net === null ? '—' : (incomingKnown ? '' : '≥') + number.format(net);
+        if (incomingKnown && net < 0) value.className = 'qol-route-deficit';
         const details = document.createElement('small');
         details.textContent = 'Base ' + (Number.isFinite(base) ? number.format(base) : '—') +
-          ' · In ' + (complete ? number.format(incoming) : incoming ? '≥' + number.format(incoming) : '—') +
-          ' · Out ' + (unread.has(village.id) ? '—' : number.format(outgoing));
+          ' · In ' + (incomingKnown ? number.format(incoming) : incoming ? '≥' + number.format(incoming) : '—') +
+          ' · Out ' + (outgoingKnown ? number.format(outgoing) : '—');
         cell.append(value, details);
         if (plan) {
           const cost = plan.costs[index];
@@ -201,23 +254,52 @@
             if (stock.capacity < cost || stock.amount < cost) stockNote.className = 'qol-route-deficit';
             cell.append(stockNote);
           }
-          if (plan.duration && net !== null) {
-            const required = cost * 3600 / plan.duration;
-            const budget = base + incoming - required;
-            const guidance = document.createElement('small');
-            guidance.textContent = budget < 0
-              ? 'Needs ' + number.format(-budget) + '/h more even with exports paused'
-              : 'Export budget: ' + number.format(Math.floor(budget)) + '/h';
-            if (net < required) {
-              guidance.className = 'qol-route-deficit';
-              guidance.textContent += ' · Short ' + number.format(required - net) + '/h';
-            }
-            cell.append(guidance);
+          if (timing && !timing.unknownOutgoing && (!stock || stock.capacity >= cost)) {
+            const result = forecast.forecastResource({
+              stock, rate: base, cost, cycle: plan.duration, firstQueue, shipments: timing.events, index
+            });
+            renderForecast(cell, result, timing.events, index, reading.capturedAt,
+              incomingKnown ? net : null, cost * 3600 / plan.duration);
           }
         }
       });
       row.insertCell().textContent = village.townHall === 0 ? 'None' : village.townHall ?? '—';
       row.append(celebrationCell);
+    }
+  }
+
+  function renderForecast(cell, result, events, index, capturedAt, net, required) {
+    const guidance = document.createElement('small');
+    cell.append(guidance);
+    if (!result) {
+      guidance.textContent = 'Stock or production unavailable';
+      return;
+    }
+    if (!result.failure) {
+      guidance.textContent = 'Next 3 celebrations funded';
+      if (net !== null && net < required) guidance.textContent += ' · Long-term reserve shrinks';
+      return;
+    }
+    const { at, kind, short, queue } = result.failure;
+    const time = new Date(capturedAt + at * 1000).toLocaleString();
+    const label = kind === 'celebration' ? 'Celebration ' + queue : kind === 'export' ? 'Shipment' : 'Stock';
+    guidance.className = 'qol-route-deficit';
+    guidance.textContent = label + ' short ' + number.format(Math.ceil(short)) + ' · ' + time;
+    if (result.fraction === null) {
+      const note = document.createElement('small');
+      note.textContent = 'Need more stock or income even with exports stopped';
+      cell.append(note);
+      return;
+    }
+    const exports = new Set(events.filter(event => event.kind === 'export').map(event => event.route));
+    for (const route of exports) {
+      const current = route.shipment[index];
+      const limit = Math.floor(current * result.fraction);
+      if (limit >= current) continue;
+      const note = document.createElement('small');
+      note.textContent = 'To ' + route.destination + ': ' + number.format(current) + ' → ' +
+        number.format(limit) + ' per shipment';
+      cell.append(note);
     }
   }
 
@@ -233,8 +315,14 @@
       const source = names.get(route.source);
       if (!`${source} ${route.destination}`.toLocaleLowerCase().includes(filter)) continue;
       const row = body.insertRow();
-      for (const value of [source, route.destination,
-        route.hours.map(hour => String(hour).padStart(2, '0') + ':00').join(', ') || '—',
+      const departures = route.hours.map(hour => {
+        if (route.minute === null) return String(hour).padStart(2, '0') + ':??';
+        const time = (hour * 60 + route.minute + 1440) % 1440;
+        return String(Math.floor(time / 60)).padStart(2, '0') + ':' + String(time % 60).padStart(2, '0');
+      }).join(', ');
+      const shipment = route.shipment.map((amount, index) => amount > 0
+        ? resources[index] + ' ' + number.format(amount) : '').filter(Boolean).join(' · ');
+      for (const value of [source, route.destination, shipment || '—', departures || '—',
         route.paused ? 'Paused' : 'Active']) row.insertCell().textContent = value;
       const edit = document.createElement('div');
       edit.className = 'qol-wl-action-btn secondary';
@@ -250,7 +338,7 @@
     }
     if (!body.rows.length) {
       const cell = body.insertRow().insertCell();
-      cell.colSpan = 5;
+      cell.colSpan = 6;
       cell.textContent = filter ? 'No matching routes.' : 'No routes found in the scanned villages.';
     }
   }
@@ -292,7 +380,7 @@
       snapshot = { account: key, villages, routes, failed, readings };
       render();
       status.textContent = failed.length
-        ? 'Partial scan. Net rates unavailable. Could not read: ' + failed.map(village => village.name).join(', ')
+        ? 'Partial scan. Some trade balances are unknown. Could not read: ' + failed.map(village => village.name).join(', ')
         : 'Scan complete. A dash means production could not be read.';
     } catch (error) {
       status.textContent = error.message;
@@ -316,7 +404,7 @@
           <div class="qol-wl-action-btn primary" role="button" tabindex="0" data-route-scan>Scan trade routes</div>
           <div class="qol-wl-action-btn secondary" role="button" tabindex="0" data-route-close>Close</div>
         </header>
-        <p>Hourly balance = production + scheduled imports − scheduled exports. Celebration export budgets use average rates. Keep one celebration’s cost in stock when it’s time to queue, and allow for shipment timing.</p>
+        <p>Forecasts check three celebration deadlines. The first is at the end of the active celebration, or one cycle after the scan if no end time is known. They assume steady production and scheduled deliveries. Other queued celebrations, deliveries already in transit and other spending are excluded. Suggested shipment amounts apply together for one village.</p>
         <p role="status">Scan trade routes to calculate village balances.</p>
         <div class="qol-simple-routes-table" data-route-balances><table>
           <thead><tr><th>Village</th><th>Wood / h</th><th>Clay / h</th><th>Iron / h</th><th>Crop / h</th><th>Town Hall</th><th>Plan Celebration</th></tr></thead>
@@ -325,7 +413,7 @@
         <h3>Trade routes</h3>
         <label>Filter by village <input type="search" data-route-filter></label>
         <div class="qol-simple-routes-table" data-route-list><table>
-          <thead><tr><th>From</th><th>To</th><th>Departures</th><th>Status</th><th>Manage</th></tr></thead>
+          <thead><tr><th>From</th><th>To</th><th>Per shipment</th><th>Departures</th><th>Status</th><th>Manage</th></tr></thead>
           <tbody></tbody>
         </table></div>`;
       panel.querySelector('[data-route-scan]').addEventListener('click', scan);
