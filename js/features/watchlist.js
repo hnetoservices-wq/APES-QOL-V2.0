@@ -52,7 +52,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
       if (!Number.isFinite(previous) || !Number.isFinite(value)) return total;
       const [arrow, tone] = value > previous ? ['↗', 'positive']
         : value < previous ? ['↘', 'negative'] : ['→', 'stationary'];
-      return `<span class="qol-wl-scan-step"><span class="qol-${tone}">${arrow}</span> ${total}</span>`;
+      return `<span class="qol-wl-scan-step qol-${tone}">${arrow} ${total}</span>`;
     }).join(' ');
     return apesHtml_watchlist`<span class="qol-wl-intelligence-link qol-wl-history-link qol-wl-scan-sequence" role="button" tabindex="0" data-wl-intel="history" data-player-id="${escapeHtml(entry.playerId)}" title="View player intelligence">${scanIssue}<span>${sequence || '—'}</span></span>`;
   }
@@ -453,12 +453,12 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
             .qol-wl-metric-icon svg { width:16px!important;height:16px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important; }
             .qol-wl-combo-icon { width:30px!important;gap:0!important; }
             .qol-wl-combo-icon svg { width:15px!important;height:15px!important; }
-            .qol-wl-scan-sequence { font-variant-numeric:tabular-nums!important;max-width:100%!important; }
+            #qol-watchlist-container .qol-wl-intelligence-link.qol-wl-scan-sequence { font-weight:400!important;font-variant-numeric:tabular-nums!important;max-width:100%!important; }
             .qol-wl-scan-step { white-space:nowrap!important; }
             .qol-wl-scan-issue { display:inline-flex!important;align-items:center!important;justify-content:center!important;width:14px!important;height:14px!important;border-radius:50%!important;color:#fff!important;background:#a83228!important;font-size:10px!important;font-weight:900!important;cursor:help!important; }
-            #qol-watchlist-container .qol-positive { color:#35651f!important; }
-            #qol-watchlist-container .qol-negative { color:#8b2922!important; }
-            #qol-watchlist-container .qol-stationary { color:#967016!important; }
+            #qol-watchlist-container .qol-wl-scan-step.qol-positive { color:#556b2f!important; }
+            #qol-watchlist-container .qol-wl-scan-step.qol-negative { color:#a52d2b!important; }
+            #qol-watchlist-container .qol-wl-scan-step.qol-stationary { color:#8a6500!important; }
 
             #qol-watchlist-container select.qol-wl-select {
                 display: inline-block !important;

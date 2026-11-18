@@ -153,6 +153,11 @@ function checks() {
   const sequences = document.querySelectorAll('[data-wl-intel="history"][data-player-id="100"]');
   assert.deepEqual(Array.from(sequences, sequence => sequence.textContent.replace(/[,\s]/g, '')),
     ['457→457↗1001↘900↗1600', '2→2→2→2→2']);
+  assert.deepEqual(Array.from(sequences[0].querySelectorAll('.qol-wl-scan-step'), step =>
+    [step.classList[1], step.textContent.replace(/[,\s]/g, '')]), [
+    ['qol-stationary', '→457'], ['qol-positive', '↗1001'],
+    ['qol-negative', '↘900'], ['qol-positive', '↗1600']
+  ]);
   assert.ok(document.querySelector('[data-wl-intel="villages"]'));
   document.querySelector('[data-wl-intel="history"]').click();
   assert.ok(document.getElementById('qol-wl-intel-overlay'), 'Changes opens intelligence modal');
