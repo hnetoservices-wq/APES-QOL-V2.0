@@ -4,6 +4,7 @@
   const STORAGE_PREFIX = 'qol_watchlist_history_';
   const MAX_AGE_MS = 60 * 86400000;
   const MAX_SNAPSHOTS = 96;
+  const RECENT_SCAN_LIMIT = 5;
   const MAX_EVENTS = 180;
   const MAX_PLAYERS = 650;
   // Preserve useful observations inside a six-hour view without storing an
@@ -69,6 +70,15 @@
   function read(playerId) {
     const id = String(playerId || '').trim();
     return load().players[id] || { id, snapshots: [], events: [] };
+  }
+  function recentScans(record) {
+    const readings = new Map();
+    // Earlier versions retained full snapshots only when useful for the history chart.
+    for (const snapshot of (record?.snapshots || []).slice(-RECENT_SCAN_LIMIT)) {
+      readings.set(snapshot.at, { at: snapshot.at, population: snapshot.population, villageCount: snapshot.villages.length });
+    }
+    for (const reading of record?.recentScans || []) readings.set(reading.at, reading);
+    return [...readings.values()].sort((a, b) => a.at - b.at).slice(-RECENT_SCAN_LIMIT);
   }
   function eventAt(at, kind, extra) {
     return Object.assign({ at, kind }, extra);
@@ -166,7 +176,13 @@
     const entry = ensure(id);
     const previous = entry.snapshots[entry.snapshots.length - 1] || null;
     // Late or duplicated scan results must never rewrite chronological history.
-    if (previous && snapshot.at <= previous.at) return { ok: false, reason: 'Out-of-order scan.' };
+    const lastScan = Math.max(previous?.at || 0, Number(entry.lastScannedAt) || 0);
+    if (snapshot.at <= lastScan) return { ok: false, reason: 'Out-of-order scan.' };
+    entry.recentScans = [...recentScans(entry), {
+      at: snapshot.at,
+      population: snapshot.population,
+      villageCount: snapshot.villages.length
+    }].slice(-RECENT_SCAN_LIMIT);
     updatePending(entry, snapshot);
     const changes = compareSnapshots(previous, snapshot);
     entry.events.push(...changes);
@@ -318,7 +334,7 @@
     return villages;
   }
   window.APES_WATCHLIST_HISTORY = Object.freeze({
-    key, load, read, seed, seedExisting, record, save, timeline, trend, villageTrend, chart, latestVillages,
+    key, load, read, recentScans, seed, seedExisting, record, save, timeline, trend, villageTrend, chart, latestVillages,
     compareSnapshots, normalize, pruneAll,
     MAX_SNAPSHOTS, MAX_EVENTS, MAX_AGE_MS, MAX_PLAYERS
   });

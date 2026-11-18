@@ -1077,7 +1077,9 @@
     "Saved Reports": "Relatórios guardados",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "O Arquivo de Relatórios não está disponível. Ativa-o nas definições do APES QoL.",
     "6h": "6 h",
-    "Village population changed": "População da aldeia alterada"
+    "Village population changed": "População da aldeia alterada",
+    "Last Pop Changes": "Últimas alterações de população",
+    "Last Vil Changes": "Últimas alterações de aldeias"
   },
   "es-ES": {
     "Language": "Idioma",
@@ -2155,7 +2157,9 @@
     "Saved Reports": "Informes guardados",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "El Archivo de Informes no está disponible. Actívalo en los ajustes de APES QoL.",
     "6h": "6 h",
-    "Village population changed": "Población de la aldea modificada"
+    "Village population changed": "Población de la aldea modificada",
+    "Last Pop Changes": "Últimos cambios de población",
+    "Last Vil Changes": "Últimos cambios de aldeas"
   },
   "fr": {
     "Language": "Langue",
@@ -3233,7 +3237,9 @@
     "Saved Reports": "Rapports enregistrés",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "Les archives de rapports ne sont pas disponibles. Activez-les dans les paramètres d’APES QoL.",
     "6h": "6 h",
-    "Village population changed": "Population du village modifiée"
+    "Village population changed": "Population du village modifiée",
+    "Last Pop Changes": "Dernières variations de population",
+    "Last Vil Changes": "Dernières variations du nombre de villages"
   },
   "ru": {
     "Language": "Язык",
@@ -4311,7 +4317,9 @@
     "Saved Reports": "Сохранённые отчёты",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "Архив отчётов недоступен. Включите его в настройках APES QoL.",
     "6h": "6 ч",
-    "Village population changed": "Население деревни изменилось"
+    "Village population changed": "Население деревни изменилось",
+    "Last Pop Changes": "Последние изменения населения",
+    "Last Vil Changes": "Последние изменения числа деревень"
   },
   "cs": {
     "Language": "Jazyk",
@@ -5389,7 +5397,9 @@
     "Saved Reports": "Uložené reporty",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiv reportů není dostupný. Zapněte jej v nastavení APES QoL.",
     "6h": "6 h",
-    "Village population changed": "Změna populace vesnice"
+    "Village population changed": "Změna populace vesnice",
+    "Last Pop Changes": "Poslední změny populace",
+    "Last Vil Changes": "Poslední změny počtu vesnic"
   },
   "de": {
     "Language": "Sprache",
@@ -6467,7 +6477,9 @@
     "Saved Reports": "Gespeicherte Berichte",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "Das Berichtsarchiv ist nicht verfügbar. Aktiviere es in den APES-QoL-Einstellungen.",
     "6h": "6 Std.",
-    "Village population changed": "Dorfbevölkerung geändert"
+    "Village population changed": "Dorfbevölkerung geändert",
+    "Last Pop Changes": "Letzte Bevölkerungsänderungen",
+    "Last Vil Changes": "Letzte Änderungen der Dorfanzahl"
   },
   "it": {
     "Language": "Lingua",
@@ -7545,7 +7557,9 @@
     "Saved Reports": "Report salvati",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "L’archivio dei report non è disponibile. Attivalo nelle impostazioni di APES QoL.",
     "6h": "6 h",
-    "Village population changed": "Popolazione del villaggio modificata"
+    "Village population changed": "Popolazione del villaggio modificata",
+    "Last Pop Changes": "Ultime variazioni popolazione",
+    "Last Vil Changes": "Ultime variazioni numero villaggi"
   },
   "pl": {
     "Language": "Język",
@@ -8623,7 +8637,9 @@
     "Saved Reports": "Zapisane raporty",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "Archiwum raportów jest niedostępne. Włącz je w ustawieniach APES QoL.",
     "6h": "6 godz.",
-    "Village population changed": "Zmiana populacji wioski"
+    "Village population changed": "Zmiana populacji wioski",
+    "Last Pop Changes": "Ostatnie zmiany populacji",
+    "Last Vil Changes": "Ostatnie zmiany liczby wiosek"
   },
   "ro": {
     "Language": "Limbă",
@@ -9701,7 +9717,9 @@
     "Saved Reports": "Rapoarte salvate",
     "Report Archive is unavailable. Enable it in APES QoL settings.": "Arhiva de rapoarte nu este disponibilă. Activeaz-o în setările APES QoL.",
     "6h": "6 h",
-    "Village population changed": "Populația satului s-a schimbat"
+    "Village population changed": "Populația satului s-a schimbat",
+    "Last Pop Changes": "Ultimele schimbări de populație",
+    "Last Vil Changes": "Ultimele schimbări ale numărului de sate"
   }
 };
 })();

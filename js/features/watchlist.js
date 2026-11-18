@@ -41,39 +41,20 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     const tooltip = escapeHtml(window.APES?.i18n?.t(label) ?? label);
     return apesHtml_watchlist`<span class="${classes}${kind === 'swordCastle' || kind === 'swordHouse' ? (' qol-wl-combo-icon') : ''}" title="${tooltip}" aria-label="${tooltip}">${artwork}</span>`;
   }
-  function changeDescriptor(value) {
-    const numeric = value == null || value === '' ? null : Number(value);
-    if (!Number.isFinite(numeric)) return {
-      tone: 'stationary',
-      arrow: '—',
-      amount: '—'
-    };
-    if (numeric > 0) return {
-      tone: 'positive',
-      arrow: '↗',
-      amount: Math.abs(numeric).toLocaleString()
-    };
-    if (numeric < 0) return {
-      tone: 'negative',
-      arrow: '↘',
-      amount: Math.abs(numeric).toLocaleString()
-    };
-    return {
-      tone: 'stationary',
-      arrow: '→',
-      amount: '0'
-    };
-  }
-  function changeMetricHtml(kind, label, value) {
-    const change = changeDescriptor(value);
-    return apesHtml_watchlist`<span class="qol-wl-change qol-${change.tone}">${iconHtml(kind, label, 'qol-wl-change-icon')}<span>${change.arrow} ${change.amount}</span></span>`;
-  }
-  function changesHtml(entry) {
-    const scanIssue = entry.lastScanError ? `<span class="qol-wl-scan-issue" title="${escapeHtml('Last scan failed: ' + entry.lastScanError)}" aria-label="Last scan failed">!</span> ` : '';
-    const details = entry.villageChange == null && entry.populationChange == null
-      ? apesHtml_watchlist`<span class="qol-wl-change qol-stationary">Baseline</span>`
-      : apesHtml_watchlist`${changeMetricHtml('house', 'Village change', entry.villageChange)}<span class="qol-wl-change-divider">|</span>${changeMetricHtml('people', 'Population change', entry.populationChange)}`;
-    return apesHtml_watchlist`<span class="qol-wl-intelligence-link qol-wl-history-link" role="button" tabindex="0" data-wl-intel="history" data-player-id="${escapeHtml(entry.playerId)}" title="View player intelligence">${scanIssue}${details}</span>`;
+  function scanSequenceHtml(entry, readings, metric) {
+    const scanIssue = metric === 'population' && entry.lastScanError
+      ? `<span class="qol-wl-scan-issue" title="${escapeHtml('Last scan failed: ' + entry.lastScanError)}" aria-label="Last scan failed">!</span> `
+      : '';
+    const sequence = readings.map((reading, index) => {
+      const value = reading[metric];
+      const previous = readings[index - 1]?.[metric];
+      const total = Number.isFinite(value) ? value.toLocaleString() : '—';
+      if (!Number.isFinite(previous) || !Number.isFinite(value)) return total;
+      const [arrow, tone] = value > previous ? ['↗', 'positive']
+        : value < previous ? ['↘', 'negative'] : ['→', 'stationary'];
+      return `<span class="qol-wl-scan-step qol-${tone}">${arrow} ${total}</span>`;
+    }).join(' ');
+    return apesHtml_watchlist`<span class="qol-wl-intelligence-link qol-wl-history-link qol-wl-scan-sequence" role="button" tabindex="0" data-wl-intel="history" data-player-id="${escapeHtml(entry.playerId)}" title="View player intelligence">${scanIssue}<span>${sequence || '—'}</span></span>`;
   }
   function navigateToGameRoute(route) {
     let currentHash = window.location.hash || '#/';
@@ -431,7 +412,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
             }
             .qol-wl-table {
                 width: 100% !important;
-                min-width: 1010px !important;
+                min-width: 1280px !important;
                 border-collapse: collapse !important;
                 table-layout: fixed !important;
                 background-color: white !important;
@@ -456,7 +437,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
             }
             .qol-wl-table tr:hover td { background:#fff8e7 !important; }
             .qol-wl-table th.qol-wl-icon-column, .qol-wl-table td.qol-wl-centered { text-align:center !important; }
-            .qol-wl-table .qol-wl-col-player{width:145px!important}.qol-wl-table .qol-wl-col-population{width:76px!important}.qol-wl-table .qol-wl-col-villages{width:65px!important}.qol-wl-table .qol-wl-col-capital{width:130px!important}.qol-wl-table .qol-wl-col-secondary{width:150px!important}.qol-wl-table .qol-wl-col-send{width:95px!important}.qol-wl-table .qol-wl-col-changes{width:180px!important}.qol-wl-table .qol-wl-col-notes{width:180px!important}
+            .qol-wl-table .qol-wl-col-player{width:145px!important}.qol-wl-table .qol-wl-col-population{width:76px!important}.qol-wl-table .qol-wl-col-villages{width:65px!important}.qol-wl-table .qol-wl-col-capital{width:130px!important}.qol-wl-table .qol-wl-col-secondary{width:150px!important}.qol-wl-table .qol-wl-col-send{width:95px!important}.qol-wl-table .qol-wl-col-pop-changes{width:225px!important}.qol-wl-table .qol-wl-col-vil-changes{width:145px!important}.qol-wl-table .qol-wl-col-notes{width:180px!important}
             .qol-wl-table td a.qol-route-link {
                 color: #005580 !important;
                 text-decoration: none !important;
@@ -472,14 +453,12 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
             .qol-wl-metric-icon svg { width:16px!important;height:16px!important;fill:none!important;stroke:currentColor!important;stroke-width:1.8!important;stroke-linecap:round!important;stroke-linejoin:round!important; }
             .qol-wl-combo-icon { width:30px!important;gap:0!important; }
             .qol-wl-combo-icon svg { width:15px!important;height:15px!important; }
-            .qol-wl-change { display:inline-flex!important;align-items:center!important;gap:2px!important;font-weight:700!important;white-space:nowrap!important; }
-            .qol-wl-change-icon { width:13px!important;height:13px!important; }
-            .qol-wl-change-icon svg { width:12px!important;height:12px!important;stroke-width:2!important; }
-            .qol-wl-change-divider { display:inline-block!important;margin:0 5px!important;color:#b7a98f!important; }
+            #qol-watchlist-container .qol-wl-intelligence-link.qol-wl-scan-sequence { font-weight:400!important;font-variant-numeric:tabular-nums!important;max-width:100%!important; }
+            .qol-wl-scan-step { white-space:nowrap!important; }
             .qol-wl-scan-issue { display:inline-flex!important;align-items:center!important;justify-content:center!important;width:14px!important;height:14px!important;border-radius:50%!important;color:#fff!important;background:#a83228!important;font-size:10px!important;font-weight:900!important;cursor:help!important; }
-            #qol-watchlist-container .qol-positive { color:#35651f!important; }
-            #qol-watchlist-container .qol-negative { color:#8b2922!important; }
-            #qol-watchlist-container .qol-stationary { color:#967016!important; }
+            #qol-watchlist-container .qol-wl-scan-step.qol-positive { color:#556b2f!important; }
+            #qol-watchlist-container .qol-wl-scan-step.qol-negative { color:#a52d2b!important; }
+            #qol-watchlist-container .qol-wl-scan-step.qol-stationary { color:#8a6500!important; }
 
             #qol-watchlist-container select.qol-wl-select {
                 display: inline-block !important;
@@ -1319,11 +1298,13 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
     tbody.innerHTML = '';
     if (activeTab.entries.length === 0) {
       const tr = document.createElement('tr');
-      tr.innerHTML = apesHtml_watchlist`<td colspan="9" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
+      tr.innerHTML = apesHtml_watchlist`<td colspan="10" style="text-align:center; color:#888; padding: 10px !important;">No players added yet. Open a player's profile in-game and click "Add Profile to Watchlist".</td>`;
       tbody.appendChild(tr);
       return;
     }
+    const history = historyLogic?.load().players;
     activeTab.entries.forEach((entry, index) => {
+      const readings = historyLogic?.recentScans(history[entry.playerId]) || [];
       const capitalName = entry.capital?.name || 'N/A';
       const capitalTitle = entry.capital?.coords ? `Capital village ${entry.capital.coords}` : 'Capital village';
       const capitalCoordsLink = entry.capital && entry.capital.coords ? apesHtml_watchlist`<a href="javascript:void(0)" class="qol-route-link" data-route="window:sendTroops/x:${escapeHtml(entry.capital.x)}/y:${escapeHtml(entry.capital.y)}" title="Send troops to ${escapeHtml(capitalName)}">${escapeHtml(entry.capital.coords)}</a>` : '-';
@@ -1359,7 +1340,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
                     </select></td>
                 <td class="qol-wl-centered">${capitalCoordsLink}</td>
                 <td class="qol-send-2nd-cell qol-wl-centered">${send2ndLink}</td>
-                <td>${changesHtml(entry)}</td>
+                <td>${scanSequenceHtml(entry, readings, 'population')}</td>
+                <td>${scanSequenceHtml(entry, readings, 'villageCount')}</td>
                 <td><input type="text" class="qol-wl-note-input" value="${escapeHtml(entry.notes || '')}" placeholder="Add note…" aria-label="Notes for ${escapeHtml(entry.playerName)}"></td>
             `;
       const selectEl = tr.querySelector('.qol-2nd-vil-select');
@@ -1436,7 +1418,7 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
                 
                 <div class="qol-wl-table-scroll-container">
                     <table class="qol-wl-table">
-                        <colgroup><col class="qol-wl-col-player"><col class="qol-wl-col-population"><col class="qol-wl-col-villages"><col class="qol-wl-col-capital"><col class="qol-wl-col-secondary"><col class="qol-wl-col-send"><col class="qol-wl-col-send"><col class="qol-wl-col-changes"><col class="qol-wl-col-notes"></colgroup>
+                        <colgroup><col class="qol-wl-col-player"><col class="qol-wl-col-population"><col class="qol-wl-col-villages"><col class="qol-wl-col-capital"><col class="qol-wl-col-secondary"><col class="qol-wl-col-send"><col class="qol-wl-col-send"><col class="qol-wl-col-pop-changes"><col class="qol-wl-col-vil-changes"><col class="qol-wl-col-notes"></colgroup>
                         <thead>
                             <tr>
                                 <th>Player</th>
@@ -1446,7 +1428,8 @@ const apesHtml_watchlist = window.APES?.i18n?.html || ((s, ...v) => String.raw({
                                 <th class="qol-wl-icon-column">${iconHtml('house', 'Secondary village')}</th>
                                 <th class="qol-wl-icon-column">${iconHtml('swordCastle', 'Send troops to capital')}</th>
                                 <th class="qol-wl-icon-column">${iconHtml('swordHouse', 'Send troops to secondary village')}</th>
-                                <th>Changes</th>
+                                <th>Last Pop Changes</th>
+                                <th>Last Vil Changes</th>
                                 <th>Notes</th>
                             </tr>
                         </thead>
