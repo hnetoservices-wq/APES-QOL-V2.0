@@ -126,13 +126,33 @@ function checks() {
   assert.equal(twoTabs[0].entries[0].notes, 'first');
   assert.equal(twoTabs[1].entries[0].notes, 'second');
 
+  const recentProfile = profile('100', 'Recent Scans', 123, base.villages);
+  const legacyReadings = { snapshots: [{ at: now, population: 123, villages: base.villages }] };
+  assert.equal(h.recentScans(legacyReadings)[0].villageCount, 2);
+  assert.equal(h.seed('100', recentProfile, now), true);
+  for (const [index, total] of [123, 457, 457, 1001, 900, 1600].entries()) {
+    const at = now + (index + 1) * 60000;
+    const reading = { ...recentProfile, population: String(total) };
+    assert.equal(h.record('100', reading, at).ok, true);
+    assert.equal(h.record('100', reading, at).ok, false, 'duplicate scans cannot count twice');
+  }
+  assert.equal(h.read('100').snapshots.length, 5, 'unchanged scans remain compact in the chart history');
+  assert.equal(h.save(), true);
+  const saved = JSON.parse(w.localStorage.getItem(h.key())).players['100'];
+  assert.deepEqual(Array.from(h.recentScans(saved), scan => scan.population), [457, 457, 1001, 900, 1600]);
+  assert.deepEqual(Array.from(h.recentScans(saved), scan => scan.villageCount), [2, 2, 2, 2, 2]);
+
   // Main Watchlist table exposes both intelligence entry points.
   w.localStorage.setItem('qol_watchlist_history-test.kingdoms.com', JSON.stringify([
-    { id:'tab_1', name:'Enemies', entries:[{ ...base, notes:'My note' }] }
+    { id:'tab_1', name:'Enemies', entries:[{ ...base, notes:'My note' }, recentProfile] }
   ]));
   w.eval(watchlistSource);
   document.dispatchEvent(new w.Event('DOMContentLoaded'));
-  assert.ok(document.querySelector('[data-wl-intel="history"]'));
+  assert.deepEqual(Array.from(document.querySelectorAll('.qol-wl-table th')).slice(-3).map(cell => cell.textContent),
+    ['Last Pop Changes', 'Last Vil Changes', 'Notes']);
+  const sequences = document.querySelectorAll('[data-wl-intel="history"][data-player-id="100"]');
+  assert.deepEqual(Array.from(sequences, sequence => sequence.textContent.replace(/[,\s]/g, '')),
+    ['457→457↗1001↘900↗1600', '2→2→2→2→2']);
   assert.ok(document.querySelector('[data-wl-intel="villages"]'));
   document.querySelector('[data-wl-intel="history"]').click();
   assert.ok(document.getElementById('qol-wl-intel-overlay'), 'Changes opens intelligence modal');

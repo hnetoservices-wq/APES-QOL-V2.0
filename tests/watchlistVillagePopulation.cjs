@@ -102,7 +102,7 @@ function testUI() {
   assert.deepEqual(columns, ['Village','Coordinates','Population','Status']);
   let rows = [...panel.querySelectorAll('.qol-wl-intel-villages tbody tr')];
   assert.equal(rows.find(row=>row.textContent.includes('Renamed Capital'))
-    .querySelector('.qol-wl-village-pop strong').textContent, '1,235');
+    .querySelector('.qol-wl-village-pop strong').textContent, (1235).toLocaleString());
   assert.equal(rows.find(row=>row.textContent.includes('Renamed Capital'))
     .querySelector('.qol-wl-village-pop-change').textContent, '+35');
   assert.equal(rows.find(row=>row.textContent.includes('Second'))
