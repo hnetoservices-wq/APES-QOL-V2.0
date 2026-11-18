@@ -180,6 +180,10 @@
         "css/features/watchlistIntelligence.css"
       ],
       "run_at": "document_idle"
+    },
+    {
+      "matches": ["*://lobby.kingdoms.com/*"],
+      "css": ["css/features/compactLobby.css"]
     }
   ],
   "icons": {

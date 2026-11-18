@@ -1,0 +1,184 @@
+#root .content-window:has(> .last-active-game-world, > .container-fluid > .active-game-world-container,
+    > .sitter-game-worlds, > .dual-game-worlds, > .container-fluid > .recommended-game-world-wrapper) {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+  gap: 10px;
+  align-items: start;
+
+  & > :not(.last-active-game-world) {
+    grid-column: 1 / -1;
+    min-width: 0;
+  }
+
+  /* Place the last-played card beside the other owned worlds. */
+  & > .container-fluid:has(> .active-game-world-container),
+  & > .container-fluid > .active-game-world-container {
+    display: contents;
+  }
+
+  :is(.container-fluid:has(> .active-game-world-container), .active-game-world-container,
+      .sitter-container, .dual-container, .recommended-game-world-wrapper)::before,
+  :is(.container-fluid:has(> .active-game-world-container), .active-game-world-container,
+      .sitter-container, .dual-container, .recommended-game-world-wrapper)::after {
+    content: none;
+  }
+
+  .active-game-world-container > .active-game-world-wrapper:not(:has(> .game-world)) {
+    display: none;
+  }
+
+  :is(.sitter-container, .dual-container, .recommended-game-world-wrapper) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 290px), 1fr));
+    gap: 10px;
+    margin: 0;
+    background: none;
+    border-bottom: 0;
+  }
+
+  :is(.active-game-world-container, .sitter-container, .dual-container, .recommended-game-world-wrapper)
+    > :is(.active-game-world-wrapper, .new-game-world-wrapper) {
+    width: auto;
+    min-width: 0;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .container-fluid:has(> .recommended-game-world-wrapper),
+  :is(.sitter-game-worlds, .dual-game-worlds) {
+    width: 100%;
+    padding-inline: 0;
+  }
+
+  .container-fluid:has(> .recommended-game-world-wrapper) > .row:has(> .recommended-game-world-header),
+  :is(.sitter-game-worlds, .dual-game-worlds) > .row:not(.sitter-container, .dual-container) {
+    margin-inline: 0;
+  }
+
+  :is(.sitter-header, .dual-header, .recommended-game-world-header) {
+    padding: 0;
+    margin: 0 0 4px;
+  }
+
+  :is(.sitter-header, .dual-header, .recommended-game-world-header) .text-content {
+    padding-block: 3px;
+  }
+
+  .game-world:is(.last-active-game-world, .active-game-world, .new-game-world) {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 0;
+    margin: 0;
+    border-radius: 4px;
+    background: #f4f2ec;
+  }
+
+  .game-world > .container-header,
+  .game-world > .container-content,
+  .game-world > .container-footer {
+    margin: 0;
+  }
+
+  .game-world .container-header {
+    padding: 4px 4px 0;
+  }
+
+  .game-world .container-header .header-button {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 2px 6px;
+    height: auto;
+    min-height: 32px;
+    line-height: 1.3;
+    font-size: 12px;
+  }
+
+  .game-world .container-header .header-button :is(.flag, .game-world-name, .special-rules, .avatar-name, .info) {
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  .game-world .container-header .header-button .avatar-name {
+    margin-inline-start: auto;
+    overflow-wrap: anywhere;
+  }
+
+  .game-world .container-header .header-button:focus-visible {
+    outline: 2px solid #3d541e;
+    outline-offset: -2px;
+  }
+
+  .game-world > .container-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 5px;
+  }
+
+  .game-world > .container-content > :has(> .background-container),
+  .game-world > .container-content > .background-container,
+  .game-world > .container-content > .avatar-prestige-box {
+    display: none !important;
+  }
+
+  .game-world > :is(.container-header, .container-content, .container-footer)
+    > :is(.col-md-18, .col-md-9, .information) {
+    width: 100%;
+    max-width: none;
+    flex-basis: auto;
+  }
+
+  .game-world .game-world-progress .progress {
+    height: 7px;
+    margin: 3px 0 0;
+  }
+
+  .game-world.active-game-world .information.hidden-sm:has(~ .visible-sm-block.information),
+  .game-world.last-active-game-world:has(.information.hidden-sm) .information.visible-sm-block {
+    display: none !important;
+  }
+
+  .game-world :is(.information.visible-sm-block, .information.hidden-sm) {
+    display: flex !important;
+    flex-wrap: wrap;
+    gap: 3px 12px;
+    margin: 0;
+    padding: 4px 2px;
+  }
+
+  .game-world > .container-content > .information > div {
+    position: static;
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 3px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    height: auto;
+    line-height: 1.35;
+    font-size: 11px;
+  }
+
+  .game-world > .container-content > .information > div > span {
+    float: none;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    line-height: inherit !important;
+    text-align: start !important;
+  }
+
+  .game-world > .container-footer .default-button {
+    padding: 3px 5px;
+  }
+
+  .game-world > .container-footer .default-button button {
+    min-height: 26px;
+    height: auto;
+    line-height: 1.2;
+    padding: 4px 8px;
+  }
+}
