@@ -12,6 +12,9 @@
       "matches": [
         "*://*.kingdoms.com/*"
       ],
+      "exclude_matches": [
+        "*://lobby.kingdoms.com/*"
+      ],
       "js": [
         "js/core/playerIdentityBridge.js",
         "js/modules/igm/roomIdBridge.js",
@@ -32,6 +35,9 @@
     {
       "matches": [
         "*://*.kingdoms.com/*"
+      ],
+      "exclude_matches": [
+        "*://lobby.kingdoms.com/*"
       ],
       "js": [
         "js/core/bootstrap.js",
@@ -182,8 +188,13 @@
       "run_at": "document_idle"
     },
     {
-      "matches": ["*://lobby.kingdoms.com/*"],
-      "css": ["css/features/compactLobby.css"]
+      "matches": [
+        "*://lobby.kingdoms.com/*"
+      ],
+      "css": [
+        "css/features/compactLobby.css"
+      ],
+      "run_at": "document_start"
     }
   ],
   "icons": {
