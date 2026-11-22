@@ -1,0 +1,43 @@
+name: Prepare extension ZIP (manual review only)
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    if: github.ref_type == 'branch' && (github.ref_name == 'main' || startsWith(github.ref_name, 'release/'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the selected branch
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Validate source
+        run: node tools/validate-extension.mjs
+      - name: Install test dependencies
+        run: npm ci --prefix tests --ignore-scripts
+      - name: Run all regression tests
+        run: npm test --prefix tests
+      - name: Build review ZIP from extension-only files
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./manifest.json').version")"
+          zip -q -r "APES-QoL-${VERSION}.zip" manifest.json js css icons images
+      - name: Upload review package
+        uses: actions/upload-artifact@v4
+        with:
+          name: apes-qol-review-zip
+          path: APES-QoL-*.zip
+          retention-days: 14
+          if-no-files-found: error
+# This workflow does not create tags, GitHub Releases or Chrome Web Store uploads.

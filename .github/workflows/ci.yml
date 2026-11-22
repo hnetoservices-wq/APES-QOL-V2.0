@@ -1,0 +1,38 @@
+name: APES extension checks
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - 'release/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: extension-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  extension-checks:
+    name: Extension checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out proposed code
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: tests/package-lock.json
+      - name: Validate manifest and source syntax
+        run: node tools/validate-extension.mjs
+      - name: Install tests without running install scripts
+        run: npm ci --prefix tests --ignore-scripts
+      - name: Run regression tests
+        run: npm test --prefix tests
