@@ -16,8 +16,8 @@ At the time this policy was introduced, `main` was behind the current developmen
 In **Settings → Rules → Rulesets**, create an active branch ruleset targeting `main` and the active integration/release branch:
 
 1. Require a Pull Request before merging.
-2. Require at least **one approval**, including review from CODEOWNERS.
-3. Dismiss stale approvals on new commits and require resolved review conversations.
+2. For a single-maintainer repository, initially set required approving reviews to **0**. A PR author cannot approve their own PR, so requiring approval from the sole CODEOWNER could block the maintainer's own contributions. Add a trusted second reviewer or a deliberate maintainer bypass before requiring one approval and CODEOWNER review.
+3. Require review conversations to be resolved; if required reviews are later enabled, dismiss stale approvals on new commits.
 4. Require the `Extension checks` status check from the `APES extension checks` workflow **after it has run successfully at least once**.
 5. Block force pushes and branch deletion.
 6. Apply restrictions to administrators when appropriate so accidental direct pushes cannot bypass the process.
