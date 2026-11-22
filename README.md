@@ -4,6 +4,10 @@ APES QoL 2.0 is the current generation of the APES Travian Kingdoms browser exte
 
 The original v1 extension remains in its own repository. This repository contains the v2 architecture and the actively maintained feature set.
 
+## Community contributions
+
+APES QoL welcomes bug fixes and feature proposals through GitHub Issues and Pull Requests. Start with [CONTRIBUTING.md](CONTRIBUTING.md) and the [collaboration and release policy](docs/COLLABORATION_AND_RELEASES.md). Community contributions require maintainer review; no PR automatically becomes an official release.
+
 ## Current phase
 
 **2.0.0-beta.1 — Public Beta**

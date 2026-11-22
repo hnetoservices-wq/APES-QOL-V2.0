@@ -1,0 +1,3 @@
+# APES QoL maintainer and default reviewer for repository changes.
+# With a single maintainer, do not require CODEOWNER approval without a trusted second reviewer or deliberate bypass.
+* @hnetoservices-wq
