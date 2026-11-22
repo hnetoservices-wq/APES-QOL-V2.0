@@ -1,0 +1,32 @@
+name: Feature request
+description: Suggest a new tool or improvement to APES QoL
+title: "[Feature] "
+body:
+  - type: input
+    id: area
+    attributes:
+      label: Feature or game area
+      placeholder: e.g. Smithy / Player Dossier / Account Overview
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve
+      description: What repeated action or inconvenience should APES reduce?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe the user-facing result. Sketches or sanitized screenshots are welcome.
+    validations:
+      required: true
+  - type: textarea
+    id: interactions
+    attributes:
+      label: Existing tools, data and compatibility considerations
+      description: Mention any tools this should integrate with or safety risks you foresee.
+    validations:
+      required: false
