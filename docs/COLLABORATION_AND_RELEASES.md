@@ -33,6 +33,8 @@ Do not add a required status check before verifying its exact name in GitHub's r
 5. Maintainer merges approved PRs at a deliberate point.
 6. Passing CI does not automatically include the feature in a published build.
 
+Temporary baseline exception: the manifest/syntax **Extension checks** job is enforceable, but the existing full **Regression suite** is advisory until [issue #32](https://github.com/hnetoservices-wq/APES-QOL-V2.0/issues/32) is resolved. Do not make the advisory job a required check while known baseline failures remain. Manual ZIP packaging still requires a fully passing regression suite.
+
 ## Release lifecycle
 
 1. Choose an exact commit from a reviewed integration/release branch.
